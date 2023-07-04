@@ -1,9 +1,17 @@
+"use client"
+
+import { motion, useAnimation, useInView, useMotionValue, useScroll } from "framer-motion";
 import Image from "next/image";
-import { BsFileWordFill, BsInstagram, BsWhatsapp } from "react-icons/bs";
-import { CgWebsite } from "react-icons/cg";
+import { useEffect, useRef } from "react";
+import { BsInstagram, BsWhatsapp } from "react-icons/bs";
 import { GoGlobe } from "react-icons/go";
 
 export default function Footer() {
+
+    useEffect(() => {
+
+
+    }, [])
     return (
         <div className="flex flex-col">
             <div className="footer-content flex px-24 py-8 bg-teriary [&_li]:list-disc">
@@ -30,9 +38,11 @@ export default function Footer() {
                         </ul>
                     </nav>
                 </div>
-                <div className="logo hidden md:block flex-1">
+                <motion.div
+                    className="logo hidden md:block flex-1"
+                >
                     <Image src={"/assets/images/bpom.png"} alt="Logo BPOM RI" width={120} height={120} className="mx-auto" />
-                </div>
+                </motion.div>
             </div>
             <div className="footer text-center bg-quaternary py-4">
                 <p>Copyright &copy; <a href="https://mataram.pom.go.id">BBPOM di Mataram</a></p>

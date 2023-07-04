@@ -41,9 +41,15 @@ const Inventory = () => {
             <section className="content">
                 <div className="w-full">
                     {isReagen ?
-                        <TableReagen />
+                        <TableReagen
+                            url='api/barang/reagen'
+                            title='Data Reagen'
+                        />
                         :
-                        <TableAtk />
+                        <TableAtk
+                            url='api/barang/atk'
+                            title='Data ATK'
+                        />
                     }
                 </div>
             </section>
