@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import { delay, motion } from "framer-motion";
+import Link from "next/link";
 
 const Hero = () => {
     return (
@@ -30,11 +31,13 @@ const Hero = () => {
                             transition={{ duration: 2, staggerChildren: 1 }}
                             className="button"
                         >
-                            <motion.button
-                                whileHover={{ backgroundColor: '#C58940' }}
-                                className="bg-secondary rounded px-6 py-2 mr-2 mb-2">
-                                Masuk
-                            </motion.button>
+                            <Link href={'login'}>
+                                <motion.button
+                                    whileHover={{ backgroundColor: '#C58940' }}
+                                    className="bg-secondary rounded px-6 py-2 mr-2 mb-2">
+                                    Masuk
+                                </motion.button>
+                            </Link>
                             <motion.a
                                 whileHover={{ backgroundColor: '#C58940' }}
                                 href="#inventory"
