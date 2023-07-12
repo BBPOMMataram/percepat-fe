@@ -99,7 +99,7 @@ export default function SideBarMenuItem() {
                                             <span className="ml-2 mr-auto">{item.name}</span>
                                             <button onClick={() => handleSubmenu(i)}>{isSubmenuOpen && isIndexMatch === i ? <IoCaretDown /> : <IoCaretBack />}</button>
                                         </div>
-                                        <div className='pl-4'>
+                                        <div className='pl-4 pt-2'>
                                             <ul>
                                                 {item.submenus.map((submenu) => (
                                                     <AnimatePresence
@@ -108,7 +108,7 @@ export default function SideBarMenuItem() {
                                                         {
                                                             isSubmenuOpen && isIndexMatch === i &&
                                                             <motion.li
-                                                                className={`rounded flex px-2 ${activeClass}`}
+                                                                className={`rounded flex px-2 !pt-0 ${activeClass}`}
                                                                 initial={{ x: -120 }}
                                                                 animate={{ x: 0 }}
                                                                 exit={{ x: -120 }}
