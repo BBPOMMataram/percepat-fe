@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
-import axiosInstance from "../../config/axios";
 import { BiLoaderCircle } from "react-icons/bi";
+import axiosInstance from "../../config/axios";
 
 export default function TableAtk(props: any) {
     const [data, setReagen] = useState<any>()

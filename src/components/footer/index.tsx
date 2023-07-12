@@ -1,8 +1,8 @@
 "use client"
 
-import { motion, useAnimation, useInView, useMotionValue, useScroll } from "framer-motion";
+import { motion } from "framer-motion";
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { BsInstagram, BsWhatsapp } from "react-icons/bs";
 import { GoGlobe } from "react-icons/go";
 

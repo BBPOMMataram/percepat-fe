@@ -1,5 +1,7 @@
-import { Josefin_Sans } from 'next/font/google'
-import './globals.css'
+import { Providers } from '@/redux/provider';
+import { Josefin_Sans } from 'next/font/google';
+import 'react-toastify/dist/ReactToastify.css';
+import './globals.css';
 
 const josefinSans = Josefin_Sans({ subsets: ['latin'] })
 
@@ -17,8 +19,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
+
     <html lang="en" className='scroll-smooth'>
-      <body className={`${josefinSans.className} bg-primary`}>{children}</body>
+      <body className={`${josefinSans.className} bg-primary`}>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   )
 }

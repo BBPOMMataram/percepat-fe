@@ -2,38 +2,62 @@
 
 import axios from "@/config/axios";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { GoEye, GoEyeClosed, GoKey } from "react-icons/go";
+import { useAuth } from "@/hooks/auth";
+import { ToastContainer, toast } from "react-toastify";
 
 export default function AuthForm(props: any) {
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-
-    const [showPassword, setShowPassword] = useState(false)
-
     const csrf = () => axios.get('sanctum/csrf-cookie')
 
-    const router = useRouter();
-    const handleLogin = async () => {
+    const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
+    const [showPassword, setShowPassword] = useState(false)
+    const [shouldRemember, setShouldRemember] = useState(false)
+    const [errors, setErrors] = useState<any>([])
+    const [status, setStatus] = useState(null)
+    const [errorMessage, setErrorMessage] = useState()
+
+    const { login } = useAuth({
+        middleware: 'guest',
+        redirectIfAuthenticated: '/dashboard',
+    })
+
+    const handleLogin = async (e) => {
+        e.preventDefault()
+
         await csrf()
 
-        const res = await axios.post('login', {
+        login({
             email,
-            password
+            password,
+            remember: shouldRemember,
+            setErrors,
+            setStatus,
         })
-
-        if (!res) {
-            console.log('error: ', res);
-        }
-
-        router.push('/dashboard')
-
     }
 
+    useEffect(() => {
+        if (errors) {
+            setErrorMessage(errors.email && errors.email[0] || errors.password && errors.password[0])
+
+            toast.error(errorMessage, {
+                position: "top-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "light",
+            });
+        }
+    }, [errorMessage, errors])
 
     return (
         <div className="flex justify-center items-center h-screen text-white">
+            <ToastContainer />
             <div className="side-img bg-[#227095] h-full flex-1 hidden lg:flex justify-center items-center">
                 <Image src={"https://media.giphy.com/media/LkL4dGbQId8ezdHEoX/giphy.gif"} alt="form login animation" width={500} height={500} />
             </div>
@@ -43,38 +67,48 @@ export default function AuthForm(props: any) {
                         <GoKey className="mx-auto text-xl" />
                         <h1 className="capitalize text-center my-2 text-2xl">{props.mode} Form</h1>
                     </div>
-                    {/* <form action=""> */}
-                    <div className="flex flex-col mb-2">
-                        <label htmlFor="email">Username / email</label>
-                        <input className="p-2 bg-secondary text-quaternary focus:outline-none"
-                            type="text"
-                            placeholder="Username / email"
-                            id="email"
-                            value={email}
-                            onChange={(e: any) => setEmail(e.target.value)}
-                        />
-                    </div>
-                    <div className="flex flex-col mb-2">
-                        <label htmlFor="password">Password</label>
-                        <div className="flex bg-secondary items-center">
+                    <form onSubmit={handleLogin}>
+                        <div className="flex flex-col mb-2">
+                            <label htmlFor="email">Username / email</label>
                             <input className="p-2 bg-secondary text-quaternary focus:outline-none"
-                                type={showPassword ? "text" : "password"}
-                                placeholder="Password"
-                                id="password"
-                                value={password}
-                                onChange={(e: any) => setPassword(e.target.value)}
+                                type="text"
+                                placeholder="Username / email"
+                                id="email"
+                                value={email}
+                                onChange={(e: any) => setEmail(e.target.value)}
                             />
-                            <div role="button" className="text-quaternary border-l border-teriary w-8 flex justify-center" onClick={() => setShowPassword(!showPassword)}>
-                                {!showPassword ? <GoEye /> : <GoEyeClosed />}
+                        </div>
+                        <div className="flex flex-col mb-2">
+                            <label htmlFor="password">Password</label>
+                            <div className="flex bg-secondary items-center">
+                                <input className="p-2 bg-secondary text-quaternary focus:outline-none"
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="Password"
+                                    id="password"
+                                    value={password}
+                                    onChange={(e: any) => setPassword(e.target.value)}
+                                />
+                                <div role="button" className="text-quaternary border-l border-teriary w-8 flex justify-center" onClick={() => setShowPassword(!showPassword)}>
+                                    {!showPassword ? <GoEye /> : <GoEyeClosed />}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div className="text-right mt-6">
-                        <button className="bg-secondary text-quaternary hover:bg-teriary hover:text-quaternary font-semibold px-6 py-2 rounded"
-                            onClick={handleLogin}
-                        >Login</button>
-                    </div>
-                    {/* </form> */}
+                        <div className="">
+                            <label htmlFor="remember-me" className="inline-flex">
+                                <input
+                                    type="checkbox"
+                                    className="mr-1 "
+                                    onChange={(e) => setShouldRemember(e.target.checked)}
+                                />
+                                remember me
+                            </label>
+                        </div>
+                        <div className="text-right mt-6">
+                            <button className="bg-secondary text-quaternary hover:bg-teriary hover:text-quaternary font-semibold px-6 py-2 rounded">
+                                Login
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

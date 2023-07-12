@@ -3,8 +3,8 @@
 import cs from "classnames";
 import { useState } from "react";
 import { CgToggleSquare, CgToggleSquareOff } from "react-icons/cg";
-import TableReagen from "./TableReagen";
 import TableAtk from "./TableAtk";
+import TableReagen from "./TableReagen";
 
 const Inventory = () => {
     const [isReagen, setIsReagen] = useState(true)
