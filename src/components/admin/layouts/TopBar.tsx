@@ -1,14 +1,14 @@
 "use client"
 
+import { toggleSideBar } from "@/features/layout/sideBarSlice";
+import { toggleUserMenu } from "@/features/layout/topBarSlice";
 import { useAuth } from "@/hooks/auth";
+import { RootState } from "@/redux/store";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { GiExitDoor, GiHamburgerMenu } from "react-icons/gi";
 import { useDispatch, useSelector } from "react-redux";
-import { toggleSideBar } from "@/features/layout/sideBarSlice";
-import { RootState } from "@/redux/store";
-import { toggleUserMenu } from "@/features/layout/topBarSlice";
 
 const useClickOutside = (ref: any, refUserBtn: any) => {
     const dispatch = useDispatch()
@@ -25,14 +25,17 @@ const useClickOutside = (ref: any, refUserBtn: any) => {
         }
     }, [ref, refUserBtn, dispatch])
 }
+
+
 export default function TopBar() {
-    const { user } = useAuth({ middleware: 'auth' })
+    const { user, logout } = useAuth({ middleware: 'auth' })
     const isUserMenuOpen = useSelector((state: RootState) => state.topBar.isUserMenuOpen)
 
     const dispatch = useDispatch()
     const userMenuRef = useRef(null)
     const userBtnMenuRef = useRef(null)
     useClickOutside(userMenuRef, userBtnMenuRef)
+
     return (
         <div className="flex items-center bg-quaternary py-4 px-2">
             <button onClick={() => dispatch(toggleSideBar())} className="burger-btn">
@@ -59,7 +62,7 @@ export default function TopBar() {
                                 <div>
                                     {user?.email}
                                 </div>
-                                <button className="flex border-t border-quaternary pt-2 mt-3 pr-3">
+                                <button className="flex border-t border-quaternary pt-2 mt-3 pr-3" onClick={logout}>
                                     <GiExitDoor title="Logout" /> Keluar
                                 </button>
                             </motion.div>

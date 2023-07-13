@@ -2,9 +2,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { BiCartDownload } from "react-icons/bi";
 import { GoDashboard, GoPerson } from "react-icons/go";
 import { IoCaretBack, IoCaretDown } from "react-icons/io5";
 import { TbReportAnalytics } from "react-icons/tb";
+import { TfiShoppingCartFull } from "react-icons/tfi";
 
 export default function SideBarMenuItem() {
     const pathname = usePathname()
@@ -17,13 +19,13 @@ export default function SideBarMenuItem() {
         },
         {
             name: 'Penerimaan',
-            link: '/',
-            icon: <GoPerson />
+            link: '/penerimaan',
+            icon: <BiCartDownload />
         },
         {
             name: 'Permintaan',
             link: '/',
-            icon: <GoPerson />
+            icon: <TfiShoppingCartFull />
         },
         {
             name: 'Laporan',

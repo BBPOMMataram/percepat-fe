@@ -1,10 +1,10 @@
 "use client"
 
+import Loading from "@/components/admin/layouts/Loading"
 import Footer from "@/components/footer"
 import Hero from "@/components/header/Hero"
 import Inventory from "@/components/inventory"
 import { useEffect, useState } from "react"
-import { BiLoaderCircle } from "react-icons/bi"
 
 const Home = () => {
   const [loading, setLoading] = useState(true);
@@ -16,10 +16,7 @@ const Home = () => {
   }, [loading])
 
   return loading ?
-    <div className="text-center">
-      <BiLoaderCircle className="mx-auto mt-24 mb-6 text-5xl text-quaternary animate-spin"></BiLoaderCircle>
-      <div>Terimakasih atas kesabaran Anda menunggu ;)</div>
-    </div>
+    <Loading />
     : (
       <>
         <header>
