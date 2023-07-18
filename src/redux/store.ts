@@ -1,11 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit'
 import sideBarReducer from '../features/layout/sideBarSlice'
 import topBarReducer from '@/features/layout/topBarSlice'
+import penerimaanReducer from '@/features/penerimaanSlice'
 
 export const store = configureStore({
     reducer: {
         sideBar: sideBarReducer,
-        topBar: topBarReducer
+        topBar: topBarReducer,
+        penerimaanReducer,
     },
 })
 

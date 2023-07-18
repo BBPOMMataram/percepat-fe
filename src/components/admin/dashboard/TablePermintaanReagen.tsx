@@ -2,9 +2,10 @@
 
 import axiosInstance from "@/config/axios";
 import { useCallback, useEffect, useState } from "react";
-import { BiCartDownload, BiLoaderCircle } from "react-icons/bi";
+import { BiLoaderCircle } from "react-icons/bi";
+import { TfiShoppingCartFull } from "react-icons/tfi";
 
-export default function TablePenerimaanAtk(props: any) {
+export default function TablePermintaanReagen(props: any) {
     const [data, setData] = useState<any>()
     const [nameToSearch, setNameToSearch] = useState('')
 
@@ -25,11 +26,13 @@ export default function TablePenerimaanAtk(props: any) {
             return (
                 <tr key={index}>
                     <td>{number++}</td>
-                    <td>{item.atk?.name}</td>
-                    <td>{item.atk?.satuan}</td>
-                    <td>{item.jumlah}</td>
-                    <td>{item.vendor}</td>
-                    <td>{new Date(item.created_at).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                    <td>{item.barang.name}</td>
+                    <td>{item.barang.satuan}</td>
+                    <td>{item.jumlahpermintaan}</td>
+                    <td>{item.jumlahrealisasi}</td>
+                    <td>{item.permintaan.status.name}</td>
+                    <td>{new Date(item.permintaan.tgl_permintaan).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                    <td>{item.keterangan || '-'}</td>
                 </tr>
             )
         })
@@ -40,7 +43,7 @@ export default function TablePenerimaanAtk(props: any) {
             <div className="mb-4">
                 <div className="table-header flex items-center mb-2">
                     <h2 className="text-xl sm:text-2xl xl:text-3xl flex">
-                        <BiCartDownload className="inline-block mr-2" /> <span>{props.title}</span>
+                        <TfiShoppingCartFull className="inline-block mr-2" /> <span>{props.title}</span>
                     </h2>
                     <div className="search ml-auto">
                         <input type="text" className="p-2 border border-quaternary focus:outline-none"
@@ -58,9 +61,11 @@ export default function TablePenerimaanAtk(props: any) {
                                 <th>No</th>
                                 <th>Nama</th>
                                 <th>Satuan</th>
-                                <th>Jumlah</th>
-                                <th>Vendor</th>
+                                <th>Jml Permintaan</th>
+                                <th>Jml Realisasi</th>
+                                <th>Status</th>
                                 <th>Tanggal</th>
+                                <th>Keterangan</th>
                             </tr>
                         </thead>
                         <tbody className="[&_td]:border [&_td]:border-quaternary [&_td]:px-2 [&_td]:py-1">

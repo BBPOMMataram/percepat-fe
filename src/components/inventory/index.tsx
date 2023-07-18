@@ -1,5 +1,3 @@
-"use client"
-
 import cs from "classnames";
 import { useState } from "react";
 import { CgToggleSquare, CgToggleSquareOff } from "react-icons/cg";

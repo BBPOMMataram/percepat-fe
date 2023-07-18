@@ -5,8 +5,10 @@ import { useState } from "react";
 import { BiCartDownload } from "react-icons/bi";
 import { GoDashboard, GoPerson } from "react-icons/go";
 import { IoCaretBack, IoCaretDown } from "react-icons/io5";
+import { SlChemistry } from "react-icons/sl";
 import { TbReportAnalytics } from "react-icons/tb";
 import { TfiShoppingCartFull } from "react-icons/tfi";
+import { GiBookshelf } from "react-icons/gi";
 
 export default function SideBarMenuItem() {
     const pathname = usePathname()
@@ -19,8 +21,12 @@ export default function SideBarMenuItem() {
         },
         {
             name: 'Penerimaan',
-            link: '/penerimaan',
-            icon: <BiCartDownload />
+            link: '#',
+            icon: <BiCartDownload />,
+            submenus: [
+                { name: 'Reagen', link: '/penerimaan/reagen', icon: <SlChemistry /> },
+                { name: 'ATK', link: '/penerimaan/atk', icon: <GiBookshelf /> }
+            ]
         },
         {
             name: 'Permintaan',
@@ -36,7 +42,6 @@ export default function SideBarMenuItem() {
             separator: 'MASTER'
         },
         {
-            hasSubmenu: true,
             name: 'Barang',
             link: '/',
             icon: <GoPerson />,
@@ -93,13 +98,13 @@ export default function SideBarMenuItem() {
                                 itemEl = <div key={i} className="text-quaternary ml-1 text-sm font-bold">{item.separator}</div>
                             }
 
-                            if (item.hasSubmenu) {
+                            if (item.submenus) {
                                 itemEl =
                                     <li key={i} className="px-2 !pb-0">
                                         <div className="flex">
                                             {item.icon}
                                             <span className="ml-2 mr-auto">{item.name}</span>
-                                            <button onClick={() => handleSubmenu(i)}>{isSubmenuOpen && isIndexMatch === i ? <IoCaretDown /> : <IoCaretBack />}</button>
+                                            <button className="ml-5" onClick={() => handleSubmenu(i)}>{isSubmenuOpen && isIndexMatch === i ? <IoCaretDown /> : <IoCaretBack />}</button>
                                         </div>
                                         <div className='pl-4 pt-2'>
                                             <ul>

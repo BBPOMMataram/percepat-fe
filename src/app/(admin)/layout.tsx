@@ -21,9 +21,16 @@ export default function AdminLayout({
                     <header>
                         <TopBar />
                     </header>
-                    <main className='p-4 mb-6'>
-                        {children}
-                    </main>
+                    <div>
+                        <main className='p-4 mb-6'>
+                            {children}
+                        </main>
+                        <footer className='bg-secondary px-4 pb-2 pt-5 border-t border-quaternary text-quaternary'>
+                            <p>
+                                PERCEPAT &copy; Balai Besar Pengawas Obat dan Makanan di Mataram
+                            </p>
+                        </footer>
+                    </div>
                 </div>
             </div>
         )
