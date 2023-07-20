@@ -1,7 +1,7 @@
 "use client"
 
 import axios from "@/config/axios";
-import { penerimaanActions } from "@/features/penerimaanSlice";
+import { fetchDataReagen, penerimaanActions } from "@/features/penerimaanSlice";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import AsyncSelect from 'react-select/async';
@@ -46,7 +46,7 @@ export default function FormPenerimaan() {
 
         const todayFormatted = `${year}-${month}-${date}`
 
-        setToday(todayFormatted)
+        setToday(todayFormatted) //UNTUK SET DEFAULT TANGGAL PENERIMAAN KE HARI INI
     }, [])
 
     const formRef = useRef<any>(null)
@@ -71,6 +71,7 @@ export default function FormPenerimaan() {
                 });
                 formRef.current.reset();
                 reagenSelectRef.current.clearValue();
+                dispatch(fetchDataReagen())
             })
             .catch(({ response }) => {
                 const errors = response.data.errors

@@ -1,22 +1,22 @@
 "use client"
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { fetchDataReagen } from "@/features/penerimaanSlice";
+import { RootState } from "@/redux/store";
+import { Fragment, useEffect, useState } from "react";
 import { BiLoaderCircle } from "react-icons/bi";
-import axios from "@/config/axios";
+import { useDispatch, useSelector } from "react-redux";
 
 export default function TablePenerimaanReagen(props: any) {
-    const [data, setReagen] = useState<any>()
+    const data = useSelector((state: RootState) => state.penerimaanReducer.dataReagen)
+
     const [valuePerPage, setValuePerPage] = useState('5')
     const [nameToSearch, setNameToSearch] = useState('')
 
-    const getData = useCallback(async (url = `${props.url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${data?.current_page}`) => {
-        const res = await axios.get(url)
-
-        setReagen(res.data);
-    }, [valuePerPage, data, nameToSearch, props])
-
+    const dispatch = useDispatch<any>()
     useEffect(() => {
-        getData()
+        const url = `${props.url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${data?.current_page}`
+        dispatch(fetchDataReagen(url))
+
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [valuePerPage, nameToSearch])
 
@@ -27,6 +27,11 @@ export default function TablePenerimaanReagen(props: any) {
             number = (data?.current_page - 1) * parseInt(valuePerPage) + 1
         }
         return data?.data?.map((item: any, index: number) => {
+            const expired = item.expired ?
+                new Date(item.expired).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+                : '-'
+            const createdAt = new Date(item.created_at).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+
             return (
                 <tr key={index}>
                     <td>{number++}</td>
@@ -34,8 +39,8 @@ export default function TablePenerimaanReagen(props: any) {
                     <td>{item.barang.satuan}</td>
                     <td>{item.jumlah}</td>
                     <td>{item.vendor}</td>
-                    <td>{new Date(item.expired).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</td>
-                    <td>{new Date(item.created_at).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                    <td>{expired}</td>
+                    <td>{createdAt}</td>
                 </tr>
             )
         })
@@ -108,7 +113,7 @@ export default function TablePenerimaanReagen(props: any) {
                                     <button className={`p-2 rounded py-1 mx-[.1rem] my-2 ${active ? 'bg-teriary' : disabled ? 'bg-gray-200 text-gray-400' : 'bg-secondary '}`}
                                         dangerouslySetInnerHTML={{ __html: label }
                                         }
-                                        onClick={() => getData(url)}
+                                        onClick={() => dispatch(fetchDataReagen(url))}
                                         disabled={disabled}
                                     />
                                 </Fragment >
