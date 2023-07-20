@@ -1,12 +1,11 @@
+import Atk from "@/components/admin/penerimaan/Atk"
 
-const PenerimaanAtk = () => {
-    return (
-        <>
-            <section className="p-4">
-                atk
-            </section>
-        </>
-    )
+export const metadata = {
+    title: 'Penerimaan ATK'
 }
 
-export default PenerimaanAtk
+const PenerimaanReagen = () => {
+    return <Atk />
+}
+
+export default PenerimaanReagen

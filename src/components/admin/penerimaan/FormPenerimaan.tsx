@@ -1,14 +1,14 @@
 "use client"
 
 import axios from "@/config/axios";
-import { fetchDataReagen, penerimaanActions } from "@/features/penerimaanSlice";
+import { fetchDataAtk, fetchDataReagen, penerimaanActions } from "@/features/penerimaanSlice";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import AsyncSelect from 'react-select/async';
 import { ToastContainer, toast } from "react-toastify";
 
-export default function FormPenerimaan() {
-    const dispatch = useDispatch()
+export default function FormPenerimaan({ isAtk }: { isAtk?: boolean }) {
+    const dispatch = useDispatch<any>()
 
     interface iSelectBoxReagen {
         value: string,
@@ -20,13 +20,15 @@ export default function FormPenerimaan() {
     ): Promise<iSelectBoxReagen[]> => {
 
         if (inputValue) {
-            const { data } = await axios(`api/barang-reagen/getAll?name=${inputValue}`)
+            const urlData = isAtk ? `api/barang-atk/getAll?name=${inputValue}` : `api/barang-reagen/getAll?name=${inputValue}`
+            const { data } = await axios(urlData)
 
             const reagenOptions = data.map((item: any) => {
                 const expired = item.expired !== null && new Date(item.expired).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) || '-'
+
                 return {
                     value: item.id,
-                    label: `${item.name} (ed: ${expired})`
+                    label: `${item.name} ${isAtk ? '' : '(ed:' + expired + ' )'}`
                 }
             })
 
@@ -50,14 +52,14 @@ export default function FormPenerimaan() {
     }, [])
 
     const formRef = useRef<any>(null)
-    const reagenSelectRef = useRef<any>(null)
+    const inventorySelectRef = useRef<any>(null)
 
     const handleSubmit = async (e: any) => {
         e.preventDefault()
         const form = formRef.current
         const formData = new FormData(form)
 
-        axios.post('api/penerimaan-reagen', formData)
+        axios.post(`${isAtk ? 'api/penerimaan-atk' : 'api/penerimaan-reagen'}`, formData)
             .then(({ data }) => {
                 toast.success(data.msg, {
                     position: "top-right",
@@ -70,7 +72,11 @@ export default function FormPenerimaan() {
                     theme: "light",
                 });
                 formRef.current.reset();
-                reagenSelectRef.current.clearValue();
+                inventorySelectRef.current.clearValue();
+
+                isAtk ? 
+                dispatch(fetchDataAtk())
+                :
                 dispatch(fetchDataReagen())
             })
             .catch(({ response }) => {
@@ -106,7 +112,7 @@ export default function FormPenerimaan() {
             <ToastContainer />
             {/* form container */}
             <div className="p-6 bg-teriary rounded mx-2 w-[45rem]">
-                <h2 className="mb-4 text-xl sm:text-2xl md:text-3xl">Form Penerimaan Reagen</h2>
+                <h2 className="mb-4 text-xl sm:text-2xl md:text-3xl">Form Penerimaan {isAtk ? 'ATK' : 'Reagen'}</h2>
                 <form onSubmit={handleSubmit} method="post" ref={formRef}>
                     {/* input item */}
                     <div className="flex flex-col mb-3">
@@ -124,8 +130,8 @@ export default function FormPenerimaan() {
                     <div className="flex flex-col mb-3">
                         <label htmlFor="barangs_id">Barang</label>
                         <AsyncSelect
-                            ref={reagenSelectRef}
-                            name="barangs_id"
+                            ref={inventorySelectRef}
+                            name={isAtk ? 'atk_id': 'barangs_id'}
                             className="mt-1"
                             cacheOptions
                             loadOptions={loadReagenOptions}
@@ -135,15 +141,17 @@ export default function FormPenerimaan() {
                         />
                     </div>
                     {/* input item */}
-                    <div className="flex flex-col mb-3">
-                        <label htmlFor="expired">Kedaluwarsa</label>
-                        <input
-                            type="date"
-                            id="expired"
-                            name="expired"
-                            className="rounded p-2 mt-1"
-                        />
-                    </div>
+                    {isAtk ? null :
+                        <div className="flex flex-col mb-3">
+                            <label htmlFor="expired">Kedaluwarsa</label>
+                            <input
+                                type="date"
+                                id="expired"
+                                name="expired"
+                                className="rounded p-2 mt-1"
+                            />
+                        </div>
+                    }
                     {/* input item */}
                     <div className="flex flex-col mb-3">
                         <label htmlFor="jumlah">Jumlah</label>

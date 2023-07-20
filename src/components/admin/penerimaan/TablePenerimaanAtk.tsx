@@ -1,21 +1,22 @@
 "use client"
 
-import { fetchDataReagen } from "@/features/penerimaanSlice";
+import { fetchDataAtk } from "@/features/penerimaanSlice";
 import { RootState } from "@/redux/store";
 import { Fragment, useEffect, useState } from "react";
 import { BiLoaderCircle } from "react-icons/bi";
 import { useDispatch, useSelector } from "react-redux";
 
-export default function TablePenerimaanReagen(props: any) {
-    const reagen = useSelector((state: RootState) => state.penerimaanReducer.dataReagen)
+export default function TablePenerimaanAtk(props: any) {
+    const atk = useSelector((state: RootState) => state.penerimaanReducer.dataAtk)
 
     const [valuePerPage, setValuePerPage] = useState('5')
     const [nameToSearch, setNameToSearch] = useState('')
 
     const dispatch = useDispatch<any>()
+    
     useEffect(() => {
-        const url = `${props.url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${reagen?.current_page}`
-        dispatch(fetchDataReagen(url))
+        const url = `${props.url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${atk?.current_page}`
+        dispatch(fetchDataAtk(url))
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [valuePerPage, nameToSearch])
@@ -23,30 +24,26 @@ export default function TablePenerimaanReagen(props: any) {
     const items = () => {
         let number = 1
 
-        if (reagen?.current_page !== 1) {
-            number = (reagen?.current_page - 1) * parseInt(valuePerPage) + 1
+        if (atk?.current_page !== 1) {
+            number = (atk?.current_page - 1) * parseInt(valuePerPage) + 1
         }
-        return reagen?.data?.map((item: any, index: number) => {
-            const expired = item.expired ?
-                new Date(item.expired).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
-                : '-'
+        return atk?.data?.map((item: any, index: number) => {
             const createdAt = new Date(item.created_at).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
 
             return (
                 <tr key={index}>
                     <td>{number++}</td>
-                    <td>{item.barang.name}</td>
-                    <td>{item.barang.satuan}</td>
+                    <td>{item.atk.name}</td>
+                    <td>{item.atk.satuan}</td>
                     <td>{item.jumlah}</td>
                     <td>{item.vendor}</td>
-                    <td>{expired}</td>
                     <td>{createdAt}</td>
                 </tr>
             )
         })
     }
 
-    return !reagen ? <BiLoaderCircle className="mx-auto mt-24 text-5xl text-quaternary animate-spin"></BiLoaderCircle>
+    return !atk ? <BiLoaderCircle className="mx-auto mt-24 text-5xl text-quaternary animate-spin"></BiLoaderCircle>
         : (
             <>
                 <h2 className="text-2xl sm:text-3xl xl:text-5xl my-2">{props.title}</h2>
@@ -78,7 +75,6 @@ export default function TablePenerimaanReagen(props: any) {
                             <th>Satuan</th>
                             <th>Jumlah</th>
                             <th>Vendor</th>
-                            <th>Kedaluwarsa</th>
                             <th>Tanggal Terima</th>
                         </tr>
                     </thead>
@@ -88,40 +84,40 @@ export default function TablePenerimaanReagen(props: any) {
                 </table>
                 <div className="table-footer flex items-center">
                     <div className="grow">
-                        {reagen?.links?.map((item: any, i: number) => {
+                        {atk?.links?.map((item: any, i: number) => {
                             let { url, label, active } = item
 
                             // remove words 'Previous' and 'Next'
                             label = label === '&laquo; Previous' ? "<"
                                 : label === 'Next &raquo;' ? '>' : label
 
-                            let disabled = reagen.current_page === reagen.last_page && label === '>'
-                                || reagen.current_page === 1 && label === '<'
+                            let disabled = atk.current_page === atk.last_page && label === '>'
+                                || atk.current_page === 1 && label === '<'
 
 
                             const isShowLink =
                                 label == '<' ||
                                 label == '>' ||
                                 label == '1' || //first page
-                                label == reagen.current_page ||
-                                // label == reagen.current_page + 1 ||
-                                // label == reagen.last_page - 1 ||
-                                label == reagen.last_page
+                                label == atk.current_page ||
+                                // label == atk.current_page + 1 ||
+                                // label == atk.last_page - 1 ||
+                                label == atk.last_page
 
                             return isShowLink ? (
                                 <Fragment key={i}>
                                     <button className={`p-2 rounded py-1 mx-[.1rem] my-2 ${active ? 'bg-teriary' : disabled ? 'bg-gray-200 text-gray-400' : 'bg-secondary '}`}
                                         dangerouslySetInnerHTML={{ __html: label }
                                         }
-                                        onClick={() => dispatch(fetchDataReagen(url))}
+                                        onClick={() => dispatch(fetchDataAtk(url))}
                                         disabled={disabled}
                                     />
                                 </Fragment >
-                            ) : (label >= reagen.current_page && label <= reagen.last_page) ? <span key={i} className="align-bottom">.</span>
+                            ) : (label >= atk.current_page && label <= atk.last_page) ? <span key={i} className="align-bottom">.</span>
                                 : null
                         })}
                     </div>
-                    <div className="py-2 px-4 rounded bg-secondary">{`${reagen?.data?.length} dari ${reagen?.total} `}</div>
+                    <div className="py-2 px-4 rounded bg-secondary">{`${atk?.data?.length} dari ${atk?.total} `}</div>
                 </div>
             </>
         )
