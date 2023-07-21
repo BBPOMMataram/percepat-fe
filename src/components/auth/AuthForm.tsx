@@ -4,7 +4,9 @@ import axios from "@/config/axios";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { GoEye, GoEyeClosed, GoKey } from "react-icons/go";
+import { GoEye } from "@react-icons/all-files/go/GoEye";
+import { GoEyeClosed } from "@react-icons/all-files/go/GoEyeClosed";
+import { GoKey } from "@react-icons/all-files/go/GoKey";
 import { useAuth } from "@/hooks/auth";
 import { ToastContainer, toast } from "react-toastify";
 

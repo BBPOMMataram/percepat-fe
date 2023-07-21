@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { BiLoaderCircle } from "react-icons/bi";
-import { GoLinkExternal, GoStop } from "react-icons/go";
+import { BiLoaderCircle } from "@react-icons/all-files/bi/BiLoaderCircle";
+import { GoLinkExternal } from "@react-icons/all-files/go/GoLinkExternal";
+import { GoStop } from "@react-icons/all-files/go/GoStop";
 import axiosInstance from "../../config/axios";
 
 export default function TableReagen(props: any) {

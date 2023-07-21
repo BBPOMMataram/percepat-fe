@@ -2,8 +2,8 @@
 
 import axiosInstance from "@/config/axios";
 import { useCallback, useEffect, useState } from "react";
-import { BiLoaderCircle } from "react-icons/bi";
-import { TfiShoppingCartFull } from "react-icons/tfi";
+import { BiLoaderCircle } from "@react-icons/all-files/bi/BiLoaderCircle";
+import { TiShoppingCart } from "@react-icons/all-files/ti/TiShoppingCart";
 
 export default function TablePermintaanAtk(props: any) {
     const [data, setData] = useState<any>()
@@ -43,7 +43,7 @@ export default function TablePermintaanAtk(props: any) {
             <div className="mb-4">
                 <div className="table-header flex items-center mb-2">
                     <h2 className="text-xl sm:text-2xl xl:text-3xl flex">
-                        <TfiShoppingCartFull className="inline-block mr-2" /> <span>{props.title}</span>
+                        <TiShoppingCart className="inline-block mr-2" /> <span>{props.title}</span>
                     </h2>
                     <div className="search ml-auto">
                         <input type="text" className="p-2 border border-quaternary focus:outline-none"

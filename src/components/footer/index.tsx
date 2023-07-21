@@ -3,8 +3,9 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useEffect } from "react";
-import { BsInstagram, BsWhatsapp } from "react-icons/bs";
-import { GoGlobe } from "react-icons/go";
+import { AiFillInstagram } from "@react-icons/all-files/ai/AiFillInstagram";
+import { AiOutlineWhatsApp} from "@react-icons/all-files/ai/AiOutlineWhatsApp";
+import { GoGlobe } from "@react-icons/all-files/go/GoGlobe";
 
 export default function Footer() {
 
@@ -21,8 +22,8 @@ export default function Footer() {
                             <li>Tentang Aplikasi</li>
                             <li>Kontak Kami</li>
                             <li className="!list-none [&_svg]:inline [&_svg]:mr-4">
-                                <BsWhatsapp />
-                                <BsInstagram />
+                                <AiOutlineWhatsApp />
+                                <AiFillInstagram />
                                 <GoGlobe />
                             </li>
                         </ul>

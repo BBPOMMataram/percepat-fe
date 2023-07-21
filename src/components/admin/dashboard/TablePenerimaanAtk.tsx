@@ -2,7 +2,8 @@
 
 import axiosInstance from "@/config/axios";
 import { useCallback, useEffect, useState } from "react";
-import { BiCartDownload, BiLoaderCircle } from "react-icons/bi";
+import { BiLoaderCircle } from "@react-icons/all-files/bi/BiLoaderCircle";
+import { BiCart } from "@react-icons/all-files/bi/BiCart";
 
 export default function TablePenerimaanAtk(props: any) {
     const [data, setData] = useState<any>()
@@ -40,7 +41,7 @@ export default function TablePenerimaanAtk(props: any) {
             <div className="mb-4">
                 <div className="table-header flex items-center mb-2">
                     <h2 className="text-xl sm:text-2xl xl:text-3xl flex">
-                        <BiCartDownload className="inline-block mr-2" /> <span>{props.title}</span>
+                        <BiCart className="inline-block mr-2" /> <span>{props.title}</span>
                     </h2>
                     <div className="search ml-auto">
                         <input type="text" className="p-2 border border-quaternary focus:outline-none"

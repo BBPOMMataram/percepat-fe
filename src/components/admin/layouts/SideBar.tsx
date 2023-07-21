@@ -4,7 +4,7 @@ import SideBarMenu from "./SideBarMenu";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { AnimatePresence, motion } from "framer-motion";
-import { TbExternalLink } from "react-icons/tb";
+import { TiLink } from "@react-icons/all-files/ti/TiLink";
 import Link from "next/link";
 import { useEffect } from "react";
 import { toggleSideBar } from "@/features/layout/sideBarSlice";
@@ -46,7 +46,7 @@ export default function SideBar() {
                     <div className="header text-center border-b border-quaternary pb-3">
                         <Image src={"/assets/images/bpom.png"} alt="Logo BPOM RI" width={50} height={50} className="mx-auto mb-2" />
                         <strong>PERCEPAT</strong>
-                        <Link href={'/'} title="Homepage"><TbExternalLink className="mx-auto" /></Link>
+                        <Link href={'/'} title="Homepage"><TiLink className="mx-auto" /></Link>
                     </div>
                     <SideBarMenu />
                 </div>

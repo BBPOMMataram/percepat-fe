@@ -7,7 +7,8 @@ import { RootState } from "@/redux/store";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { useEffect, useRef } from "react";
-import { GiExitDoor, GiHamburgerMenu } from "react-icons/gi";
+import { GiExitDoor} from "@react-icons/all-files/gi/GiExitDoor";
+import { GiHamburgerMenu } from "@react-icons/all-files/gi/GiHamburgerMenu";
 import { useDispatch, useSelector } from "react-redux";
 
 const useClickOutside = (ref: any, refUserBtn: any) => {

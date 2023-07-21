@@ -1,6 +1,7 @@
 import cs from "classnames";
 import { useState } from "react";
-import { CgToggleSquare, CgToggleSquareOff } from "react-icons/cg";
+import { CgToggleSquare } from "@react-icons/all-files/cg/CgToggleSquare";
+import { CgToggleSquareOff } from "@react-icons/all-files/cg/CgToggleSquareOff";
 import TableAtk from "./TableAtk";
 import TableReagen from "./TableReagen";
 

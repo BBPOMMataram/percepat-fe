@@ -1,4 +1,4 @@
-import { BiLoaderCircle } from "react-icons/bi";
+import { BiLoaderCircle } from "@react-icons/all-files/bi/BiLoaderCircle";
 
 export default function Loading() {
     return (

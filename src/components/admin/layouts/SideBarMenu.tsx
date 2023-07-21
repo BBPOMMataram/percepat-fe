@@ -2,13 +2,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { BiCartDownload } from "react-icons/bi";
-import { GoDashboard, GoPerson } from "react-icons/go";
-import { IoCaretBack, IoCaretDown } from "react-icons/io5";
-import { SlChemistry } from "react-icons/sl";
-import { TbReportAnalytics } from "react-icons/tb";
-import { TfiShoppingCartFull } from "react-icons/tfi";
-import { GiBookshelf } from "react-icons/gi";
+import { GoDashboard} from "@react-icons/all-files/go/GoDashboard";
+import { GoPerson} from "@react-icons/all-files/go/GoPerson";
+import { BiCaretLeft} from "@react-icons/all-files/bi/BiCaretLeft";
+import { BiCaretDown } from "@react-icons/all-files/bi/BiCaretDown";
+// import { GoPerson } from "@react-icons/all-files/go/GoPerson";
+import { GoReport } from "@react-icons/all-files/go/GoReport";
+import { BiCart } from "@react-icons/all-files/bi/BiCart";
+import { GiBookshelf } from "@react-icons/all-files/gi/GiBookshelf";
 
 export default function SideBarMenuItem() {
     const pathname = usePathname()
@@ -22,21 +23,21 @@ export default function SideBarMenuItem() {
         {
             name: 'Penerimaan',
             link: '#',
-            icon: <BiCartDownload />,
+            icon: <BiCart />,
             submenus: [
-                { name: 'Reagen', link: '/penerimaan/reagen', icon: <SlChemistry /> },
+                { name: 'Reagen', link: '/penerimaan/reagen', icon: <GoPerson /> },
                 { name: 'ATK', link: '/penerimaan/atk', icon: <GiBookshelf /> }
             ]
         },
         {
             name: 'Permintaan',
             link: '/',
-            icon: <TfiShoppingCartFull />
+            icon: <BiCart />
         },
         {
             name: 'Laporan',
             link: '/',
-            icon: <TbReportAnalytics />
+            icon: <GoReport />
         },
         {
             separator: 'MASTER'
@@ -104,7 +105,7 @@ export default function SideBarMenuItem() {
                                         <div className="flex">
                                             {item.icon}
                                             <span className="ml-2 mr-auto">{item.name}</span>
-                                            <button className="ml-5" onClick={() => handleSubmenu(i)}>{isSubmenuOpen && isIndexMatch === i ? <IoCaretDown /> : <IoCaretBack />}</button>
+                                            <button className="ml-5" onClick={() => handleSubmenu(i)}>{isSubmenuOpen && isIndexMatch === i ? <BiCaretDown /> : <BiCaretLeft />}</button>
                                         </div>
                                         <div className='pl-4 pt-2'>
                                             <ul>

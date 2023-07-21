@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { BiLoaderCircle } from "react-icons/bi";
+import { BiLoaderCircle } from "@react-icons/all-files/bi/BiLoaderCircle";
 import axiosInstance from "../../config/axios";
 
 export default function TableAtk(props: any) {

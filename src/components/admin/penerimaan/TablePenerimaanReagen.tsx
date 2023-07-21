@@ -3,7 +3,7 @@
 import { fetchDataReagen } from "@/features/penerimaanSlice";
 import { RootState } from "@/redux/store";
 import { Fragment, useEffect, useState } from "react";
-import { BiLoaderCircle } from "react-icons/bi";
+import { BiLoaderCircle } from "@react-icons/all-files/bi/BiLoaderCircle";
 import { useDispatch, useSelector } from "react-redux";
 
 export default function TablePenerimaanReagen(props: any) {
