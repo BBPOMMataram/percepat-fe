@@ -19,7 +19,7 @@ const Dashboard = () => {
                 <Card title="Pengguna" total={100} desc="Jumlah pengguna aplikasi Percepat" />
             </section>
             {/* PENERIMAAN CONTAINER */}
-            <section className="mt-10">
+            <section className="mt-20">
                 <h1 className="text-2xl text-quaternary my-2 bg-secondary border-l-4 border-quaternary w-fit pb-1 pt-2 px-4 sm:text-3xl xl:text-5xl">Penerimaan Terbaru</h1>
 
                 <TablePenerimaanReagen
@@ -35,7 +35,7 @@ const Dashboard = () => {
             </section>
 
             {/* PERMINTAAN CONTAINER */}
-            <section className="mt-10">
+            <section className="mt-20">
                 <h1 className="text-2xl text-quaternary my-2 bg-secondary border-l-4 border-quaternary w-fit pb-1 pt-2 px-4 sm:text-3xl xl:text-5xl">Permintaan Terbaru</h1>
 
                 <TablePermintaanReagen
