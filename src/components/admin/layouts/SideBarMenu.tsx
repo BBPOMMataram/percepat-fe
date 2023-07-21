@@ -1,15 +1,15 @@
+import { BiCaretDown } from "@react-icons/all-files/bi/BiCaretDown";
+import { BiCaretLeft } from "@react-icons/all-files/bi/BiCaretLeft";
+import { GoDashboard } from "@react-icons/all-files/go/GoDashboard";
+import { GoPerson } from "@react-icons/all-files/go/GoPerson";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { GoDashboard} from "@react-icons/all-files/go/GoDashboard";
-import { GoPerson} from "@react-icons/all-files/go/GoPerson";
-import { BiCaretLeft} from "@react-icons/all-files/bi/BiCaretLeft";
-import { BiCaretDown } from "@react-icons/all-files/bi/BiCaretDown";
 // import { GoPerson } from "@react-icons/all-files/go/GoPerson";
-import { GoReport } from "@react-icons/all-files/go/GoReport";
 import { BiCart } from "@react-icons/all-files/bi/BiCart";
 import { GiBookshelf } from "@react-icons/all-files/gi/GiBookshelf";
+import { GoReport } from "@react-icons/all-files/go/GoReport";
 
 export default function SideBarMenuItem() {
     const pathname = usePathname()
@@ -71,13 +71,19 @@ export default function SideBarMenuItem() {
         },
     ]
 
-    const [isSubmenuOpen, setIsSubmenuOpen] = useState(false)
-    const [isIndexMatch, setIsIndexMatch] = useState<number>()
+    const [submenuOpenStates, setSubmenuOpenStates] = useState(() => {
+        // Initialize all submenu states to false (closed) by default
+        return menuItems.map(item => Boolean(!item.submenus));
+    });
 
+    // Function to toggle the open/close state of a specific submenu
     const handleSubmenu = (index: number) => {
-        setIsSubmenuOpen(!isSubmenuOpen)
-        setIsIndexMatch(index)
-    }
+        setSubmenuOpenStates(prevState => {
+            const newStates = [...prevState];
+            newStates[index] = !newStates[index];
+            return newStates;
+        });
+    };
 
     return (
         <div className="menu flex-1 my-4 [&_li]:py-2 [&_a]:flex">
@@ -102,11 +108,11 @@ export default function SideBarMenuItem() {
                             if (item.submenus) {
                                 itemEl =
                                     <li key={i} className="px-2 !pb-0">
-                                        <div className="flex">
+                                        <a className="flex" onClick={() => handleSubmenu(i)} role="button">
                                             {item.icon}
                                             <span className="ml-2 mr-auto">{item.name}</span>
-                                            <button className="ml-5" onClick={() => handleSubmenu(i)}>{isSubmenuOpen && isIndexMatch === i ? <BiCaretDown /> : <BiCaretLeft />}</button>
-                                        </div>
+                                            <button className="ml-5">{submenuOpenStates[i] ? <BiCaretDown /> : <BiCaretLeft />}</button>
+                                        </a>
                                         <div className='pl-4 pt-2'>
                                             <ul>
                                                 {item.submenus.map((submenu) => (
@@ -114,12 +120,12 @@ export default function SideBarMenuItem() {
                                                         key={submenu.name}
                                                     >
                                                         {
-                                                            isSubmenuOpen && isIndexMatch === i &&
+                                                            submenuOpenStates[i] &&
                                                             <motion.li
                                                                 className={`rounded flex px-2 !pt-0 ${activeClass}`}
                                                                 initial={{ x: -120 }}
                                                                 animate={{ x: 0 }}
-                                                                exit={{ x: -120 }}
+                                                                exit={{ x: -120, transition: { duration: .1 } }}
                                                             >
                                                                 <Link href={submenu.link}>
                                                                     {submenu.icon} <span className="ml-2">{submenu.name}</span>
