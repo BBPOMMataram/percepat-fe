@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 export const useAuth = ({ middleware, redirectIfAuthenticated } = <any>{}) => {
-    const router = useRouter()
+    const router = <any>useRouter()
 
     const { data: user, error, mutate } = useSWR('/api/user', () =>
         axios
@@ -19,7 +19,7 @@ export const useAuth = ({ middleware, redirectIfAuthenticated } = <any>{}) => {
 
     const csrf = () => axios.get('/sanctum/csrf-cookie')
 
-    const register = async ({ setErrors, ...props }) => {
+    const register = async ({ setErrors, ...props } : any) => {
         await csrf()
 
         setErrors([])
@@ -50,7 +50,7 @@ export const useAuth = ({ middleware, redirectIfAuthenticated } = <any>{}) => {
             })
     }
 
-    const forgotPassword = async ({ setErrors, setStatus, email }) => {
+    const forgotPassword = async ({ setErrors, setStatus, email } : any) => {
         await csrf()
 
         setErrors([])
@@ -66,7 +66,7 @@ export const useAuth = ({ middleware, redirectIfAuthenticated } = <any>{}) => {
             })
     }
 
-    const resetPassword = async ({ setErrors, setStatus, ...props }) => {
+    const resetPassword = async ({ setErrors, setStatus, ...props }:any) => {
         await csrf()
 
         setErrors([])
@@ -84,7 +84,7 @@ export const useAuth = ({ middleware, redirectIfAuthenticated } = <any>{}) => {
             })
     }
 
-    const resendEmailVerification = ({ setStatus }) => {
+    const resendEmailVerification = ({ setStatus }:any) => {
         axios
             .post('/email/verification-notification')
             .then(response => setStatus(response.data.status))

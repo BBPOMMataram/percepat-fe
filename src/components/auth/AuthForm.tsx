@@ -24,7 +24,7 @@ export default function AuthForm(props: any) {
         redirectIfAuthenticated: '/dashboard',
     })
 
-    const handleLogin = async (e) => {
+    const handleLogin = async (e:any) => {
         e.preventDefault()
 
         await csrf()
