@@ -3,6 +3,11 @@ import { Josefin_Sans } from 'next/font/google';
 import 'react-toastify/dist/ReactToastify.css';
 import './globals.css';
 
+// CONFIG FONT AWESOME
+import { config } from '@fortawesome/fontawesome-svg-core'
+import '@fortawesome/fontawesome-svg-core/styles.css'
+config.autoAddCss = false
+
 const josefinSans = Josefin_Sans({ subsets: ['latin'] })
 
 export const metadata = {

@@ -1,9 +1,9 @@
 "use client"
 
 import axiosInstance from "@/config/axios";
+import { faCartArrowDown, faShoppingCart, faTruckLoading } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useCallback, useEffect, useState } from "react";
-import { BiLoaderCircle } from "@react-icons/all-files/bi/BiLoaderCircle";
-import { BiCart } from "@react-icons/all-files/bi/BiCart";
 
 export default function TablePenerimaanAtk(props: any) {
     const [data, setData] = useState<any>()
@@ -36,12 +36,14 @@ export default function TablePenerimaanAtk(props: any) {
         })
     }
 
-    return !data ? <BiLoaderCircle className="mx-auto mt-24 text-5xl text-quaternary animate-spin"></BiLoaderCircle>
+    return !data ?
+    //  <BiLoaderCircle className="mx-auto mt-24 text-5xl text-quaternary animate-spin"></BiLoaderCircle>
+    <FontAwesomeIcon icon={faTruckLoading} />
         : (
             <div className="mb-4">
                 <div className="table-header flex items-center mb-2">
                     <h2 className="text-xl sm:text-2xl xl:text-3xl flex">
-                        <BiCart className="inline-block mr-2" /> <span>{props.title}</span>
+                        <FontAwesomeIcon icon={faCartArrowDown} className="mr-2" flip="horizontal" /> {props.title}
                     </h2>
                     <div className="search ml-auto">
                         <input type="text" className="p-2 border border-quaternary focus:outline-none"

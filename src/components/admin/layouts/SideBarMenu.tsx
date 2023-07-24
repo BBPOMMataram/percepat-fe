@@ -1,15 +1,9 @@
-import { BiCaretDown } from "@react-icons/all-files/bi/BiCaretDown";
-import { BiCaretLeft } from "@react-icons/all-files/bi/BiCaretLeft";
-import { GoDashboard } from "@react-icons/all-files/go/GoDashboard";
-import { GoPerson } from "@react-icons/all-files/go/GoPerson";
+import { faCaretDown, faCaretLeft, faCartArrowDown, faCartFlatbedSuitcase, faDashboard, faFileAlt } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-// import { GoPerson } from "@react-icons/all-files/go/GoPerson";
-import { BiCart } from "@react-icons/all-files/bi/BiCart";
-import { GiBookshelf } from "@react-icons/all-files/gi/GiBookshelf";
-import { GoReport } from "@react-icons/all-files/go/GoReport";
 
 export default function SideBarMenuItem() {
     const pathname = usePathname()
@@ -18,26 +12,26 @@ export default function SideBarMenuItem() {
         {
             name: 'Dasbor',
             link: '/dashboard',
-            icon: <GoDashboard />
+            icon: <FontAwesomeIcon icon={faDashboard} />
         },
         {
             name: 'Penerimaan',
             link: '#',
-            icon: <BiCart />,
+            icon: <FontAwesomeIcon icon={faCartArrowDown} flip="horizontal" />,
             submenus: [
-                { name: 'Reagen', link: '/penerimaan/reagen', icon: <GoPerson /> },
-                { name: 'ATK', link: '/penerimaan/atk', icon: <GiBookshelf /> }
+                { name: 'Reagen', link: '/penerimaan/reagen', icon: <FontAwesomeIcon icon={faDashboard} /> },
+                { name: 'ATK', link: '/penerimaan/atk', icon: <FontAwesomeIcon icon={faDashboard} /> }
             ]
         },
         {
             name: 'Permintaan',
             link: '/',
-            icon: <BiCart />
+            icon: <FontAwesomeIcon icon={faCartFlatbedSuitcase} />
         },
         {
             name: 'Laporan',
             link: '/',
-            icon: <GoReport />
+            icon: <FontAwesomeIcon icon={faFileAlt} />
         },
         {
             separator: 'MASTER'
@@ -45,21 +39,21 @@ export default function SideBarMenuItem() {
         {
             name: 'Barang',
             link: '/',
-            icon: <GoPerson />,
+            icon: <FontAwesomeIcon icon={faDashboard} />,
             submenus: [
-                { name: 'Reagen', link: '#', icon: <GoPerson /> },
-                { name: 'ATK', link: '#', icon: <GoPerson /> }
+                { name: 'Reagen', link: '#', icon: <FontAwesomeIcon icon={faDashboard} /> },
+                { name: 'ATK', link: '#', icon: <FontAwesomeIcon icon={faDashboard} /> }
             ]
         },
         {
             name: 'Bidang',
             link: '/',
-            icon: <GoPerson />
+            icon: <FontAwesomeIcon icon={faDashboard} />
         },
         {
             name: 'Pengguna',
             link: '/',
-            icon: <GoPerson />
+            icon: <FontAwesomeIcon icon={faDashboard} />
         },
         {
             separator: 'SETTING'
@@ -67,7 +61,7 @@ export default function SideBarMenuItem() {
         {
             name: 'Profile',
             link: '/',
-            icon: <GoPerson />
+            icon: <FontAwesomeIcon icon={faDashboard} />
         },
     ]
 
@@ -111,7 +105,7 @@ export default function SideBarMenuItem() {
                                         <a className="flex" onClick={() => handleSubmenu(i)} role="button">
                                             {item.icon}
                                             <span className="ml-2 mr-auto">{item.name}</span>
-                                            <button className="ml-5">{submenuOpenStates[i] ? <BiCaretDown /> : <BiCaretLeft />}</button>
+                                            <button className="ml-5">{submenuOpenStates[i] ? <FontAwesomeIcon icon={faCaretDown} /> : <FontAwesomeIcon icon={faCaretLeft} />}</button>
                                         </a>
                                         <div className='pl-4 pt-2'>
                                             <ul>

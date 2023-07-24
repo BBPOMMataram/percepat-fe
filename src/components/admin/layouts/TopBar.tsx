@@ -4,11 +4,11 @@ import { toggleSideBar } from "@/features/layout/sideBarSlice";
 import { toggleUserMenu } from "@/features/layout/topBarSlice";
 import { useAuth } from "@/hooks/auth";
 import { RootState } from "@/redux/store";
+import { faBars, faDoorOpen } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { useEffect, useRef } from "react";
-import { GiExitDoor} from "@react-icons/all-files/gi/GiExitDoor";
-import { GiHamburgerMenu } from "@react-icons/all-files/gi/GiHamburgerMenu";
 import { useDispatch, useSelector } from "react-redux";
 
 const useClickOutside = (ref: any, refUserBtn: any) => {
@@ -40,7 +40,7 @@ export default function TopBar() {
     return (
         <div className="flex items-center bg-quaternary py-4 px-2">
             <button onClick={() => dispatch(toggleSideBar())} className="burger-btn">
-                <GiHamburgerMenu className="text-xl ml-2" />
+                <FontAwesomeIcon icon={faBars} size="2xl" />
             </button>
             <div className="ml-auto">
                 <div className="relative">
@@ -64,7 +64,9 @@ export default function TopBar() {
                                     {user?.email}
                                 </div>
                                 <button className="flex border-t border-quaternary pt-2 mt-3 pr-3" onClick={logout}>
-                                    <GiExitDoor title="Logout" /> Keluar
+                                    {/* <GiExitDoor title="Logout" />  */}
+                                    <FontAwesomeIcon icon={faDoorOpen} className="mr-1" />
+                                    Keluar
                                 </button>
                             </motion.div>
                         }

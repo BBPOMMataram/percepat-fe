@@ -1,13 +1,14 @@
 "use client"
-import Image from "next/image";
-import SideBarMenu from "./SideBarMenu";
-import { useDispatch, useSelector } from "react-redux";
+import { toggleSideBar } from "@/features/layout/sideBarSlice";
 import { RootState } from "@/redux/store";
+import { faExternalLink, faExternalLinkAlt } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { AnimatePresence, motion } from "framer-motion";
-import { TiLink } from "@react-icons/all-files/ti/TiLink";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect } from "react";
-import { toggleSideBar } from "@/features/layout/sideBarSlice";
+import { useDispatch, useSelector } from "react-redux";
+import SideBarMenu from "./SideBarMenu";
 
 export default function SideBar() {
     const isSideBarOpen = useSelector((state: RootState) => state.sideBar.isSideBarOpen)
@@ -46,14 +47,10 @@ export default function SideBar() {
                     <div className="header text-center border-b border-quaternary pb-3">
                         <Image src={"/assets/images/bpom.png"} alt="Logo BPOM RI" width={50} height={50} className="mx-auto mb-2" />
                         <strong>PERCEPAT</strong>
-                        <Link href={'/'} title="Homepage"><TiLink className="mx-auto" /></Link>
+                        <Link href={'/'} title="Homepage"><FontAwesomeIcon icon={faExternalLinkAlt} className="ml-2" /></Link>
                     </div>
                     <SideBarMenu />
                 </div>
-                {/* <div className="footer border-t border-quaternary bg-teriary p-4"> */}
-                {/* <Image src={"/assets/images/bpom.png"} alt="Logo BPOM RI" width={30} height={30} className="mx-auto" /> */}
-                {/* <strong>BBPOM di Mataram</strong> */}
-                {/* </div> */}
             </motion.div>
         </AnimatePresence>
     ) : null

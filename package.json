@@ -9,7 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@react-icons/all-files": "^4.1.0",
+    "@fortawesome/fontawesome-svg-core": "^6.4.0",
+    "@fortawesome/free-brands-svg-icons": "^6.4.0",
+    "@fortawesome/free-regular-svg-icons": "^6.4.0",
+    "@fortawesome/free-solid-svg-icons": "^6.4.0",
+    "@fortawesome/react-fontawesome": "^0.2.0",
     "@reduxjs/toolkit": "^1.9.5",
     "@types/node": "20.3.1",
     "@types/react": "18.2.12",
@@ -24,7 +28,6 @@
     "postcss": "8.4.24",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-icons": "^4.10.1",
     "react-redux": "^8.1.1",
     "react-select": "^5.7.4",
     "react-toastify": "^9.1.3",

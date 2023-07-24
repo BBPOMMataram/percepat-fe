@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { BiLoaderCircle } from "@react-icons/all-files/bi/BiLoaderCircle";
 import axiosInstance from "../../config/axios";
+import LoadingWithoutText from "../admin/layouts/LoadingWithoutText";
 
 export default function TableAtk(props: any) {
     const [data, setReagen] = useState<any>()
@@ -37,7 +37,7 @@ export default function TableAtk(props: any) {
         })
     }
 
-    return !data ? <BiLoaderCircle className="mx-auto mt-24 text-5xl text-quaternary animate-spin"></BiLoaderCircle>
+    return !data ? <LoadingWithoutText />
         : (
             <>
                 <h2 className="text-2xl sm:text-3xl xl:text-5xl my-2">{props.title}</h2>

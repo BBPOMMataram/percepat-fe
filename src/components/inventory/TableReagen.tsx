@@ -1,8 +1,8 @@
+import { faBan, faExternalLink, faExternalLinkAlt, faExternalLinkSquare, faSun } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { BiLoaderCircle } from "@react-icons/all-files/bi/BiLoaderCircle";
-import { GoLinkExternal } from "@react-icons/all-files/go/GoLinkExternal";
-import { GoStop } from "@react-icons/all-files/go/GoStop";
 import axiosInstance from "../../config/axios";
+import LoadingWithoutText from "../admin/layouts/LoadingWithoutText";
 
 export default function TableReagen(props: any) {
     const [reagen, setReagen] = useState<any>()
@@ -34,14 +34,14 @@ export default function TableReagen(props: any) {
                     <td>{item.satuan}</td>
                     <td>{new Date(item.expired).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</td>
                     <td>{item.stock}</td>
-                    <td>{item.msds && <a href={item.msds} target="_blank"><GoLinkExternal className="text-blue-500" /></a> || <GoStop className="text-red-500" />}</td>
+                    <td className="text-center">{item.msds && <a href={item.msds} target="_blank"><FontAwesomeIcon icon={faExternalLinkAlt} className="text-quaternary" /></a> || <FontAwesomeIcon icon={faBan} className="text-red-500" />}</td>
                 </tr>
             )
         })
     }
 
-    return !reagen ? <BiLoaderCircle className="mx-auto mt-24 text-5xl text-quaternary animate-spin"></BiLoaderCircle>
-        : (
+    return !reagen ? <LoadingWithoutText />
+    : (
             <>
                 <h2 className="text-2xl sm:text-3xl xl:text-5xl my-2">{props.title}</h2>
                 <div className="table-header flex">

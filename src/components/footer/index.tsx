@@ -1,18 +1,12 @@
 "use client"
 
+import { faInstagram, faWhatsapp } from "@fortawesome/free-brands-svg-icons";
+import { faGlobe } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { useEffect } from "react";
-import { AiFillInstagram } from "@react-icons/all-files/ai/AiFillInstagram";
-import { AiOutlineWhatsApp} from "@react-icons/all-files/ai/AiOutlineWhatsApp";
-import { GoGlobe } from "@react-icons/all-files/go/GoGlobe";
 
 export default function Footer() {
-
-    useEffect(() => {
-
-
-    }, [])
     return (
         <div className="flex flex-col">
             <div className="footer-content flex px-24 py-8 bg-teriary [&_li]:list-disc">
@@ -22,9 +16,9 @@ export default function Footer() {
                             <li>Tentang Aplikasi</li>
                             <li>Kontak Kami</li>
                             <li className="!list-none [&_svg]:inline [&_svg]:mr-4">
-                                <AiOutlineWhatsApp />
-                                <AiFillInstagram />
-                                <GoGlobe />
+                                <FontAwesomeIcon icon={faWhatsapp} />
+                                <FontAwesomeIcon icon={faInstagram} />
+                                <FontAwesomeIcon icon={faGlobe} />
                             </li>
                         </ul>
                     </nav>

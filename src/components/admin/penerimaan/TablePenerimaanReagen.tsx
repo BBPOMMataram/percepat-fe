@@ -3,8 +3,8 @@
 import { fetchDataReagen } from "@/features/penerimaanSlice";
 import { RootState } from "@/redux/store";
 import { Fragment, useEffect, useState } from "react";
-import { BiLoaderCircle } from "@react-icons/all-files/bi/BiLoaderCircle";
 import { useDispatch, useSelector } from "react-redux";
+import Loading from "../layouts/Loading";
 
 export default function TablePenerimaanReagen(props: any) {
     const reagen = useSelector((state: RootState) => state.penerimaanReducer.dataReagen)
@@ -46,7 +46,7 @@ export default function TablePenerimaanReagen(props: any) {
         })
     }
 
-    return !reagen ? <BiLoaderCircle className="mx-auto mt-24 text-5xl text-quaternary animate-spin"></BiLoaderCircle>
+    return !reagen ? <Loading />
         : (
             <>
                 <h2 className="text-2xl sm:text-3xl xl:text-5xl my-2">{props.title}</h2>

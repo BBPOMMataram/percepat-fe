@@ -1,13 +1,11 @@
 "use client"
 
 import axios from "@/config/axios";
-import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { GoEye } from "@react-icons/all-files/go/GoEye";
-import { GoEyeClosed } from "@react-icons/all-files/go/GoEyeClosed";
-import { GoKey } from "@react-icons/all-files/go/GoKey";
 import { useAuth } from "@/hooks/auth";
+import { faEye, faEyeSlash, faKey, faUnlockKeyhole } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import Image from "next/image";
+import { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 
 export default function AuthForm(props: any) {
@@ -26,7 +24,7 @@ export default function AuthForm(props: any) {
         redirectIfAuthenticated: '/dashboard',
     })
 
-    const handleLogin = async (e:any) => {
+    const handleLogin = async (e: any) => {
         e.preventDefault()
 
         await csrf()
@@ -65,9 +63,10 @@ export default function AuthForm(props: any) {
             </div>
             <div className="side-form flex-1 flex justify-center">
                 <div className="bg-quaternary rounded px-6 pt-4 pb-6 inline-block">
-                    <div className="border-b border-b-secondary mb-4">
-                        <GoKey className="mx-auto text-xl" />
-                        <h1 className="capitalize text-center my-2 text-2xl">{props.mode} Form</h1>
+                    <div className="border-b border-b-secondary mb-4 text-center">
+                        {/* <GoKey className="mx-auto text-xl" /> */}
+                        <FontAwesomeIcon icon={faUnlockKeyhole} />
+                        <h1 className="capitalize my-2 text-2xl">{props.mode} Form</h1>
                     </div>
                     <form onSubmit={handleLogin}>
                         <div className="flex flex-col mb-2">
@@ -91,7 +90,7 @@ export default function AuthForm(props: any) {
                                     onChange={(e: any) => setPassword(e.target.value)}
                                 />
                                 <div role="button" className="text-quaternary border-l border-teriary w-8 flex justify-center" onClick={() => setShowPassword(!showPassword)}>
-                                    {!showPassword ? <GoEye /> : <GoEyeClosed />}
+                                    {!showPassword ? <FontAwesomeIcon icon={faEye} /> : <FontAwesomeIcon icon={faEyeSlash} />}
                                 </div>
                             </div>
                         </div>

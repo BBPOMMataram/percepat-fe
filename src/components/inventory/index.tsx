@@ -1,7 +1,7 @@
+import { faToggleOff, faToggleOn } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import cs from "classnames";
 import { useState } from "react";
-import { CgToggleSquare } from "@react-icons/all-files/cg/CgToggleSquare";
-import { CgToggleSquareOff } from "@react-icons/all-files/cg/CgToggleSquareOff";
 import TableAtk from "./TableAtk";
 import TableReagen from "./TableReagen";
 
@@ -28,11 +28,11 @@ const Inventory = () => {
                             })}>ATK</a>
                         </li>
                     </ul>
-                    <button onClick={() => setIsReagen(!isReagen)}>
+                    <button onClick={() => setIsReagen(!isReagen)} className="text-5xl">
                         {isReagen ?
-                            <CgToggleSquare className="inline-block text-6xl text-quaternary mt-0" />
+                            <FontAwesomeIcon icon={faToggleOff} className="text-quaternary" fixedWidth />
                             :
-                            <CgToggleSquareOff className="inline-block text-6xl text-quaternary mt-0" />
+                            <FontAwesomeIcon icon={faToggleOn} className="text-quaternary" fixedWidth />
                         }
                     </button>
                 </nav>
