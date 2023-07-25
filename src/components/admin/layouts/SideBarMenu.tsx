@@ -1,4 +1,4 @@
-import { faCaretDown, faCaretLeft, faCartArrowDown, faCartFlatbedSuitcase, faDashboard, faFileAlt } from "@fortawesome/free-solid-svg-icons";
+import { faBoxesStacked, faCaretDown, faCaretLeft, faCartArrowDown, faCartFlatbedSuitcase, faDashboard, faFileAlt, faFilePen, faFlaskVial, faPuzzlePiece, faUserGear, faUserGroup, faUsers, faWarehouse } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
@@ -12,26 +12,30 @@ export default function SideBarMenuItem() {
         {
             name: 'Dasbor',
             link: '/dashboard',
-            icon: <FontAwesomeIcon icon={faDashboard} />
+            icon: <FontAwesomeIcon icon={faDashboard} fixedWidth />
         },
         {
             name: 'Penerimaan',
             link: '#',
-            icon: <FontAwesomeIcon icon={faCartArrowDown} flip="horizontal" />,
+            icon: <FontAwesomeIcon icon={faCartArrowDown} fixedWidth flip="horizontal" />,
             submenus: [
-                { name: 'Reagen', link: '/penerimaan/reagen', icon: <FontAwesomeIcon icon={faDashboard} /> },
-                { name: 'ATK', link: '/penerimaan/atk', icon: <FontAwesomeIcon icon={faDashboard} /> }
+                { name: 'Reagen', link: '/penerimaan/reagen', icon: <FontAwesomeIcon icon={faFlaskVial} fixedWidth /> },
+                { name: 'ATK', link: '/penerimaan/atk', icon: <FontAwesomeIcon icon={faFilePen} fixedWidth /> }
             ]
         },
         {
             name: 'Permintaan',
             link: '/',
-            icon: <FontAwesomeIcon icon={faCartFlatbedSuitcase} />
+            icon: <FontAwesomeIcon icon={faCartFlatbedSuitcase} fixedWidth />,
+            submenus: [
+                { name: 'Reagen', link: '/permintaan/reagen', icon: <FontAwesomeIcon icon={faFlaskVial} fixedWidth /> },
+                { name: 'ATK', link: '/permintaan/atk', icon: <FontAwesomeIcon icon={faFilePen} fixedWidth /> }
+            ]
         },
         {
             name: 'Laporan',
             link: '/',
-            icon: <FontAwesomeIcon icon={faFileAlt} />
+            icon: <FontAwesomeIcon icon={faFileAlt} fixedWidth />
         },
         {
             separator: 'MASTER'
@@ -39,21 +43,21 @@ export default function SideBarMenuItem() {
         {
             name: 'Barang',
             link: '/',
-            icon: <FontAwesomeIcon icon={faDashboard} />,
+            icon: <FontAwesomeIcon icon={faBoxesStacked} fixedWidth />,
             submenus: [
-                { name: 'Reagen', link: '#', icon: <FontAwesomeIcon icon={faDashboard} /> },
-                { name: 'ATK', link: '#', icon: <FontAwesomeIcon icon={faDashboard} /> }
+                { name: 'Reagen', link: '#', icon: <FontAwesomeIcon icon={faFlaskVial} fixedWidth /> },
+                { name: 'ATK', link: '#', icon: <FontAwesomeIcon icon={faFilePen} fixedWidth /> }
             ]
         },
         {
             name: 'Bidang',
             link: '/',
-            icon: <FontAwesomeIcon icon={faDashboard} />
+            icon: <FontAwesomeIcon icon={faPuzzlePiece} fixedWidth />
         },
         {
             name: 'Pengguna',
             link: '/',
-            icon: <FontAwesomeIcon icon={faDashboard} />
+            icon: <FontAwesomeIcon icon={faUserGroup} fixedWidth />
         },
         {
             separator: 'SETTING'
@@ -61,7 +65,7 @@ export default function SideBarMenuItem() {
         {
             name: 'Profile',
             link: '/',
-            icon: <FontAwesomeIcon icon={faDashboard} />
+            icon: <FontAwesomeIcon icon={faUserGear} fixedWidth />
         },
     ]
 
