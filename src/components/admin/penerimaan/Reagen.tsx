@@ -21,7 +21,8 @@ export default function Reagen() {
                 Tambah Data
             </button>
             <TablePenerimaanReagen
-                url='/api/penerimaan-reagen'
+                url='api/penerimaan-reagen'
+                limit={0}
             />
             {isFormOpen && <FormPenerimaan />}
         </section>

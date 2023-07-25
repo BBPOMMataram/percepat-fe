@@ -22,6 +22,7 @@ export default function Atk() {
             </button>
             <TablePenerimaanAtk
                 url='/api/penerimaan-atk'
+                limit={0}
             />
             {isFormOpen && <FormPenerimaan isAtk={true} />}
         </section>
