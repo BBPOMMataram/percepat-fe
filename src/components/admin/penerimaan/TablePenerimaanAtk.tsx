@@ -75,9 +75,9 @@ export default function TablePenerimaanAtk({ url, limit, title }: iPenerimaan) {
     return !atk ? <LoadingWithoutText />
         : (
             <>
-                <div className="table-header flex items-end mt-2">
-                    <h2 className="text-2xl sm:text-3xl xl:text-5xl my-2">
-                        {title && <FontAwesomeIcon icon={faCartArrowDown} className="mr-2" flip="horizontal" />}{title}
+                <div className="table-header flex items-end mt-3">
+                    <h2 className="text-xl sm:text-2xl">
+                        {title && <FontAwesomeIcon icon={faCartArrowDown} flip="horizontal" />} <span>{title}</span>
                     </h2>
                     {
                         atk.data &&

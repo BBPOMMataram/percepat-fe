@@ -1,6 +1,6 @@
 import Card from "@/components/admin/dashboard/Card"
-import TablePermintaanAtk from "@/components/admin/dashboard/TablePermintaanAtk"
-import TablePermintaanReagen from "@/components/admin/dashboard/TablePermintaanReagen"
+import TablePermintaanAtk from "@/components/admin/permintaan/TablePermintaanAtk"
+import TablePermintaanReagen from "@/components/admin/permintaan/TablePermintaanReagen"
 import TablePenerimaanAtk from "@/components/admin/penerimaan/TablePenerimaanAtk"
 import TablePenerimaanReagen from "@/components/admin/penerimaan/TablePenerimaanReagen"
 
@@ -27,6 +27,7 @@ const Dashboard = () => {
                     url='api/penerimaan-reagen'
                     limit={5}
                 />
+                <br />
                 <TablePenerimaanAtk
                     title='ATK'
                     url='api/penerimaan-atk'

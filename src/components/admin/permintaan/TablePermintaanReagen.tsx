@@ -1,21 +1,21 @@
 "use client"
 
-import { fetchDataReagen } from "@/features/penerimaanSlice";
+import { fetchDataReagen } from "@/features/permintaanSlice";
 import { RootState } from "@/redux/store";
-import { faCartArrowDown } from "@fortawesome/free-solid-svg-icons";
+import { faCartFlatbedSuitcase } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ChangeEvent, Fragment, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import LoadingWithoutText from "../layouts/LoadingWithoutText";
 
-interface iPenerimaan {
+interface iPermintaan {
     url: string,
     limit: number,
     title?: string,
 }
 
-export default function TablePenerimaanReagen({ url, limit, title }: iPenerimaan) {
-    const reagen = useSelector((state: RootState) => state.penerimaanReducer.dataReagen)
+export default function TablePermintaanReagen({ url, limit, title }: iPermintaan) {
+    const reagen = useSelector((state: RootState) => state.permintaanReducer.dataReagen)
 
     const [valuePerPage, setValuePerPage] = useState('5')
     const [nameToSearch, setNameToSearch] = useState('')
@@ -37,7 +37,6 @@ export default function TablePenerimaanReagen({ url, limit, title }: iPenerimaan
 
     // UNTUK DELAY SETNAMETOSEARCH 
     useEffect(() => {
-
         const timeoutId = setTimeout(() => {
             setNameToSearch(delaySearch)
         }, 1000)
@@ -57,23 +56,18 @@ export default function TablePenerimaanReagen({ url, limit, title }: iPenerimaan
         }
 
         const data = reagen?.data || reagen //DATA DENGAN ATAU TANPA LIMIT
-        return data.map((item: any, index: number) => {
-
-            const expired = item.expired ?
-                new Date(item.expired).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
-                : '-'
-
-            const createdAt = new Date(item.created_at).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
-
+        return data?.map((item: any, index: number) => {
             return (
                 <tr key={index}>
                     <td>{number++}</td>
                     <td>{item.barang.name}</td>
                     <td>{item.barang.satuan}</td>
-                    <td>{item.jumlah}</td>
-                    <td>{item.vendor}</td>
-                    <td>{expired}</td>
-                    <td>{createdAt}</td>
+                    <td>{item.jumlahpermintaan}</td>
+                    <td>{item.jumlahrealisasi}</td>
+                    <td>{item.permintaan.bidang.name}</td>
+                    <td>{item.permintaan.status.name}</td>
+                    <td>{new Date(item.permintaan.tgl_permintaan).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                    <td>{item.keterangan || '-'}</td>
                 </tr>
             )
         })
@@ -84,7 +78,7 @@ export default function TablePenerimaanReagen({ url, limit, title }: iPenerimaan
             <>
                 <div className="table-header flex items-end mt-3">
                     <h2 className="text-xl sm:text-2xl">
-                        {title && <FontAwesomeIcon icon={faCartArrowDown} flip="horizontal" />} <span>{title}</span>
+                        {title && <FontAwesomeIcon icon={faCartFlatbedSuitcase} flip="horizontal" />} <span>{title}</span>
                     </h2>
                     {
                         reagen.data &&
@@ -114,10 +108,12 @@ export default function TablePenerimaanReagen({ url, limit, title }: iPenerimaan
                             <th>No</th>
                             <th>Nama</th>
                             <th>Satuan</th>
-                            <th>Jumlah</th>
-                            <th>Vendor</th>
-                            <th>Kedaluwarsa</th>
-                            <th>Tanggal Terima</th>
+                            <th>Jml Permintaan</th>
+                            <th>Jml Realisasi</th>
+                            <th>Bidang</th>
+                            <th>Status</th>
+                            <th>Tanggal</th>
+                            <th>Keterangan</th>
                         </tr>
                     </thead>
                     <tbody className="[&_td]:border [&_td]:border-quaternary [&_td]:px-2 [&_td]:py-1">

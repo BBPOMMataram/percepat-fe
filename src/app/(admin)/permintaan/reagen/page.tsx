@@ -1,11 +1,11 @@
-import Reagen from "@/components/admin/penerimaan/Reagen"
+import Reagen from "@/components/admin/permintaan/Reagen"
 
 export const metadata = {
-    title: 'Penerimaan Reagen'
+    title: 'Permintaan Reagen'
 }
 
-const PenerimaanReagen = () => {
-    return  <Reagen />
+const PermintaanReagen = () => {
+    return <Reagen />
 }
 
-export default PenerimaanReagen
+export default PermintaanReagen

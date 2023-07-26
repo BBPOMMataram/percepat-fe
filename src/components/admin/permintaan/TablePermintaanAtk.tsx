@@ -1,21 +1,21 @@
 "use client"
 
-import { fetchDataReagen } from "@/features/penerimaanSlice";
+import { fetchDataAtk, fetchDataReagen } from "@/features/permintaanSlice";
 import { RootState } from "@/redux/store";
-import { faCartArrowDown } from "@fortawesome/free-solid-svg-icons";
+import { faCartFlatbedSuitcase } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ChangeEvent, Fragment, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import LoadingWithoutText from "../layouts/LoadingWithoutText";
 
-interface iPenerimaan {
+interface iPermintaan {
     url: string,
     limit: number,
     title?: string,
 }
 
-export default function TablePenerimaanReagen({ url, limit, title }: iPenerimaan) {
-    const reagen = useSelector((state: RootState) => state.penerimaanReducer.dataReagen)
+export default function TablePermintaanAtk({ url, limit, title }: iPermintaan) {
+    const atk = useSelector((state: RootState) => state.permintaanReducer.dataAtk)
 
     const [valuePerPage, setValuePerPage] = useState('5')
     const [nameToSearch, setNameToSearch] = useState('')
@@ -24,12 +24,12 @@ export default function TablePenerimaanReagen({ url, limit, title }: iPenerimaan
     const dispatch = useDispatch<any>()
 
     useEffect(() => {
-        const urlReagen = `${url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${reagen?.current_page}&limit=${limit}`
+        const urlAtk = `${url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${atk?.current_page}&limit=${limit}`
 
-        dispatch(fetchDataReagen(urlReagen))
+        dispatch(fetchDataAtk(urlAtk))
 
         /// eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [valuePerPage, nameToSearch, reagen?.current_page, limit, url, dispatch])
+    }, [valuePerPage, nameToSearch, atk?.current_page, limit, url, dispatch])
 
     const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
         setDelaySearch(e.target.value)
@@ -37,7 +37,6 @@ export default function TablePenerimaanReagen({ url, limit, title }: iPenerimaan
 
     // UNTUK DELAY SETNAMETOSEARCH 
     useEffect(() => {
-
         const timeoutId = setTimeout(() => {
             setNameToSearch(delaySearch)
         }, 1000)
@@ -52,42 +51,37 @@ export default function TablePenerimaanReagen({ url, limit, title }: iPenerimaan
         let number = 1
 
         // HANDLE JIKA REAGEN TANPA LIMIT YAITU DATA SELURUHNYA MAKA ATUR NOMOR INDEX NYA PER HALAMAN, JIKA LIMIT ADA ABAIKAN INI
-        if (reagen.data && reagen?.current_page !== 1) {
-            number = (reagen?.current_page - 1) * parseInt(valuePerPage) + 1
+        if (atk.data && atk?.current_page !== 1) {
+            number = (atk?.current_page - 1) * parseInt(valuePerPage) + 1
         }
 
-        const data = reagen?.data || reagen //DATA DENGAN ATAU TANPA LIMIT
-        return data.map((item: any, index: number) => {
-
-            const expired = item.expired ?
-                new Date(item.expired).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
-                : '-'
-
-            const createdAt = new Date(item.created_at).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
-
+        const data = atk?.data || atk //DATA DENGAN ATAU TANPA LIMIT
+        return data?.map((item: any, index: number) => {
             return (
                 <tr key={index}>
                     <td>{number++}</td>
-                    <td>{item.barang.name}</td>
-                    <td>{item.barang.satuan}</td>
-                    <td>{item.jumlah}</td>
-                    <td>{item.vendor}</td>
-                    <td>{expired}</td>
-                    <td>{createdAt}</td>
+                    <td>{item.atk.name}</td>
+                    <td>{item.atk.satuan}</td>
+                    <td>{item.jumlahpermintaan}</td>
+                    <td>{item.jumlahrealisasi}</td>
+                    <td>{item.permintaan.bidang.name}</td>
+                    <td>{item.permintaan.status.name}</td>
+                    <td>{new Date(item.permintaan.tgl_permintaan).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                    <td>{item.keterangan || '-'}</td>
                 </tr>
             )
         })
     }
 
-    return !reagen ? <LoadingWithoutText />
+    return !atk ? <LoadingWithoutText />
         : (
             <>
                 <div className="table-header flex items-end mt-3">
                     <h2 className="text-xl sm:text-2xl">
-                        {title && <FontAwesomeIcon icon={faCartArrowDown} flip="horizontal" />} <span>{title}</span>
+                        {title && <FontAwesomeIcon icon={faCartFlatbedSuitcase} flip="horizontal" />} <span>{title}</span>
                     </h2>
                     {
-                        reagen.data &&
+                        atk.data &&
                         <select className="block p-2 [&>option]:p-2 rounded focus:outline-quaternary border border-quaternary bg-primary" name="value-per-page"
                             value={valuePerPage}
                             onChange={e => setValuePerPage(e.target.value)}
@@ -114,10 +108,12 @@ export default function TablePenerimaanReagen({ url, limit, title }: iPenerimaan
                             <th>No</th>
                             <th>Nama</th>
                             <th>Satuan</th>
-                            <th>Jumlah</th>
-                            <th>Vendor</th>
-                            <th>Kedaluwarsa</th>
-                            <th>Tanggal Terima</th>
+                            <th>Jml Permintaan</th>
+                            <th>Jml Realisasi</th>
+                            <th>Bidang</th>
+                            <th>Status</th>
+                            <th>Tanggal</th>
+                            <th>Keterangan</th>
                         </tr>
                     </thead>
                     <tbody className="[&_td]:border [&_td]:border-quaternary [&_td]:px-2 [&_td]:py-1">
@@ -125,28 +121,28 @@ export default function TablePenerimaanReagen({ url, limit, title }: iPenerimaan
                     </tbody>
                 </table>
                 {
-                    reagen.data &&
+                    atk.data &&
                     <div className="table-footer flex items-center">
                         <div className="grow">
-                            {reagen?.links?.map((item: any, i: number) => {
+                            {atk?.links?.map((item: any, i: number) => {
                                 let { url, label, active } = item
 
                                 // remove words 'Previous' and 'Next'
                                 label = label === '&laquo; Previous' ? "<"
                                     : label === 'Next &raquo;' ? '>' : label
 
-                                let disabled = reagen.current_page === reagen.last_page && label === '>'
-                                    || reagen.current_page === 1 && label === '<'
+                                let disabled = atk.current_page === atk.last_page && label === '>'
+                                    || atk.current_page === 1 && label === '<'
 
 
                                 const isShowLink =
                                     label == '<' ||
                                     label == '>' ||
                                     label == '1' || //first page
-                                    label == reagen.current_page ||
-                                    // label == reagen.current_page + 1 ||
-                                    // label == reagen.last_page - 1 ||
-                                    label == reagen.last_page
+                                    label == atk.current_page ||
+                                    // label == atk.current_page + 1 ||
+                                    // label == atk.last_page - 1 ||
+                                    label == atk.last_page
 
                                 return isShowLink ? (
                                     <Fragment key={i}>
@@ -157,11 +153,11 @@ export default function TablePenerimaanReagen({ url, limit, title }: iPenerimaan
                                             disabled={disabled}
                                         />
                                     </Fragment >
-                                ) : (label >= reagen.current_page && label <= reagen.last_page) ? <span key={i} className="align-bottom">.</span>
+                                ) : (label >= atk.current_page && label <= atk.last_page) ? <span key={i} className="align-bottom">.</span>
                                     : null
                             })}
                         </div>
-                        <div className="py-2 px-4 rounded bg-secondary">{`${reagen?.data?.length} dari ${reagen?.total} `}</div>
+                        <div className="py-2 px-4 rounded bg-secondary">{`${atk?.data?.length} dari ${atk?.total} `}</div>
                     </div>
                 }
             </>
