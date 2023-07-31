@@ -1,11 +1,11 @@
-import Atk from "@/components/admin/penerimaan/Atk"
+import Atk from "@/components/admin/permintaan/Atk"
 
 export const metadata = {
-    title: 'Penerimaan ATK'
+    title: 'Permintaan ATK'
 }
 
-const PenerimaanReagen = () => {
+const PermintaanAtk = () => {
     return <Atk />
 }
 
-export default PenerimaanReagen
+export default PermintaanAtk
