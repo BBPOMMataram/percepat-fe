@@ -38,17 +38,20 @@ export default function TopBar() {
     useClickOutside(userMenuRef, userBtnMenuRef)
 
     return (
-        <div className="flex items-center bg-quaternary py-4 px-2">
+        <div className="flex items-center bg-quaternary py-4 px-4">
             <button onClick={() => dispatch(toggleSideBar())} className="burger-btn">
                 <FontAwesomeIcon icon={faBars} size="2xl" />
             </button>
             <div className="ml-auto">
                 <div className="relative">
-                    <button ref={userBtnMenuRef} className="flex items-center bg-secondary rounded px-3 py-2" onClick={() => dispatch(toggleUserMenu())}>
-                        <Image src={'/assets/images/bpom.png'} alt="profile photo" width={25} height={25}
-                            className="rounded-full bg-teriary mr-2 w-7 h-7"
+                    <button ref={userBtnMenuRef} className="flex items-center bg-secondary rounded px-3 py-1" onClick={() => dispatch(toggleUserMenu())}>
+                        <Image src={user?.data?.photo || '/assets/images/noimage.webp'} alt="profile photo" width={25} height={25}
+                            className="rounded-full mr-2 w-7 h-7"
                         />
-                        <span>{user?.name}</span>
+                        <div className="flex flex-col h-fit">
+                            <span>{user?.data?.name}</span>
+                            <span className="text-quaternary uppercase text-xs">{user?.data?.position ?? 'no position'}</span>
+                        </div>
                     </button>
                     <AnimatePresence>
                         {
@@ -60,10 +63,20 @@ export default function TopBar() {
                                 exit={{ y: -20, opacity: 0 }}
                                 ref={userMenuRef}
                             >
-                                <div>
-                                    {user?.email}
+                                <Image src={user?.data?.photo || '/assets/images/noimage.webp'} alt="profile photo" width={100} height={100}
+                                    className="rounded-full mx-auto shadow-lg"
+                                />
+                                <div className="text-center mt-2 text-secondary font-semibold uppercase">
+                                    <span>
+                                        {user?.data?.position || 'no position'}
+                                    </span>
+                                    <span className="block text-xs lowercase">di</span>
+                                    <span className="block text-sm whitespace-nowrap">BBPOM Mataram</span>
                                 </div>
-                                <button className="flex border-t border-quaternary pt-2 mt-3 pr-3" onClick={logout}>
+                                <div className="text-center text-quaternary">
+                                    {user?.data?.email}
+                                </div>
+                                <button className="flex border-t border-quaternary text-quaternary pt-2 mt-3 pr-3 font-bold" onClick={logout}>
                                     {/* <GiExitDoor title="Logout" />  */}
                                     <FontAwesomeIcon icon={faDoorOpen} className="mr-1" />
                                     Keluar
