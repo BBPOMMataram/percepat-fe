@@ -3,6 +3,7 @@ import sideBarReducer from '../features/layout/sideBarSlice'
 import topBarReducer from '@/features/layout/topBarSlice'
 import penerimaanReducer from '@/features/penerimaanSlice'
 import permintaanReducer from '@/features/permintaanSlice'
+import userReducer from '@/features/userSlice'
 
 export const store = configureStore({
     reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
         topBar: topBarReducer,
         penerimaanReducer,
         permintaanReducer,
+        userReducer,
     },
 })
 

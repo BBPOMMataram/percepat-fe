@@ -56,7 +56,7 @@ export default function SideBarMenuItem() {
         },
         {
             name: 'Pengguna',
-            link: '/',
+            link: '/users',
             icon: <FontAwesomeIcon icon={faUserGroup} fixedWidth />
         },
         {
