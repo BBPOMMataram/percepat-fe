@@ -156,11 +156,10 @@ export default function Form() {
                         theme: "light",
                     });
 
-                    formResetter()
                     dispatch(fetchUsers())
                     closeFormHandler();
                 })
-                .catch((response ) => {
+                .catch((response) => {
                     const errors = response.response.data.errors || response
 
                     // get all fields in errors as array
@@ -192,6 +191,55 @@ export default function Form() {
         dispatch(userActions.setData(null))
     }
 
+    const resetPasswordHandler = () => {
+        const dataBody = {
+            _method: 'PATCH'
+        }
+
+        data &&
+        axios.post(`/api/reset-password/${data.id}`, dataBody)
+                .then(({ data }) => {
+                    toast.success(data.msg, {
+                        position: "top-right",
+                        autoClose: 5000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        progress: undefined,
+                        theme: "light",
+                    });
+
+                    // dispatch(fetchUsers())
+                    // closeFormHandler();
+                })
+                .catch((response) => {
+                    const errors = response.response.data.errors || response
+
+                    // get all fields in errors as array
+                    const errorMessagesArray = Object.keys(errors)
+
+                    let autoCloseTime = 5000
+                    // loop all error fields exist
+                    errorMessagesArray.forEach(errorItem => {
+                        // loop all items error each field
+                        errors[errorItem].forEach((errorMessage: string) => {
+                            toast.error(errorMessage, {
+                                position: "top-right",
+                                autoClose: autoCloseTime,
+                                hideProgressBar: false,
+                                closeOnClick: true,
+                                pauseOnHover: true,
+                                draggable: true,
+                                progress: undefined,
+                                theme: "light",
+                            });
+                            autoCloseTime += 1000
+                        });
+                    })
+                })
+    }
+    
     return (
         // modal
         <div className="fixed top-0 right-0 left-0 h-screen bg-quaternary bg-opacity-90 flex items-center justify-center">
@@ -201,6 +249,18 @@ export default function Form() {
                 <div className="p-6 bg-teriary rounded mx-2 w-[45rem] my-4">
                     <h2 className="mb-4 text-xl sm:text-2xl md:text-3xl">Form Pengguna</h2>
                     <form onSubmit={data ? handleUpdate : handleSubmit} ref={formRef}>
+                        <div className="font-light bg-secondary py-1 pr-4 pl-2 mr-1 inline-block border-l-4 border-l-red-400 mt-1 mb-2">
+                            Password Default: <strong className="animate-pulse">password</strong>
+                        </div>
+                        {
+                            // HANYA PADA MODE UPDATE
+                            data &&
+                            <button type="button" className="bg-red-600 px-2 py-1 text-red-100 rounded"
+                            onClick={resetPasswordHandler}
+                            >
+                                Reset Password
+                            </button>
+                        }
                         {/* input item */}
                         <div className="flex flex-col mb-3">
                             <label htmlFor="bidang_id">Komoditi</label>
