@@ -1,7 +1,8 @@
 "use client"
 
 import axios from "@/config/axios";
-import { fetchDataAtk, fetchDataReagen, penerimaanActions } from "@/features/penerimaanSlice";
+import { fetchDataAtk, fetchDataReagen } from "@/features/penerimaanSlice";
+import { permintaanActions } from "@/features/permintaanSlice";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import AsyncSelect from 'react-select/async';
@@ -48,7 +49,7 @@ export default function FormPermintaan({ isAtk }: { isAtk?: boolean }) {
 
         const todayFormatted = `${year}-${month}-${date}`
 
-        setToday(todayFormatted) //UNTUK SET DEFAULT TANGGAL PENERIMAAN KE HARI INI
+        setToday(todayFormatted) //UNTUK SET DEFAULT TANGGAL KE HARI INI
     }, [])
 
     const formRef = useRef<any>(null)
@@ -59,7 +60,7 @@ export default function FormPermintaan({ isAtk }: { isAtk?: boolean }) {
         const form = formRef.current
         const formData = new FormData(form)
 
-        axios.post(`${isAtk ? 'api/penerimaan-atk' : 'api/penerimaan-reagen'}`, formData)
+        axios.post(`${isAtk ? 'api/permintaan-atk' : 'api/permintaan-reagen'}`, formData)
             .then(({ data }) => {
                 toast.success(data.msg, {
                     position: "top-right",
@@ -74,10 +75,10 @@ export default function FormPermintaan({ isAtk }: { isAtk?: boolean }) {
                 formRef.current.reset();
                 inventorySelectRef.current.clearValue();
 
-                isAtk ? 
-                dispatch(fetchDataAtk())
-                :
-                dispatch(fetchDataReagen())
+                isAtk ?
+                    dispatch(fetchDataAtk())
+                    :
+                    dispatch(fetchDataReagen())
             })
             .catch(({ response }) => {
                 const errors = response.data.errors
@@ -131,7 +132,7 @@ export default function FormPermintaan({ isAtk }: { isAtk?: boolean }) {
                         <label htmlFor="barangs_id">Barang</label>
                         <AsyncSelect
                             ref={inventorySelectRef}
-                            name={isAtk ? 'atk_id': 'barangs_id'}
+                            name={isAtk ? 'atk_id' : 'barangs_id'}
                             className="mt-1"
                             cacheOptions
                             loadOptions={loadReagenOptions}
@@ -181,7 +182,7 @@ export default function FormPermintaan({ isAtk }: { isAtk?: boolean }) {
                         <button
                             type="button"
                             className="bg-secondary text-quaternary px-4 py-2 mt-4 mx-2 rounded"
-                            onClick={() => dispatch(penerimaanActions.toggleFormReagen())}
+                            onClick={() => dispatch(permintaanActions.toggleForm())}
                         >Tutup</button>
                         <button
                             type="submit"

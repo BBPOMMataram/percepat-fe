@@ -1,14 +1,15 @@
 "use client"
 
-import { fetchDataAtk, fetchDataReagen } from "@/features/permintaanSlice";
+import axios from "@/config/axios";
+import { fetchUser, fetchUsers, userActions } from "@/features/userSlice";
 import { RootState } from "@/redux/store";
 import { faCartFlatbedSuitcase, faPen, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import Image from "next/image";
 import { ChangeEvent, Fragment, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { ToastContainer, toast } from "react-toastify";
 import LoadingWithoutText from "../layouts/LoadingWithoutText";
-import { fetchDataUser } from "@/features/userSlice";
-import Image from "next/image";
 
 interface ITableProps {
     url: string,
@@ -30,20 +31,9 @@ export default function TablePermintaanAtk({ url, limit, title }: ITableProps) {
     const urlToFetch = `${url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${currentPage}&limit=${limit}`
 
     useEffect(() => {
-        dispatch(fetchDataUser(urlToFetch))
+        dispatch(fetchUsers(urlToFetch))
         /// eslint-disable-next-line react-hooks/exhaustive-deps
     }, [valuePerPage, nameToSearch, dispatch, urlToFetch])
-
-    const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
-        setDelaySearch(e.target.value)
-    }
-
-    const handleRemove = (e:any) => {
-        e.preventDefault()
-        const id = e.currentTarget.getAttribute('data-id');
-        console.log(id);
-        //HANDLE DI USERSLICE NTAR
-    }
 
     // UNTUK DELAY SETNAMETOSEARCH 
     useEffect(() => {
@@ -56,6 +46,45 @@ export default function TablePermintaanAtk({ url, limit, title }: ITableProps) {
         }
 
     }, [delaySearch])
+
+    const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
+        setDelaySearch(e.target.value)
+    }
+
+    const removeHandler = (e: any) => {
+        e.preventDefault()
+        const id = e.currentTarget.getAttribute('data-id');
+
+        if (id) {
+            axios.delete(`/api/users/${id}`)
+                .then(({ data }) => {
+                    toast.success(data.msg, {
+                        position: "top-right",
+                        autoClose: 5000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        progress: undefined,
+                        theme: "light",
+                    });
+
+                    dispatch(fetchUsers())
+                })
+                .catch(err => console.log(err))
+        }
+    }
+
+    // MENGISI FORM UNTUK DIEDIT
+    const editHandler = (e: any) => {
+        e.preventDefault()
+        const id = e.currentTarget.getAttribute('data-id');
+
+        if (id) {
+            dispatch(fetchUser(id))
+            dispatch(userActions.toggleForm())
+        }
+    }
 
     const tableHeaderFields =
         <tr className="bg-secondary [&>th]:p-2">
@@ -104,8 +133,8 @@ export default function TablePermintaanAtk({ url, limit, title }: ITableProps) {
                     <td>{signature}</td>
                     <td>{item.bidang?.name}</td>
                     <td className="whitespace-nowrap [&>a]:mx-1">
-                        <a href="#" data-id={item.id} onClick={handleRemove} className="remove text-red-600"><FontAwesomeIcon icon={faTrash}/></a>
-                        <a href="#" data-id={item.id} className="edit text-quaternary"><FontAwesomeIcon icon={faPen}/></a>
+                        <a href="#" data-id={item.id} onClick={removeHandler} className="remove text-red-600"><FontAwesomeIcon icon={faTrash} /></a>
+                        <a href="#" data-id={item.id} onClick={editHandler} className="edit text-quaternary"><FontAwesomeIcon icon={faPen} /></a>
                     </td>
                 </tr>
             )
@@ -115,6 +144,7 @@ export default function TablePermintaanAtk({ url, limit, title }: ITableProps) {
     return !data ? <LoadingWithoutText />
         : (
             <>
+                <ToastContainer />
                 <div className="table-header flex items-end mt-3">
                     <h2 className="text-xl sm:text-2xl">
                         {title && <FontAwesomeIcon icon={faCartFlatbedSuitcase} flip="horizontal" />} <span>{title}</span>
@@ -179,7 +209,7 @@ export default function TablePermintaanAtk({ url, limit, title }: ITableProps) {
                                         <button className={`p-2 rounded py-1 mx-[.1rem] my-2 ${active ? 'bg-teriary' : disabled ? 'bg-gray-200 text-gray-400' : 'bg-secondary '}`}
                                             dangerouslySetInnerHTML={{ __html: label }
                                             }
-                                            onClick={() => dispatch(fetchDataUser(url))}
+                                            onClick={() => dispatch(fetchUsers(url))}
                                             disabled={disabled}
                                         />
                                     </Fragment >

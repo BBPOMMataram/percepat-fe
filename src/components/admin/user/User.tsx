@@ -1,13 +1,13 @@
 "use client"
 
-import { permintaanActions } from "@/features/permintaanSlice"
+import { userActions } from "@/features/userSlice"
 import { RootState } from "@/redux/store"
 import { useDispatch, useSelector } from "react-redux"
 import FormUser from "./Form"
 import TableUser from "./TableUser"
 
 export default function User() {
-    const isFormOpen = useSelector((state: RootState) => state.permintaanReducer.isFormOpen)
+    const isFormOpen = useSelector((state: RootState) => state.userReducer.isFormOpen)
 
     const dispatch = useDispatch()
 
@@ -18,7 +18,7 @@ export default function User() {
             </h1>
             <button
                 className="bg-quaternary text-primary px-4 py-2 rounded"
-                onClick={() => dispatch(permintaanActions.toggleForm())}
+                onClick={() => dispatch(userActions.toggleForm())}
             >
                 Tambah Data
             </button>

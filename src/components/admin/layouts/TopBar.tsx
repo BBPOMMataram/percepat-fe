@@ -70,8 +70,7 @@ export default function TopBar() {
                                     <span>
                                         {user?.data?.position || 'no position'}
                                     </span>
-                                    <span className="block text-xs lowercase">di</span>
-                                    <span className="block text-sm whitespace-nowrap">BBPOM Mataram</span>
+                                    <span className="block text-sm whitespace-nowrap">BBPOM di Mataram</span>
                                 </div>
                                 <div className="text-center text-quaternary">
                                     {user?.data?.email}
