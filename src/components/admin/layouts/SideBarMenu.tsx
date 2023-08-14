@@ -92,7 +92,7 @@ export default function SideBarMenuItem() {
                             const activeClass = pathname === item.link && 'bg-quaternary';
 
                             let itemEl =
-                                <li key={i} className={`px-2 rounded ${activeClass}`}>
+                                <li key={i} className={`px-2 ${activeClass}`}>
                                     <Link href={item.link || '#'}>
                                         {item.icon} <span className="mx-2">{item.name}</span>
                                     </Link>
@@ -113,25 +113,29 @@ export default function SideBarMenuItem() {
                                         </a>
                                         <div className='pl-4 pt-2'>
                                             <ul>
-                                                {item.submenus.map((submenu) => (
-                                                    <AnimatePresence
-                                                        key={submenu.name}
-                                                    >
-                                                        {
-                                                            submenuOpenStates[i] &&
-                                                            <motion.li
-                                                                className={`rounded flex px-2 !pt-0 ${activeClass}`}
-                                                                initial={{ x: -120 }}
-                                                                animate={{ x: 0 }}
-                                                                exit={{ x: -120, transition: { duration: .1 } }}
-                                                            >
-                                                                <Link href={submenu.link}>
-                                                                    {submenu.icon} <span className="ml-2">{submenu.name}</span>
-                                                                </Link>
-                                                            </motion.li>
-                                                        }
-                                                    </AnimatePresence>
-                                                ))}
+                                                {item.submenus.map((submenu) => {
+                                                    const activeClassSubmenu = pathname === submenu.link && 'bg-quaternary';
+
+                                                    return (
+                                                        <AnimatePresence
+                                                            key={submenu.name}
+                                                        >
+                                                            {
+                                                                submenuOpenStates[i] &&
+                                                                <motion.li
+                                                                    className={`pl-2 ${activeClassSubmenu}`}
+                                                                    initial={{ x: -120 }}
+                                                                    animate={{ x: 0 }}
+                                                                    exit={{ x: -120, transition: { duration: .1 } }}
+                                                                >
+                                                                    <Link href={submenu.link}>
+                                                                        {submenu.icon} <span className="ml-2">{submenu.name}</span>
+                                                                    </Link>
+                                                                </motion.li>
+                                                            }
+                                                        </AnimatePresence>
+                                                    )
+                                                })}
                                             </ul>
                                         </div>
                                     </li>

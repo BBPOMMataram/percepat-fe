@@ -43,7 +43,7 @@ export default function SideBar() {
                 animate={{ x: 0, transition: { type: 'tween' } }}
                 exit={{ x: -100 }}
             >
-                <div className="flex-1 flex flex-col bg-teriary py-4 px-2">
+                <div className="flex-1 flex flex-col bg-teriary py-4">
                     <div className="header text-center border-b border-quaternary pb-3">
                         <Image src={"/assets/images/bpom.png"} alt="Logo BPOM RI" width={50} height={50} className="mx-auto mb-2" />
                         <strong>PERCEPAT</strong>
