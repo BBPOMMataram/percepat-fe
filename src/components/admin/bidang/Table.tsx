@@ -1,7 +1,7 @@
 "use client"
 
 import axios from "@/config/axios";
-import { fetchUser, fetchUsers, userActions } from "@/features/userSlice";
+import {  fetchUsers, userActions } from "@/features/userSlice";
 import { RootState } from "@/redux/store";
 import { faCartFlatbedSuitcase, faPen, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -10,6 +10,7 @@ import { ChangeEvent, Fragment, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { ToastContainer, toast } from "react-toastify";
 import LoadingWithoutText from "../layouts/LoadingWithoutText";
+import { bidangActions, fetchData, fetchSingleData } from "@/features/bidangSlice";
 
 interface ITableProps {
     url: string,
@@ -17,8 +18,8 @@ interface ITableProps {
     title?: string,
 }
 
-export default function TableUser({ url, limit, title }: ITableProps) {
-    const data = useSelector((state: RootState) => state.userReducer.dataUser)
+export default function Table({ url, limit, title }: ITableProps) {
+    const data = useSelector((state: RootState) => state.bidangReducer.data)
 
     const [valuePerPage, setValuePerPage] = useState('5')
     const [nameToSearch, setNameToSearch] = useState('')
@@ -31,7 +32,7 @@ export default function TableUser({ url, limit, title }: ITableProps) {
     const urlToFetch = `${url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${currentPage}&limit=${limit}`
 
     useEffect(() => {
-        dispatch(fetchUsers(urlToFetch))
+        dispatch(fetchData(urlToFetch))
         /// eslint-disable-next-line react-hooks/exhaustive-deps
     }, [valuePerPage, nameToSearch, dispatch, urlToFetch])
 
@@ -44,7 +45,6 @@ export default function TableUser({ url, limit, title }: ITableProps) {
         return () => {
             clearTimeout(timeoutId)
         }
-
     }, [delaySearch])
 
     const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
@@ -56,7 +56,7 @@ export default function TableUser({ url, limit, title }: ITableProps) {
         const id = e.currentTarget.getAttribute('data-id');
 
         if (id) {
-            axios.delete(`/api/users/${id}`)
+            axios.delete(`/api/bidang/${id}`)
                 .then(({ data }) => {
                     toast.success(data.msg, {
                         position: "top-right",
@@ -69,7 +69,7 @@ export default function TableUser({ url, limit, title }: ITableProps) {
                         theme: "light",
                     });
 
-                    dispatch(fetchUsers())
+                    dispatch(fetchData())
                 })
                 .catch(err => console.log(err))
         }
@@ -81,8 +81,8 @@ export default function TableUser({ url, limit, title }: ITableProps) {
         const id = e.currentTarget.getAttribute('data-id');
 
         if (id) {
-            dispatch(fetchUser(id))
-            dispatch(userActions.toggleForm())
+            dispatch(fetchSingleData(id))
+            dispatch(bidangActions.toggleForm())
         }
     }
 
@@ -90,15 +90,11 @@ export default function TableUser({ url, limit, title }: ITableProps) {
         <tr className="bg-secondary [&>th]:p-2">
             <th>No</th>
             <th>Nama</th>
-            <th>Email</th>
-            <th>Posisi</th>
-            <th>Foto</th>
-            <th>TTD</th>
-            <th>Bidang</th>
+            <th>KaTim</th>
             <th className="bg-black"></th>
         </tr>
 
-    const items = () => {
+    const dataTable = () => {
         let number = 1
 
         // HANDLE JIKA REAGEN TANPA LIMIT YAITU DATA SELURUHNYA MAKA ATUR NOMOR INDEX NYA PER HALAMAN, JIKA LIMIT ADA ABAIKAN INI
@@ -107,31 +103,11 @@ export default function TableUser({ url, limit, title }: ITableProps) {
         }
 
         return data?.data?.map((item: any, index: number) => {
-            const photo =
-                <Image
-                    src={item.photo || '/assets/images/noimage.webp'}
-                    width={100}
-                    height={100}
-                    alt={`Foto Profil ${item.name}`}
-                />
-
-            const signature =
-                <Image
-                    src={item.signature || '/assets/images/noimage.webp'}
-                    width={100}
-                    height={100}
-                    alt={`TTD ${item.name}`}
-                />
-
             return (
                 <tr key={index}>
                     <td>{number++}</td>
                     <td>{item.name}</td>
-                    <td>{item.email}</td>
-                    <td>{item.position}</td>
-                    <td>{photo}</td>
-                    <td>{signature}</td>
-                    <td>{item.bidang?.name}</td>
+                    <td>{item.kabid.name}</td>
                     <td className="whitespace-nowrap [&>a]:mx-1">
                         <a href="#" data-id={item.id} onClick={removeHandler} className="remove text-red-600"><FontAwesomeIcon icon={faTrash} /></a>
                         <a href="#" data-id={item.id} onClick={editHandler} className="edit text-quaternary"><FontAwesomeIcon icon={faPen} /></a>
@@ -176,7 +152,7 @@ export default function TableUser({ url, limit, title }: ITableProps) {
                         {tableHeaderFields}
                     </thead>
                     <tbody className="[&_td]:border [&_td]:border-quaternary [&_td]:px-2 [&_td]:py-1">
-                        {items()}
+                        {dataTable()}
                     </tbody>
                 </table>
                 {
@@ -209,7 +185,7 @@ export default function TableUser({ url, limit, title }: ITableProps) {
                                         <button className={`p-2 rounded py-1 mx-[.1rem] my-2 ${active ? 'bg-teriary' : disabled ? 'bg-gray-200 text-gray-400' : 'bg-secondary '}`}
                                             dangerouslySetInnerHTML={{ __html: label }
                                             }
-                                            onClick={() => dispatch(fetchUsers(url))}
+                                            onClick={() => dispatch(fetchData(url))}
                                             disabled={disabled}
                                         />
                                     </Fragment >

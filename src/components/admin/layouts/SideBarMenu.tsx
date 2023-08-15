@@ -51,7 +51,7 @@ export default function SideBarMenuItem() {
         },
         {
             name: 'Bidang',
-            link: '/',
+            link: '/bidang',
             icon: <FontAwesomeIcon icon={faPuzzlePiece} fixedWidth />
         },
         {
