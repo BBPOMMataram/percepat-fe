@@ -84,37 +84,37 @@ export default function SideBarMenuItem() {
     };
 
     return (
-        <div className="menu flex-1 my-4 [&_li]:py-2 [&_a]:flex">
+        <div className="menu flex-1 my-4 [&_li]:py-2 [&_li]:px-4 [&_a]:flex [&_a]:items-center">
             <nav>
                 <ul>
                     {
                         menuItems.map((item, i) => {
-                            const activeClass = pathname === item.link && 'bg-quaternary';
+                            const activeClass = pathname === item.link ? 'bg-quaternary' : 'hover:bg-secondary' ;
 
                             let itemEl =
-                                <li key={i} className={`px-2 ${activeClass}`}>
+                                <li key={i} className={activeClass}>
                                     <Link href={item.link || '#'}>
-                                        {item.icon} <span className="mx-2">{item.name}</span>
+                                        <span className="text-xl">{item.icon}</span> <span className="mx-2">{item.name}</span>
                                     </Link>
                                 </li>
 
 
                             if (item.separator) {
-                                itemEl = <div key={i} className="text-quaternary ml-1 text-sm font-bold">{item.separator}</div>
+                                itemEl = <div key={i} className="text-quaternary ml-2 text-sm font-bold">{item.separator}</div>
                             }
 
                             if (item.submenus) {
                                 itemEl =
-                                    <li key={i} className="px-2 !pb-0">
+                                    <li key={i} className={`!pb-0 ${submenuOpenStates[i] ? '' : 'hover:bg-secondary'}`}>
                                         <a className="flex" onClick={() => handleSubmenu(i)} role="button">
-                                            {item.icon}
+                                            <span className="text-xl">{item.icon}</span>
                                             <span className="ml-2 mr-auto">{item.name}</span>
-                                            <button className="ml-5">{submenuOpenStates[i] ? <FontAwesomeIcon icon={faCaretDown} /> : <FontAwesomeIcon icon={faCaretLeft} />}</button>
+                                            <button className="ml-6">{submenuOpenStates[i] ? <FontAwesomeIcon icon={faCaretDown} /> : <FontAwesomeIcon icon={faCaretLeft} />}</button>
                                         </a>
                                         <div className='pl-4 pt-2'>
                                             <ul>
                                                 {item.submenus.map((submenu) => {
-                                                    const activeClassSubmenu = pathname === submenu.link && 'bg-quaternary';
+                                                    const activeClassSubmenu = pathname === submenu.link ? 'bg-quaternary' : 'hover:bg-secondary';
 
                                                     return (
                                                         <AnimatePresence
@@ -123,7 +123,7 @@ export default function SideBarMenuItem() {
                                                             {
                                                                 submenuOpenStates[i] &&
                                                                 <motion.li
-                                                                    className={`pl-2 ${activeClassSubmenu}`}
+                                                                    className={activeClassSubmenu}
                                                                     initial={{ x: -120 }}
                                                                     animate={{ x: 0 }}
                                                                     exit={{ x: -120, transition: { duration: .1 } }}
