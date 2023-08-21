@@ -1,11 +1,11 @@
 import Bidang from "@/components/admin/bidang/Bidang"
 
 export const metadata = {
-    title: 'Users'
+    title: 'Bidang'
 }
 
-const Users = () => {
+const Page = () => {
     return <Bidang />
 }
 
-export default Users
+export default Page

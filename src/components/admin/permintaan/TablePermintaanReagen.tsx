@@ -64,7 +64,7 @@ export default function TablePermintaanReagen({ url, limit, title }: iPermintaan
                     <td>{item.barang.satuan}</td>
                     <td>{item.jumlahpermintaan}</td>
                     <td>{item.jumlahrealisasi}</td>
-                    <td>{item.permintaan.bidang.name}</td>
+                    <td>{item.permintaan.bidang?.name}</td>
                     <td>{item.permintaan.status.name}</td>
                     <td>{new Date(item.permintaan.tgl_permintaan).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</td>
                     <td>{item.keterangan || '-'}</td>

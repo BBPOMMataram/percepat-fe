@@ -7,29 +7,29 @@ const initialState: { isFormOpen: boolean , data: any, singleData: any } = {
     singleData: null
 }
 
-export const bidangSlice = createSlice({
-    name: 'bidang',
+export const reagenSlice = createSlice({
+    name: 'reagen',
     initialState,
     reducers: {
         toggleForm: state => { state.isFormOpen = !state.isFormOpen },
-        setDataBidang: (state, { payload }) => {
+        setData: (state, { payload }) => {
             state.data = payload
         },
-        setData: (state, { payload }) => {
+        setSingleData: (state, { payload }) => {
             state.singleData = payload
         },
     }
 })
 
-export const bidangActions = bidangSlice.actions
+export const reagenActions = reagenSlice.actions
 
-export default bidangSlice.reducer
+export default reagenSlice.reducer
 
-export const fetchData = (url = '/api/bidang?value_per_page=5') => {
+export const fetchData = (url = '/api/barang-reagen?value_per_page=5') => {
     return async (dispatch: Dispatch) => {
         axios(url)
             .then(({ data }) => {
-                dispatch(bidangActions.setDataBidang(data));
+                dispatch(reagenActions.setData(data));
             })
             .catch(err => console.log(err))
     }
@@ -39,9 +39,9 @@ export const fetchSingleData = (id: string) => {
     return async (dispatch: Dispatch) => {
 
         id &&
-            axios(`/api/bidang/${id}`)
+            axios(`/api/barang-reagen/${id}`)
                 .then(({ data }) => {
-                    dispatch(bidangActions.setData(data.data));
+                    dispatch(reagenActions.setSingleData(data.data));
                 })
                 .catch(err => console.log(err))
     }
