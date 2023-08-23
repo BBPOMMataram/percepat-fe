@@ -1,22 +1,19 @@
 "use client"
 
 import axios from "@/config/axios";
-import { fetchData, reagenActions } from "@/features/reagenSlice";
+import { atkActions, fetchData } from "@/features/atkSlice";
 import { RootState } from "@/redux/store";
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import AsyncSelect from 'react-select/async';
 import { ToastContainer, toast } from "react-toastify";
 
 export default function Form() {
-    const data = useSelector((state: RootState) => state.reagenReducer.singleData)
+    const data = useSelector((state: RootState) => state.atkReducer.singleData)
     const dispatch = useDispatch<any>()
 
     const [name, setName] = useState('')
     const [satuan, setSatuan] = useState('')
     const [stock, setStock] = useState(0)
-    const [expired, setExpired] = useState('')
-    const [msds, setMsds] = useState('')
 
     const formRef = useRef<any>(null)
 
@@ -24,14 +21,9 @@ export default function Form() {
         // ISI FORM UNTUK EDITING
         if (data) {
             // FORMAT TANGGAL EXPIRED UNTUK DI SET KE INPUT DATE
-            if (data.expired) {
-                const [year, month, day] = data.expired.split(' ')[0].split('-')
-                setExpired(`${year}-${month}-${day}`)
-            }
             setName(data.name)
             setSatuan(data.satuan)
             setStock(data.stock)
-            setMsds(data.msds)
         }
     }, [data])
 
@@ -44,7 +36,7 @@ export default function Form() {
         const form = formRef.current
         const formData = new FormData(form)
 
-        axios.post(`api/barang-reagen`, formData)
+        axios.post(`api/barang-atk`, formData)
             .then(({ data }) => {
                 toast.success(data.msg, {
                     position: "top-right",
@@ -95,7 +87,7 @@ export default function Form() {
         formData.append('_method', 'PUT')
 
         data &&
-            axios.post(`/api/barang-reagen/${data.id}`, formData)
+            axios.post(`/api/barang-atk/${data.id}`, formData)
                 .then(({ data }) => {
                     toast.success(data.msg, {
                         position: "top-right",
@@ -139,8 +131,8 @@ export default function Form() {
     }
 
     const closeFormHandler = () => {
-        dispatch(reagenActions.toggleForm());
-        dispatch(reagenActions.setSingleData(null))
+        dispatch(atkActions.toggleForm());
+        dispatch(atkActions.setSingleData(null))
     }
 
     return (
@@ -196,33 +188,6 @@ export default function Form() {
                                 min={0}
                                 value={stock}
                                 onChange={(e: any) => setStock(e.target.value)}
-                            />
-                        </div>
-
-                        {/* input item */}
-                        <div className="flex flex-col mb-3">
-                            <label htmlFor="expired">Kedaluwarsa</label>
-                            <input
-                                type="date"
-                                id="expired"
-                                name="expired"
-                                className="rounded p-2 mt-1"
-                                value={expired}
-                                onChange={(e: any) => setExpired(e.target.value)}
-                            />
-                        </div>
-
-                        {/* input item */}
-                        <div className="flex flex-col mb-3">
-                            <label htmlFor="msds">MSDS</label>
-                            <input
-                                type="text"
-                                id="msds"
-                                name="msds"
-                                className="rounded p-2 mt-1"
-                                placeholder="Inputkan link url"
-                                value={msds}
-                                onChange={(e: any) => setMsds(e.target.value)}
                             />
                         </div>
 

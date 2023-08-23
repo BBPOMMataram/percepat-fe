@@ -5,6 +5,7 @@ const initialState = {
     isFormReagenOpen: false,
     dataReagen: <any>[],
     dataAtk: <any>[],
+    singleData: <any>null,
 }
 
 export const penerimaanSlice = createSlice({
@@ -18,6 +19,12 @@ export const penerimaanSlice = createSlice({
         setDataAtk: (state, { payload }) => {
             state.dataAtk = payload
         },
+        setSingleDataReagen: (state, {payload}) => {
+            state.singleData = payload
+        },
+        setSingleDataAtk: (state, {payload}) => {
+            state.singleData = payload
+        }
     }
 })
 
@@ -42,5 +49,27 @@ export const fetchDataAtk = (url = '/api/penerimaan-atk?value_per_page=5') => {
                 dispatch(penerimaanActions.setDataAtk(data));
             })
             .catch(err => console.log(err))
+    }
+}
+
+export const fetchSingleData = (id: string) => {
+    return async (dispatch: Dispatch) => {
+        id &&
+            axios(`/api/penerimaan-reagen/${id}`)
+                .then(({ data }) => {
+                    dispatch(penerimaanActions.setSingleDataReagen(data.data));
+                })
+                .catch(err => console.log(err))
+    }
+}
+
+export const fetchSingleDataAtk = (id: string) => {
+    return async (dispatch: Dispatch) => {
+        id &&
+            axios(`/api/penerimaan-atk/${id}`)
+                .then(({ data }) => {
+                    dispatch(penerimaanActions.setSingleDataAtk(data.data));
+                })
+                .catch(err => console.log(err))
     }
 }

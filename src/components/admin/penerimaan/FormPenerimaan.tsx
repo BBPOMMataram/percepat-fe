@@ -2,8 +2,9 @@
 
 import axios from "@/config/axios";
 import { fetchDataAtk, fetchDataReagen, penerimaanActions } from "@/features/penerimaanSlice";
+import { RootState } from "@/redux/store";
 import { useEffect, useRef, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import AsyncSelect from 'react-select/async';
 import { ToastContainer, toast } from "react-toastify";
 
@@ -20,7 +21,9 @@ export default function FormPenerimaan({ isAtk }: { isAtk?: boolean }) {
     ): Promise<iSelectBoxReagen[]> => {
 
         if (inputValue) {
-            const urlData = isAtk ? `api/barang-atk/getAll?name=${inputValue}` : `api/barang-reagen/getAll?name=${inputValue}`
+            const urlData = isAtk ? `api/barang-atk/getAll?name=${inputValue}`
+                : `api/barang-reagen/getAll?name=${inputValue}`
+
             const { data } = await axios(urlData)
 
             const reagenOptions = data.map((item: any) => {
@@ -37,7 +40,53 @@ export default function FormPenerimaan({ isAtk }: { isAtk?: boolean }) {
         return []
     };
 
-    const [today, setToday] = useState<string>()
+    const [tglPenerimaan, setTglPenerimaan] = useState("")
+    const [selectedInventory, setSelectedInventory] = useState<any>()
+    const [kedaluwarsa, setKedaluwarsa] = useState("")
+    const [jumlah, setJumlah] = useState(0)
+    const [vendor, setVendor] = useState("")
+
+    const data = useSelector((state: RootState) => state.penerimaanReducer.singleData)
+
+    useEffect(() => {
+        // ISI FORM UNTUK EDITING
+        if (data) {
+
+            if (data.expired) {
+                const currentKedaluwarsa = new Date(data.expired)
+
+                const year = currentKedaluwarsa.getFullYear()
+                const month = (`${currentKedaluwarsa.getMonth() + 1}`).padStart(2, "0")
+                const date = (`${currentKedaluwarsa.getDate()}`).padStart(2, "0");
+
+                const currentKedaluwarsaFormatted = `${year}-${month}-${date}`
+
+                setKedaluwarsa(currentKedaluwarsaFormatted)
+            }
+
+            const currentTglPenerimaan = new Date(data.created_at)
+
+            const year = currentTglPenerimaan.getFullYear()
+            const month = (`${currentTglPenerimaan.getMonth() + 1}`).padStart(2, "0")
+            const date = (`${currentTglPenerimaan.getDate()}`).padStart(2, "0");
+
+            const currentTglPenerimaanFormatted = `${year}-${month}-${date}`
+
+            setTglPenerimaan(currentTglPenerimaanFormatted)
+
+            // jika reagen nama nya 'barang', sedangkan atk namanya 'atk'
+            let inventorySelected =null;
+            if(data.barang){
+                inventorySelected = { value: data.barang.id, label: data.barang.name }
+            }else if(data.atk){
+                inventorySelected = { value: data.atk.id, label: data.atk.name }
+            }
+            setSelectedInventory(inventorySelected)
+            
+            setJumlah(data.jumlah)
+            setVendor(data.vendor)
+        }
+    }, [data])
 
     useEffect(() => {
         const today = new Date()
@@ -48,7 +97,7 @@ export default function FormPenerimaan({ isAtk }: { isAtk?: boolean }) {
 
         const todayFormatted = `${year}-${month}-${date}`
 
-        setToday(todayFormatted) //UNTUK SET DEFAULT TANGGAL PENERIMAAN KE HARI INI
+        setTglPenerimaan(todayFormatted) //UNTUK SET DEFAULT TANGGAL PENERIMAAN KE HARI INI
     }, [])
 
     const formRef = useRef<any>(null)
@@ -74,10 +123,10 @@ export default function FormPenerimaan({ isAtk }: { isAtk?: boolean }) {
                 formRef.current.reset();
                 inventorySelectRef.current.clearValue();
 
-                isAtk ? 
-                dispatch(fetchDataAtk())
-                :
-                dispatch(fetchDataReagen())
+                isAtk ?
+                    dispatch(fetchDataAtk())
+                    :
+                    dispatch(fetchDataReagen())
             })
             .catch(({ response }) => {
                 const errors = response.data.errors
@@ -106,6 +155,61 @@ export default function FormPenerimaan({ isAtk }: { isAtk?: boolean }) {
             })
     }
 
+    const handleUpdate = async (e: any) => {
+        e.preventDefault()
+        const form = formRef.current
+        const formData = new FormData(form)
+        formData.append('_method', 'PUT')
+
+        data &&
+            axios.post(`${isAtk ? 'api/penerimaan-atk/' + data.id : 'api/penerimaan-reagen/' + data.id}`, formData)
+                .then(({ data }) => {
+                    toast.success(data.msg, {
+                        position: "top-right",
+                        autoClose: 5000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        progress: undefined,
+                        theme: "light",
+                    });
+                    formRef.current.reset();
+                    inventorySelectRef.current.clearValue();
+                    dispatch(penerimaanActions.toggleFormReagen());
+                    dispatch(penerimaanActions.setSingleDataReagen(null))
+                    isAtk ?
+                        dispatch(fetchDataAtk())
+                        :
+                        dispatch(fetchDataReagen())
+                })
+                .catch(({ response }) => {
+                    const errors = response.data.errors
+
+                    // get all fields in errors as array
+                    const errorMessagesArray = Object.keys(errors)
+
+                    let autoCloseTime = 5000
+                    // loop all error fields exist
+                    errorMessagesArray.forEach(errorItem => {
+                        // loop all items error each field
+                        errors[errorItem].forEach((errorMessage: string) => {
+                            toast.error(errorMessage, {
+                                position: "top-right",
+                                autoClose: autoCloseTime,
+                                hideProgressBar: false,
+                                closeOnClick: true,
+                                pauseOnHover: true,
+                                draggable: true,
+                                progress: undefined,
+                                theme: "light",
+                            });
+                            autoCloseTime += 1000
+                        });
+                    })
+                })
+    }
+
     return (
         // modal
         <div className="fixed inset-0 bg-quaternary bg-opacity-90 flex items-center justify-center">
@@ -113,7 +217,7 @@ export default function FormPenerimaan({ isAtk }: { isAtk?: boolean }) {
             {/* form container */}
             <div className="p-6 bg-teriary rounded mx-2 w-[45rem]">
                 <h2 className="mb-4 text-xl sm:text-2xl md:text-3xl">Form Penerimaan {isAtk ? 'ATK' : 'Reagen'}</h2>
-                <form onSubmit={handleSubmit} method="post" ref={formRef}>
+                <form onSubmit={data ? handleUpdate : handleSubmit} method="post" ref={formRef}>
                     {/* input item */}
                     <div className="flex flex-col mb-3">
                         <label htmlFor="created_at">Tanggal Penerimaan</label>
@@ -122,8 +226,9 @@ export default function FormPenerimaan({ isAtk }: { isAtk?: boolean }) {
                             id="created_at"
                             name="created_at"
                             className="rounded p-2 mt-1"
-                            defaultValue={today}
                             required
+                            value={tglPenerimaan}
+                            onChange={(e) => setTglPenerimaan(e.target.value)}
                         />
                     </div>
                     {/* input item */}
@@ -131,13 +236,15 @@ export default function FormPenerimaan({ isAtk }: { isAtk?: boolean }) {
                         <label htmlFor="barangs_id">Barang</label>
                         <AsyncSelect
                             ref={inventorySelectRef}
-                            name={isAtk ? 'atk_id': 'barangs_id'}
+                            name={isAtk ? 'atk_id' : 'barangs_id'}
                             className="mt-1"
                             cacheOptions
                             loadOptions={loadReagenOptions}
                             defaultOptions
                             isClearable
                             required
+                            value={selectedInventory}
+                            onChange={(option: any) => setSelectedInventory(option)}
                         />
                     </div>
                     {/* input item */}
@@ -149,6 +256,8 @@ export default function FormPenerimaan({ isAtk }: { isAtk?: boolean }) {
                                 id="expired"
                                 name="expired"
                                 className="rounded p-2 mt-1"
+                                value={kedaluwarsa}
+                                onChange={(e: any) => setKedaluwarsa(e.target.value)}
                             />
                         </div>
                     }
@@ -163,6 +272,8 @@ export default function FormPenerimaan({ isAtk }: { isAtk?: boolean }) {
                             placeholder="Contoh: 100"
                             min={1}
                             required
+                            value={jumlah}
+                            onChange={(e: any) => setJumlah(e.target.value)}
                         />
                     </div>
                     {/* input item */}
@@ -175,6 +286,8 @@ export default function FormPenerimaan({ isAtk }: { isAtk?: boolean }) {
                             className="rounded p-2 mt-1"
                             placeholder="Contoh: PT. Indonesia Raya"
                             required
+                            value={vendor}
+                            onChange={(e: any) => setVendor(e.target.value)}
                         />
                     </div>
                     <div className="w-full text-right">

@@ -1,11 +1,13 @@
 "use client"
 
-import { fetchDataAtk } from "@/features/penerimaanSlice";
+import axios from "@/config/axios";
+import { fetchDataAtk, fetchSingleDataAtk, penerimaanActions } from "@/features/penerimaanSlice";
 import { RootState } from "@/redux/store";
-import { faCartArrowDown } from "@fortawesome/free-solid-svg-icons";
+import { faCartArrowDown, faPen, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ChangeEvent, Fragment, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { ToastContainer, toast } from "react-toastify";
 import LoadingWithoutText from "../layouts/LoadingWithoutText";
 
 interface iPenerimaan {
@@ -48,6 +50,41 @@ export default function TablePenerimaanAtk({ url, limit, title }: iPenerimaan) {
 
     }, [delaySearch])
 
+    const removeHandler = (e: any) => {
+        e.preventDefault()
+        const id = e.currentTarget.getAttribute('data-id');
+
+        if (id) {
+            axios.delete(`/api/penerimaan-atk/${id}`)
+                .then(({ data }) => {
+                    toast.success(data.msg, {
+                        position: "top-right",
+                        autoClose: 5000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        progress: undefined,
+                        theme: "light",
+                    });
+
+                    dispatch(fetchDataAtk())
+                })
+                .catch(err => console.log(err))
+        }
+    }
+
+    // MENGISI FORM UNTUK DIEDIT
+    const editHandler = (e: any) => {
+        e.preventDefault()
+        const id = e.currentTarget.getAttribute('data-id');
+
+        if (id) {
+            dispatch(fetchSingleDataAtk(id))
+            dispatch(penerimaanActions.toggleFormReagen())
+        }
+    }
+
     const items = () => {
         let number = 1
 
@@ -67,6 +104,10 @@ export default function TablePenerimaanAtk({ url, limit, title }: iPenerimaan) {
                     <td>{item.jumlah}</td>
                     <td>{item.vendor}</td>
                     <td>{createdAt}</td>
+                    <td className="whitespace-nowrap [&>a]:mx-1 text-center">
+                        <a href="#" data-id={item.id} onClick={removeHandler} className="remove text-red-600"><FontAwesomeIcon icon={faTrash} /></a>
+                        <a href="#" data-id={item.id} onClick={editHandler} className="edit text-quaternary"><FontAwesomeIcon icon={faPen} /></a>
+                    </td>
                 </tr>
             )
         })
@@ -75,6 +116,7 @@ export default function TablePenerimaanAtk({ url, limit, title }: iPenerimaan) {
     return !atk ? <LoadingWithoutText />
         : (
             <>
+                <ToastContainer />
                 <div className="table-header flex items-end mt-3">
                     <h2 className="text-xl sm:text-2xl">
                         {title && <FontAwesomeIcon icon={faCartArrowDown} flip="horizontal" />} <span>{title}</span>
@@ -110,6 +152,7 @@ export default function TablePenerimaanAtk({ url, limit, title }: iPenerimaan) {
                             <th>Jumlah</th>
                             <th>Vendor</th>
                             <th>Tanggal Terima</th>
+                            <th className="bg-black"></th>
                         </tr>
                     </thead>
                     <tbody className="[&_td]:border [&_td]:border-quaternary [&_td]:px-2 [&_td]:py-1">
