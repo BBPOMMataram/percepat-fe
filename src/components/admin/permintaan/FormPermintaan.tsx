@@ -113,7 +113,7 @@ export default function FormPermintaan({ isAtk }: { isAtk?: boolean }) {
             <ToastContainer />
             {/* form container */}
             <div className="p-6 bg-teriary rounded mx-2 w-[45rem]">
-                <h2 className="mb-4 text-xl sm:text-2xl md:text-3xl">Form Penerimaan {isAtk ? 'ATK' : 'Reagen'}</h2>
+                <h2 className="mb-4 text-xl sm:text-2xl md:text-3xl">Form Permintaan {isAtk ? 'ATK' : 'Reagen'}</h2>
                 <form onSubmit={handleSubmit} method="post" ref={formRef}>
                     {/* input item */}
                     <div className="flex flex-col mb-3">

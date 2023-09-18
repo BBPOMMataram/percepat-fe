@@ -3,7 +3,7 @@
 import { permintaanActions } from "@/features/permintaanSlice"
 import { RootState } from "@/redux/store"
 import { useDispatch, useSelector } from "react-redux"
-import FormPermintaan from "./FormPermintaan"
+import FormListPermintaan from "./FormListPermintaan"
 import TablePermintaanReagen from "./TablePermintaanReagen"
 
 export default function Reagen() {
@@ -17,7 +17,9 @@ export default function Reagen() {
                 Permintaan Reagen</h1>
             <button
                 className="bg-quaternary text-primary px-4 py-2 rounded"
-                onClick={() => dispatch(permintaanActions.toggleForm())}
+                onClick={() => {
+                    dispatch(permintaanActions.toggleForm())
+                }}
             >
                 Tambah Data
             </button>
@@ -25,7 +27,7 @@ export default function Reagen() {
                 url='api/permintaan-reagen'
                 limit={0}
             />
-            {isFormOpen && <FormPermintaan />}
+            {isFormOpen && <FormListPermintaan />}
         </section>
     )
 }

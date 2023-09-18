@@ -1,20 +1,23 @@
 "use client"
 
-import { fetchDataReagen } from "@/features/permintaanSlice";
+import { fetchDataReagen, fetchListInventory, permintaanActions } from "@/features/permintaanSlice";
 import { RootState } from "@/redux/store";
-import { faCartFlatbedSuitcase } from "@fortawesome/free-solid-svg-icons";
+import { faBook, faCartFlatbedSuitcase, faClipboardList, faList, faList12, faListCheck, faListSquares, faPen, faPenClip, faThList, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ChangeEvent, Fragment, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import LoadingWithoutText from "../layouts/LoadingWithoutText";
+import axios from "@/config/axios";
+import { ToastContainer, toast } from "react-toastify";
 
 interface iPermintaan {
     url: string,
     limit: number,
     title?: string,
+    isWithAction?: boolean,
 }
 
-export default function TablePermintaanReagen({ url, limit, title }: iPermintaan) {
+export default function TablePermintaanReagen({ url, limit, title, isWithAction = true }: iPermintaan) {
     const reagen = useSelector((state: RootState) => state.permintaanReducer.dataReagen)
 
     const [valuePerPage, setValuePerPage] = useState('5')
@@ -47,6 +50,55 @@ export default function TablePermintaanReagen({ url, limit, title }: iPermintaan
 
     }, [delaySearch])
 
+
+    const removeHandler = (e: any) => {
+        e.preventDefault()
+        const id = e.currentTarget.getAttribute('data-id');
+
+        if (id) {
+            axios.delete(`/api/permintaan-reagen/${id}`)
+                .then(({ data }) => {
+                    toast.success(data.msg, {
+                        position: "top-right",
+                        autoClose: 5000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        progress: undefined,
+                        theme: "light",
+                    });
+
+                    dispatch(fetchDataReagen())
+                })
+                .catch(err => console.log(err))
+        }
+    }
+
+    // MENGISI FORM UNTUK DIEDIT
+    const editHandler = (e: any) => {
+        e.preventDefault()
+        const id = e.currentTarget.getAttribute('data-id');
+
+        dispatch(fetchListInventory(id))
+        dispatch(permintaanActions.toggleForm())
+    }
+
+    const showListHandler = (e:any) => {
+        e.preventDefault()
+        const id = e.currentTarget.getAttribute('data-id');
+
+        dispatch(fetchListInventory(id))
+        dispatch(permintaanActions.toggleForm())
+        dispatch(permintaanActions.setIsViewMode(true))
+    }
+
+    const addListHandler = (e:any) => {
+        e.preventDefault()
+
+        dispatch(permintaanActions.toggleForm())
+    }
+
     const items = () => {
         let number = 1
 
@@ -55,19 +107,33 @@ export default function TablePermintaanReagen({ url, limit, title }: iPermintaan
             number = (reagen?.current_page - 1) * parseInt(valuePerPage) + 1
         }
 
-        const data = reagen?.data || reagen //DATA DENGAN ATAU TANPA LIMIT
+        const data = reagen?.data || reagen // DATA DENGAN ATAU TANPA LIMIT
         return data?.map((item: any, index: number) => {
+
+            const tanggalPermintaan = item.tgl_permintaan ?
+                new Date(item.tgl_permintaan).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+                : '-'
+
+            const tanggalPenyerahan = item.tgl_penyerahan ?
+                new Date(item.tgl_penyerahan).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+                : '-'
+
             return (
                 <tr key={index}>
                     <td>{number++}</td>
-                    <td>{item.barang.name}</td>
-                    <td>{item.barang.satuan}</td>
-                    <td>{item.jumlahpermintaan}</td>
-                    <td>{item.jumlahrealisasi}</td>
-                    <td>{item.permintaan.bidang?.name}</td>
-                    <td>{item.permintaan.status.name}</td>
-                    <td>{new Date(item.permintaan.tgl_permintaan).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</td>
-                    <td>{item.keterangan || '-'}</td>
+                    <td>{item.peminta?.name}</td>
+                    <td>{item.bidang?.name || '-'}</td>
+                    <td>{item.bidang?.user?.name || '-'}</td>
+                    <td>{item.status?.name}</td>
+                    <td>{tanggalPermintaan}</td>
+                    <td>{tanggalPenyerahan}</td>
+                    {isWithAction &&
+                        <td className="whitespace-nowrap [&>a]:mx-1 text-center">
+                            <a href="#" data-id={item.id} onClick={showListHandler} title="List" className="list text-blue-800"><FontAwesomeIcon icon={faClipboardList} /></a>
+                            <a href="#" data-id={item.id} onClick={editHandler} className="edit text-quaternary"><FontAwesomeIcon icon={faPen} /></a>
+                            <a href="#" data-id={item.id} onClick={removeHandler} className="remove text-red-600"><FontAwesomeIcon icon={faTrash} /></a>
+                        </td>
+                    }
                 </tr>
             )
         })
@@ -76,6 +142,7 @@ export default function TablePermintaanReagen({ url, limit, title }: iPermintaan
     return !reagen ? <LoadingWithoutText />
         : (
             <>
+                <ToastContainer />
                 <div className="table-header flex items-end mt-3">
                     <h2 className="text-xl sm:text-2xl">
                         {title && <FontAwesomeIcon icon={faCartFlatbedSuitcase} flip="horizontal" />} <span>{title}</span>
@@ -106,14 +173,15 @@ export default function TablePermintaanReagen({ url, limit, title }: iPermintaan
                     <thead className="[&_th]:border [&_th]:border-quaternary text-left">
                         <tr className="bg-secondary [&>th]:p-2">
                             <th>No</th>
-                            <th>Nama</th>
-                            <th>Satuan</th>
-                            <th>Jml Permintaan</th>
-                            <th>Jml Realisasi</th>
+                            <th>Yang Meminta</th>
                             <th>Bidang</th>
+                            <th>KaTim / Penyelia</th>
                             <th>Status</th>
-                            <th>Tanggal</th>
-                            <th>Keterangan</th>
+                            <th>Tanggal Permintaan</th>
+                            <th>Tanggal Penyerahan</th>
+                            {isWithAction &&
+                                <th className="bg-black"></th>
+                            }
                         </tr>
                     </thead>
                     <tbody className="[&_td]:border [&_td]:border-quaternary [&_td]:px-2 [&_td]:py-1">

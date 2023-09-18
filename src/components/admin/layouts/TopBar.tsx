@@ -75,10 +75,10 @@ export default function TopBar() {
                                 <div className="text-center text-quaternary">
                                     {user?.data?.email}
                                 </div>
-                                <button className="flex border-t border-quaternary text-quaternary pt-2 mt-3 pr-3 font-bold" onClick={logout}>
+                                <button className="flex border-t border-quaternary text-quaternary pt-2 mt-3 pr-3 font-bold ml-auto" onClick={logout}>
                                     {/* <GiExitDoor title="Logout" />  */}
-                                    <FontAwesomeIcon icon={faDoorOpen} className="mr-1" />
                                     Keluar
+                                    <FontAwesomeIcon icon={faDoorOpen} className="ml-1" />
                                 </button>
                             </motion.div>
                         }

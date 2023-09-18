@@ -14,9 +14,10 @@ interface iPenerimaan {
     url: string,
     limit: number,
     title?: string,
+    isWithAction?: boolean,
 }
 
-export default function TablePenerimaanAtk({ url, limit, title }: iPenerimaan) {
+export default function TablePenerimaanAtk({ url, limit, title, isWithAction = true }: iPenerimaan) {
     const atk = useSelector((state: RootState) => state.penerimaanReducer.dataAtk)
 
     const [valuePerPage, setValuePerPage] = useState('5')
@@ -104,10 +105,12 @@ export default function TablePenerimaanAtk({ url, limit, title }: iPenerimaan) {
                     <td>{item.jumlah}</td>
                     <td>{item.vendor}</td>
                     <td>{createdAt}</td>
-                    <td className="whitespace-nowrap [&>a]:mx-1 text-center">
-                        <a href="#" data-id={item.id} onClick={removeHandler} className="remove text-red-600"><FontAwesomeIcon icon={faTrash} /></a>
-                        <a href="#" data-id={item.id} onClick={editHandler} className="edit text-quaternary"><FontAwesomeIcon icon={faPen} /></a>
-                    </td>
+                    {isWithAction &&
+                        <td className="whitespace-nowrap [&>a]:mx-1 text-center">
+                            <a href="#" data-id={item.id} onClick={removeHandler} className="remove text-red-600"><FontAwesomeIcon icon={faTrash} /></a>
+                            <a href="#" data-id={item.id} onClick={editHandler} className="edit text-quaternary"><FontAwesomeIcon icon={faPen} /></a>
+                        </td>
+                    }
                 </tr>
             )
         })
@@ -152,7 +155,7 @@ export default function TablePenerimaanAtk({ url, limit, title }: iPenerimaan) {
                             <th>Jumlah</th>
                             <th>Vendor</th>
                             <th>Tanggal Terima</th>
-                            <th className="bg-black"></th>
+                            {isWithAction && <th className="bg-black"></th>}
                         </tr>
                     </thead>
                     <tbody className="[&_td]:border [&_td]:border-quaternary [&_td]:px-2 [&_td]:py-1">

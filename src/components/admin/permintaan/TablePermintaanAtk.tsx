@@ -12,9 +12,10 @@ interface iPermintaan {
     url: string,
     limit: number,
     title?: string,
+    isWithAction?:boolean
 }
 
-export default function TablePermintaanAtk({ url, limit, title }: iPermintaan) {
+export default function TablePermintaanAtk({ url, limit, title, isWithAction = true }: iPermintaan) {
     const atk = useSelector((state: RootState) => state.permintaanReducer.dataAtk)
 
     const [valuePerPage, setValuePerPage] = useState('5')

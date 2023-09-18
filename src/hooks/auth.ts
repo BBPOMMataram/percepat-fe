@@ -1,3 +1,4 @@
+import useSWRImmutable from 'swr/immutable'
 import useSWR from 'swr'
 import axios from '@/config/axios'
 import { useEffect } from 'react'

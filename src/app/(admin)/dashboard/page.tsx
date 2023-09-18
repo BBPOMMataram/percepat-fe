@@ -1,8 +1,8 @@
 import Card from "@/components/admin/dashboard/Card"
-import TablePermintaanAtk from "@/components/admin/permintaan/TablePermintaanAtk"
-import TablePermintaanReagen from "@/components/admin/permintaan/TablePermintaanReagen"
 import TablePenerimaanAtk from "@/components/admin/penerimaan/TablePenerimaanAtk"
 import TablePenerimaanReagen from "@/components/admin/penerimaan/TablePenerimaanReagen"
+import TablePermintaanAtk from "@/components/admin/permintaan/TablePermintaanAtk"
+import TablePermintaanReagen from "@/components/admin/permintaan/TablePermintaanReagen"
 
 export const metadata = {
     title: 'Dashboard'
@@ -26,12 +26,14 @@ const Dashboard = () => {
                     title="Reagen"
                     url='api/penerimaan-reagen'
                     limit={5}
+                    isWithAction={false}
                 />
                 <br />
                 <TablePenerimaanAtk
                     title='ATK'
                     url='api/penerimaan-atk'
                     limit={5}
+                    isWithAction={false}
                 />
             </section>
 
@@ -43,11 +45,13 @@ const Dashboard = () => {
                     title='Reagen'
                     url='api/permintaan-reagen'
                     limit={5}
+                    isWithAction={false}
                 />
                 <TablePermintaanAtk
                     title='ATK'
                     url='api/permintaan-atk'
                     limit={5}
+                    isWithAction={false}
                 />
             </section>
         </>

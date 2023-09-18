@@ -5,6 +5,8 @@ const initialState = {
     isFormOpen: false,
     dataReagen: <any>[],
     dataAtk: <any>[],
+    listInventory: <any>[],
+    isViewMode: false,
 }
 
 export const permintaanSlice = createSlice({
@@ -18,6 +20,25 @@ export const permintaanSlice = createSlice({
         setDataAtk: (state, { payload }) => {
             state.dataAtk = payload
         },
+        setListInventory: (state, {payload}) => {
+            state.listInventory = payload
+        },
+        setIsViewMode: (state, {payload}) => {state.isViewMode = payload},
+        clearList: (state) => {
+            state.listInventory = []
+        },
+        addList: (state, {payload}) => {
+            const existingItem = state.listInventory.find((item:any) => item.barang.id === payload.barang.id)
+            if (existingItem){
+                existingItem.jumlahpermintaan = +existingItem.jumlahpermintaan  + +payload.jumlahpermintaan
+                existingItem.keterangan = payload.keterangan
+            }else{
+                state.listInventory.push(payload);
+            }
+        },
+        substractList: (state, {payload}) => {
+            state.listInventory = state.listInventory.filter((item:any) => item.barang.id !== +payload)
+        }
     }
 })
 
@@ -40,6 +61,16 @@ export const fetchDataAtk = (url = '/api/permintaan-atk?value_per_page=5') => {
         axios(url)
             .then(({ data }) => {
                 dispatch(permintaanActions.setDataAtk(data));
+            })
+            .catch(err => console.log(err))
+    }
+}
+
+export const fetchListInventory = (idPermintaan:string) => {
+    return async (dispatch: Dispatch) => {
+        axios(`/api/list-permintaan-reagen/${idPermintaan}`)
+            .then(({ data }) => {
+                dispatch(permintaanActions.setListInventory(data.data));
             })
             .catch(err => console.log(err))
     }

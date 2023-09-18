@@ -1,0 +1,319 @@
+"use client"
+
+import axios from "@/config/axios";
+// import { fetchDataAtk, fetchDataReagen } from "@/features/penerimaanSlice";
+import { fetchDataAtk, fetchDataReagen, permintaanActions } from "@/features/permintaanSlice";
+import { useAuth } from "@/hooks/auth";
+import { RootState } from "@/redux/store";
+import { faPaperPlane } from "@fortawesome/free-regular-svg-icons";
+import { faAdd, faPlane, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Fragment, useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import AsyncSelect from 'react-select/async';
+import { ToastContainer, toast } from "react-toastify";
+
+export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
+    const inventorySelectRef = useRef<any>(null)
+    const formRef = useRef<any>(null)
+
+    const dispatch = useDispatch<any>()
+
+    const [inventorySelected, setInventorySelected] = useState<ISelectBoxInventory | null>()
+    const [jumlah, setJumlah] = useState(1)
+    const [today, setToday] = useState<string>()
+    const [description, setDescription] = useState<string>("")
+
+    const listInventory = useSelector((state: RootState) => state.permintaanReducer.listInventory)
+    const isViewMode = useSelector((state: RootState) => state.permintaanReducer.isViewMode)
+
+    const { user } = useAuth({ middleware: 'auth' })
+
+    interface ISelectBoxInventory {
+        value: string,
+        label: string,
+        data: any
+    }
+
+    const loadReagenOptions = async (
+        inputValue: string
+    ): Promise<ISelectBoxInventory[]> => {
+
+        if (inputValue) {
+            const urlData = isAtk ? `api/barang-atk/getAll?name=${inputValue}` : `api/barang-reagen/getAll?name=${inputValue}`
+            const { data } = await axios(urlData)
+
+            const reagenOptions = data.map((item: any) => {
+                const expired = item.expired !== null && new Date(item.expired).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) || '-'
+
+                return {
+                    value: item.id,
+                    label: `${item.name} ${isAtk ? '' : '- ( Stok: ' + item.stock + ' || Satuan: ' + item.satuan + ' || Ed: ' + expired + ' )'}`,
+                    data: item
+                }
+            })
+
+            return reagenOptions
+        }
+        return []
+    };
+
+    // SET TODAY
+    useEffect(() => {
+        const today = new Date()
+
+        const year = today.getFullYear()
+        const month = (`${today.getMonth() + 1}`).padStart(2, "0")
+        const date = (`${today.getDate()}`).padStart(2, "0");
+
+        const todayFormatted = `${year}-${month}-${date}`
+
+        setToday(todayFormatted) //UNTUK SET DEFAULT TANGGAL KE HARI INI
+    }, [])
+
+    const handleSubmit = async (e: any) => {
+        e.preventDefault()
+        const form = formRef.current
+        const formData = new FormData(form)
+        formData.append('userFrontEnd', JSON.stringify(user.data))
+        formData.append('inventory', JSON.stringify(listInventory))
+
+        axios.post(`${isAtk ? 'api/permintaan-atk' : 'api/permintaan-reagen'}`, formData)
+            .then(({ data }) => {
+                toast.success(data.msg, {
+                    position: "top-right",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: "light",
+                });
+                resetForm()
+                inventorySelectRef.current.clearValue();
+
+                isAtk ?
+                    dispatch(fetchDataAtk())
+                    :
+                    dispatch(fetchDataReagen())
+            })
+            .catch(({ response }) => {
+                const errors = response.data.errors
+
+                // get all fields in errors as array
+                const errorMessagesArray = Object.keys(errors)
+
+                let autoCloseTime = 5000
+                // loop all error fields exist
+                errorMessagesArray.forEach(errorItem => {
+                    // loop all items error each field
+                    errors[errorItem].forEach((errorMessage: string) => {
+                        toast.error(errorMessage, {
+                            position: "top-right",
+                            autoClose: autoCloseTime,
+                            hideProgressBar: false,
+                            closeOnClick: true,
+                            pauseOnHover: true,
+                            draggable: true,
+                            progress: undefined,
+                            theme: "light",
+                        });
+                        autoCloseTime += 1000
+                    });
+                })
+            })
+    }
+
+    const removeItemListHandler = (e: any) => {
+        e.preventDefault()
+        const id = e.currentTarget.getAttribute('data-id')
+
+        dispatch(permintaanActions.substractList(id))
+    }
+
+    const closeFormHandler = () => {
+        dispatch(permintaanActions.toggleForm())
+        dispatch(permintaanActions.setIsViewMode(false))
+        dispatch(permintaanActions.clearList())
+    }
+
+    const addToList = () => {
+        if (inventorySelected === null) {
+            toast.error('Silahkan pilih barang !', {
+                position: "top-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "light",
+            });
+
+            return
+        }
+
+        // VALIDATE STOCK OF INVENTORY
+        if (inventorySelected !== undefined) {
+            const existingInventoryAdded = listInventory.find((item: any) => item.barang.id === inventorySelected.value)
+            const existingInventoryAddedCount = existingInventoryAdded?.jumlahpermintaan || 0;
+
+            const totalCount = existingInventoryAddedCount + jumlah;
+
+            if (inventorySelected.data.stock < totalCount) {
+                toast.error('Stok tidak cukup !', {
+                    position: "top-right",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: "light",
+                });
+
+                return
+            }
+        }
+
+        dispatch(permintaanActions.addList({
+            barang: inventorySelected?.data,
+            jumlahpermintaan: jumlah,
+            keterangan: description
+        }))
+
+        setJumlah(1)
+        setInventorySelected(null)
+        setDescription("")
+
+    }
+
+    const resetForm = () => {
+        formRef.current.reset();
+        dispatch(permintaanActions.clearList())
+        setInventorySelected(null)
+        setDescription("")
+        setJumlah(1)
+    }
+
+    const getListInventory = listInventory.map((item: any, index: number) => {
+
+        const expired = item.barang?.expired
+        const expiredFormatted = expired ? new Date(expired).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : '-'
+
+        return (
+            <Fragment key={item.barang.id}>
+                <li className="bg-teriary my-1 py-1 px-2 w-fit rounded">
+                    {item.barang.name}
+                    {
+                        !isViewMode && <span data-id={item.barang.id} className="text-red-600 ml-1" onClick={removeItemListHandler} role="button">
+                            <FontAwesomeIcon icon={faTrash} />
+                        </span>
+                    }
+                    <div className="text-xs [&>span]:mr-1">
+                        <span className="bg-quaternary p-1">Jumlah Permintaan : {item.jumlahpermintaan}</span>
+                        <span className="bg-quaternary p-1">Jumlah Realisasi : {item.jumlahrealisasi || '-'}</span>
+                        <span className="bg-quaternary p-1">Satuan : {item.barang.satuan || '-'}</span>
+                        <span className="bg-quaternary p-1">Expired : {expiredFormatted}</span>
+                        <span className="bg-quaternary p-1">Ket : {item.keterangan || '-'}</span>
+                    </div>
+                </li>
+            </Fragment>
+        )
+    })
+
+    return (
+        // modal
+        <div className="fixed inset-0 bg-quaternary bg-opacity-90 flex items-center justify-center">
+            <ToastContainer />
+            {/* form container */}
+            <div className="max-h-[calc(100vh-20px)] overflow-auto">
+                <div className="p-6 bg-teriary rounded mx-2 w-[45rem]">
+                    <form method="post" ref={formRef}>
+                        <div className="flex">
+                            <h2 className="flex-1 mb-4 text-xl sm:text-2xl md:text-3xl">Data Permintaan {isAtk ? 'ATK' : 'Reagen'}</h2>
+                            <div className="flex flex-col mb-3 items-end">
+                                <label htmlFor="created_at">Tanggal Penerimaan</label>
+                                <input
+                                    type="date"
+                                    id="created_at"
+                                    name="created_at"
+                                    className={`rounded p-2 mt-1 w-fit outline-none ${isViewMode ? 'bg-secondary' : ''}`}
+                                    defaultValue={today}
+                                    required
+                                    readOnly={isViewMode ? true : false}
+                                />
+                            </div>
+                        </div>
+                    </form>
+
+                    {
+                        !isViewMode &&
+                        <>
+                            <div className="flex flex-col mb-3">
+                                <label className="font-bold" htmlFor="barangs_id">Inventory</label>
+                                <div className="flex">
+                                    <AsyncSelect
+                                        ref={inventorySelectRef}
+                                        name={isAtk ? 'atk_id' : 'barangs_id'}
+                                        className="mt-1 mr-2 flex-1"
+                                        cacheOptions
+                                        loadOptions={loadReagenOptions}
+                                        defaultOptions
+                                        isClearable
+                                        required
+                                        value={inventorySelected}
+                                        onChange={(option: any) => setInventorySelected(option)}
+                                    />
+                                    <input type="number" name="jumlah" id="jumlah" title="Jumlah"
+                                        className="mr-2 w-12 mt-1 rounded text-center"
+                                        value={jumlah}
+                                        min={1}
+                                        onChange={(e: any) => setJumlah(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex flex-col mb-3">
+                                <label className="font-bold" htmlFor="barangs_id">Keterangan</label>
+                                <div className="flex">
+                                    <textarea name="description" id="description" rows={2} placeholder="Baterai untuk jam aula besar"
+                                        className="p-2 rounded flex-1 mr-2 mt-1"
+                                        value={description}
+                                        onChange={(e: any) => setDescription(e.target.value)}></textarea>
+                                    <button type="button"
+                                        className="bg-quaternary text-secondary rounded py-2 px-3 self-end shadow-md outline-none"
+                                        onClick={addToList}
+                                    ><FontAwesomeIcon icon={faAdd}></FontAwesomeIcon></button>
+                                </div>
+                            </div>
+                        </>
+                    }
+
+                    <div className="list bg-secondary p-2 rounded">
+                        <h3 className="mb-2 font-bold">Barang yang diminta : </h3>
+                        <ol className="list-decimal list-inside max-h-64 overflow-auto">
+                            {
+                                listInventory.length > 0 ?
+                                    getListInventory :
+                                    <span className="text-center text-teriary block">Belum ada barang</span>
+                            }
+                        </ol>
+                    </div>
+                    <div className="ml-6 mt-2">
+                        <button
+                            type="button"
+                            className="bg-secondary text-quaternary px-3 py-2 mt-4 rounded shadow-md"
+                            onClick={closeFormHandler}
+                        >Tutup</button>
+                        <button
+                            type="button"
+                            className="bg-quaternary text-secondary px-4 py-2 mt-4 mx-2 rounded shadow-md"
+                            onClick={handleSubmit}
+                        ><FontAwesomeIcon icon={faPaperPlane}></FontAwesomeIcon> Simpan</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}

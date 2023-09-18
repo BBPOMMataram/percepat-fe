@@ -10,13 +10,14 @@ import { useDispatch, useSelector } from "react-redux";
 import { ToastContainer, toast } from "react-toastify";
 import LoadingWithoutText from "../layouts/LoadingWithoutText";
 
-interface iPenerimaan {
+interface IPenerimaan {
     url: string,
     limit: number,
     title?: string,
+    isWithAction?: boolean
 }
 
-export default function TablePenerimaanReagen({ url, limit, title }: iPenerimaan) {
+export default function TablePenerimaanReagen({ url, limit, title, isWithAction = true }: IPenerimaan) {
     const reagen = useSelector((state: RootState) => state.penerimaanReducer.dataReagen)
 
     const [valuePerPage, setValuePerPage] = useState('5')
@@ -111,10 +112,13 @@ export default function TablePenerimaanReagen({ url, limit, title }: iPenerimaan
                     <td>{item.vendor}</td>
                     <td>{expired}</td>
                     <td>{createdAt}</td>
-                    <td className="whitespace-nowrap [&>a]:mx-1 text-center">
-                        <a href="#" data-id={item.id} onClick={removeHandler} className="remove text-red-600"><FontAwesomeIcon icon={faTrash} /></a>
-                        <a href="#" data-id={item.id} onClick={editHandler} className="edit text-quaternary"><FontAwesomeIcon icon={faPen} /></a>
-                    </td>
+                    {
+                        isWithAction &&
+                        <td className="whitespace-nowrap [&>a]:mx-1 text-center">
+                            <a href="#" data-id={item.id} onClick={removeHandler} className="remove text-red-600"><FontAwesomeIcon icon={faTrash} /></a>
+                            <a href="#" data-id={item.id} onClick={editHandler} className="edit text-quaternary"><FontAwesomeIcon icon={faPen} /></a>
+                        </td>
+                    }
                 </tr>
             )
         })
@@ -160,7 +164,9 @@ export default function TablePenerimaanReagen({ url, limit, title }: iPenerimaan
                             <th>Vendor</th>
                             <th>Kedaluwarsa</th>
                             <th>Tanggal Terima</th>
-                            <th className="bg-black"></th>
+                            {isWithAction &&
+                                <th className="bg-black"></th>
+                            }
                         </tr>
                     </thead>
                     <tbody className="[&_td]:border [&_td]:border-quaternary [&_td]:px-2 [&_td]:py-1">
