@@ -2,7 +2,7 @@
 
 import { fetchDataReagen, fetchListInventory, permintaanActions, removeData } from "@/features/permintaanSlice";
 import { RootState } from "@/redux/store";
-import { faBook, faCartFlatbedSuitcase, faClipboardList, faList, faList12, faListCheck, faListSquares, faPen, faPenClip, faThList, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faBook, faCartFlatbedSuitcase, faClipboardList, faDownload, faList, faList12, faListCheck, faListSquares, faPen, faPenClip, faSpinner, faThList, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ChangeEvent, Fragment, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -19,12 +19,14 @@ interface iPermintaan {
 
 export default function TablePermintaanReagen({ url, limit, title, isWithAction = true }: iPermintaan) {
     const reagen = useSelector((state: RootState) => state.permintaanReducer.dataReagen)
+    const currentDataId = useSelector((state: RootState) => state.permintaanReducer.currentDataId)
 
     const [valuePerPage, setValuePerPage] = useState('5')
     const [nameToSearch, setNameToSearch] = useState('')
     const [delaySearch, setDelaySearch] = useState('') //AGAR BISA DIGUNAKAN DI USEEFFECT UNTUK TIMEOUT (DELAY)
-
+    const [isDownloadLoading, setIsDownloadLoading] = useState(false)
     const [link] = useState(`${url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${reagen?.current_page}&limit=${limit}`)
+
     const dispatch = useDispatch<any>()
 
     useEffect(() => {
@@ -79,11 +81,43 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
         dispatch(permintaanActions.setCurrentDataId(id)) // untuk ambil data tgl permintaan
     }
 
-    // const addListHandler = (e:any) => {
-    //     e.preventDefault()
 
-    //     dispatch(permintaanActions.toggleForm())
-    // }
+    const downloadHandler = (e: any) => {
+        e.preventDefault()
+        const id = e.currentTarget.getAttribute('data-id');
+
+        dispatch(permintaanActions.setCurrentDataId(id)) // untuk ambil data tgl permintaan
+        setIsDownloadLoading(true)
+        
+        axios({
+            url: `/api/download-permintaan-reagen/${id}`,
+            method: 'GET',
+            responseType: 'blob'
+        })
+            .then(({ data }) => {
+                console.log(data);
+                
+                const url = window.URL.createObjectURL(new Blob([data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'SPB.pdf'); //or any other extension
+                document.body.appendChild(link);
+                link.click();
+
+                toast.success('Download berhasil !', {
+                    position: "top-right",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: "light",
+                });
+                setIsDownloadLoading(false)
+            })
+            .catch(err => console.log(err))
+    }
 
     const items = () => {
         let number = 1
@@ -115,9 +149,14 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
                     <td>{tanggalPenyerahan}</td>
                     {isWithAction &&
                         <td className="whitespace-nowrap [&>a]:mx-1 text-center">
-                            <a href="#" data-id={item.id} onClick={showListHandler} title="List" className="list text-blue-800"><FontAwesomeIcon icon={faClipboardList} /></a>
-                            <a href="#" data-id={item.id} onClick={editHandler} className="edit text-quaternary"><FontAwesomeIcon icon={faPen} /></a>
-                            <a href="#" data-id={item.id} onClick={removeHandler} className="remove text-red-600"><FontAwesomeIcon icon={faTrash} /></a>
+                            {isDownloadLoading && item.id == currentDataId ? 
+                            <a href="#" title="Downloading SPB" className="text-green-600"><FontAwesomeIcon icon={faSpinner} className="animate-spin"/></a>
+                            : 
+                            <a href="#" data-id={item.id} onClick={downloadHandler} title="Download SPB" className="text-green-600"><FontAwesomeIcon icon={faDownload} /></a>
+                            }
+                            <a href="#" data-id={item.id} onClick={showListHandler} title="List" className="text-blue-800"><FontAwesomeIcon icon={faClipboardList} /></a>
+                            <a href="#" data-id={item.id} onClick={editHandler} className="text-quaternary"><FontAwesomeIcon icon={faPen} /></a>
+                            <a href="#" data-id={item.id} onClick={removeHandler} className="text-red-600"><FontAwesomeIcon icon={faTrash} /></a>
                         </td>
                     }
                 </tr>
