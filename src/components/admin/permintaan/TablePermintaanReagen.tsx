@@ -1,6 +1,6 @@
 "use client"
 
-import { fetchDataReagen, fetchListInventory, permintaanActions } from "@/features/permintaanSlice";
+import { fetchDataReagen, fetchListInventory, permintaanActions, removeData } from "@/features/permintaanSlice";
 import { RootState } from "@/redux/store";
 import { faBook, faCartFlatbedSuitcase, faClipboardList, faList, faList12, faListCheck, faListSquares, faPen, faPenClip, faThList, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -24,15 +24,14 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
     const [nameToSearch, setNameToSearch] = useState('')
     const [delaySearch, setDelaySearch] = useState('') //AGAR BISA DIGUNAKAN DI USEEFFECT UNTUK TIMEOUT (DELAY)
 
+    const [link] = useState(`${url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${reagen?.current_page}&limit=${limit}`)
     const dispatch = useDispatch<any>()
 
     useEffect(() => {
-        const urlReagen = `${url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${reagen?.current_page}&limit=${limit}`
-
-        dispatch(fetchDataReagen(urlReagen))
+        dispatch(fetchDataReagen(link))
 
         /// eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [valuePerPage, nameToSearch, reagen?.current_page, limit, url, dispatch])
+    }, [valuePerPage, nameToSearch, reagen?.current_page, limit, link, dispatch])
 
     const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
         setDelaySearch(e.target.value)
@@ -55,24 +54,8 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
         e.preventDefault()
         const id = e.currentTarget.getAttribute('data-id');
 
-        if (id) {
-            axios.delete(`/api/permintaan-reagen/${id}`)
-                .then(({ data }) => {
-                    toast.success(data.msg, {
-                        position: "top-right",
-                        autoClose: 5000,
-                        hideProgressBar: false,
-                        closeOnClick: true,
-                        pauseOnHover: true,
-                        draggable: true,
-                        progress: undefined,
-                        theme: "light",
-                    });
-
-                    dispatch(fetchDataReagen())
-                })
-                .catch(err => console.log(err))
-        }
+        id && dispatch(removeData(id))
+        dispatch(fetchDataReagen(link))
     }
 
     // MENGISI FORM UNTUK DIEDIT
@@ -82,22 +65,25 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
 
         dispatch(fetchListInventory(id))
         dispatch(permintaanActions.toggleForm())
+        dispatch(permintaanActions.setIsEditMode(true))
+        dispatch(permintaanActions.setCurrentDataId(id)) // untuk ambil data tgl permintaan
     }
 
-    const showListHandler = (e:any) => {
+    const showListHandler = (e: any) => {
         e.preventDefault()
         const id = e.currentTarget.getAttribute('data-id');
 
         dispatch(fetchListInventory(id))
         dispatch(permintaanActions.toggleForm())
         dispatch(permintaanActions.setIsViewMode(true))
+        dispatch(permintaanActions.setCurrentDataId(id)) // untuk ambil data tgl permintaan
     }
 
-    const addListHandler = (e:any) => {
-        e.preventDefault()
+    // const addListHandler = (e:any) => {
+    //     e.preventDefault()
 
-        dispatch(permintaanActions.toggleForm())
-    }
+    //     dispatch(permintaanActions.toggleForm())
+    // }
 
     const items = () => {
         let number = 1

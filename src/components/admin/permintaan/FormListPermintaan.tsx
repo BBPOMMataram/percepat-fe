@@ -6,7 +6,7 @@ import { fetchDataAtk, fetchDataReagen, permintaanActions } from "@/features/per
 import { useAuth } from "@/hooks/auth";
 import { RootState } from "@/redux/store";
 import { faPaperPlane } from "@fortawesome/free-regular-svg-icons";
-import { faAdd, faPlane, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faAdd, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -19,13 +19,16 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
 
     const dispatch = useDispatch<any>()
 
-    const [inventorySelected, setInventorySelected] = useState<ISelectBoxInventory | null>()
+    const [inventorySelected, setInventorySelected] = useState<ISelectBoxInventory | null>(null)
     const [jumlah, setJumlah] = useState(1)
-    const [today, setToday] = useState<string>()
+    const [tglPermintaan, setTglPermintaan] = useState<string>()
     const [description, setDescription] = useState<string>("")
 
     const listInventory = useSelector((state: RootState) => state.permintaanReducer.listInventory)
     const isViewMode = useSelector((state: RootState) => state.permintaanReducer.isViewMode)
+    const isEditMode = useSelector((state: RootState) => state.permintaanReducer.isEditMode)
+    const dataReagen = useSelector((state: RootState) => state.permintaanReducer.dataReagen)
+    const currentDataId = useSelector((state: RootState) => state.permintaanReducer.currentDataId)
 
     const { user } = useAuth({ middleware: 'auth' })
 
@@ -60,16 +63,25 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
 
     // SET TODAY
     useEffect(() => {
-        const today = new Date()
+        let tglPermintaan = new Date()
 
-        const year = today.getFullYear()
-        const month = (`${today.getMonth() + 1}`).padStart(2, "0")
-        const date = (`${today.getDate()}`).padStart(2, "0");
+
+        if (isViewMode || isEditMode) {
+
+            const currentData = dataReagen.find((item: any) => item.id == currentDataId)
+
+            tglPermintaan = new Date(currentData.tgl_permintaan)
+        }
+
+        const year = tglPermintaan.getFullYear()
+        const month = (`${tglPermintaan.getMonth() + 1}`).padStart(2, "0")
+        const date = (`${tglPermintaan.getDate()}`).padStart(2, "0");
 
         const todayFormatted = `${year}-${month}-${date}`
 
-        setToday(todayFormatted) //UNTUK SET DEFAULT TANGGAL KE HARI INI
-    }, [])
+        setTglPermintaan(todayFormatted) //UNTUK SET DEFAULT TANGGAL KE HARI INI
+
+    }, [isViewMode, isEditMode, currentDataId, dataReagen])
 
     const handleSubmit = async (e: any) => {
         e.preventDefault()
@@ -78,7 +90,14 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
         formData.append('userFrontEnd', JSON.stringify(user.data))
         formData.append('inventory', JSON.stringify(listInventory))
 
-        axios.post(`${isAtk ? 'api/permintaan-atk' : 'api/permintaan-reagen'}`, formData)
+        let url = `${isAtk ? 'api/permintaan-atk' : 'api/permintaan-reagen'}`
+
+        if(isEditMode){
+            url = `${isAtk ? `api/permintaan-atk/${currentDataId}` : `api/permintaan-reagen/${currentDataId}` }`
+            formData.append('_method', 'PATCH')
+        }
+
+        axios.post(url, formData)
             .then(({ data }) => {
                 toast.success(data.msg, {
                     position: "top-right",
@@ -92,6 +111,7 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
                 });
                 resetForm()
                 inventorySelectRef.current.clearValue();
+                isEditMode && dispatch(permintaanActions.toggleForm())
 
                 isAtk ?
                     dispatch(fetchDataAtk())
@@ -99,7 +119,22 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
                     dispatch(fetchDataReagen())
             })
             .catch(({ response }) => {
-                const errors = response.data.errors
+                const error = response.data.msg  //PESAN ERROR MANUAL YANG DIHANDLE MANUAL DARI SERVER LARA
+                if (error) {
+                    toast.error(error, {
+                        position: "top-right",
+                        autoClose: 4000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        progress: undefined,
+                        theme: "light",
+                    });
+                    return
+                }
+
+                const errors = response.data.errors //ERROR YANG DIKIRIM AUTO DARI LARA
 
                 // get all fields in errors as array
                 const errorMessagesArray = Object.keys(errors)
@@ -135,6 +170,7 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
     const closeFormHandler = () => {
         dispatch(permintaanActions.toggleForm())
         dispatch(permintaanActions.setIsViewMode(false))
+        dispatch(permintaanActions.setIsEditMode(false))
         dispatch(permintaanActions.clearList())
     }
 
@@ -154,7 +190,7 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
             return
         }
 
-        // VALIDATE STOCK OF INVENTORY
+        // VALIDASI STOK APAKAH CUKUP ATAU TIDAK
         if (inventorySelected !== undefined) {
             const existingInventoryAdded = listInventory.find((item: any) => item.barang.id === inventorySelected.value)
             const existingInventoryAddedCount = existingInventoryAdded?.jumlahpermintaan || 0;
@@ -186,7 +222,6 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
         setJumlah(1)
         setInventorySelected(null)
         setDescription("")
-
     }
 
     const resetForm = () => {
@@ -197,7 +232,7 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
         setJumlah(1)
     }
 
-    const getListInventory = listInventory.map((item: any, index: number) => {
+    const getListInventory = listInventory.map((item: any) => {
 
         const expired = item.barang?.expired
         const expiredFormatted = expired ? new Date(expired).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : '-'
@@ -205,7 +240,7 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
         return (
             <Fragment key={item.barang.id}>
                 <li className="bg-teriary my-1 py-1 px-2 w-fit rounded">
-                    {item.barang.name}
+                    {item.barang?.name}
                     {
                         !isViewMode && <span data-id={item.barang.id} className="text-red-600 ml-1" onClick={removeItemListHandler} role="button">
                             <FontAwesomeIcon icon={faTrash} />
@@ -232,15 +267,15 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
                 <div className="p-6 bg-teriary rounded mx-2 w-[45rem]">
                     <form method="post" ref={formRef}>
                         <div className="flex">
-                            <h2 className="flex-1 mb-4 text-xl sm:text-2xl md:text-3xl">Data Permintaan {isAtk ? 'ATK' : 'Reagen'}</h2>
+                            <h2 className="flex-1 mb-4 text-xl sm:text-2xl md:text-3xl">{isViewMode ? 'Data' : isEditMode ? 'Edit' : 'Tambah'} Permintaan {isAtk ? 'ATK' : 'Reagen'}</h2>
                             <div className="flex flex-col mb-3 items-end">
-                                <label htmlFor="created_at">Tanggal Penerimaan</label>
+                                <label htmlFor="created_at">Tanggal Permintaan</label>
                                 <input
                                     type="date"
                                     id="created_at"
                                     name="created_at"
                                     className={`rounded p-2 mt-1 w-fit outline-none ${isViewMode ? 'bg-secondary' : ''}`}
-                                    defaultValue={today}
+                                    defaultValue={tglPermintaan}
                                     required
                                     readOnly={isViewMode ? true : false}
                                 />
@@ -306,11 +341,12 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
                             className="bg-secondary text-quaternary px-3 py-2 mt-4 rounded shadow-md"
                             onClick={closeFormHandler}
                         >Tutup</button>
-                        <button
+                        {!isViewMode && <button
                             type="button"
                             className="bg-quaternary text-secondary px-4 py-2 mt-4 mx-2 rounded shadow-md"
                             onClick={handleSubmit}
                         ><FontAwesomeIcon icon={faPaperPlane}></FontAwesomeIcon> Simpan</button>
+                        }
                     </div>
                 </div>
             </div>
