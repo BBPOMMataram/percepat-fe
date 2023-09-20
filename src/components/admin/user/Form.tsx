@@ -375,7 +375,7 @@ export default function Form() {
                                 <>
                                     {updateSignPad && <p>TTD Baru</p>}
                                     <SignatureCanvas
-                                        penColor='orange'
+                                        // penColor='orange'
                                         canvasProps={{ className: 'bg-primary mt-1 w-72 h-52' }}
                                         ref={signatureSelectRef}
                                     />
