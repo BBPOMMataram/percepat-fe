@@ -1,5 +1,6 @@
 "use client"
 
+import Inventory from "@/components/inventory";
 import axios from "@/config/axios";
 // import { fetchDataAtk, fetchDataReagen } from "@/features/penerimaanSlice";
 import { fetchDataAtk, fetchDataReagen, permintaanActions } from "@/features/permintaanSlice";
@@ -8,7 +9,7 @@ import { RootState } from "@/redux/store";
 import { faPaperPlane } from "@fortawesome/free-regular-svg-icons";
 import { faAdd, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { ChangeEvent, Fragment, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import AsyncSelect from 'react-select/async';
 import { ToastContainer, toast } from "react-toastify";
@@ -20,7 +21,7 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
     const dispatch = useDispatch<any>()
 
     const [inventorySelected, setInventorySelected] = useState<ISelectBoxInventory | null>(null)
-    const [jumlah, setJumlah] = useState(1)
+    const [jumlah, setJumlah] = useState<number>(1)
     const [tglPermintaan, setTglPermintaan] = useState<string>()
     const [description, setDescription] = useState<string>("")
 
@@ -28,6 +29,7 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
     const isViewMode = useSelector((state: RootState) => state.permintaanReducer.isViewMode)
     const isEditMode = useSelector((state: RootState) => state.permintaanReducer.isEditMode)
     const dataReagen = useSelector((state: RootState) => state.permintaanReducer.dataReagen)
+    const dataAtk = useSelector((state: RootState) => state.permintaanReducer.dataAtk)
     const currentDataId = useSelector((state: RootState) => state.permintaanReducer.currentDataId)
 
     const { user } = useAuth({ middleware: 'auth' })
@@ -51,7 +53,7 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
 
                 return {
                     value: item.id,
-                    label: `${item.name} ${isAtk ? '' : '- ( Stok: ' + item.stock + ' || Satuan: ' + item.satuan + ' || Ed: ' + expired + ' )'}`,
+                    label: `${item.name} ${isAtk ? '- ( Stok: ' + item.stock + ' || Satuan: ' + item.satuan + ' )' : '- ( Stok: ' + item.stock + ' || Satuan: ' + item.satuan + ' || Ed: ' + expired + ' )'}`,
                     data: item
                 }
             })
@@ -68,8 +70,8 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
 
         if (isViewMode || isEditMode) {
 
-            const currentData = dataReagen.find((item: any) => item.id == currentDataId)
-
+            const currentData = isAtk ? dataAtk.find((item: any) => item.id == currentDataId)
+                : dataReagen.find((item: any) => item.id == currentDataId)
             tglPermintaan = new Date(currentData.tgl_permintaan)
         }
 
@@ -81,7 +83,7 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
 
         setTglPermintaan(todayFormatted) //UNTUK SET DEFAULT TANGGAL KE HARI INI
 
-    }, [isViewMode, isEditMode, currentDataId, dataReagen])
+    }, [isViewMode, isEditMode, currentDataId, dataReagen, dataAtk, isAtk])
 
     const handleSubmit = async (e: any) => {
         e.preventDefault()
@@ -92,8 +94,8 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
 
         let url = `${isAtk ? 'api/permintaan-atk' : 'api/permintaan-reagen'}`
 
-        if(isEditMode){
-            url = `${isAtk ? `api/permintaan-atk/${currentDataId}` : `api/permintaan-reagen/${currentDataId}` }`
+        if (isEditMode) {
+            url = `${isAtk ? `api/permintaan-atk/${currentDataId}` : `api/permintaan-reagen/${currentDataId}`}`
             formData.append('_method', 'PATCH')
         }
 
@@ -192,7 +194,8 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
 
         // VALIDASI STOK APAKAH CUKUP ATAU TIDAK
         if (inventorySelected !== undefined) {
-            const existingInventoryAdded = listInventory.find((item: any) => item.barang.id === inventorySelected.value)
+
+            const existingInventoryAdded = listInventory.find((item: any) => (item.barang?.id || item.atk.id) === inventorySelected.value)
             const existingInventoryAddedCount = existingInventoryAdded?.jumlahpermintaan || 0;
 
             const totalCount = existingInventoryAddedCount + jumlah;
@@ -234,22 +237,23 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
 
     const getListInventory = listInventory.map((item: any) => {
 
-        const expired = item.barang?.expired
+        const barang = item.barang || item.atk
+        const expired = barang.expired
         const expiredFormatted = expired ? new Date(expired).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : '-'
 
         return (
-            <Fragment key={item.barang.id}>
+            <Fragment key={barang.id}>
                 <li className="bg-teriary my-1 py-1 px-2 w-fit rounded">
-                    {item.barang?.name}
+                    {barang.name}
                     {
-                        !isViewMode && <span data-id={item.barang.id} className="text-red-600 ml-1" onClick={removeItemListHandler} role="button">
+                        !isViewMode && <span data-id={barang.id} className="text-red-600 ml-1" onClick={removeItemListHandler} role="button">
                             <FontAwesomeIcon icon={faTrash} />
                         </span>
                     }
                     <div className="text-xs [&>span]:mr-1">
                         <span className="bg-quaternary p-1">Jumlah Permintaan : {item.jumlahpermintaan}</span>
                         <span className="bg-quaternary p-1">Jumlah Realisasi : {item.jumlahrealisasi || '-'}</span>
-                        <span className="bg-quaternary p-1">Satuan : {item.barang.satuan || '-'}</span>
+                        <span className="bg-quaternary p-1">Satuan : {barang.satuan || '-'}</span>
                         <span className="bg-quaternary p-1">Expired : {expiredFormatted}</span>
                         <span className="bg-quaternary p-1">Ket : {item.keterangan || '-'}</span>
                     </div>
@@ -305,7 +309,7 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
                                         className="mr-2 w-12 mt-1 rounded text-center"
                                         value={jumlah}
                                         min={1}
-                                        onChange={(e: any) => setJumlah(e.target.value)}
+                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setJumlah(parseInt(e.target.value))}
                                     />
                                 </div>
                             </div>

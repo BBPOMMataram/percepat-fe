@@ -3,7 +3,7 @@
 import { permintaanActions } from "@/features/permintaanSlice"
 import { RootState } from "@/redux/store"
 import { useDispatch, useSelector } from "react-redux"
-import FormPenerimaan from "./FormPermintaan"
+import FormListPermintaan from "./FormListPermintaan"
 import TablePermintaanAtk from "./TablePermintaanAtk"
 
 export default function Atk() {
@@ -22,11 +22,14 @@ export default function Atk() {
             >
                 Tambah Data
             </button>
+
             <TablePermintaanAtk
                 url='api/permintaan-atk'
                 limit={0}
+                isSearchableName = {false}
             />
-            {isFormOpen && <FormPenerimaan isAtk={true} />}
+
+            {isFormOpen && <FormListPermintaan isAtk={true} />}
         </section>
     )
 }

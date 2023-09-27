@@ -23,10 +23,13 @@ export default function Reagen() {
             >
                 Tambah Data
             </button>
+            
             <TablePermintaanReagen
                 url='api/permintaan-reagen'
                 limit={0}
+                isSearchableName={false}
             />
+            
             {isFormOpen && <FormListPermintaan />}
         </section>
     )

@@ -46,12 +46,14 @@ const Dashboard = () => {
                     url='api/permintaan-reagen'
                     limit={5}
                     isWithAction={false}
+                    isSearchableName={false}
                 />
                 <TablePermintaanAtk
                     title='ATK'
                     url='api/permintaan-atk'
                     limit={5}
                     isWithAction={false}
+                    isSearchableName={false}
                 />
             </section>
         </>

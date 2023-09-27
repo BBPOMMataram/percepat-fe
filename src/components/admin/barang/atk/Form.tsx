@@ -153,7 +153,7 @@ export default function Form() {
                                 id="name"
                                 name="name"
                                 className="rounded p-2 mt-1"
-                                placeholder="Contoh: 2 BUTANOL"
+                                placeholder="Contoh: Spidol"
                                 required
                                 value={name}
                                 onChange={(e: any) => setName(e.target.value)}
@@ -168,7 +168,7 @@ export default function Form() {
                                 id="satuan"
                                 name="satuan"
                                 className="rounded p-2 mt-1"
-                                placeholder="Contoh: 1 Liter"
+                                placeholder="Contoh: Pcs"
                                 required
                                 value={satuan}
                                 onChange={(e: any) => setSatuan(e.target.value)}

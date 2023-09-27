@@ -1,36 +1,40 @@
 "use client"
 
-import { fetchDataAtk, fetchDataReagen } from "@/features/permintaanSlice";
+import { fetchDataAtk, fetchListInventory, permintaanActions, removeData } from "@/features/permintaanSlice";
 import { RootState } from "@/redux/store";
-import { faCartFlatbedSuitcase } from "@fortawesome/free-solid-svg-icons";
+import { faBook, faCartFlatbedSuitcase, faClipboardList, faDownload, faList, faList12, faListCheck, faListSquares, faPen, faPenClip, faSpinner, faThList, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ChangeEvent, Fragment, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import LoadingWithoutText from "../layouts/LoadingWithoutText";
+import axios from "@/config/axios";
+import { ToastContainer, toast } from "react-toastify";
 
-interface iPermintaan {
+interface IPermintaan {
     url: string,
     limit: number,
     title?: string,
-    isWithAction?:boolean
+    isWithAction?: boolean,
+    isSearchableName?: boolean
 }
 
-export default function TablePermintaanAtk({ url, limit, title, isWithAction = true }: iPermintaan) {
+export default function TablePermintaanAtk({ url, limit, title, isWithAction = true, isSearchableName = true }: IPermintaan) {
     const atk = useSelector((state: RootState) => state.permintaanReducer.dataAtk)
+    const currentDataId = useSelector((state: RootState) => state.permintaanReducer.currentDataId)
 
     const [valuePerPage, setValuePerPage] = useState('5')
     const [nameToSearch, setNameToSearch] = useState('')
     const [delaySearch, setDelaySearch] = useState('') //AGAR BISA DIGUNAKAN DI USEEFFECT UNTUK TIMEOUT (DELAY)
+    const [isDownloadLoading, setIsDownloadLoading] = useState(false)
+    const [link] = useState(`${url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${atk?.current_page}&limit=${limit}`)
 
     const dispatch = useDispatch<any>()
 
     useEffect(() => {
-        const urlAtk = `${url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${atk?.current_page}&limit=${limit}`
-
-        dispatch(fetchDataAtk(urlAtk))
+        dispatch(fetchDataAtk(link))
 
         /// eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [valuePerPage, nameToSearch, atk?.current_page, limit, url, dispatch])
+    }, [valuePerPage, nameToSearch, atk?.current_page, limit, link, dispatch])
 
     const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
         setDelaySearch(e.target.value)
@@ -48,27 +52,116 @@ export default function TablePermintaanAtk({ url, limit, title, isWithAction = t
 
     }, [delaySearch])
 
+
+    const removeHandler = (e: any) => {
+        e.preventDefault()
+        const id = e.currentTarget.getAttribute('data-id');
+
+        id && dispatch(removeData(id))
+        dispatch(fetchDataAtk(link))
+    }
+
+    // MENGISI FORM UNTUK DIEDIT
+    const editHandler = (e: any) => {
+        e.preventDefault()
+        const id = e.currentTarget.getAttribute('data-id');
+
+        dispatch(fetchListInventory(id))
+        dispatch(permintaanActions.toggleForm())
+        dispatch(permintaanActions.setIsEditMode(true))
+        dispatch(permintaanActions.setCurrentDataId(id)) // untuk ambil data tgl permintaan
+    }
+
+    const showListHandler = (e: any) => {
+        e.preventDefault()
+        const id = e.currentTarget.getAttribute('data-id');
+
+        dispatch(fetchListInventory(id))
+        dispatch(permintaanActions.toggleForm())
+        dispatch(permintaanActions.setIsViewMode(true))
+        dispatch(permintaanActions.setCurrentDataId(id)) // untuk ambil data tgl permintaan
+    }
+
+
+    const downloadHandler = (e: any) => {
+        e.preventDefault()
+        const id = e.currentTarget.getAttribute('data-id');
+
+        dispatch(permintaanActions.setCurrentDataId(id)) // untuk ambil data tgl permintaan
+        setIsDownloadLoading(true)
+
+        axios({
+            url: `/api/download-permintaan-atk/${id}`,
+            method: 'GET',
+            responseType: 'blob'
+        })
+            .then(({ data }) => {
+                console.log(data);
+
+                const url = window.URL.createObjectURL(new Blob([data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'SPB.pdf'); //or any other extension
+                document.body.appendChild(link);
+                link.click();
+
+                toast.success('Download berhasil !', {
+                    position: "top-right",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: "light",
+                });
+                setIsDownloadLoading(false)
+            })
+            .catch(err => console.log(err))
+    }
+
     const items = () => {
         let number = 1
 
-        // HANDLE JIKA REAGEN TANPA LIMIT YAITU DATA SELURUHNYA MAKA ATUR NOMOR INDEX NYA PER HALAMAN, JIKA LIMIT ADA ABAIKAN INI
+        // HANDLE JIKA atk TANPA LIMIT YAITU DATA SELURUHNYA MAKA ATUR NOMOR INDEX NYA PER HALAMAN, JIKA LIMIT ADA ABAIKAN INI
         if (atk.data && atk?.current_page !== 1) {
             number = (atk?.current_page - 1) * parseInt(valuePerPage) + 1
         }
 
-        const data = atk?.data || atk //DATA DENGAN ATAU TANPA LIMIT
-        return data?.map((item: any, index: number) => {
+        const data = atk?.data || atk // DATA DENGAN ATAU TANPA LIMIT
+        return data.length <= 0 ? <tr><td colSpan={8} className="text-center text-teriary">Tidak ada data</td></tr> 
+        :
+        data.map((item: any, index: number) => {
+
+            const tanggalPermintaan = item.tgl_permintaan ?
+                new Date(item.tgl_permintaan).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+                : '-'
+
+            const tanggalPenyerahan = item.tgl_penyerahan ?
+                new Date(item.tgl_penyerahan).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+                : '-'
+
             return (
                 <tr key={index}>
                     <td>{number++}</td>
-                    <td>{item.atk.name}</td>
-                    <td>{item.atk.satuan}</td>
-                    <td>{item.jumlahpermintaan}</td>
-                    <td>{item.jumlahrealisasi}</td>
-                    <td>{item.permintaan.bidang.name}</td>
-                    <td>{item.permintaan.status.name}</td>
-                    <td>{new Date(item.permintaan.tgl_permintaan).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</td>
-                    <td>{item.keterangan || '-'}</td>
+                    <td>{item.peminta?.name}</td>
+                    <td>{item.bidang?.name || '-'}</td>
+                    <td>{item.bidang?.user?.name || '-'}</td>
+                    <td>{item.status?.name}</td>
+                    <td>{tanggalPermintaan}</td>
+                    <td>{tanggalPenyerahan}</td>
+                    {isWithAction &&
+                        <td className="whitespace-nowrap [&>a]:mx-1 text-center">
+                            {isDownloadLoading && item.id == currentDataId ?
+                                <a href="#" title="Downloading SPB" className="text-green-600"><FontAwesomeIcon icon={faSpinner} className="animate-spin" /></a>
+                                :
+                                <a href="#" data-id={item.id} onClick={downloadHandler} title="Download SPB" className="text-green-600"><FontAwesomeIcon icon={faDownload} /></a>
+                            }
+                            <a href="#" data-id={item.id} onClick={showListHandler} title="List" className="text-blue-800"><FontAwesomeIcon icon={faClipboardList} /></a>
+                            <a href="#" data-id={item.id} onClick={editHandler} className="text-quaternary"><FontAwesomeIcon icon={faPen} /></a>
+                            <a href="#" data-id={item.id} onClick={removeHandler} className="text-red-600"><FontAwesomeIcon icon={faTrash} /></a>
+                        </td>
+                    }
                 </tr>
             )
         })
@@ -77,6 +170,7 @@ export default function TablePermintaanAtk({ url, limit, title, isWithAction = t
     return !atk ? <LoadingWithoutText />
         : (
             <>
+                <ToastContainer />
                 <div className="table-header flex items-end mt-3">
                     <h2 className="text-xl sm:text-2xl">
                         {title && <FontAwesomeIcon icon={faCartFlatbedSuitcase} flip="horizontal" />} <span>{title}</span>
@@ -94,27 +188,31 @@ export default function TablePermintaanAtk({ url, limit, title, isWithAction = t
                             <option value="100">100</option>
                         </select>
                     }
-                    <div className="search ml-auto">
-                        <input type="text" className="p-2 border border-quaternary focus:outline-none rounded"
-                            placeholder="Cari berdasarkan nama"
-                            value={delaySearch}
-                            onChange={handleSearch}
-                            onClick={(e: any) => e.target.select()}
-                        />
-                    </div>
+                    {
+                        isSearchableName &&
+                        <div className="search ml-auto">
+                            <input type="text" className="p-2 border border-quaternary focus:outline-none rounded"
+                                placeholder="Cari berdasarkan nama"
+                                value={delaySearch}
+                                onChange={handleSearch}
+                                onClick={(e: any) => e.target.select()}
+                            />
+                        </div>
+                    }
                 </div>
                 <table className="w-full border-collapse mt-2">
                     <thead className="[&_th]:border [&_th]:border-quaternary text-left">
                         <tr className="bg-secondary [&>th]:p-2">
                             <th>No</th>
-                            <th>Nama</th>
-                            <th>Satuan</th>
-                            <th>Jml Permintaan</th>
-                            <th>Jml Realisasi</th>
+                            <th>Yang Meminta</th>
                             <th>Bidang</th>
+                            <th>KaTim / Penyelia</th>
                             <th>Status</th>
-                            <th>Tanggal</th>
-                            <th>Keterangan</th>
+                            <th>Tanggal Permintaan</th>
+                            <th>Tanggal Penyerahan</th>
+                            {isWithAction &&
+                                <th className="bg-black"></th>
+                            }
                         </tr>
                     </thead>
                     <tbody className="[&_td]:border [&_td]:border-quaternary [&_td]:px-2 [&_td]:py-1">
@@ -150,7 +248,7 @@ export default function TablePermintaanAtk({ url, limit, title, isWithAction = t
                                         <button className={`p-2 rounded py-1 mx-[.1rem] my-2 ${active ? 'bg-teriary' : disabled ? 'bg-gray-200 text-gray-400' : 'bg-secondary '}`}
                                             dangerouslySetInnerHTML={{ __html: label }
                                             }
-                                            onClick={() => dispatch(fetchDataReagen(url))}
+                                            onClick={() => dispatch(fetchDataAtk(url))}
                                             disabled={disabled}
                                         />
                                     </Fragment >

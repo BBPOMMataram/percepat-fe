@@ -1,23 +1,24 @@
 "use client"
 
-import { fetchDataReagen, fetchListInventory, permintaanActions, removeData } from "@/features/permintaanSlice";
+import axios from "@/config/axios";
+import { fetchDataReagen, fetchListInventoryReagen, permintaanActions, removeData } from "@/features/permintaanSlice";
 import { RootState } from "@/redux/store";
-import { faBook, faCartFlatbedSuitcase, faClipboardList, faDownload, faList, faList12, faListCheck, faListSquares, faPen, faPenClip, faSpinner, faThList, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faCartFlatbedSuitcase, faClipboardList, faDownload, faPen, faSpinner, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ChangeEvent, Fragment, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import LoadingWithoutText from "../layouts/LoadingWithoutText";
-import axios from "@/config/axios";
 import { ToastContainer, toast } from "react-toastify";
+import LoadingWithoutText from "../layouts/LoadingWithoutText";
 
-interface iPermintaan {
+interface IPermintaan {
     url: string,
     limit: number,
     title?: string,
     isWithAction?: boolean,
+    isSearchableName?: boolean,
 }
 
-export default function TablePermintaanReagen({ url, limit, title, isWithAction = true }: iPermintaan) {
+export default function TablePermintaanReagen({ url, limit, title, isWithAction = true, isSearchableName = true }: IPermintaan) {
     const reagen = useSelector((state: RootState) => state.permintaanReducer.dataReagen)
     const currentDataId = useSelector((state: RootState) => state.permintaanReducer.currentDataId)
 
@@ -65,7 +66,7 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
         e.preventDefault()
         const id = e.currentTarget.getAttribute('data-id');
 
-        dispatch(fetchListInventory(id))
+        dispatch(fetchListInventoryReagen(id))
         dispatch(permintaanActions.toggleForm())
         dispatch(permintaanActions.setIsEditMode(true))
         dispatch(permintaanActions.setCurrentDataId(id)) // untuk ambil data tgl permintaan
@@ -75,7 +76,7 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
         e.preventDefault()
         const id = e.currentTarget.getAttribute('data-id');
 
-        dispatch(fetchListInventory(id))
+        dispatch(fetchListInventoryReagen(id))
         dispatch(permintaanActions.toggleForm())
         dispatch(permintaanActions.setIsViewMode(true))
         dispatch(permintaanActions.setCurrentDataId(id)) // untuk ambil data tgl permintaan
@@ -88,7 +89,7 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
 
         dispatch(permintaanActions.setCurrentDataId(id)) // untuk ambil data tgl permintaan
         setIsDownloadLoading(true)
-        
+
         axios({
             url: `/api/download-permintaan-reagen/${id}`,
             method: 'GET',
@@ -96,7 +97,7 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
         })
             .then(({ data }) => {
                 console.log(data);
-                
+
                 const url = window.URL.createObjectURL(new Blob([data]));
                 const link = document.createElement('a');
                 link.href = url;
@@ -128,40 +129,41 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
         }
 
         const data = reagen?.data || reagen // DATA DENGAN ATAU TANPA LIMIT
-        return data?.map((item: any, index: number) => {
+        return data.length <= 0 ? <tr><td colSpan={8} className="text-center text-teriary">Tidak ada data</td></tr>
+            : data.map((item: any, index: number) => {
 
-            const tanggalPermintaan = item.tgl_permintaan ?
-                new Date(item.tgl_permintaan).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
-                : '-'
+                const tanggalPermintaan = item.tgl_permintaan ?
+                    new Date(item.tgl_permintaan).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+                    : '-'
 
-            const tanggalPenyerahan = item.tgl_penyerahan ?
-                new Date(item.tgl_penyerahan).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
-                : '-'
+                const tanggalPenyerahan = item.tgl_penyerahan ?
+                    new Date(item.tgl_penyerahan).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+                    : '-'
 
-            return (
-                <tr key={index}>
-                    <td>{number++}</td>
-                    <td>{item.peminta?.name}</td>
-                    <td>{item.bidang?.name || '-'}</td>
-                    <td>{item.bidang?.user?.name || '-'}</td>
-                    <td>{item.status?.name}</td>
-                    <td>{tanggalPermintaan}</td>
-                    <td>{tanggalPenyerahan}</td>
-                    {isWithAction &&
-                        <td className="whitespace-nowrap [&>a]:mx-1 text-center">
-                            {isDownloadLoading && item.id == currentDataId ? 
-                            <a href="#" title="Downloading SPB" className="text-green-600"><FontAwesomeIcon icon={faSpinner} className="animate-spin"/></a>
-                            : 
-                            <a href="#" data-id={item.id} onClick={downloadHandler} title="Download SPB" className="text-green-600"><FontAwesomeIcon icon={faDownload} /></a>
-                            }
-                            <a href="#" data-id={item.id} onClick={showListHandler} title="List" className="text-blue-800"><FontAwesomeIcon icon={faClipboardList} /></a>
-                            <a href="#" data-id={item.id} onClick={editHandler} className="text-quaternary"><FontAwesomeIcon icon={faPen} /></a>
-                            <a href="#" data-id={item.id} onClick={removeHandler} className="text-red-600"><FontAwesomeIcon icon={faTrash} /></a>
-                        </td>
-                    }
-                </tr>
-            )
-        })
+                return (
+                    <tr key={index}>
+                        <td>{number++}</td>
+                        <td>{item.peminta?.name}</td>
+                        <td>{item.bidang?.name || '-'}</td>
+                        <td>{item.bidang?.user?.name || '-'}</td>
+                        <td>{item.status?.name}</td>
+                        <td>{tanggalPermintaan}</td>
+                        <td>{tanggalPenyerahan}</td>
+                        {isWithAction &&
+                            <td className="whitespace-nowrap [&>a]:mx-1 text-center">
+                                {isDownloadLoading && item.id == currentDataId ?
+                                    <a href="#" title="Downloading SPB" className="text-green-600"><FontAwesomeIcon icon={faSpinner} className="animate-spin" /></a>
+                                    :
+                                    <a href="#" data-id={item.id} onClick={downloadHandler} title="Download SPB" className="text-green-600"><FontAwesomeIcon icon={faDownload} /></a>
+                                }
+                                <a href="#" data-id={item.id} onClick={showListHandler} title="List" className="text-blue-800"><FontAwesomeIcon icon={faClipboardList} /></a>
+                                <a href="#" data-id={item.id} onClick={editHandler} className="text-quaternary"><FontAwesomeIcon icon={faPen} /></a>
+                                <a href="#" data-id={item.id} onClick={removeHandler} className="text-red-600"><FontAwesomeIcon icon={faTrash} /></a>
+                            </td>
+                        }
+                    </tr>
+                )
+            })
     }
 
     return !reagen ? <LoadingWithoutText />
@@ -185,14 +187,17 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
                             <option value="100">100</option>
                         </select>
                     }
-                    <div className="search ml-auto">
-                        <input type="text" className="p-2 border border-quaternary focus:outline-none rounded"
-                            placeholder="Cari berdasarkan nama"
-                            value={delaySearch}
-                            onChange={handleSearch}
-                            onClick={(e: any) => e.target.select()}
-                        />
-                    </div>
+                    {
+                        isSearchableName &&
+                        <div className="search ml-auto">
+                            <input type="text" className="p-2 border border-quaternary focus:outline-none rounded"
+                                placeholder="Cari berdasarkan nama"
+                                value={delaySearch}
+                                onChange={handleSearch}
+                                onClick={(e: any) => e.target.select()}
+                            />
+                        </div>
+                    }
                 </div>
                 <table className="w-full border-collapse mt-2">
                     <thead className="[&_th]:border [&_th]:border-quaternary text-left">
