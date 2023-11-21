@@ -2,13 +2,14 @@
 
 import { fetchDataAtk, fetchListInventory, permintaanActions, removeData } from "@/features/permintaanSlice";
 import { RootState } from "@/redux/store";
-import { faBook, faCartFlatbedSuitcase, faClipboardList, faDownload, faList, faList12, faListCheck, faListSquares, faPen, faPenClip, faSpinner, faThList, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faBook, faCartFlatbedSuitcase, faClipboardList, faDownload, faEye, faList, faList12, faListCheck, faListSquares, faPen, faPenClip, faSpinner, faThList, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ChangeEvent, Fragment, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import LoadingWithoutText from "../layouts/LoadingWithoutText";
 import axios from "@/config/axios";
 import { ToastContainer, toast } from "react-toastify";
+import { useAuth } from "@/hooks/useAuth";
 
 interface IPermintaan {
     url: string,
@@ -27,6 +28,8 @@ export default function TablePermintaanAtk({ url, limit, title, isWithAction = t
     const [delaySearch, setDelaySearch] = useState('') //AGAR BISA DIGUNAKAN DI USEEFFECT UNTUK TIMEOUT (DELAY)
     const [isDownloadLoading, setIsDownloadLoading] = useState(false)
     const [link] = useState(`${url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${atk?.current_page}&limit=${limit}`)
+
+    const { user } = useAuth({ middleware: 'auth' })
 
     const dispatch = useDispatch<any>()
 
@@ -82,7 +85,6 @@ export default function TablePermintaanAtk({ url, limit, title, isWithAction = t
         dispatch(permintaanActions.setCurrentDataId(id)) // untuk ambil data tgl permintaan
     }
 
-
     const downloadHandler = (e: any) => {
         e.preventDefault()
         const id = e.currentTarget.getAttribute('data-id');
@@ -129,42 +131,46 @@ export default function TablePermintaanAtk({ url, limit, title, isWithAction = t
         }
 
         const data = atk?.data || atk // DATA DENGAN ATAU TANPA LIMIT
-        return data.length <= 0 ? <tr><td colSpan={8} className="text-center text-teriary">Tidak ada data</td></tr> 
-        :
-        data.map((item: any, index: number) => {
+        return data.length <= 0 ? <tr><td colSpan={8} className="text-center text-teriary">Tidak ada data</td></tr>
+            :
+            data.map((item: any, index: number) => {
 
-            const tanggalPermintaan = item.tgl_permintaan ?
-                new Date(item.tgl_permintaan).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
-                : '-'
+                const tanggalPermintaan = item.tgl_permintaan ?
+                    new Date(item.tgl_permintaan).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+                    : '-'
 
-            const tanggalPenyerahan = item.tgl_penyerahan ?
-                new Date(item.tgl_penyerahan).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
-                : '-'
+                const tanggalPenyerahan = item.tgl_penyerahan ?
+                    new Date(item.tgl_penyerahan).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+                    : '-'
 
-            return (
-                <tr key={index}>
-                    <td>{number++}</td>
-                    <td>{item.peminta?.name}</td>
-                    <td>{item.bidang?.name || '-'}</td>
-                    <td>{item.bidang?.user?.name || '-'}</td>
-                    <td>{item.status?.name}</td>
-                    <td>{tanggalPermintaan}</td>
-                    <td>{tanggalPenyerahan}</td>
-                    {isWithAction &&
-                        <td className="whitespace-nowrap [&>a]:mx-1 text-center">
-                            {isDownloadLoading && item.id == currentDataId ?
-                                <a href="#" title="Downloading SPB" className="text-green-600"><FontAwesomeIcon icon={faSpinner} className="animate-spin" /></a>
-                                :
-                                <a href="#" data-id={item.id} onClick={downloadHandler} title="Download SPB" className="text-green-600"><FontAwesomeIcon icon={faDownload} /></a>
-                            }
-                            <a href="#" data-id={item.id} onClick={showListHandler} title="List" className="text-blue-800"><FontAwesomeIcon icon={faClipboardList} /></a>
-                            <a href="#" data-id={item.id} onClick={editHandler} className="text-quaternary"><FontAwesomeIcon icon={faPen} /></a>
-                            <a href="#" data-id={item.id} onClick={removeHandler} className="text-red-600"><FontAwesomeIcon icon={faTrash} /></a>
-                        </td>
-                    }
-                </tr>
-            )
-        })
+                return (
+                    <tr key={index}>
+                        <td>{number++}</td>
+                        <td>{item.peminta?.name}</td>
+                        <td>{item.bidang?.name || '-'}</td>
+                        <td>{item.bidang?.user?.name || '-'}</td>
+                        <td>{item.status?.name}</td>
+                        <td>{tanggalPermintaan}</td>
+                        <td>{tanggalPenyerahan}</td>
+                        {isWithAction &&
+                            <td className="whitespace-nowrap [&>a]:mx-1 text-center">
+                                <a href="#" data-id={item.id} onClick={showListHandler} title="List" className="text-blue-800"><FontAwesomeIcon icon={faEye} /></a>
+                                {isDownloadLoading && item.id == currentDataId ?
+                                    <a href="#" title="Downloading SPB" className="text-green-600"><FontAwesomeIcon icon={faSpinner} className="animate-spin" /></a>
+                                    :
+                                    <a href="#" data-id={item.id} onClick={downloadHandler} title="Download SPB" className="text-green-600"><FontAwesomeIcon icon={faDownload} /></a>
+                                }
+                                {user.data.position === 'pemohon' &&
+                                    <>
+                                        <a href="#" data-id={item.id} onClick={editHandler} className="text-quaternary"><FontAwesomeIcon icon={faPen} /></a>
+                                        <a href="#" data-id={item.id} onClick={removeHandler} className="text-red-600"><FontAwesomeIcon icon={faTrash} /></a>
+                                    </>
+                                }
+                            </td>
+                        }
+                    </tr>
+                )
+            })
     }
 
     return !atk ? <LoadingWithoutText />

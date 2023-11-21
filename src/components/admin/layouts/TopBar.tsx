@@ -2,7 +2,7 @@
 
 import { toggleSideBar } from "@/features/layout/sideBarSlice";
 import { toggleUserMenu } from "@/features/layout/topBarSlice";
-import { useAuth } from "@/hooks/auth";
+import { useAuth } from "@/hooks/useAuth";
 import { RootState } from "@/redux/store";
 import { faBars, faDoorOpen } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -44,7 +44,7 @@ export default function TopBar() {
             </button>
             <div className="ml-auto">
                 <div className="relative">
-                    <button ref={userBtnMenuRef} className="flex items-center bg-secondary rounded px-3 py-1" onClick={() => dispatch(toggleUserMenu())}>
+                    <button ref={userBtnMenuRef} className="flex items-center bg-secondary rounded px-3 py-1 outline-none" onClick={() => dispatch(toggleUserMenu())}>
                         <Image src={user?.data?.photo || '/assets/images/noimage.webp'} alt="profile photo" width={25} height={25}
                             className="rounded-full mr-2 w-7 h-7"
                         />

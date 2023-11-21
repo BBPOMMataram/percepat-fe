@@ -3,6 +3,7 @@ import useSWR from 'swr'
 import axios from '@/config/axios'
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'react-toastify'
 
 export const useAuth = ({ middleware, redirectIfAuthenticated } = <any>{}) => {
     const router = <any>useRouter()
@@ -43,7 +44,10 @@ export const useAuth = ({ middleware, redirectIfAuthenticated } = <any>{}) => {
 
         axios
             .post('/login', props)
-            .then(() => mutate())
+            .then(() => {
+                toast.success('Login success.')
+                mutate()
+            })
             .catch(error => {
                 if (error.response.status !== 422) throw error
 
@@ -108,6 +112,7 @@ export const useAuth = ({ middleware, redirectIfAuthenticated } = <any>{}) => {
         )
             router.push(redirectIfAuthenticated)
         if (middleware === 'auth' && error) logout()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, error])
 
     return {

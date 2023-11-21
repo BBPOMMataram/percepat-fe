@@ -107,7 +107,7 @@ export default function Table({ url, limit, title }: ITableProps) {
                 <tr key={index}>
                     <td>{number++}</td>
                     <td>{item.name}</td>
-                    <td>{item.kabid.name}</td>
+                    <td>{item.kabid?.name || '-'}</td>
                     <td className="whitespace-nowrap [&>a]:mx-1">
                         <a href="#" data-id={item.id} onClick={removeHandler} className="remove text-red-600"><FontAwesomeIcon icon={faTrash} /></a>
                         <a href="#" data-id={item.id} onClick={editHandler} className="edit text-quaternary"><FontAwesomeIcon icon={faPen} /></a>

@@ -1,14 +1,14 @@
 "use client"
 
-import Inventory from "@/components/inventory";
 import axios from "@/config/axios";
 // import { fetchDataAtk, fetchDataReagen } from "@/features/penerimaanSlice";
 import { fetchDataAtk, fetchDataReagen, permintaanActions } from "@/features/permintaanSlice";
-import { useAuth } from "@/hooks/auth";
+import { useAuth } from "@/hooks/useAuth";
 import { RootState } from "@/redux/store";
 import { faPaperPlane } from "@fortawesome/free-regular-svg-icons";
-import { faAdd, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faAdd, faCheckCircle, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { current } from "@reduxjs/toolkit";
 import { ChangeEvent, Fragment, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import AsyncSelect from 'react-select/async';
@@ -20,10 +20,15 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
 
     const dispatch = useDispatch<any>()
 
+    const { user } = useAuth({ middleware: 'auth' })
+
     const [inventorySelected, setInventorySelected] = useState<ISelectBoxInventory | null>(null)
     const [jumlah, setJumlah] = useState<number>(1)
     const [tglPermintaan, setTglPermintaan] = useState<string>()
     const [description, setDescription] = useState<string>("")
+    const [currentData, setCurrentData] = useState<any>()
+    const [showRealisasiInput, setShowRealisasiInput] = useState(false)
+    const [jumlahRealisasi, setJumlahRealisasi] = useState<any>([])
 
     const listInventory = useSelector((state: RootState) => state.permintaanReducer.listInventory)
     const isViewMode = useSelector((state: RootState) => state.permintaanReducer.isViewMode)
@@ -31,8 +36,6 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
     const dataReagen = useSelector((state: RootState) => state.permintaanReducer.dataReagen)
     const dataAtk = useSelector((state: RootState) => state.permintaanReducer.dataAtk)
     const currentDataId = useSelector((state: RootState) => state.permintaanReducer.currentDataId)
-
-    const { user } = useAuth({ middleware: 'auth' })
 
     interface ISelectBoxInventory {
         value: string,
@@ -67,12 +70,12 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
     useEffect(() => {
         let tglPermintaan = new Date()
 
-
         if (isViewMode || isEditMode) {
+            const data = isAtk ? dataAtk.data.find((item: any) => item.id == currentDataId)
+                : dataReagen.data.find((item: any) => item.id == currentDataId)
 
-            const currentData = isAtk ? dataAtk.find((item: any) => item.id == currentDataId)
-                : dataReagen.find((item: any) => item.id == currentDataId)
-            tglPermintaan = new Date(currentData.tgl_permintaan)
+            setCurrentData(data)
+            tglPermintaan = new Date(data.tgl_permintaan)
         }
 
         const year = tglPermintaan.getFullYear()
@@ -81,9 +84,10 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
 
         const todayFormatted = `${year}-${month}-${date}`
 
-        setTglPermintaan(todayFormatted) //UNTUK SET DEFAULT TANGGAL KE HARI INI
+        // SET TANGGAL PERMINTAAN SESUAI DATA YG SEDANG DILIHAT ATAU DIEDIT ATAU // SET DEFAULT TANGGAL KE HARI INI JIKA MODE CREATE
+        setTglPermintaan(todayFormatted)
 
-    }, [isViewMode, isEditMode, currentDataId, dataReagen, dataAtk, isAtk])
+    }, [isViewMode, isEditMode, currentDataId, dataReagen, dataAtk, isAtk, currentData])
 
     const handleSubmit = async (e: any) => {
         e.preventDefault()
@@ -235,16 +239,128 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
         setJumlah(1)
     }
 
-    const getListInventory = listInventory.map((item: any) => {
+    const validateAcc = () => {
+        const position = user.data.position
+        const status = currentData?.status.id
+
+        const isAcc = (position === 'penyelia' && status >= 2)
+            || (position === 'penyerah' && status >= 3)
+            || (position === 'kasubbagumum' && status >= 4)
+
+        if (isAcc) {
+            toast.warning('Permintaan ini sudah disetujui.')
+            return false
+        }
+        return true
+    }
+
+    const validateAccPenyerah = () => {
+        const position = user.data.position
+        const status = currentData?.status.id
+
+        if (position === 'penyerah' && status <= 2) {
+            // tampilkan input realisasi untuk penyerah saat menyetujui
+            if (!showRealisasiInput) {
+                setShowRealisasiInput(true)
+                return false
+            }
+
+            // validasi realisasi tidak kosong
+            const realisasiInputs = document.querySelectorAll<HTMLInputElement>('.realisasi')
+            for (const element of realisasiInputs) {
+                if (element.value === '' || element.value === '0') {
+                    toast.error('Pastikan realisasi tidak kosong')
+                    return false
+                }
+            }
+
+        }
+
+        return true
+    }
+
+    const accHandler = () => {
+        if (!validateAcc()) {
+            return //stop if validate not passed 
+        }
+
+        if (!validateAccPenyerah()) {
+            return
+        }
+
+        axios.post(`/api/acc-permintaan/${currentDataId}`, { data: jumlahRealisasi })
+            .then(({ data }) => {
+                toast.success(data.msg, {
+                    position: "top-right",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: "light",
+                });
+                dispatch(permintaanActions.toggleForm())
+
+                isAtk ?
+                    dispatch(fetchDataAtk())
+                    :
+                    dispatch(fetchDataReagen())
+            })
+            .catch(({ response }) => {
+                const error = response.data.msg  //PESAN ERROR MANUAL YANG DIHANDLE MANUAL DARI SERVER LARA
+                if (error) {
+                    toast.error(error, {
+                        position: "top-right",
+                        autoClose: 4000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        progress: undefined,
+                        theme: "light",
+                    });
+                    return
+                }
+
+                const errors = response.data.errors //ERROR YANG DIKIRIM AUTO DARI LARA
+
+                // get all fields in errors as array
+                const errorMessagesArray = Object.keys(errors)
+
+                let autoCloseTime = 5000
+                // loop all error fields exist
+                errorMessagesArray.forEach(errorItem => {
+                    // loop all items error each field
+                    errors[errorItem].forEach((errorMessage: string) => {
+                        toast.error(errorMessage, {
+                            position: "top-right",
+                            autoClose: autoCloseTime,
+                            hideProgressBar: false,
+                            closeOnClick: true,
+                            pauseOnHover: true,
+                            draggable: true,
+                            progress: undefined,
+                            theme: "light",
+                        });
+                        autoCloseTime += 1000
+                    });
+                })
+            })
+
+    }
+
+    const getListInventory = listInventory.map((item: any, index: number) => {
 
         const barang = item.barang || item.atk
         const expired = barang.expired
         const expiredFormatted = expired ? new Date(expired).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : '-'
+        console.log('jmlRea:', jumlahRealisasi);
 
         return (
             <Fragment key={barang.id}>
                 <li className="bg-teriary my-1 py-1 px-2 w-fit rounded">
-                    {barang.name}
+                    {`${barang.name} (Stok: ${barang.stock})`}
                     {
                         !isViewMode && <span data-id={barang.id} className="text-red-600 ml-1" onClick={removeItemListHandler} role="button">
                             <FontAwesomeIcon icon={faTrash} />
@@ -257,6 +373,21 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
                         <span className="bg-quaternary p-1">Expired : {expiredFormatted}</span>
                         <span className="bg-quaternary p-1">Ket : {item.keterangan || '-'}</span>
                     </div>
+
+                    {
+                        showRealisasiInput &&
+                        <div>
+                            <label htmlFor="realisasi">Realisasi : </label>
+                            <input type="number" name="realisasi"
+                                className="realisasi mt-2 rounded w-16 px-2 py-1"
+                                onChange={(e: any) => setJumlahRealisasi((prev: any) => {
+                                    const updatedArray = [...prev];
+                                    updatedArray[index] = parseInt(e.target.value) || 0; // Use parseInt to convert to number
+                                    return updatedArray;
+                                })}
+                            />
+                        </div>
+                    }
                 </li>
             </Fragment>
         )
@@ -330,7 +461,10 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
                     }
 
                     <div className="list bg-secondary p-2 rounded">
-                        <h3 className="mb-2 font-bold">Barang yang diminta : </h3>
+                        <div className="flex items-end mb-2">
+                            <h3 className="font-bold">Barang yang diminta : </h3>
+                            <span className="bg-blue-500 py-1 px-2 rounded text-white ml-auto">Status : {currentData?.status.name}</span>
+                        </div>
                         <ol className="list-decimal list-inside max-h-64 overflow-auto">
                             {
                                 listInventory.length > 0 ?
@@ -350,6 +484,13 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
                             className="bg-quaternary text-secondary px-4 py-2 mt-4 mx-2 rounded shadow-md"
                             onClick={handleSubmit}
                         ><FontAwesomeIcon icon={faPaperPlane}></FontAwesomeIcon> Simpan</button>
+                        }
+                        {isViewMode && user.data.position !== 'pemohon' &&
+                            <button
+                                type="button"
+                                className="bg-quaternary text-secondary px-4 py-2 mt-4 mx-2 rounded shadow-md"
+                                onClick={accHandler}
+                            ><FontAwesomeIcon icon={faCheckCircle}></FontAwesomeIcon> ACC</button>
                         }
                     </div>
                 </div>

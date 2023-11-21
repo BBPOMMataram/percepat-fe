@@ -2,7 +2,7 @@
 
 import { SideBar, TopBar } from '@/components/admin/layouts'
 import Loading from '@/components/admin/layouts/Loading'
-import { useAuth } from '@/hooks/auth'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function AdminLayout({
     children,

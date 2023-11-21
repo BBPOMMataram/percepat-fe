@@ -27,7 +27,7 @@ export default function Reagen() {
             <TablePermintaanReagen
                 url='api/permintaan-reagen'
                 limit={0}
-                isSearchableName={false}
+                isSearchableName={false} // karena tidak ada nama yang jadi patokan
             />
             
             {isFormOpen && <FormListPermintaan />}

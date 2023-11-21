@@ -2,6 +2,7 @@
 
 import axios from "@/config/axios";
 import { fetchDataReagen, fetchListInventoryReagen, permintaanActions, removeData } from "@/features/permintaanSlice";
+import { useAuth } from "@/hooks/useAuth";
 import { RootState } from "@/redux/store";
 import { faCartFlatbedSuitcase, faClipboardList, faDownload, faPen, faSpinner, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -28,13 +29,14 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
     const [isDownloadLoading, setIsDownloadLoading] = useState(false)
     const [link] = useState(`${url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${reagen?.current_page}&limit=${limit}`)
 
+    const { user } = useAuth({ middleware: 'auth' })
     const dispatch = useDispatch<any>()
 
     useEffect(() => {
         dispatch(fetchDataReagen(link))
 
         /// eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [valuePerPage, nameToSearch, reagen?.current_page, limit, link, dispatch])
+    }, [valuePerPage, nameToSearch,  limit, link, dispatch])
 
     const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
         setDelaySearch(e.target.value)
@@ -96,12 +98,10 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
             responseType: 'blob'
         })
             .then(({ data }) => {
-                console.log(data);
-
                 const url = window.URL.createObjectURL(new Blob([data]));
                 const link = document.createElement('a');
                 link.href = url;
-                link.setAttribute('download', 'SPB.pdf'); //or any other extension
+                link.setAttribute('download', `SPB-Reagen-${id}.pdf`); //or any other extension
                 document.body.appendChild(link);
                 link.click();
 
@@ -124,11 +124,12 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
         let number = 1
 
         // HANDLE JIKA REAGEN TANPA LIMIT YAITU DATA SELURUHNYA MAKA ATUR NOMOR INDEX NYA PER HALAMAN, JIKA LIMIT ADA ABAIKAN INI
-        if (reagen.data && reagen?.current_page !== 1) {
+        if (!!reagen.current_page && reagen?.current_page !== 1) {
             number = (reagen?.current_page - 1) * parseInt(valuePerPage) + 1
         }
 
         const data = reagen?.data || reagen // DATA DENGAN ATAU TANPA LIMIT
+        
         return data.length <= 0 ? <tr><td colSpan={8} className="text-center text-teriary">Tidak ada data</td></tr>
             : data.map((item: any, index: number) => {
 
@@ -157,11 +158,16 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
                                     <a href="#" data-id={item.id} onClick={downloadHandler} title="Download SPB" className="text-green-600"><FontAwesomeIcon icon={faDownload} /></a>
                                 }
                                 <a href="#" data-id={item.id} onClick={showListHandler} title="List" className="text-blue-800"><FontAwesomeIcon icon={faClipboardList} /></a>
-                                <a href="#" data-id={item.id} onClick={editHandler} className="text-quaternary"><FontAwesomeIcon icon={faPen} /></a>
-                                <a href="#" data-id={item.id} onClick={removeHandler} className="text-red-600"><FontAwesomeIcon icon={faTrash} /></a>
+                                {
+                                    user.data.position === 'pemohon' &&
+                                    <>
+                                        <a href="#" data-id={item.id} onClick={editHandler} className="text-quaternary"><FontAwesomeIcon icon={faPen} /></a>
+                                        < a href="#" data-id={item.id} onClick={removeHandler} className="text-red-600"><FontAwesomeIcon icon={faTrash} /></a>
+                                    </>
+                                }
                             </td>
                         }
-                    </tr>
+                    </tr >
                 )
             })
     }

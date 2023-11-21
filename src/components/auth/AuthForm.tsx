@@ -1,8 +1,8 @@
 "use client"
 
 import axios from "@/config/axios";
-import { useAuth } from "@/hooks/auth";
-import { faEye, faEyeSlash, faKey, faUnlockKeyhole } from "@fortawesome/free-solid-svg-icons";
+import { useAuth } from "@/hooks/useAuth";
+import { faEye, faEyeSlash, faSpinner, faUnlockKeyhole } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -18,6 +18,7 @@ export default function AuthForm(props: any) {
     const [errors, setErrors] = useState<any>([])
     const [status, setStatus] = useState(null)
     const [errorMessage, setErrorMessage] = useState()
+    const [isLoading, setIsLoading] = useState(false)
 
     const { login } = useAuth({
         middleware: 'guest',
@@ -26,16 +27,27 @@ export default function AuthForm(props: any) {
 
     const handleLogin = async (e: any) => {
         e.preventDefault()
+        setIsLoading(true)
 
         await csrf()
 
-        login({
+        const dataLogin = login({
             email,
             password,
             remember: shouldRemember,
             setErrors,
             setStatus,
         })
+
+        dataLogin.then((res) => {
+            console.log(res);
+            setIsLoading(false)
+        })
+        dataLogin.catch((err) => {
+            console.log(err)
+            setIsLoading(false)
+        })
+
     }
 
     useEffect(() => {
@@ -105,8 +117,9 @@ export default function AuthForm(props: any) {
                             </label>
                         </div>
                         <div className="text-right mt-6">
-                            <button className="bg-secondary text-quaternary hover:bg-teriary hover:text-quaternary font-semibold px-6 py-2 rounded">
-                                Login
+                            <button className="bg-secondary text-quaternary hover:bg-teriary hover:text-quaternary font-semibold px-6 py-2 rounded"
+                                disabled={isLoading ? true : false}>
+                                Login {isLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : ""}
                             </button>
                         </div>
                     </form>
