@@ -31,7 +31,7 @@ export default function FormPenerimaan({ isAtk }: { isAtk?: boolean }) {
 
                 return {
                     value: item.id,
-                    label: `${item.name} ${isAtk ? '' : '(ed:' + expired + ' )'}`
+                    label: `${item.name} ${isAtk ? '- ( Stok: ' + item.stock + ' || Satuan: ' + item.satuan + ' )' : '- ( Stok: ' + item.stock + ' || Satuan: ' + item.satuan + ' || Ed: ' + expired + ' )'}`,
                 }
             })
 
@@ -103,6 +103,23 @@ export default function FormPenerimaan({ isAtk }: { isAtk?: boolean }) {
     const formRef = useRef<any>(null)
     const inventorySelectRef = useRef<any>(null)
 
+    const resetForm = () => {
+        setVendor("")
+        setJumlah(0)
+        inventorySelectRef.current.clearValue();
+
+        let today = new Date()
+
+        const year = today.getFullYear()
+        const month = (`${today.getMonth() + 1}`).padStart(2, "0")
+        const date = (`${today.getDate()}`).padStart(2, "0");
+
+        const todayFormatted = `${year}-${month}-${date}`
+
+        setTglPenerimaan(todayFormatted)
+        setKedaluwarsa("")
+    }
+
     const handleSubmit = async (e: any) => {
         e.preventDefault()
         const form = formRef.current
@@ -120,8 +137,8 @@ export default function FormPenerimaan({ isAtk }: { isAtk?: boolean }) {
                     progress: undefined,
                     theme: "light",
                 });
-                formRef.current.reset();
-                inventorySelectRef.current.clearValue();
+                resetForm()
+                dispatch(penerimaanActions.toggleFormReagen());
 
                 isAtk ?
                     dispatch(fetchDataAtk())
@@ -222,7 +239,7 @@ export default function FormPenerimaan({ isAtk }: { isAtk?: boolean }) {
                     <div className="flex flex-col mb-3">
                         <label htmlFor="created_at">Tanggal Penerimaan</label>
                         <input
-                            type="date"
+                            type="datetime-local"
                             id="created_at"
                             name="created_at"
                             className="rounded p-2 mt-1"

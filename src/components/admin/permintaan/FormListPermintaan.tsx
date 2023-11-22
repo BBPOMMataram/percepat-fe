@@ -117,7 +117,7 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
                 });
                 resetForm()
                 inventorySelectRef.current.clearValue();
-                isEditMode && dispatch(permintaanActions.toggleForm())
+                dispatch(permintaanActions.toggleForm())
 
                 isAtk ?
                     dispatch(fetchDataAtk())
@@ -378,7 +378,7 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
                         showRealisasiInput &&
                         <div>
                             <label htmlFor="realisasi">Realisasi : </label>
-                            <input type="number" name="realisasi"
+                            <input type="number" name="realisasi" min={0}
                                 className="realisasi mt-2 rounded w-16 px-2 py-1"
                                 onChange={(e: any) => setJumlahRealisasi((prev: any) => {
                                     const updatedArray = [...prev];
@@ -463,7 +463,7 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
                     <div className="list bg-secondary p-2 rounded">
                         <div className="flex items-end mb-2">
                             <h3 className="font-bold">Barang yang diminta : </h3>
-                            <span className="bg-blue-500 py-1 px-2 rounded text-white ml-auto">Status : {currentData?.status.name}</span>
+                            {isViewMode && <span className="bg-blue-500 py-1 px-2 rounded text-white ml-auto">Status : {currentData?.status.name}</span>}
                         </div>
                         <ol className="list-decimal list-inside max-h-64 overflow-auto">
                             {

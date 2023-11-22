@@ -103,7 +103,7 @@ export default function TablePermintaanAtk({ url, limit, title, isWithAction = t
                 const url = window.URL.createObjectURL(new Blob([data]));
                 const link = document.createElement('a');
                 link.href = url;
-                link.setAttribute('download', 'SPB.pdf'); //or any other extension
+                link.setAttribute('download', `SPB-ATK-${id}.pdf`); //or any other extension
                 document.body.appendChild(link);
                 link.click();
 
@@ -126,7 +126,10 @@ export default function TablePermintaanAtk({ url, limit, title, isWithAction = t
         let number = 1
 
         // HANDLE JIKA atk TANPA LIMIT YAITU DATA SELURUHNYA MAKA ATUR NOMOR INDEX NYA PER HALAMAN, JIKA LIMIT ADA ABAIKAN INI
-        if (atk.data && atk?.current_page !== 1) {
+        // if (atk.data && atk?.current_page !== 1) {
+        //     number = (atk?.current_page - 1) * parseInt(valuePerPage) + 1
+        // }
+        if (!!atk.current_page && atk?.current_page !== 1) {
             number = (atk?.current_page - 1) * parseInt(valuePerPage) + 1
         }
 
@@ -154,12 +157,12 @@ export default function TablePermintaanAtk({ url, limit, title, isWithAction = t
                         <td>{tanggalPenyerahan}</td>
                         {isWithAction &&
                             <td className="whitespace-nowrap [&>a]:mx-1 text-center">
-                                <a href="#" data-id={item.id} onClick={showListHandler} title="List" className="text-blue-800"><FontAwesomeIcon icon={faEye} /></a>
                                 {isDownloadLoading && item.id == currentDataId ?
                                     <a href="#" title="Downloading SPB" className="text-green-600"><FontAwesomeIcon icon={faSpinner} className="animate-spin" /></a>
                                     :
                                     <a href="#" data-id={item.id} onClick={downloadHandler} title="Download SPB" className="text-green-600"><FontAwesomeIcon icon={faDownload} /></a>
                                 }
+                                <a href="#" data-id={item.id} onClick={showListHandler} title="List" className="text-blue-800"><FontAwesomeIcon icon={faClipboardList} /></a>
                                 {user.data.position === 'pemohon' &&
                                     <>
                                         <a href="#" data-id={item.id} onClick={editHandler} className="text-quaternary"><FontAwesomeIcon icon={faPen} /></a>

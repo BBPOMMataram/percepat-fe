@@ -40,7 +40,6 @@ export default function AuthForm(props: any) {
         })
 
         dataLogin.then((res) => {
-            console.log(res);
             setIsLoading(false)
         })
         dataLogin.catch((err) => {
