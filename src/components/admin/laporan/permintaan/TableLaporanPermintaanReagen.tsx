@@ -21,6 +21,11 @@ interface IPermintaan {
     isSearchableName?: boolean,
 }
 
+interface ISelectBox {
+    value: string,
+    label: string,
+}
+
 export default function TableLaporanPermintaanReagen({ url, limit, title, isWithAction = true, isSearchableName = true }: IPermintaan) {
     const reagen = useSelector((state: RootState) => state.laporanPermintaanReducer.dataReagen)
     const currentDataId = useSelector((state: RootState) => state.laporanPermintaanReducer.currentDataId)
@@ -30,18 +35,13 @@ export default function TableLaporanPermintaanReagen({ url, limit, title, isWith
     const [nameToSearch, setNameToSearch] = useState('')
     const [delaySearch, setDelaySearch] = useState('') //AGAR BISA DIGUNAKAN DI USEEFFECT UNTUK TIMEOUT (DELAY)
     const [isDownloadLoading, setIsDownloadLoading] = useState(false)
-    const [year, setYear] = useState()
-    const [month, setMonth] = useState()
-    const [bidang, setBidang] = useState()
+    const [year, setYear] = useState<ISelectBox>()
+    const [month, setMonth] = useState<ISelectBox>()
+    const [bidang, setBidang] = useState<ISelectBox>()
 
     const dispatch = useDispatch<any>()
 
     const bidangSelectRef = useRef(null)
-
-    interface ISelectBox {
-        value: string,
-        label: string,
-    }
 
     const loadBidangOptions = async (
         inputValue: string
@@ -49,14 +49,14 @@ export default function TableLaporanPermintaanReagen({ url, limit, title, isWith
         const urlData = `api/bidang/getAll`
         const { data } = await axios(urlData)
 
-        const reagenOptions = data.data.map((item: any) => {
+        const bidangOptions = data.data.map((item: any) => {
             return {
                 value: item.id,
                 label: `${item.name}`,
             }
         })
 
-        return reagenOptions
+        return bidangOptions
     };
 
     const valuePerPageOptions = [
