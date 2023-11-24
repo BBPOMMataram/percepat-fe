@@ -45,9 +45,10 @@ export default function SideBar() {
             >
                 <div className="flex-1 flex flex-col bg-teriary py-4">
                     <div className="header text-center border-b border-quaternary pb-3">
-                        <Image src={"/assets/images/bpom.png"} alt="Logo BPOM RI" width={50} height={50} className="mx-auto mb-2" />
+                        <Image src={"/assets/images/bpom.png"} alt="Logo BPOM RI" width={50} height={50} className="mx-auto mb-2 w-auto" />
                         <strong>PERCEPAT</strong>
                         <Link href={'/'} title="Homepage"><FontAwesomeIcon icon={faExternalLinkAlt} className="ml-2" /></Link>
+                        <div className="text-sm">BBPOM DI MATARAM</div>
                     </div>
                     <SideBarMenu />
                 </div>

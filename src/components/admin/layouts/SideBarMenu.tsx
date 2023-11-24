@@ -1,4 +1,4 @@
-import { faBoxesStacked, faCaretDown, faCaretLeft, faCartArrowDown, faCartFlatbedSuitcase, faDashboard, faFileAlt, faFilePen, faFlaskVial, faPuzzlePiece, faUserGear, faUserGroup, faUsers, faWarehouse } from "@fortawesome/free-solid-svg-icons";
+import { faBoxesStacked, faCaretDown, faCaretLeft, faCartArrowDown, faCartFlatbedSuitcase, faDashboard, faFileAlt, faFilePen, faFlaskVial, faPuzzlePiece, faUserGear, faUserGroup } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
@@ -35,7 +35,10 @@ export default function SideBarMenuItem() {
         {
             name: 'Laporan',
             link: '/',
-            icon: <FontAwesomeIcon icon={faFileAlt} fixedWidth />
+            icon: <FontAwesomeIcon icon={faFileAlt} fixedWidth />,
+            submenus: [
+                { name: 'Permintaan', link: '/laporan/permintaan', icon: <FontAwesomeIcon icon={faCartFlatbedSuitcase} fixedWidth /> },
+            ]
         },
         {
             separator: 'MASTER'
@@ -63,8 +66,8 @@ export default function SideBarMenuItem() {
             separator: 'SETTING'
         },
         {
-            name: 'Profile',
-            link: '/',
+            name: 'Profil',
+            link: '/profile',
             icon: <FontAwesomeIcon icon={faUserGear} fixedWidth />
         },
     ]
@@ -89,7 +92,7 @@ export default function SideBarMenuItem() {
                 <ul>
                     {
                         menuItems.map((item, i) => {
-                            const activeClass = pathname === item.link ? 'bg-quaternary' : 'hover:bg-secondary' ;
+                            const activeClass = pathname === item.link ? 'bg-quaternary' : 'hover:bg-secondary';
 
                             let itemEl =
                                 <li key={i} className={activeClass}>
@@ -100,7 +103,7 @@ export default function SideBarMenuItem() {
 
 
                             if (item.separator) {
-                                itemEl = <div key={i} className="text-quaternary ml-2 text-sm font-bold">{item.separator}</div>
+                                itemEl = <div key={i} className="text-quaternary ml-2 mt-2 text-sm font-bold">{item.separator}</div>
                             }
 
                             if (item.submenus) {
@@ -109,7 +112,7 @@ export default function SideBarMenuItem() {
                                         <a className="flex" onClick={() => handleSubmenu(i)} role="button">
                                             <span className="text-xl">{item.icon}</span>
                                             <span className="ml-2 mr-auto">{item.name}</span>
-                                            <button className="ml-6">{submenuOpenStates[i] ? <FontAwesomeIcon icon={faCaretDown} /> : <FontAwesomeIcon icon={faCaretLeft} />}</button>
+                                            <button className="ml-6 outline-none">{submenuOpenStates[i] ? <FontAwesomeIcon icon={faCaretDown} /> : <FontAwesomeIcon icon={faCaretLeft} />}</button>
                                         </a>
                                         <div className='pl-4 pt-2'>
                                             <ul>
