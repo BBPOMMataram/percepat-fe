@@ -8,6 +8,7 @@ import bidangReducer from '@/features/bidangSlice'
 import reagenReducer from '@/features/reagenSlice'
 import atkReducer from '@/features/atkSlice'
 import laporanPermintaanReducer from '@/features/laporanPermintaanSlice'
+import settingReducer from '@/features/settingSlice'
 
 export const store = configureStore({
     reducer: {
@@ -20,6 +21,7 @@ export const store = configureStore({
         reagenReducer,
         atkReducer,
         laporanPermintaanReducer,
+        settingReducer,
     },
 })
 

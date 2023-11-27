@@ -2,15 +2,15 @@
 
 import axios from "@/config/axios";
 import { useAuth } from "@/hooks/useAuth";
+import { RootState } from "@/redux/store";
 import { faEye, faEyeSlash, faSpinner, faUnlockKeyhole } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import { ToastContainer, toast } from "react-toastify";
 
 export default function AuthForm(props: any) {
-    const csrf = () => axios.get('sanctum/csrf-cookie')
-
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
@@ -18,7 +18,8 @@ export default function AuthForm(props: any) {
     const [errors, setErrors] = useState<any>([])
     const [status, setStatus] = useState(null)
     const [errorMessage, setErrorMessage] = useState()
-    const [isLoading, setIsLoading] = useState(false)
+
+    const isLoading = useSelector((state:RootState) => state.settingReducer.isLoading)
 
     const { login } = useAuth({
         middleware: 'guest',
@@ -27,9 +28,6 @@ export default function AuthForm(props: any) {
 
     const handleLogin = async (e: any) => {
         e.preventDefault()
-        setIsLoading(true)
-
-        await csrf()
 
         const dataLogin = login({
             email,
@@ -38,15 +36,6 @@ export default function AuthForm(props: any) {
             setErrors,
             setStatus,
         })
-
-        dataLogin.then((res) => {
-            setIsLoading(false)
-        })
-        dataLogin.catch((err) => {
-            console.log(err)
-            setIsLoading(false)
-        })
-
     }
 
     useEffect(() => {

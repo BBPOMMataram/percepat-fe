@@ -1,14 +1,17 @@
-import useSWRImmutable from 'swr/immutable'
-import useSWR from 'swr'
 import axios from '@/config/axios'
-import { useEffect } from 'react'
+import { settingActions } from '@/features/settingSlice'
 import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+import { useDispatch } from 'react-redux'
 import { toast } from 'react-toastify'
+import useSWR from 'swr'
 
 export const useAuth = ({ middleware, redirectIfAuthenticated } = <any>{}) => {
     const router = <any>useRouter()
 
-    const { data: user, error, mutate } = useSWR('/api/user', () =>
+    const dispatch = useDispatch()
+
+    const { data: user, error, isLoading, mutate } = useSWR('/api/user', () =>
         axios
             .get('/api/user')
             .then(res => res.data)
@@ -21,7 +24,7 @@ export const useAuth = ({ middleware, redirectIfAuthenticated } = <any>{}) => {
 
     const csrf = () => axios.get('/sanctum/csrf-cookie')
 
-    const register = async ({ setErrors, ...props } : any) => {
+    const register = async ({ setErrors, ...props }: any) => {
         await csrf()
 
         setErrors([])
@@ -38,6 +41,7 @@ export const useAuth = ({ middleware, redirectIfAuthenticated } = <any>{}) => {
 
     const login = async ({ setErrors, setStatus, ...props } = <any>{}) => {
         await csrf()
+        dispatch(settingActions.setIsLoading(true))
 
         setErrors([])
         setStatus(null)
@@ -47,15 +51,17 @@ export const useAuth = ({ middleware, redirectIfAuthenticated } = <any>{}) => {
             .then(() => {
                 toast.success('Login success.')
                 mutate()
+                dispatch(settingActions.setIsLoading(false))
             })
             .catch(error => {
                 if (error.response.status !== 422) throw error
 
                 setErrors(error.response.data.errors)
+                dispatch(settingActions.setIsLoading(false))
             })
     }
 
-    const forgotPassword = async ({ setErrors, setStatus, email } : any) => {
+    const forgotPassword = async ({ setErrors, setStatus, email }: any) => {
         await csrf()
 
         setErrors([])
@@ -71,7 +77,7 @@ export const useAuth = ({ middleware, redirectIfAuthenticated } = <any>{}) => {
             })
     }
 
-    const resetPassword = async ({ setErrors, setStatus, ...props }:any) => {
+    const resetPassword = async ({ setErrors, setStatus, ...props }: any) => {
         await csrf()
 
         setErrors([])
@@ -89,7 +95,7 @@ export const useAuth = ({ middleware, redirectIfAuthenticated } = <any>{}) => {
             })
     }
 
-    const resendEmailVerification = ({ setStatus }:any) => {
+    const resendEmailVerification = ({ setStatus }: any) => {
         axios
             .post('/email/verification-notification')
             .then(response => setStatus(response.data.status))
@@ -112,7 +118,7 @@ export const useAuth = ({ middleware, redirectIfAuthenticated } = <any>{}) => {
         )
             router.push(redirectIfAuthenticated)
         if (middleware === 'auth' && error) logout()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, error])
 
     return {
