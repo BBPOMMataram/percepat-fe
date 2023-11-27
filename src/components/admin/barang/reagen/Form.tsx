@@ -3,10 +3,9 @@
 import axios from "@/config/axios";
 import { fetchData, reagenActions } from "@/features/reagenSlice";
 import { RootState } from "@/redux/store";
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import AsyncSelect from 'react-select/async';
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 
 export default function Form() {
     const data = useSelector((state: RootState) => state.reagenReducer.singleData)
@@ -146,7 +145,6 @@ export default function Form() {
     return (
         // modal
         <div className="fixed top-0 right-0 left-0 h-screen bg-quaternary bg-opacity-90 flex items-center justify-center">
-            <ToastContainer />
             <div className="max-h-screen">
                 {/* form container */}
                 <div className="p-6 bg-teriary rounded mx-2 w-[45rem] my-4">

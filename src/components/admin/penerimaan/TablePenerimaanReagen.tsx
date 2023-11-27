@@ -7,7 +7,7 @@ import { faCartArrowDown, faPen, faTrash } from "@fortawesome/free-solid-svg-ico
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ChangeEvent, Fragment, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import LoadingWithoutText from "../layouts/LoadingWithoutText";
 
 interface IPenerimaan {
@@ -127,7 +127,6 @@ export default function TablePenerimaanReagen({ url, limit, title, isWithAction 
     return !reagen ? <LoadingWithoutText />
         : (
             <>
-                <ToastContainer />
                 <div className="table-header flex items-end mt-3">
                     <h2 className="text-xl sm:text-2xl">
                         {title && <FontAwesomeIcon icon={faCartArrowDown} flip="horizontal" />} <span>{title}</span>

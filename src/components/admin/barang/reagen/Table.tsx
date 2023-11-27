@@ -1,16 +1,14 @@
 "use client"
 
 import axios from "@/config/axios";
-import {  fetchUsers, userActions } from "@/features/userSlice";
+import { fetchData, fetchSingleData, reagenActions } from "@/features/reagenSlice";
 import { RootState } from "@/redux/store";
 import { faCartFlatbedSuitcase, faLink, faPen, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import Image from "next/image";
 import { ChangeEvent, Fragment, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import LoadingWithoutText from "../../layouts/LoadingWithoutText";
-import { reagenActions, fetchData, fetchSingleData } from "@/features/reagenSlice";
 
 interface ITableProps {
     url: string,
@@ -109,7 +107,7 @@ export default function Table({ url, limit, title }: ITableProps) {
         return data?.data?.map((item: any, index: number) => {
             const expiredDate = item.expired ? new Date(item.expired).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : '-'
             const msds = item.msds ? <a href={item.msds} target="_blank"><FontAwesomeIcon icon={faLink} /></a> : '-';
-            
+
             return (
                 <tr key={index}>
                     <td>{number++}</td>
@@ -130,7 +128,6 @@ export default function Table({ url, limit, title }: ITableProps) {
     return !data ? <LoadingWithoutText />
         : (
             <>
-                <ToastContainer />
                 <div className="table-header flex items-end mt-3">
                     <h2 className="text-xl sm:text-2xl">
                         {title && <FontAwesomeIcon icon={faCartFlatbedSuitcase} flip="horizontal" />} <span>{title}</span>

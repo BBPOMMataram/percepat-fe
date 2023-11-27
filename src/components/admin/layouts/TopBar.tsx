@@ -45,8 +45,8 @@ export default function TopBar() {
             <div className="ml-auto">
                 <div className="relative">
                     <button ref={userBtnMenuRef} className="flex items-center bg-secondary rounded px-3 py-1 outline-none" onClick={() => dispatch(toggleUserMenu())}>
-                        <Image src={user?.data?.photo || '/assets/images/noimage.webp'} alt="profile photo" width={25} height={25}
-                            className="rounded-full mr-2 w-7 h-7"
+                        <Image src={user?.data?.photo || '/assets/images/noimage.webp'} alt="profile photo" width={100} height={100}
+                            className="rounded-full mr-2 w-12 h-12"
                         />
                         <div className="flex flex-col h-fit">
                             <span>{user?.data?.name}</span>

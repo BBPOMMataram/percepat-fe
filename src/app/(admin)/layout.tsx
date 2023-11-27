@@ -3,6 +3,7 @@
 import { SideBar, TopBar } from '@/components/admin/layouts'
 import Loading from '@/components/admin/layouts/Loading'
 import { useAuth } from '@/hooks/useAuth'
+import { ToastContainer } from 'react-toastify'
 
 export default function AdminLayout({
     children,
@@ -24,6 +25,7 @@ export default function AdminLayout({
                     <div>
                         <main className='p-4 mb-6'>
                             {children}
+                            <ToastContainer />
                         </main>
                         <footer className='bg-secondary px-4 pb-2 pt-5 border-t border-quaternary text-quaternary'>
                             <p>

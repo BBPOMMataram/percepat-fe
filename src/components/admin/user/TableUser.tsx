@@ -8,7 +8,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Image from "next/image";
 import { ChangeEvent, Fragment, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import LoadingWithoutText from "../layouts/LoadingWithoutText";
 
 interface ITableProps {
@@ -144,7 +144,6 @@ export default function TableUser({ url, limit, title }: ITableProps) {
     return !data ? <LoadingWithoutText />
         : (
             <>
-                <ToastContainer />
                 <div className="table-header flex items-end mt-3">
                     <h2 className="text-xl sm:text-2xl">
                         {title && <FontAwesomeIcon icon={faCartFlatbedSuitcase} flip="horizontal" />} <span>{title}</span>

@@ -1,15 +1,15 @@
 "use client"
 
+import axios from "@/config/axios";
 import { fetchDataAtk, fetchListInventory, permintaanActions, removeData } from "@/features/permintaanSlice";
+import { useAuth } from "@/hooks/useAuth";
 import { RootState } from "@/redux/store";
-import { faBook, faCartFlatbedSuitcase, faClipboardList, faDownload, faEye, faList, faList12, faListCheck, faListSquares, faPen, faPenClip, faSpinner, faThList, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faCartFlatbedSuitcase, faClipboardList, faDownload, faPen, faSpinner, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ChangeEvent, Fragment, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "react-toastify";
 import LoadingWithoutText from "../layouts/LoadingWithoutText";
-import axios from "@/config/axios";
-import { ToastContainer, toast } from "react-toastify";
-import { useAuth } from "@/hooks/useAuth";
 
 interface IPermintaan {
     url: string,
@@ -179,7 +179,6 @@ export default function TablePermintaanAtk({ url, limit, title, isWithAction = t
     return !atk ? <LoadingWithoutText />
         : (
             <>
-                <ToastContainer />
                 <div className="table-header flex items-end mt-3">
                     <h2 className="text-xl sm:text-2xl">
                         {title && <FontAwesomeIcon icon={faCartFlatbedSuitcase} flip="horizontal" />} <span>{title}</span>

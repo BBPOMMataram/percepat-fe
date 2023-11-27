@@ -8,7 +8,7 @@ import { faCartFlatbedSuitcase, faClipboardList, faDownload, faPen, faSpinner, f
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ChangeEvent, Fragment, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import LoadingWithoutText from "../layouts/LoadingWithoutText";
 
 interface IPermintaan {
@@ -36,7 +36,7 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
         dispatch(fetchDataReagen(link))
 
         /// eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [valuePerPage, nameToSearch,  limit, link, dispatch])
+    }, [valuePerPage, nameToSearch, limit, link, dispatch])
 
     const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
         setDelaySearch(e.target.value)
@@ -129,7 +129,7 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
         }
 
         const data = reagen?.data || reagen // DATA DENGAN ATAU TANPA LIMIT
-        
+
         return data.length <= 0 ? <tr><td colSpan={8} className="text-center text-teriary">Tidak ada data</td></tr>
             : data.map((item: any, index: number) => {
 
@@ -175,7 +175,6 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
     return !reagen ? <LoadingWithoutText />
         : (
             <>
-                <ToastContainer />
                 <div className="table-header flex items-end mt-3">
                     <h2 className="text-xl sm:text-2xl">
                         {title && <FontAwesomeIcon icon={faCartFlatbedSuitcase} flip="horizontal" />} <span>{title}</span>

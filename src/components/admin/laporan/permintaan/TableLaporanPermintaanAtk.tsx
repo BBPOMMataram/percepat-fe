@@ -5,13 +5,12 @@ import { fetchDataAtk, laporanPermintaanActions } from "@/features/laporanPermin
 import { RootState } from "@/redux/store";
 import { faCartFlatbedSuitcase, faDownload, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { ChangeEvent, Fragment, SelectHTMLAttributes, useEffect, useRef, useState } from "react";
+import { ChangeEvent, Fragment, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import Select from 'react-select';
 import AsyncSelect from 'react-select/async';
-import makeAnimated from 'react-select/animated';
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import LoadingWithoutText from "../../layouts/LoadingWithoutText";
-import Select, { SingleValue } from 'react-select';
 
 interface IPermintaan {
     url: string,
@@ -206,7 +205,6 @@ export default function TableLaporanPermintaanAtk({ url, limit, title, isWithAct
     return !atk ? <LoadingWithoutText />
         : (
             <>
-                <ToastContainer />
                 <div className="table-header flex items-end mt-3">
                     <h2 className="text-xl sm:text-2xl">
                         {title && <FontAwesomeIcon icon={faCartFlatbedSuitcase} flip="horizontal" />} <span>{title}</span>

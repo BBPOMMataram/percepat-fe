@@ -1,18 +1,16 @@
 "use client"
 
 import axios from "@/config/axios";
-// import { fetchDataAtk, fetchDataReagen } from "@/features/penerimaanSlice";
 import { fetchDataAtk, fetchDataReagen, permintaanActions } from "@/features/permintaanSlice";
 import { useAuth } from "@/hooks/useAuth";
 import { RootState } from "@/redux/store";
 import { faPaperPlane } from "@fortawesome/free-regular-svg-icons";
 import { faAdd, faCheckCircle, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { current } from "@reduxjs/toolkit";
 import { ChangeEvent, Fragment, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import AsyncSelect from 'react-select/async';
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 
 export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
     const inventorySelectRef = useRef<any>(null)
@@ -396,7 +394,6 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
     return (
         // modal
         <div className="fixed inset-0 bg-quaternary bg-opacity-90 flex items-center justify-center">
-            <ToastContainer />
             {/* form container */}
             <div className="max-h-[calc(100vh-20px)] overflow-auto">
                 <div className="p-6 bg-teriary rounded mx-2 w-[45rem]">
