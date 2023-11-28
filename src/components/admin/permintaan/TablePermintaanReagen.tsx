@@ -180,7 +180,7 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
                         {title && <FontAwesomeIcon icon={faCartFlatbedSuitcase} flip="horizontal" />} <span>{title}</span>
                     </h2>
                     {
-                        reagen.data &&
+                        !limit &&
                         <select className="block p-2 [&>option]:p-2 rounded focus:outline-quaternary border border-quaternary bg-primary" name="value-per-page"
                             value={valuePerPage}
                             onChange={e => setValuePerPage(e.target.value)}
@@ -224,7 +224,7 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
                     </tbody>
                 </table>
                 {
-                    reagen.data &&
+                    !limit &&
                     <div className="table-footer flex items-center">
                         <div className="grow">
                             {reagen?.links?.map((item: any, i: number) => {

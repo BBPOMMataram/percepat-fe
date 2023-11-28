@@ -15,9 +15,10 @@ interface iPenerimaan {
     limit: number,
     title?: string,
     isWithAction?: boolean,
+    isSearchableName?: boolean
 }
 
-export default function TablePenerimaanAtk({ url, limit, title, isWithAction = true }: iPenerimaan) {
+export default function TablePenerimaanAtk({ url, limit, title, isWithAction = true, isSearchableName = true }: iPenerimaan) {
     const atk = useSelector((state: RootState) => state.penerimaanReducer.dataAtk)
 
     const [valuePerPage, setValuePerPage] = useState('5')
@@ -136,14 +137,16 @@ export default function TablePenerimaanAtk({ url, limit, title, isWithAction = t
                             <option value="100">100</option>
                         </select>
                     }
-                    <div className="search ml-auto">
-                        <input type="text" className="p-2 border border-quaternary focus:outline-none rounded"
-                            placeholder="Cari berdasarkan nama"
-                            value={delaySearch}
-                            onChange={handleSearch}
-                            onClick={(e: any) => e.target.select()}
-                        />
-                    </div>
+                    {isSearchableName &&
+                        <div className="search ml-auto">
+                            <input type="text" className="p-2 border border-quaternary focus:outline-none rounded"
+                                placeholder="Cari berdasarkan nama"
+                                value={delaySearch}
+                                onChange={handleSearch}
+                                onClick={(e: any) => e.target.select()}
+                            />
+                        </div>
+                    }
                 </div>
                 <table className="w-full border-collapse mt-2">
                     <thead className="[&_th]:border [&_th]:border-quaternary text-left">

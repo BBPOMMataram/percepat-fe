@@ -27,6 +27,7 @@ const Dashboard = () => {
                     url='api/penerimaan-reagen'
                     limit={5}
                     isWithAction={false}
+                    isSearchableName={false}
                 />
                 <br />
                 <TablePenerimaanAtk
@@ -34,6 +35,7 @@ const Dashboard = () => {
                     url='api/penerimaan-atk'
                     limit={5}
                     isWithAction={false}
+                    isSearchableName={false}
                 />
             </section>
 

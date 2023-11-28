@@ -184,7 +184,7 @@ export default function TablePermintaanAtk({ url, limit, title, isWithAction = t
                         {title && <FontAwesomeIcon icon={faCartFlatbedSuitcase} flip="horizontal" />} <span>{title}</span>
                     </h2>
                     {
-                        atk.data &&
+                        !limit &&
                         <select className="block p-2 [&>option]:p-2 rounded focus:outline-quaternary border border-quaternary bg-primary" name="value-per-page"
                             value={valuePerPage}
                             onChange={e => setValuePerPage(e.target.value)}
@@ -228,7 +228,7 @@ export default function TablePermintaanAtk({ url, limit, title, isWithAction = t
                     </tbody>
                 </table>
                 {
-                    atk.data &&
+                    !limit &&
                     <div className="table-footer flex items-center">
                         <div className="grow">
                             {atk?.links?.map((item: any, i: number) => {
