@@ -2,7 +2,7 @@
 
 import axios from "@/config/axios"
 import { useAuth } from "@/hooks/useAuth"
-import { faArrowLeft, faPen, faSave } from "@fortawesome/free-solid-svg-icons"
+import { faArrowLeft, faEye, faEyeSlash, faKey, faPen, faRotateBack, faSave } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import Image from "next/image"
 import { useEffect, useRef, useState } from "react"
@@ -19,6 +19,13 @@ export default function Profile() {
     const [signature, setSignature] = useState(user.data.signature)
     const [newPhoto, setNewPhoto] = useState<any>(null) //UNTUK PREVIEW
     const [newPhotoBlob, setNewPhotoBlob] = useState<any>(null)
+    const [isUpdatePassword, setIsUpdatePassword] = useState(false)
+    const [currentPassword, setCurrentPassword] = useState("")
+    const [newPassword, setNewPassword] = useState("")
+    const [newPasswordConfirmation, setNewPasswordConfirmation] = useState("")
+    const [isShowPassword, setIsShowPassword] = useState(false)
+    const [isShowNewPassword, setIsShowNewPassword] = useState(false)
+    const [isShowNewPasswordConfirmation, setIsShowNewPasswordConfirmation] = useState(false)
 
     const signatureSelectRef = useRef<any>(null)
     const nameRef = useRef<any>(null)
@@ -110,6 +117,54 @@ export default function Profile() {
             })
     }
 
+    const updatePasswordHandler = () => {
+        const formData = new FormData()
+        formData.append('_method', 'PATCH')
+        formData.append('currentPassword', currentPassword)
+        formData.append('newPassword', newPassword)
+        formData.append('newPassword_confirmation', newPasswordConfirmation)
+
+        axios.post(`/api/profile/update-password`, formData)
+            .then(({ data }) => {
+                toast.success(data.msg, {
+                    position: "top-right",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: "light",
+                });
+
+            })
+            .catch((response) => {
+                const errors = response.response.data.errors || response
+
+                // get all fields in errors as array
+                const errorMessagesArray = Object.keys(errors)
+
+                let autoCloseTime = 5000
+                // loop all error fields exist
+                errorMessagesArray.forEach(errorItem => {
+                    // loop all items error each field
+                    errors[errorItem].forEach((errorMessage: string) => {
+                        toast.error(errorMessage, {
+                            position: "top-right",
+                            autoClose: autoCloseTime,
+                            hideProgressBar: false,
+                            closeOnClick: true,
+                            pauseOnHover: true,
+                            draggable: true,
+                            progress: undefined,
+                            theme: "light",
+                        });
+                        autoCloseTime += 1000
+                    });
+                })
+            })
+    }
+
     return (
         <section className="p-4">
             <div className="bg-teriary flex flex-col items-center lg:flex-row p-2 rounded bg-opacity-90 shadow-xl">
@@ -147,12 +202,75 @@ export default function Profile() {
                     {
                         newPhotoBlob &&
                         <>
-                            <FontAwesomeIcon title="Batal" icon={faArrowLeft} className="my-2 text-quaternary mr-2" role="button" onClick={cancelEditHandler} />
+                            <FontAwesomeIcon title="Batal" icon={faRotateBack} className="my-2 text-quaternary mr-2" role="button" onClick={cancelEditHandler} />
                             <FontAwesomeIcon title="Simpan" icon={faSave} className="my-2 text-quaternary" role="button" onClick={updateHandler} />
                         </>
                     }
                     <div className="uppercase font-bold mt-2">{`${user.data.position || 'No Position'} - ${user.data.bidang?.name || 'No Komoditi'}`}</div>
                     <div className="uppercase font-bold">BBPOM di Mataram</div>
+                    <div className="">
+                        {
+                            isUpdatePassword ?
+                                <>
+                                    <FontAwesomeIcon title="Batal" icon={faRotateBack} className="my-2 text-quaternary mr-2" role="button" onClick={() => setIsUpdatePassword(!isUpdatePassword)} />
+                                    <FontAwesomeIcon title="Simpan" icon={faSave} className="my-2 text-quaternary" role="button" onClick={updatePasswordHandler} />
+                                </>
+                                :
+                                <FontAwesomeIcon title="Ubah Password" icon={faKey} className="my-2 text-quaternary" role="button" onClick={() => setIsUpdatePassword(!isUpdatePassword)} />
+                        }</div>
+
+                    {isUpdatePassword &&
+                        <div className="flex flex-col items-center">
+                            {/* input item */}
+                            <div className="flex flex-col mb-2 w-fit">
+                                <label htmlFor="currentPassword">Password saat ini</label>
+                                <div className="flex bg-secondary items-center rounded">
+                                    <input className="p-2 bg-secondary text-quaternary rounded focus:outline-none"
+                                        type={isShowPassword ? "text" : "password"}
+                                        placeholder="Password saat ini"
+                                        id="currentPassword"
+                                        value={currentPassword}
+                                        onChange={(e: any) => setCurrentPassword(e.target.value)}
+                                    />
+                                    <div role="button" className="text-quaternary border-l border-teriary w-8 flex justify-center" onClick={() => setIsShowPassword(!isShowPassword)}>
+                                        {!isShowPassword ? <FontAwesomeIcon icon={faEye} /> : <FontAwesomeIcon icon={faEyeSlash} />}
+                                    </div>
+                                </div>
+                            </div>
+                            {/* input item */}
+                            <div className="flex flex-col mb-2 w-fit">
+                                <label htmlFor="newPassword">Password baru</label>
+                                <div className="flex bg-secondary items-center rounded">
+                                    <input className="p-2 bg-secondary text-quaternary rounded focus:outline-none"
+                                        type={isShowNewPassword ? "text" : "password"}
+                                        placeholder="Password baru"
+                                        id="newPassword"
+                                        value={newPassword}
+                                        onChange={(e: any) => setNewPassword(e.target.value)}
+                                    />
+                                    <div role="button" className="text-quaternary border-l border-teriary w-8 flex justify-center" onClick={() => setIsShowNewPassword(!isShowNewPassword)}>
+                                        {!isShowNewPassword ? <FontAwesomeIcon icon={faEye} /> : <FontAwesomeIcon icon={faEyeSlash} />}
+                                    </div>
+                                </div>
+                            </div>
+                            {/* input item */}
+                            <div className="flex flex-col mb-2 w-fit">
+                                <label htmlFor="newPasswordConfirmation">Konfirmasi password baru</label>
+                                <div className="flex bg-secondary items-center rounded">
+                                    <input className="p-2 bg-secondary text-quaternary rounded focus:outline-none"
+                                        type={isShowNewPasswordConfirmation ? "text" : "password"}
+                                        placeholder="Konfirmasi password baru"
+                                        id="newPasswordConfirmation"
+                                        value={newPasswordConfirmation}
+                                        onChange={(e: any) => setNewPasswordConfirmation(e.target.value)}
+                                    />
+                                    <div role="button" className="text-quaternary border-l border-teriary w-8 flex justify-center" onClick={() => setIsShowNewPasswordConfirmation(!isShowNewPasswordConfirmation)}>
+                                        {!isShowNewPasswordConfirmation ? <FontAwesomeIcon icon={faEye} /> : <FontAwesomeIcon icon={faEyeSlash} />}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
                 </div>
                 <div className="flex-1 p-3 text-2xl text-center lg:text-start">
                     <h2 className="font-bold">Data Anda</h2>
@@ -204,7 +322,7 @@ export default function Profile() {
                                 onClick={cancelEditHandler}
                                 title="Batal"
                             >
-                                <FontAwesomeIcon icon={faArrowLeft} />
+                                <FontAwesomeIcon icon={faRotateBack} />
                             </button>
                             <button
                                 className="bg-quaternary text-primary px-4 py-2 rounded text-base"
