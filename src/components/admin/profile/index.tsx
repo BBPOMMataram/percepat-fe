@@ -151,7 +151,7 @@ export default function Profile() {
                             <FontAwesomeIcon title="Simpan" icon={faSave} className="my-2 text-quaternary" role="button" onClick={updateHandler} />
                         </>
                     }
-                    <div className="uppercase font-bold mt-2">{`${user.data.position || 'No Position'} ${user.data.bidang?.name || 'No Komoditi'}`}</div>
+                    <div className="uppercase font-bold mt-2">{`${user.data.position || 'No Position'} - ${user.data.bidang?.name || 'No Komoditi'}`}</div>
                     <div className="uppercase font-bold">BBPOM di Mataram</div>
                 </div>
                 <div className="flex-1 p-3 text-2xl text-center lg:text-start">

@@ -1,3 +1,4 @@
+import { useAuth } from "@/hooks/useAuth";
 import { faBoxesStacked, faCaretDown, faCaretLeft, faCartArrowDown, faCartFlatbedSuitcase, faDashboard, faFileAlt, faFilePen, faFlaskVial, faPuzzlePiece, faUserGear, faUserGroup } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { AnimatePresence, motion } from "framer-motion";
@@ -7,6 +8,8 @@ import { useState } from "react";
 
 export default function SideBarMenuItem() {
     const pathname = usePathname()
+
+    const { user } = useAuth({ middleware: 'auth' })
 
     const menuItems = [
         {
@@ -63,7 +66,7 @@ export default function SideBarMenuItem() {
             icon: <FontAwesomeIcon icon={faUserGroup} fixedWidth />
         },
         {
-            separator: 'SETTING'
+            separator: 'PENGATURAN'
         },
         {
             name: 'Profil',
@@ -100,7 +103,6 @@ export default function SideBarMenuItem() {
                                         <span className="text-xl">{item.icon}</span> <span className="mx-2">{item.name}</span>
                                     </Link>
                                 </li>
-
 
                             if (item.separator) {
                                 itemEl = <div key={i} className="text-quaternary ml-2 mt-2 text-sm font-bold">{item.separator}</div>
@@ -142,6 +144,28 @@ export default function SideBarMenuItem() {
                                             </ul>
                                         </div>
                                     </li>
+                            }
+
+                            const pemohonMenus = ['Dasbor', 'Permintaan', 'Profil', 'Barang', 'MASTER', 'PENGATURAN']
+                            if (user.data.position === 'pemohon' && !pemohonMenus.includes(item.name! || item.separator!)) {
+                                itemEl = <></>
+                            }
+
+                            const penyeliaMenus = ['Dasbor', 'Permintaan', 'Profil', 'Barang', 'MASTER', 'PENGATURAN']
+                            if (user.data.position === 'penyelia' && !penyeliaMenus.includes(item.name! || item.separator!)) {
+                                itemEl = <></>
+                            }
+
+                            // PENYERAH PUNYA AKSES FULL
+                            const penyerahMenus = ['*']
+                            if (user.data.position === 'penyerah' && penyerahMenus.includes(item.name! || item.separator!)) {
+                                itemEl = <></>
+                            }
+                            // PENYERAH PUNYA AKSES FULL
+
+                            const kasubbagumumMenus = ['Dasbor', 'Penerimaan', 'Permintaan', 'Laporan', 'Barang', 'Bidang', 'Profil', 'MASTER', 'PENGATURAN']
+                            if (user.data.position === 'kasubbagumum' && !kasubbagumumMenus.includes(item.name! || item.separator!)) {
+                                itemEl = <></>
                             }
 
                             return itemEl

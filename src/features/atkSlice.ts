@@ -10,13 +10,13 @@ interface ISingleData {
 
 interface IInitialState {
     isFormOpen:boolean,
-    data: ISingleData[],
+    data: any,
     singleData: ISingleData | null
 }
 
 const initialState: IInitialState = {
     isFormOpen: false,
-    data: [],
+    data: null,
     singleData: null
 }
 

@@ -14,9 +14,10 @@ interface ITableProps {
     url: string,
     limit: number,
     title?: string,
+    isWithAction?: boolean,
 }
 
-export default function Table({ url, limit, title }: ITableProps) {
+export default function Table({ url, limit, title, isWithAction = true }: ITableProps) {
     const data = useSelector((state: RootState) => state.atkReducer.data)
 
     const [valuePerPage, setValuePerPage] = useState('5')
@@ -91,7 +92,7 @@ export default function Table({ url, limit, title }: ITableProps) {
             <th>Nama</th>
             <th>Satuan</th>
             <th>Stok</th>
-            <th className="bg-black"></th>
+            {isWithAction && <th className="bg-black"></th>}
         </tr>
 
     const dataTable = () => {
@@ -109,10 +110,12 @@ export default function Table({ url, limit, title }: ITableProps) {
                     <td>{item.name}</td>
                     <td>{item.satuan}</td>
                     <td>{item.stock}</td>
-                    <td className="whitespace-nowrap [&>a]:mx-1 text-center">
-                        <a href="#" data-id={item.id} onClick={removeHandler} className="remove text-red-600"><FontAwesomeIcon icon={faTrash} /></a>
-                        <a href="#" data-id={item.id} onClick={editHandler} className="edit text-quaternary"><FontAwesomeIcon icon={faPen} /></a>
-                    </td>
+                    {isWithAction &&
+                        <td className="whitespace-nowrap [&>a]:mx-1 text-center">
+                            <a href="#" data-id={item.id} onClick={removeHandler} className="remove text-red-600"><FontAwesomeIcon icon={faTrash} /></a>
+                            <a href="#" data-id={item.id} onClick={editHandler} className="edit text-quaternary"><FontAwesomeIcon icon={faPen} /></a>
+                        </td>
+                    }
                 </tr>
             )
         })

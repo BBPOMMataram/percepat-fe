@@ -70,12 +70,12 @@ export default function TopBar() {
                                     <span>
                                         {user?.data?.position || 'no position'}
                                     </span>
-                                    <span className="block text-sm whitespace-nowrap">BBPOM di Mataram</span>
+                                    <span className="block text-sm whitespace-nowrap">{user.data.bidang?.name || 'No Komoditi'}</span>
                                 </div>
                                 <div className="text-center text-quaternary">
                                     {user?.data?.email}
                                 </div>
-                                <button className="flex border-t border-quaternary text-quaternary pt-2 mt-3 pr-3 font-bold ml-auto" onClick={logout}>
+                                <button className="flex border-t border-quaternary text-quaternary pt-2 mt-3 pr-3 font-bold ml-auto outline-none" onClick={logout}>
                                     {/* <GiExitDoor title="Logout" />  */}
                                     Keluar
                                     <FontAwesomeIcon icon={faDoorOpen} className="ml-1" />
