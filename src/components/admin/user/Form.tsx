@@ -85,6 +85,7 @@ export default function Form() {
 
                 formResetter()
                 dispatch(fetchUsers())
+                closeFormHandler()
             })
             .catch(({ response }) => {
                 const errors = response.data.errors
@@ -139,7 +140,6 @@ export default function Form() {
                 return
             }
         }
-
 
         data &&
             axios.post(`/api/users/${data.id}`, formData)
