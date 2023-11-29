@@ -91,7 +91,7 @@ export default function TableLaporanPermintaanAtk({ url, limit, title, isWithAct
             toast.warning('Tentukan Tahun untuk filter Bulan')
         }
 
-        const link = `${url}?value_per_page=${valuePerPage.value}` +
+        const link = `${url}?value_per_page=${valuePerPage?.value}` +
             `&name=${nameToSearch}` +
             `&page=${atk?.current_page}` +
             `&limit=${limit}` +

@@ -91,7 +91,7 @@ export default function TableLaporanPermintaanReagen({ url, limit, title, isWith
             toast.warning('Tentukan Tahun untuk filter Bulan')
         }
 
-        const link = `${url}?value_per_page=${valuePerPage.value}` +
+        const link = `${url}?value_per_page=${valuePerPage?.value}` +
             `&name=${nameToSearch}` +
             `&page=${reagen?.current_page}` +
             `&limit=${limit}` +

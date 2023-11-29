@@ -11,16 +11,11 @@ import { toggleSideBar } from "@/features/layout/sideBarSlice"
 
 const LaporanPermintaan = () => {
     const [isReagen, setIsReagen] = useState(true)
-
-    // const dispatch = useDispatch()
-
-    // useEffect(() => {
-    //     dispatch(toggleSideBar())
-    // }, [])
+    
     return (
         <>
             <section className="header text-center mt-2">
-                <h2 className="text-2xl">Laporan Permintaan</h2>
+                <h2 className="text-2xl uppercase font-bold">Laporan Permintaan</h2>
                 <nav className="my-4">
                     <ul className="[&>li]:inline">
                         <li onClick={() => setIsReagen(true)}>
