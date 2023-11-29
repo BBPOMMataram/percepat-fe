@@ -6,13 +6,23 @@ import { useDispatch, useSelector } from "react-redux"
 import FormPenerimaan from "./FormPenerimaan"
 import TablePenerimaanReagen from "./TablePenerimaanReagen"
 import { useAuth } from "@/hooks/useAuth"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 
 export default function Reagen() {
     const isFormOpen = useSelector((state: RootState) => state.penerimaanReducer.isFormReagenOpen)
 
     const dispatch = useDispatch()
 
-    const { user } = useAuth({ middleware: 'auth' })
+    const router = useRouter()
+
+    const { user } = useAuth({ middlware: 'auth' })
+
+    useEffect(() => {
+        if (user.data.position !== 'penyerah' && user.data.position !== 'kasubbagumum' && user.data.position !== null) {
+            router.push('/login')
+        }
+    })
 
     return (
         <section className="p-4">

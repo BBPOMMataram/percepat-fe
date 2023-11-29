@@ -6,13 +6,23 @@ import { useDispatch, useSelector } from "react-redux"
 import Form from "./Form"
 import Table from "./Table"
 import { useAuth } from "@/hooks/useAuth"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 
 export default function Bidang() {
     const isFormOpen = useSelector((state: RootState) => state.bidangReducer.isFormOpen)
 
     const dispatch = useDispatch()
 
+    const router = useRouter()
+
     const { user } = useAuth({ middlware: 'auth' })
+
+    useEffect(() => {
+        if (user.data.position !== 'penyerah' && user.data.position !== 'kasubbagumum' && user.data.position !== null) {
+            router.push('/login')
+        }
+    })
 
     return (
         <section className="p-4">

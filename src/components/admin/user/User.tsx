@@ -1,7 +1,10 @@
 "use client"
 
 import { userActions } from "@/features/userSlice"
+import { useAuth } from "@/hooks/useAuth"
 import { RootState } from "@/redux/store"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import FormUser from "./Form"
 import TableUser from "./TableUser"
@@ -10,6 +13,16 @@ export default function User() {
     const isFormOpen = useSelector((state: RootState) => state.userReducer.isFormOpen)
 
     const dispatch = useDispatch()
+
+    const router = useRouter()
+
+    const { user } = useAuth({ middlware: 'auth' })
+
+    useEffect(() => {
+        if (user.data.position !== 'penyerah' && user.data.position !== null) {
+            router.push('/login')
+        }
+    })
 
     return (
         <section className="p-4">

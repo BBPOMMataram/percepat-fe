@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 export default function SideBarMenuItem() {
     const pathname = usePathname()
@@ -148,24 +148,24 @@ export default function SideBarMenuItem() {
 
                             const pemohonMenus = ['Dasbor', 'Permintaan', 'Profil', 'Barang', 'MASTER', 'PENGATURAN']
                             if (user.data.position === 'pemohon' && !pemohonMenus.includes(item.name! || item.separator!)) {
-                                itemEl = <></>
+                                itemEl = <Fragment key={i}></Fragment>
                             }
 
                             const penyeliaMenus = ['Dasbor', 'Permintaan', 'Profil', 'Barang', 'MASTER', 'PENGATURAN']
                             if (user.data.position === 'penyelia' && !penyeliaMenus.includes(item.name! || item.separator!)) {
-                                itemEl = <></>
+                                itemEl = <Fragment key={i}></Fragment>
                             }
 
                             // PENYERAH PUNYA AKSES FULL
                             const penyerahMenus = ['*']
                             if (user.data.position === 'penyerah' && penyerahMenus.includes(item.name! || item.separator!)) {
-                                itemEl = <></>
+                                itemEl = <Fragment key={i}></Fragment>
                             }
                             // PENYERAH PUNYA AKSES FULL
 
                             const kasubbagumumMenus = ['Dasbor', 'Penerimaan', 'Permintaan', 'Laporan', 'Barang', 'Bidang', 'Profil', 'MASTER', 'PENGATURAN']
                             if (user.data.position === 'kasubbagumum' && !kasubbagumumMenus.includes(item.name! || item.separator!)) {
-                                itemEl = <></>
+                                itemEl = <Fragment key={i}></Fragment>
                             }
 
                             return itemEl
