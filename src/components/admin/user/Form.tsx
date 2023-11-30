@@ -327,7 +327,7 @@ export default function Form() {
                                 {data &&
                                     <>
                                         <Image
-                                            src={data?.photo}
+                                            src={data?.photo || '/assets/images/noimage.webp'}
                                             width={150}
                                             height={150}
                                             alt={`Foto profil ${data?.name}`}

@@ -10,7 +10,6 @@ export default function Reagen() {
                 limit={0}
                 isSearchableName={true} // karena tidak ada nama yang jadi patokan
             />
-
         </section>
     )
 }

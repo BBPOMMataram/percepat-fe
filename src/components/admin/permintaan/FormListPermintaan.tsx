@@ -349,11 +349,9 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
     }
 
     const getListInventory = listInventory.map((item: any, index: number) => {
-
         const barang = item.barang || item.atk
         const expired = barang.expired
         const expiredFormatted = expired ? new Date(expired).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : '-'
-        console.log('jmlRea:', jumlahRealisasi);
 
         return (
             <Fragment key={barang.id}>
