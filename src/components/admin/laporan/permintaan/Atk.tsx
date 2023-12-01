@@ -8,9 +8,8 @@ export default function Atk() {
             <TableLaporanPermintaanAtk
                 url='api/laporan-permintaan-atk'
                 limit={0}
-                isSearchableName={false}
+                isSearchableName={true}
             />
-
         </section>
     )
 }
