@@ -187,15 +187,15 @@ export default function TableLaporanPermintaanReagen({ url, limit, title, isWith
                     new Date(item.permintaan.tgl_penyerahan).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
                     : '-'
 
-                const expired = item.barang.expired ?
+                const expired = item.barang?.expired ?
                     new Date(item.barang.expired).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
                     : '-'
 
                 return (
                     <tr key={index} className="[&>td]:text-center">
                         <td>{number++}</td>
-                        <td>{item.barang.name}</td>
-                        <td>{item.barang.satuan}</td>
+                        <td>{item.barang?.name}</td>
+                        <td>{item.barang?.satuan}</td>
                         <td>{expired}</td>
                         <td>{item.jumlahpermintaan}</td>
                         <td>{item.jumlahrealisasi || '-'}</td>
