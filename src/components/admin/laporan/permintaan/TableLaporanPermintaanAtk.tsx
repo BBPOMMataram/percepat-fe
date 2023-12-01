@@ -64,6 +64,7 @@ export default function TableLaporanPermintaanAtk({ url, limit, title, isWithAct
         { value: '25', label: '25' },
         { value: '50', label: '50' },
         { value: '100', label: '100' },
+        { value: '1000000', label: 'Semua' },
     ]
 
     const yearOptions = [
@@ -100,6 +101,18 @@ export default function TableLaporanPermintaanAtk({ url, limit, title, isWithAct
             `&bidang=${bidang?.value}`
 
         dispatch(fetchDataAtk(link))
+
+        // update link untuk download
+        const linkDownload = `/api/download-laporan-permintaan-atk/` +
+            `?value_per_page=${valuePerPage?.value}` +
+            `&name=${nameToSearch}` +
+            `&page=${atk?.current_page}` +
+            `&limit=${limit}` +
+            `&year=${year?.value}` +
+            `&month=${month?.value}` +
+            `&bidang=${bidang?.value}`
+
+        dispatch(laporanPermintaanActions.setUrl(linkDownload))
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [valuePerPage, nameToSearch, atk?.current_page, year, month, bidang])
@@ -212,7 +225,6 @@ export default function TableLaporanPermintaanAtk({ url, limit, title, isWithAct
                     <div className="flex">
                         <Select
                             options={valuePerPageOptions}
-                            isClearable
                             className="w-fit"
                             value={valuePerPage}
                             onChange={(option: any) => setValuePerPage(option)}

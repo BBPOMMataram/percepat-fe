@@ -161,7 +161,7 @@ export default function TablePermintaanAtk({ url, limit, title, isWithAction = t
                                     <a href="#" data-id={item.id} onClick={downloadHandler} title="Download SPB" className="text-green-600"><FontAwesomeIcon icon={faDownload} /></a>
                                 }
                                 <a href="#" data-id={item.id} onClick={showListHandler} title="List" className="text-blue-800"><FontAwesomeIcon icon={faClipboardList} /></a>
-                                {user.data.position === 'pemohon' &&
+                                {(user.data.position === 'pemohon' || user.data.position === 'penyerah' || user.data.position === null) &&
                                     <>
                                         <a href="#" data-id={item.id} onClick={editHandler} className="text-quaternary"><FontAwesomeIcon icon={faPen} /></a>
                                         <a href="#" data-id={item.id} onClick={removeHandler} className="text-red-600"><FontAwesomeIcon icon={faTrash} /></a>

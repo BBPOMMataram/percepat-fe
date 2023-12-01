@@ -3,47 +3,37 @@
 import Atk from "@/components/admin/laporan/permintaan/Atk"
 import Reagen from "@/components/admin/laporan/permintaan/Reagen"
 import axios from "@/config/axios"
+import { RootState } from "@/redux/store"
 import { faDownload, faSun, faToggleOff, faToggleOn } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import classNames from "classnames"
 import { useState } from "react"
+import { useSelector } from "react-redux"
 import { toast } from "react-toastify"
 
 const LaporanPermintaan = () => {
     const [isReagen, setIsReagen] = useState(true)
     const [isLoading, setIsLoading] = useState(false)
 
+    const url = useSelector((state: RootState) => state.laporanPermintaanReducer.url)
+
     const downloadHandler = () => {
         setIsLoading(true)
 
         axios({
-            url: `/api/download-laporan-permintaan`,
+            url,
             method: 'GET',
             responseType: 'blob'
         })
             .then(({ data }) => {
-                const url = window.open(URL.createObjectURL(data));
-                // const link = document.createElement('a');
-                // link.href = url;
-                // link.setAttribute('download', `SPB-ATK.pdf`); //or any other extension
-                // document.body.appendChild(link);
-                // link.click();
+                window.open(URL.createObjectURL(data));
 
-                // toast.success('Download berhasil !', {
-                //     position: "top-right",
-                //     autoClose: 5000,
-                //     hideProgressBar: false,
-                //     closeOnClick: true,
-                //     pauseOnHover: true,
-                //     draggable: true,
-                //     progress: undefined,
-                //     theme: "light",
-                // });
                 setIsLoading(false)
             })
             .catch(err => {
+                toast.error('Terjadi kesalahan!')
                 console.log(err)
-                setIsLoading(true)
+                setIsLoading(false)
             })
     }
 

@@ -5,6 +5,7 @@ const initialState = {
     dataReagen: <any>[],
     dataAtk: <any>[],
     currentDataId: null, //UNTUK JADI KONDISI DI LOADING ICON
+    url: "", //url untuk download
 }
 
 export const laporanPermintaanSlice = createSlice({
@@ -14,13 +15,11 @@ export const laporanPermintaanSlice = createSlice({
         setDataReagen: (state, { payload }) => {
             state.dataReagen = payload
         },
-        // clearDataReagen: (state) => {
-        //     state.dataReagen = []
-        // },
         setDataAtk: (state, { payload }) => {
             state.dataAtk = payload
         },
         setCurrentDataId: (state, { payload }) => { state.currentDataId = payload },
+        setUrl: (state, { payload }) => { state.url = payload },
     }
 })
 
