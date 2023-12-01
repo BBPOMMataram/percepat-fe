@@ -102,7 +102,7 @@ export default function TableLaporanPermintaanReagen({ url, limit, title, isWith
 
         dispatch(fetchDataReagen(link))
         // update link untuk download
-        const linkDownload = `/api/download-laporan-permintaan/` +
+        const linkDownload = `/api/download-laporan-permintaan` +
             `?value_per_page=${valuePerPage?.value}` +
             `&name=${nameToSearch}` +
             `&page=${reagen?.current_page}` +

@@ -103,7 +103,7 @@ export default function TableLaporanPermintaanAtk({ url, limit, title, isWithAct
         dispatch(fetchDataAtk(link))
 
         // update link untuk download
-        const linkDownload = `/api/download-laporan-permintaan-atk/` +
+        const linkDownload = `/api/download-laporan-permintaan-atk` +
             `?value_per_page=${valuePerPage?.value}` +
             `&name=${nameToSearch}` +
             `&page=${atk?.current_page}` +
