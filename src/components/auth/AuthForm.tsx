@@ -1,6 +1,5 @@
 "use client"
 
-import axios from "@/config/axios";
 import { useAuth } from "@/hooks/useAuth";
 import { RootState } from "@/redux/store";
 import { faEye, faEyeSlash, faSpinner, faUnlockKeyhole } from "@fortawesome/free-solid-svg-icons";
@@ -19,7 +18,7 @@ export default function AuthForm(props: any) {
     const [status, setStatus] = useState(null)
     const [errorMessage, setErrorMessage] = useState()
 
-    const isLoading = useSelector((state:RootState) => state.settingReducer.isLoading)
+    const isLoading = useSelector((state: RootState) => state.settingReducer.isLoading)
 
     const { login } = useAuth({
         middleware: 'guest',
@@ -29,7 +28,7 @@ export default function AuthForm(props: any) {
     const handleLogin = async (e: any) => {
         e.preventDefault()
 
-        const dataLogin = login({
+        login({
             email,
             password,
             remember: shouldRemember,
