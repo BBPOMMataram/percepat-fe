@@ -172,7 +172,7 @@ export default function Profile() {
                     <label htmlFor="photo" className="relative cursor-pointer">
                         <div className="relative group">
                             <Image
-                                src={newPhoto || user.data.photo}
+                                src={newPhoto || user.data.photo || '/assets/images/noimage.webp'}
                                 width={400}
                                 height={400}
                                 alt={`Photo ${user.data.name}`}
