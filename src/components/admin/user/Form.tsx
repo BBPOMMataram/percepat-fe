@@ -346,6 +346,7 @@ export default function Form() {
                         {/* input item */}
                         <div className="flex flex-col mb-3">
                             <label htmlFor="signature">TTD</label>
+                            {updateSignPad && <p className="text-red-600 animate-pulse">Note: Penuhkan batas atas dan bawah kotak</p>}
                             <div className="preview-signature">
                                 {data &&
                                     <>
@@ -374,7 +375,7 @@ export default function Form() {
                                     {updateSignPad && <p>TTD Baru</p>}
                                     <SignatureCanvas
                                         // penColor='orange'
-                                        canvasProps={{ className: 'bg-primary mt-1 w-72 h-52' }}
+                                        canvasProps={{ className: 'bg-primary mt-1 w-56 h-40' }}
                                         ref={signatureSelectRef}
                                     />
                                     <button className="mt-2 w-fit hover:underline text-red-600" type="button" onClick={() => signatureSelectRef.current.clear()}>

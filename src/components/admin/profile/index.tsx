@@ -337,6 +337,7 @@ export default function Profile() {
                     {/* input item */}
                     <div className="flex flex-col mb-3 mt-2 text-base items-center lg:items-start">
                         <label htmlFor="signature">TTD :</label>
+                        {editableSign && <p className="text-red-600 animate-pulse">Note: Penuhkan batas atas dan bawah kotak</p>}
                         <div className="preview-signature">
                             <>
                                 {
@@ -355,7 +356,7 @@ export default function Profile() {
                         {(editableSign) ?
                             <>
                                 <ReactSignatureCanvas
-                                    canvasProps={{ className: 'bg-primary mt-1 w-72 h-52' }}
+                                    canvasProps={{ className: 'bg-primary mt-1 w-56 h-40' }}
                                     ref={signatureSelectRef}
                                 />
                                 <div className="flex">
