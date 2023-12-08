@@ -27,16 +27,16 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
     const [nameToSearch, setNameToSearch] = useState('')
     const [delaySearch, setDelaySearch] = useState('') //AGAR BISA DIGUNAKAN DI USEEFFECT UNTUK TIMEOUT (DELAY)
     const [isDownloadLoading, setIsDownloadLoading] = useState(false)
-    const [link] = useState(`${url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${reagen?.current_page}&limit=${limit}`)
 
     const { user } = useAuth({ middleware: 'auth' })
     const dispatch = useDispatch<any>()
 
     useEffect(() => {
+        const link = `${url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${reagen?.current_page}&limit=${limit}`
         dispatch(fetchDataReagen(link))
 
         /// eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [valuePerPage, nameToSearch, limit, link, dispatch])
+    }, [valuePerPage, nameToSearch, limit, dispatch, reagen.current_page])
 
     const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
         setDelaySearch(e.target.value)
@@ -60,6 +60,7 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
         const id = e.currentTarget.getAttribute('data-id');
 
         id && dispatch(removeData(id))
+        const link = `${url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${reagen?.current_page}&limit=${limit}`
         dispatch(fetchDataReagen(link))
     }
 
