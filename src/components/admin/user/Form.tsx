@@ -317,7 +317,7 @@ export default function Form() {
                                 <option value="penyerah">Petugas Gudang</option>
                                 <option value="penyelia">Kabid / Penyelia</option>
                                 <option value="pemohon">Pemohon</option>
-                                <option value="kasubbagumum">Ka. Sub. Bag. Umum</option>
+                                <option value="kasubbagumum">Kabag TU</option>
                             </select>
                         </div>
                         {/* input item */}
