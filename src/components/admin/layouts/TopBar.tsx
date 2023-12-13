@@ -8,7 +8,7 @@ import { faBars, faDoorOpen } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 const useClickOutside = (ref: any, refUserBtn: any) => {
@@ -27,15 +27,41 @@ const useClickOutside = (ref: any, refUserBtn: any) => {
     }, [ref, refUserBtn, dispatch])
 }
 
-
 export default function TopBar() {
     const { user, logout } = useAuth({ middleware: 'auth' })
+    
     const isUserMenuOpen = useSelector((state: RootState) => state.topBar.isUserMenuOpen)
 
     const dispatch = useDispatch()
+    
     const userMenuRef = useRef(null)
     const userBtnMenuRef = useRef(null)
+    
     useClickOutside(userMenuRef, userBtnMenuRef)
+
+    const [position, setPosition] = useState(user.data.position)
+
+    //POSITION
+    useEffect(() => {
+        switch (position) {
+            case 'kasubbagumum':
+                setPosition('kabag tu')
+                break;
+            case 'penyerah':
+                setPosition('petugas gudang')
+                break;
+            case 'penyelia':
+                setPosition('penyelia')
+                break;
+            case 'pemohon':
+                setPosition('pemohon')
+                break;
+
+            default:
+                setPosition('No position')
+                break;
+        }
+    }, [user])
 
     return (
         <div className="flex items-center bg-quaternary py-4 px-4">
@@ -50,7 +76,7 @@ export default function TopBar() {
                         />
                         <div className="flex flex-col h-fit">
                             <span>{user?.data?.name}</span>
-                            <span className="text-quaternary uppercase text-xs">{user?.data?.position ?? 'no position'}</span>
+                            <span className="text-quaternary uppercase text-xs">{position}</span>
                         </div>
                     </button>
                     <AnimatePresence>
@@ -68,7 +94,7 @@ export default function TopBar() {
                                 />
                                 <div className="text-center mt-2 text-secondary font-semibold uppercase">
                                     <span>
-                                        {user?.data?.position || 'no position'}
+                                        {position}
                                     </span>
                                     <span className="block text-sm whitespace-nowrap">{user.data.bidang?.name || 'No Komoditi'}</span>
                                 </div>

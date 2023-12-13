@@ -351,9 +351,9 @@ export default function Form() {
                                 {data &&
                                     <>
                                         {
-                                            !updateSignPad &&
+                                            (!updateSignPad && data.signature) &&
                                             <Image
-                                                src={data?.signature}
+                                                src={data.signature}
                                                 width={150}
                                                 height={150}
                                                 alt={`TTD ${data?.name}`}

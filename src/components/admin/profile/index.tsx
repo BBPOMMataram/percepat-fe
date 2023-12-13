@@ -17,6 +17,7 @@ export default function Profile() {
     const [name, setName] = useState(user.data.name)
     const [email, setEmail] = useState(user.data.email)
     const [signature, setSignature] = useState(user.data.signature)
+    const [position, setPosition] = useState(user.data.position)
     const [newPhoto, setNewPhoto] = useState<any>(null) //UNTUK PREVIEW
     const [newPhotoBlob, setNewPhotoBlob] = useState<any>(null)
     const [isUpdatePassword, setIsUpdatePassword] = useState(false)
@@ -29,6 +30,28 @@ export default function Profile() {
 
     const signatureSelectRef = useRef<any>(null)
     const nameRef = useRef<any>(null)
+
+    //POSITION
+    useEffect(() => {
+        switch (position) {
+            case 'kasubbagumum':
+                setPosition('kabag tu')
+                break;
+            case 'penyerah':
+                setPosition('petugas gudang')
+                break;
+            case 'penyelia':
+                setPosition('penyelia')
+                break;
+            case 'pemohon':
+                setPosition('pemohon')
+                break;
+
+            default:
+                setPosition('No position')
+                break;
+        }
+    }, [user])
 
     useEffect(() => {
         if (editable) {
@@ -206,7 +229,7 @@ export default function Profile() {
                             <FontAwesomeIcon title="Simpan" icon={faSave} className="my-2 text-quaternary" role="button" onClick={updateHandler} />
                         </>
                     }
-                    <div className="uppercase font-bold mt-2">{`${user.data.position || 'No Position'} - ${user.data.bidang?.name || 'No Komoditi'}`}</div>
+                    <div className="uppercase font-bold mt-2">{`${position} - ${user.data.bidang?.name || 'No Komoditi'}`}</div>
                     <div className="uppercase font-bold">BBPOM di Mataram</div>
                     <div className="">
                         {
@@ -341,7 +364,7 @@ export default function Profile() {
                         <div className="preview-signature">
                             <>
                                 {
-                                    !editableSign &&
+                                    (!editableSign && signature) &&
                                     <Image
                                         src={signature}
                                         width={300}
