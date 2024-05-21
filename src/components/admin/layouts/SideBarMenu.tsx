@@ -52,6 +52,7 @@ export default function SideBarMenuItem() {
             icon: <FontAwesomeIcon icon={faBoxesStacked} fixedWidth />,
             submenus: [
                 { name: 'Reagen', link: '/barang/reagen', icon: <FontAwesomeIcon icon={faFlaskVial} fixedWidth /> },
+                { name: 'Reagen ED', link: '/barang/reagen-ed', icon: <FontAwesomeIcon icon={faFlaskVial} fixedWidth /> },
                 { name: 'ATK', link: '/barang/atk', icon: <FontAwesomeIcon icon={faFilePen} fixedWidth /> }
             ]
         },
