@@ -18,7 +18,7 @@ export default function Index() {
     return (
         <section className="p-4">
             <h1 className="text-2xl text-quaternary my-2 bg-secondary border-l-4 border-quaternary w-fit pb-1 pt-2 px-4 sm:text-3xl xl:text-5xl">
-                Data Reagen
+                Data Reagen ED
             </h1>
             
             <Table
@@ -26,7 +26,6 @@ export default function Index() {
                 limit={0}
                 isWithAction={false}
             />
-            {isFormOpen && <Form />}
         </section>
     )
 }
