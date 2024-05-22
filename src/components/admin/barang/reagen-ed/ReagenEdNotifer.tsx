@@ -17,18 +17,20 @@ const ReagenEdNotifer = () => {
     return (
         (reagenExpired > 0) &&
         <div className="runtext-container overflow-x-hidden bg-secondary shadow-sm">
-    <div className="main-runtext">
-      <div className="marquee">
-        <div className="holder">
-          <div className="text-container">
-            <a href="/barang/reagen-ed" className="text-red-500 leading-10">
-              <b>PEMBERITAHUAN</b>: Reagen ED dalam 6 bulan mendatang berjumlah <strong>{reagenExpired} items</strong>
+            <a href="/barang/reagen-ed">
+                <div className="main-runtext">
+                    <div className="marquee">
+                        <div className="holder">
+                            <div className="text-container">
+                                <p className="text-red-500 leading-10">
+                                    <b>PEMBERITAHUAN</b>: Reagen ED dalam 6 bulan mendatang berjumlah <strong>{reagenExpired} items</strong>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </a>
-          </div>
         </div>
-      </div>
-    </div>
-  </div>
     )
 }
 
