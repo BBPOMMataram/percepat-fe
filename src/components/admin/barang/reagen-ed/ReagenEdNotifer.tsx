@@ -16,7 +16,7 @@ const ReagenEdNotifer = () => {
 
     return (
         (reagenExpired > 0) &&
-        <div className="runtext-container overflow-x-hidden bg-secondary shadow-sm">
+        <div className="runtext-container overflow-x-hidden bg-secondary shadow-sm mb-5">
             <a href="/barang/reagen-ed">
                 <div className="main-runtext">
                     <div className="marquee">
