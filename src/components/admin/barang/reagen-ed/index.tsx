@@ -1,17 +1,12 @@
 "use client"
 
-import { bidangActions } from "@/features/bidangSlice"
 import { RootState } from "@/redux/store"
-import { useDispatch, useSelector } from "react-redux"
-import Form from "./Form"
+import { useSelector } from "react-redux"
 import Table from "./Table"
-import { reagenActions } from "@/features/reagenSlice"
 import { useAuth } from "@/hooks/useAuth"
 
 export default function Index() {
     const isFormOpen = useSelector((state: RootState) => state.reagenReducer.isFormOpen)
-
-    const dispatch = useDispatch()
 
     const { user } = useAuth({ middleware: 'auth' })
 

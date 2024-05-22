@@ -1,10 +1,11 @@
 import axios from "@/config/axios";
 import { Dispatch, createSlice } from "@reduxjs/toolkit";
 
-const initialState: { isFormOpen: boolean , data: any, singleData: any } = {
+const initialState: { isFormOpen: boolean, data: any, singleData: any, reagenExpired: number } = {
     isFormOpen: false,
     data: null,
-    singleData: null
+    singleData: null,
+    reagenExpired: 0
 }
 
 export const reagenSlice = createSlice({
@@ -18,6 +19,9 @@ export const reagenSlice = createSlice({
         setSingleData: (state, { payload }) => {
             state.singleData = payload
         },
+        setReagenExpired: (state, { payload }) => {
+            state.reagenExpired = payload
+        }
     }
 })
 
@@ -37,12 +41,21 @@ export const fetchData = (url = '/api/barang-reagen?value_per_page=5') => {
 
 export const fetchSingleData = (id: string) => {
     return async (dispatch: Dispatch) => {
-
         id &&
             axios(`/api/barang-reagen/${id}`)
                 .then(({ data }) => {
                     dispatch(reagenActions.setSingleData(data.data));
                 })
                 .catch(err => console.log(err))
+    }
+}
+
+export const fetchDataReagenExpired = () => {
+    return async (dispatch: Dispatch) => {
+        axios('/api/barang-reagen-expired-count')
+            .then(({ data }) => {
+                dispatch(reagenActions.setReagenExpired(data));
+            })
+            .catch(err => console.log(err))
     }
 }

@@ -29,14 +29,14 @@ const useClickOutside = (ref: any, refUserBtn: any) => {
 
 export default function TopBar() {
     const { user, logout } = useAuth({ middleware: 'auth' })
-    
+
     const isUserMenuOpen = useSelector((state: RootState) => state.topBar.isUserMenuOpen)
 
     const dispatch = useDispatch()
-    
+
     const userMenuRef = useRef(null)
     const userBtnMenuRef = useRef(null)
-    
+
     useClickOutside(userMenuRef, userBtnMenuRef)
 
     const [position, setPosition] = useState(user.data.position)
@@ -65,7 +65,7 @@ export default function TopBar() {
 
     return (
         <div className="flex items-center bg-quaternary py-4 px-4">
-            <button onClick={() => dispatch(toggleSideBar())} className="burger-btn">
+            <button onClick={() => dispatch(toggleSideBar())} className="burger-btn z-10">
                 <FontAwesomeIcon icon={faBars} size="2xl" />
             </button>
             <div className="ml-auto">

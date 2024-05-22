@@ -1,5 +1,6 @@
 "use client"
 
+import ReagenEdNotifer from '@/components/admin/barang/reagen-ed/ReagenEdNotifer'
 import { SideBar, TopBar } from '@/components/admin/layouts'
 import Loading from '@/components/admin/layouts/Loading'
 import { useAuth } from '@/hooks/useAuth'
@@ -24,6 +25,7 @@ export default function AdminLayout({
                     </header>
                     <div>
                         <main className='p-4 mb-6'>
+                            <ReagenEdNotifer />
                             {children}
                             <ToastContainer />
                         </main>
