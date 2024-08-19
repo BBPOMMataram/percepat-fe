@@ -3,20 +3,24 @@ import TablePenerimaanAtk from "@/components/admin/penerimaan/TablePenerimaanAtk
 import TablePenerimaanReagen from "@/components/admin/penerimaan/TablePenerimaanReagen"
 import TablePermintaanAtk from "@/components/admin/permintaan/TablePermintaanAtk"
 import TablePermintaanReagen from "@/components/admin/permintaan/TablePermintaanReagen"
+import axios from "@/config/axios"
 
 export const metadata = {
     title: 'Dashboard'
 }
 
-const Dashboard = () => {
+const Dashboard = async () => {
+    const totalBarang = await axios('/api/barang').then(r => r.data.data.total)
+    const totalBidang = await axios('/api/bidang-count').then(r => r.data)
+    const totalUser = await axios('/api/users-count').then(r => r.data)
     return (
         <>
             {/* CARDS CONTAINER */}
             <section className="flex flex-col sm:flex-row flex-wrap">
-                <Card title="Reagen" total={100} desc="Jumlah Reagen tersedia" />
-                <Card title="ATK" total={100} desc="Jumlah ATK tersedia" />
-                <Card title="Bidang" total={6} desc="Jumlah bidang yang terdaftar" />
-                <Card title="Pengguna" total={100} desc="Jumlah pengguna aplikasi Percepat" />
+                <Card link="/barang/reagen" title="Reagen" total={totalBarang?.reagen} desc="Jumlah Reagen tersedia" />
+                <Card link="/barang/atk" title="ATK" total={totalBarang?.atk} desc="Jumlah ATK tersedia" />
+                <Card link="/bidang" title="Bidang" total={totalBidang} desc="Jumlah bidang yang terdaftar" />
+                <Card link="/users" title="Pengguna" total={totalUser} desc="Jumlah pengguna aplikasi Percepat" />
             </section>
             {/* PENERIMAAN CONTAINER */}
             <section className="mt-20">
