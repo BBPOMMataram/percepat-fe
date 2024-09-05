@@ -23,7 +23,7 @@ const ReagenEdNotifer = () => {
                         <div className="holder">
                             <div className="text-container">
                                 <p className="text-red-500 leading-10">
-                                    <b>PEMBERITAHUAN</b>: Reagen ED dalam 6 bulan mendatang berjumlah <strong>{reagenExpired} items</strong>
+                                    <b>PEMBERITAHUAN</b>: Reagen yang telah dan akan ED dalam 6 bulan mendatang berjumlah <strong>{reagenExpired} items</strong>
                                 </p>
                             </div>
                         </div>
