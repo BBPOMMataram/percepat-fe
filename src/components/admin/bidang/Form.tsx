@@ -158,14 +158,13 @@ export default function Form() {
         dispatch(bidangActions.setData(null))
     }
 
-
     return (
         // modal
         <div className="fixed top-0 right-0 left-0 h-screen bg-quaternary bg-opacity-90 flex items-center justify-center">
             <div className="max-h-screen">
                 {/* form container */}
                 <div className="p-6 bg-teriary rounded mx-2 w-[45rem] my-4">
-                    <h2 className="mb-4 text-xl sm:text-2xl md:text-3xl">Form Bidang</h2>
+                    <h2 className="mb-4 text-xl sm:text-2xl md:text-3xl">Form Fungsi</h2>
                     <form onSubmit={data ? handleUpdate : handleSubmit} ref={formRef}>
 
                         {/* input item */}
@@ -187,7 +186,7 @@ export default function Form() {
                         </div>
                         {/* input item */}
                         <div className="flex flex-col mb-3">
-                            <label htmlFor="name">Nama Bidang</label>
+                            <label htmlFor="name">Nama</label>
                             <input
                                 type="text"
                                 id="name"

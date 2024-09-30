@@ -27,7 +27,7 @@ export default function Bidang() {
     return (
         <section className="p-4">
             <h1 className="text-2xl text-quaternary my-2 bg-secondary border-l-4 border-quaternary w-fit pb-1 pt-2 px-4 sm:text-3xl xl:text-5xl">
-                Bidang
+                Fungsi
             </h1>
             {(user.data.position === 'penyerah' || user.data.position === null) &&
                 <button

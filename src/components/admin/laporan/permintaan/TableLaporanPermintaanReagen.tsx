@@ -288,7 +288,7 @@ export default function TableLaporanPermintaanReagen({ url, limit, title, isWith
                                 <th>Expired</th>
                                 <th>Jumlah Permintaan</th>
                                 <th>Jumlah Realisasi</th>
-                                <th>Bidang</th>
+                                <th>Fungsi</th>
                                 <th>KaTim / Penyelia</th>
                                 <th>Status</th>
                                 <th>Tanggal Permintaan</th>

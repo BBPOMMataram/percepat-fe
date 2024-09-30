@@ -19,7 +19,7 @@ const Dashboard = async () => {
             <section className="flex flex-col sm:flex-row flex-wrap">
                 <Card link="/barang/reagen" title="Reagen" total={totalBarang?.reagen} desc="Jumlah Reagen tersedia" />
                 <Card link="/barang/atk" title="ATK" total={totalBarang?.atk} desc="Jumlah ATK tersedia" />
-                <Card link="/bidang" title="Bidang" total={totalBidang} desc="Jumlah bidang yang terdaftar" />
+                <Card link="/bidang" title="Fungsi" total={totalBidang} desc="Jumlah fungsi yang terdaftar" />
                 <Card link="/users" title="Pengguna" total={totalUser} desc="Jumlah pengguna aplikasi Percepat" />
             </section>
             {/* PENERIMAAN CONTAINER */}

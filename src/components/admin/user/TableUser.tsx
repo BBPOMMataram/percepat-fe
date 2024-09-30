@@ -94,7 +94,7 @@ export default function TableUser({ url, limit, title }: ITableProps) {
             <th>Posisi</th>
             <th>Foto</th>
             <th>TTD</th>
-            <th>Bidang</th>
+            <th>Fungsi</th>
             <th className="bg-black"></th>
         </tr>
 

@@ -57,7 +57,7 @@ export default function SideBarMenuItem() {
             ]
         },
         {
-            name: 'Bidang',
+            name: 'Fungsi',
             link: '/bidang',
             icon: <FontAwesomeIcon icon={faPuzzlePiece} fixedWidth />
         },
@@ -164,7 +164,7 @@ export default function SideBarMenuItem() {
                             }
                             // PENYERAH PUNYA AKSES FULL
 
-                            const kasubbagumumMenus = ['Dasbor', 'Penerimaan', 'Permintaan', 'Laporan', 'Barang', 'Bidang', 'Profil', 'MASTER', 'PENGATURAN']
+                            const kasubbagumumMenus = ['Dasbor', 'Penerimaan', 'Permintaan', 'Laporan', 'Barang', 'Fungsi', 'Profil', 'MASTER', 'PENGATURAN']
                             if (user.data.position === 'kasubbagumum' && !kasubbagumumMenus.includes(item.name! || item.separator!)) {
                                 itemEl = <Fragment key={i}></Fragment>
                             }

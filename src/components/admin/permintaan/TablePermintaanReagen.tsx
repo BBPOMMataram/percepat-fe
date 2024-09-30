@@ -210,7 +210,7 @@ export default function TablePermintaanReagen({ url, limit, title, isWithAction 
                         <tr className="bg-secondary [&>th]:p-2">
                             <th>No</th>
                             <th>Yang Meminta</th>
-                            <th>Bidang</th>
+                            <th>Fungsi</th>
                             <th>KaTim / Penyelia</th>
                             <th>Status</th>
                             <th>Tanggal Permintaan</th>

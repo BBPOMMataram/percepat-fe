@@ -282,7 +282,7 @@ export default function TableLaporanPermintaanAtk({ url, limit, title, isWithAct
                                 <th>Satuan</th>
                                 <th>Jumlah Permintaan</th>
                                 <th>Jumlah Realisasi</th>
-                                <th>Bidang</th>
+                                <th>Fungsi</th>
                                 <th>KaTim / Penyelia</th>
                                 <th>Status</th>
                                 <th>Tanggal Permintaan</th>

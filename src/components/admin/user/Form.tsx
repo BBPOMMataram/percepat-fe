@@ -261,7 +261,7 @@ export default function Form() {
                         }
                         {/* input item */}
                         <div className="flex flex-col mb-3">
-                            <label htmlFor="bidang_id">Komoditi</label>
+                            <label htmlFor="bidang_id">Fungsi</label>
                             <AsyncSelect
                                 ref={bidangSelectRef}
                                 name='bidang_id'
