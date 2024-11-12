@@ -44,7 +44,7 @@ export const permintaanSlice = createSlice({
             }
         },
         substractList: (state, { payload }) => {
-            state.listInventory = state.listInventory.filter((item: any) => (item.barang.id || item.atk.id) !== +payload)
+            state.listInventory = state.listInventory.filter((item: any) => (item.barang?.id || item.atk.id) !== +payload)
         },
         setCurrentDataId: (state, { payload }) => { state.currentDataId = payload },
     }
