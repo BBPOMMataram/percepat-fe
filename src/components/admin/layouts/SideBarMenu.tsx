@@ -14,7 +14,7 @@ export default function SideBarMenuItem() {
     const menuItems = [
         {
             name: 'Dasbor',
-            link: '/dashboard',
+            link: '/percepat/dashboard',
             icon: <FontAwesomeIcon icon={faDashboard} fixedWidth />
         },
         {
@@ -22,25 +22,25 @@ export default function SideBarMenuItem() {
             link: '#',
             icon: <FontAwesomeIcon icon={faCartArrowDown} fixedWidth flip="horizontal" />,
             submenus: [
-                { name: 'Reagen', link: '/penerimaan/reagen', icon: <FontAwesomeIcon icon={faFlaskVial} fixedWidth /> },
-                { name: 'ATK', link: '/penerimaan/atk', icon: <FontAwesomeIcon icon={faFilePen} fixedWidth /> }
+                { name: 'Reagen', link: '/percepat/penerimaan/reagen', icon: <FontAwesomeIcon icon={faFlaskVial} fixedWidth /> },
+                { name: 'ATK', link: '/percepat/penerimaan/atk', icon: <FontAwesomeIcon icon={faFilePen} fixedWidth /> }
             ]
         },
         {
             name: 'Permintaan',
-            link: '/',
+            link: '/percepat/',
             icon: <FontAwesomeIcon icon={faCartFlatbedSuitcase} fixedWidth />,
             submenus: [
-                { name: 'Reagen', link: '/permintaan/reagen', icon: <FontAwesomeIcon icon={faFlaskVial} fixedWidth /> },
-                { name: 'ATK', link: '/permintaan/atk', icon: <FontAwesomeIcon icon={faFilePen} fixedWidth /> }
+                { name: 'Reagen', link: '/percepat/permintaan/reagen', icon: <FontAwesomeIcon icon={faFlaskVial} fixedWidth /> },
+                { name: 'ATK', link: '/percepat/permintaan/atk', icon: <FontAwesomeIcon icon={faFilePen} fixedWidth /> }
             ]
         },
         {
             name: 'Laporan',
-            link: '/',
+            link: '/percepat/',
             icon: <FontAwesomeIcon icon={faFileAlt} fixedWidth />,
             submenus: [
-                { name: 'Permintaan', link: '/laporan/permintaan', icon: <FontAwesomeIcon icon={faCartFlatbedSuitcase} fixedWidth /> },
+                { name: 'Permintaan', link: '/percepat/laporan/permintaan', icon: <FontAwesomeIcon icon={faCartFlatbedSuitcase} fixedWidth /> },
             ]
         },
         {
@@ -48,22 +48,22 @@ export default function SideBarMenuItem() {
         },
         {
             name: 'Barang',
-            link: '/',
+            link: '/percepat/',
             icon: <FontAwesomeIcon icon={faBoxesStacked} fixedWidth />,
             submenus: [
-                { name: 'Reagen', link: '/barang/reagen', icon: <FontAwesomeIcon icon={faFlaskVial} fixedWidth /> },
-                { name: 'Reagen ED', link: '/barang/reagen-ed', icon: <FontAwesomeIcon icon={faFlaskVial} fixedWidth /> },
-                { name: 'ATK', link: '/barang/atk', icon: <FontAwesomeIcon icon={faFilePen} fixedWidth /> }
+                { name: 'Reagen', link: '/percepat/barang/reagen', icon: <FontAwesomeIcon icon={faFlaskVial} fixedWidth /> },
+                { name: 'Reagen ED', link: '/percepat/barang/reagen-ed', icon: <FontAwesomeIcon icon={faFlaskVial} fixedWidth /> },
+                { name: 'ATK', link: '/percepat/barang/atk', icon: <FontAwesomeIcon icon={faFilePen} fixedWidth /> }
             ]
         },
         {
             name: 'Fungsi',
-            link: '/bidang',
+            link: '/percepat/bidang',
             icon: <FontAwesomeIcon icon={faPuzzlePiece} fixedWidth />
         },
         {
             name: 'Pengguna',
-            link: '/users',
+            link: '/percepat/users',
             icon: <FontAwesomeIcon icon={faUserGroup} fixedWidth />
         },
         {
@@ -71,7 +71,7 @@ export default function SideBarMenuItem() {
         },
         {
             name: 'Profil',
-            link: '/profile',
+            link: '/percepat/profile',
             icon: <FontAwesomeIcon icon={faUserGear} fixedWidth />
         },
     ]

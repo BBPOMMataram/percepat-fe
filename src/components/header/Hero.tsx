@@ -31,7 +31,7 @@ const Hero = () => {
                             transition={{ duration: 2, staggerChildren: 1 }}
                             className="button"
                         >
-                            <Link href={'login'}>
+                            <Link href={'percepat/login'}>
                                 <motion.button
                                     whileHover={{ backgroundColor: '#C58940' }}
                                     className="bg-secondary rounded px-6 py-2 mr-2 mb-2">

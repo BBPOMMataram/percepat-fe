@@ -1,7 +1,7 @@
 import { Providers } from '@/redux/provider';
 import { Josefin_Sans } from 'next/font/google';
 import 'react-toastify/dist/ReactToastify.css';
-import './percepat/globals.css';
+import './globals.css';
 
 // CONFIG FONT AWESOME
 import { config } from '@fortawesome/fontawesome-svg-core'
@@ -12,10 +12,10 @@ const josefinSans = Josefin_Sans({ subsets: ['latin'] })
 
 export const metadata = {
   title: {
-    template: '%s | BBPOM di Mataram',
-    default: 'Home | BBPOM di Mataram'
+    template: '%s | Percepat - BBPOM di Mataram',
+    default: 'Home | Percepat - BBPOM di Mataram'
   },
-  description: 'Aplikasi Balai Besar POM di Mataram',
+  description: 'Aplikasi Persediaan Cepat Dan Tepat (PERCEPAT) - Inventaris Barang Reagen dan ATK Balai Besar POM di Mataram',
 }
 
 export default function RootLayout({

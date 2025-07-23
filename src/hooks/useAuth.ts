@@ -106,14 +106,14 @@ export const useAuth = ({ middleware, redirectIfAuthenticated } = <any>{}) => {
             await axios.post('/logout').then(() => mutate())
         }
 
-        window.location.pathname = '/login'
+        window.location.pathname = '/percepat/login'
     }
 
     useEffect(() => {
         if (middleware === 'guest' && redirectIfAuthenticated && user)
             router.push(redirectIfAuthenticated)
         if (
-            window.location.pathname === '/verify-email' &&
+            window.location.pathname === '/percepat/verify-email' &&
             user?.email_verified_at
         )
             router.push(redirectIfAuthenticated)

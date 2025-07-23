@@ -17,10 +17,10 @@ const Dashboard = async () => {
         <>
             {/* CARDS CONTAINER */}
             <section className="flex flex-col sm:flex-row flex-wrap">
-                <Card link="/barang/reagen" title="Reagen" total={totalBarang?.reagen} desc="Jumlah Reagen tersedia" />
-                <Card link="/barang/atk" title="ATK" total={totalBarang?.atk} desc="Jumlah ATK tersedia" />
-                <Card link="/bidang" title="Fungsi" total={totalBidang} desc="Jumlah fungsi yang terdaftar" />
-                <Card link="/users" title="Pengguna" total={totalUser} desc="Jumlah pengguna aplikasi Percepat" />
+                <Card link="/percepat/barang/reagen" title="Reagen" total={totalBarang?.reagen} desc="Jumlah Reagen tersedia" />
+                <Card link="/percepat/barang/atk" title="ATK" total={totalBarang?.atk} desc="Jumlah ATK tersedia" />
+                <Card link="/percepat/bidang" title="Fungsi" total={totalBidang} desc="Jumlah fungsi yang terdaftar" />
+                <Card link="/percepat/users" title="Pengguna" total={totalUser} desc="Jumlah pengguna aplikasi Percepat" />
             </section>
             {/* PENERIMAAN CONTAINER */}
             <section className="mt-20">

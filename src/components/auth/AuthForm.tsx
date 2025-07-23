@@ -22,7 +22,7 @@ export default function AuthForm(props: any) {
 
     const { login } = useAuth({
         middleware: 'guest',
-        redirectIfAuthenticated: '/dashboard',
+        redirectIfAuthenticated: '/percepat/dashboard',
     })
 
     const handleLogin = async (e: any) => {
