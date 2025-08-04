@@ -1,8 +1,8 @@
-import Card from "@/components/admin/dashboard/Card"
-import TablePenerimaanAtk from "@/components/admin/penerimaan/TablePenerimaanAtk"
-import TablePenerimaanReagen from "@/components/admin/penerimaan/TablePenerimaanReagen"
-import TablePermintaanAtk from "@/components/admin/permintaan/TablePermintaanAtk"
-import TablePermintaanReagen from "@/components/admin/permintaan/TablePermintaanReagen"
+import Card from "@/components/percepat/admin/dashboard/Card"
+import TablePenerimaanAtk from "@/components/percepat/admin/penerimaan/TablePenerimaanAtk"
+import TablePenerimaanReagen from "@/components/percepat/admin/penerimaan/TablePenerimaanReagen"
+import TablePermintaanAtk from "@/components/percepat/admin/permintaan/TablePermintaanAtk"
+import TablePermintaanReagen from "@/components/percepat/admin/permintaan/TablePermintaanReagen"
 import axios from "@/config/axios"
 
 export const metadata = {

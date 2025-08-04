@@ -34,7 +34,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
-, "src/components/admin/laporan/permintaan/.TableLaporanPermintaanAtk.tsx"  ],
+, "src/components/percepat/admin/laporan/permintaan/.TableLaporanPermintaanAtk.tsx", "src/app/percepat/.layout.tsx"  ],
   "exclude": [
     "node_modules"
   ]

@@ -1,17 +1,19 @@
+import { faBan, faExternalLink, faExternalLinkAlt, faExternalLinkSquare, faSun } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Fragment, useCallback, useEffect, useState } from "react";
-import axiosInstance from "../../config/axios";
+import axiosInstance from "../../../config/axios";
 import LoadingWithoutText from "../admin/layouts/LoadingWithoutText";
 
-export default function TableAtk(props: any) {
-    const [data, setReagen] = useState<any>()
+export default function TableReagen(props: any) {
+    const [reagen, setReagen] = useState<any>()
     const [valuePerPage, setValuePerPage] = useState('5')
     const [nameToSearch, setNameToSearch] = useState('')
 
-    const getData = useCallback(async (url = `${props.url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${data?.current_page}`) => {
-        const res = await axiosInstance.get(url)
+    const getData = useCallback(async (url = `${props.url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${reagen?.current_page}`) => {
+        const { data } = await axiosInstance.get(url)
 
-        setReagen(res.data);
-    }, [valuePerPage, data, nameToSearch, props])
+        setReagen(data);
+    }, [valuePerPage, reagen, nameToSearch, props])
 
     useEffect(() => {
         getData()
@@ -21,23 +23,24 @@ export default function TableAtk(props: any) {
     const items = () => {
         let number = 1
 
-        if (data?.current_page !== 1) {
-            number = (data?.current_page - 1) * parseInt(valuePerPage) + 1
+        if (reagen?.current_page !== 1) {
+            number = (reagen?.current_page - 1) * parseInt(valuePerPage) + 1
         }
-        return data?.data?.map((item: any, index: number) => {
+        return reagen?.data?.map((item: any, index: number) => {
             return (
                 <tr key={index}>
                     <td>{number++}</td>
                     <td>{item.name}</td>
                     <td>{item.satuan}</td>
+                    <td>{new Date(item.expired).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</td>
                     <td>{item.stock}</td>
-                    <td>{item.description}</td>
+                    <td className="text-center">{item.msds && <a href={item.msds} target="_blank"><FontAwesomeIcon icon={faExternalLinkAlt} className="text-quaternary" /></a> || <FontAwesomeIcon icon={faBan} className="text-red-500" />}</td>
                 </tr>
             )
         })
     }
 
-    return !data ? <LoadingWithoutText />
+    return !reagen ? <LoadingWithoutText />
         : (
             <>
                 <h2 className="text-2xl sm:text-3xl xl:text-5xl my-2">{props.title}</h2>
@@ -67,35 +70,34 @@ export default function TableAtk(props: any) {
                             <th>No</th>
                             <th>Nama</th>
                             <th>Satuan</th>
+                            <th>Kedaluarsa</th>
                             <th>Stok</th>
-                            <th>Keterangan</th>
+                            <th>MSDS</th>
                         </tr>
                     </thead>
                     <tbody className="[&_td]:border [&_td]:border-quaternary [&_td]:px-2 [&_td]:py-1">
-                        {data && items()}
+                        {items()}
                     </tbody>
                 </table>
                 <div className="table-footer flex items-center">
                     <div className="grow">
-                        {data?.links?.map((item: any, i: number) => {
+                        {reagen.links?.map((item: any, i: number) => {
                             let { url, label, active } = item
 
                             // remove words 'Previous' and 'Next'
                             label = label === '&laquo; Previous' ? "<"
                                 : label === 'Next &raquo;' ? '>' : label
 
-                            let disabled = data.current_page === data.last_page && label === '>'
-                                || data.current_page === 1 && label === '<'
+                            let disabled = reagen.current_page === reagen.last_page && label === '>'
+                                || reagen.current_page === 1 && label === '<'
 
 
                             const isShowLink =
                                 label == '<' ||
                                 label == '>' ||
                                 label == '1' || //first page
-                                label == data.current_page ||
-                                // label == data.current_page + 1 ||
-                                // label == data.last_page - 1 ||
-                                label == data.last_page
+                                label == reagen.current_page ||
+                                label == reagen.last_page
 
                             return isShowLink ? (
                                 <Fragment key={i}>
@@ -106,11 +108,11 @@ export default function TableAtk(props: any) {
                                         disabled={disabled}
                                     />
                                 </Fragment >
-                            ) : (label >= data.current_page && label <= data.last_page) ? <span key={i} className="align-bottom">.</span>
+                            ) : (label >= reagen.current_page && label <= reagen.last_page) ? <span key={i} className="align-bottom">.</span>
                                 : null
                         })}
                     </div>
-                    <div className="py-2 px-4 rounded bg-secondary">{`${data?.data?.length} dari ${data?.total} `}</div>
+                    <div className="py-2 px-4 rounded bg-secondary">{`${reagen.data?.length} dari ${reagen.total}`}</div>
                 </div>
             </>
         )

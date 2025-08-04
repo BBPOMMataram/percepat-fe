@@ -1,19 +1,19 @@
 "use client"
 
-import Loading from "@/components/admin/layouts/Loading"
-import Footer from "@/components/footer"
-import Hero from "@/components/header/Hero"
-import Inventory from "@/components/inventory"
+import Loading from "@/components/percepat/admin/layouts/Loading"
+import Footer from "@/components/percepat/footer"
+import Hero from "@/components/percepat/header/Hero"
+import Inventory from "@/components/percepat/inventory"
 import { useEffect, useState } from "react"
 
 const Home = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setLoading(false)
-    }
-  }, [loading])
+    // if (typeof window !== 'undefined') {
+    setLoading(false)
+    // }
+  }, [])
 
   return loading ?
     <Loading />

@@ -3,9 +3,10 @@ import { Josefin_Sans } from 'next/font/google';
 import 'react-toastify/dist/ReactToastify.css';
 import './percepat/globals.css';
 
-// CONFIG FONT AWESOME
 import { config } from '@fortawesome/fontawesome-svg-core'
 import '@fortawesome/fontawesome-svg-core/styles.css'
+import ClientLoaderRemover from '@/components/percepat/admin/layouts/ClientLoaderRemover';
+import GlobalLoader from '@/components/percepat/admin/layouts/GlobalLoader';
 config.autoAddCss = false
 
 const josefinSans = Josefin_Sans({ subsets: ['latin'] })
@@ -24,10 +25,15 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-
     <html lang="id" className='scroll-smooth'>
+      <head />
       <body className={`${josefinSans.className} bg-primary`}>
-        <Providers>{children}</Providers>
+        <Providers>
+          {/* Remove loader after hydration */}
+          {/* <ClientLoaderRemover /> */}
+          <GlobalLoader />
+          {children}
+        </Providers>
       </body>
     </html>
   )

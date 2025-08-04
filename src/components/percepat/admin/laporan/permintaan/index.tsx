@@ -1,7 +1,7 @@
 "use client"
 
-import Atk from "@/components/admin/laporan/permintaan/Atk"
-import Reagen from "@/components/admin/laporan/permintaan/Reagen"
+import Atk from "@/components/percepat/admin/laporan/permintaan/Atk"
+import Reagen from "@/components/percepat/admin/laporan/permintaan/Reagen"
 import axios from "@/config/axios"
 import { RootState } from "@/redux/store"
 import { faDownload, faSun, faToggleOff, faToggleOn } from "@fortawesome/free-solid-svg-icons"

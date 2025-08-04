@@ -2,7 +2,7 @@ import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
-const Loader = () => {
+const Loading = () => {
   const [mounded, setMounded] = useState(false);
   useEffect(() => {
     setMounded(true);
@@ -131,4 +131,4 @@ const StyledWrapper = styled.div`
     }
   }`;
 
-export default Loader;
+export default Loading;

@@ -1,4 +1,4 @@
-import AuthForm from "@/components/auth/AuthForm";
+import LoginScreen from "@/components/percepat/auth";
 
 export const metadata = {
     title: 'Login',
@@ -6,7 +6,5 @@ export const metadata = {
 }
 
 export default function Login() {
-    return <>
-        <AuthForm mode="login" />
-    </>
+    return <LoginScreen />
 }

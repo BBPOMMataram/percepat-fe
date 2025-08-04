@@ -1,4 +1,4 @@
-import Atk from "@/components/admin/permintaan/Atk"
+import Atk from "@/components/percepat/admin/permintaan/Atk"
 
 export const metadata = {
     title: 'Permintaan ATK'

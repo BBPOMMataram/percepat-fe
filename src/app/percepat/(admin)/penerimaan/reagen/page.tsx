@@ -1,4 +1,4 @@
-import Reagen from "@/components/admin/penerimaan/Reagen"
+import Reagen from "@/components/percepat/admin/penerimaan/Reagen"
 
 export const metadata = {
     title: 'Penerimaan Reagen'
@@ -6,7 +6,7 @@ export const metadata = {
 
 // COMPONENT INI DIPISAH AGAR DIBUAT MENJADI SERVER SIDE COMPONENT AGAR BISA MEMBUAT TITLE DI METADATA
 const PenerimaanReagen = () => {
-    return  <Reagen />
+    return <Reagen />
 }
 
 export default PenerimaanReagen

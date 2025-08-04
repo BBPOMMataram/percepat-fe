@@ -1,4 +1,4 @@
-import ProfileComponent from "@/components/admin/profile"
+import ProfileComponent from "@/components/percepat/admin/profile"
 
 export const metadata = {
     title: 'Profile'

@@ -1,4 +1,4 @@
-import User from "@/components/admin/user/User"
+import User from "@/components/percepat/admin/user/User"
 
 export const metadata = {
     title: 'Users'

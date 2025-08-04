@@ -1,8 +1,8 @@
 "use client"
 
-import ReagenEdNotifer from '@/components/admin/barang/reagen-ed/ReagenEdNotifer'
-import { SideBar, TopBar } from '@/components/admin/layouts'
-import Loading from '@/components/admin/layouts/Loading'
+import ReagenEdNotifer from '@/components/percepat/admin/barang/reagen-ed/ReagenEdNotifer'
+import { SideBar, TopBar } from '@/components/percepat/admin/layouts'
+import Loading from '@/components/percepat/admin/layouts/Loading'
 import { useAuth } from '@/hooks/useAuth'
 import { ToastContainer } from 'react-toastify'
 
