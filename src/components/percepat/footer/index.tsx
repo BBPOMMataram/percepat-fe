@@ -1,5 +1,3 @@
-"use client"
-
 import { faInstagram, faWhatsapp } from "@fortawesome/free-brands-svg-icons";
 import { faGlobe } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";

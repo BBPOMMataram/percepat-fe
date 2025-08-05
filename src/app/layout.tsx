@@ -5,8 +5,7 @@ import './percepat/globals.css';
 
 import { config } from '@fortawesome/fontawesome-svg-core'
 import '@fortawesome/fontawesome-svg-core/styles.css'
-import ClientLoaderRemover from '@/components/percepat/admin/layouts/ClientLoaderRemover';
-import GlobalLoader from '@/components/percepat/admin/layouts/GlobalLoader';
+import Loading from '@/components/percepat/admin/layouts/Loading';
 config.autoAddCss = false
 
 const josefinSans = Josefin_Sans({ subsets: ['latin'] })
@@ -31,7 +30,7 @@ export default function RootLayout({
         <Providers>
           {/* Remove loader after hydration */}
           {/* <ClientLoaderRemover /> */}
-          <GlobalLoader />
+          <Loading />
           {children}
         </Providers>
       </body>

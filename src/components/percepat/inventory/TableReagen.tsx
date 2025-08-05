@@ -1,4 +1,4 @@
-import { faBan, faExternalLink, faExternalLinkAlt, faExternalLinkSquare, faSun } from "@fortawesome/free-solid-svg-icons";
+import { faBan, faExternalLinkAlt } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import axiosInstance from "../../../config/axios";
