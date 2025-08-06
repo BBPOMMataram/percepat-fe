@@ -14,7 +14,7 @@ export default function Loading() {
   return (
     <div id="global-loader">
       <div className="logo-wrapper animate-pulse">
-        <img src="/assets/images/bpom.png" alt="Logo BBPOM" width="80" height="80" />
+        <img src="/assets/images/bpom.webp" alt="Logo BBPOM" width="80" height="80" />
       </div>
 
       <div className="loader">

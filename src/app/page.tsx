@@ -1,10 +1,5 @@
-const MainPage = () => {
+import MainPage from "@/components/Main";
 
-  return (
-    <>
-      Main Page (Si Mandalika)
-    </>
-  )
-}
+const Page = () => <MainPage />
 
-export default MainPage
+export default Page;

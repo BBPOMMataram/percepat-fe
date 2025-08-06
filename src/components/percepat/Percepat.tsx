@@ -4,6 +4,9 @@ import Footer from "@/components/percepat/footer"
 import Hero from "@/components/percepat/header/Hero"
 import Inventory from "@/components/percepat/inventory"
 import { useEffect, useState } from "react"
+import { Josefin_Sans } from 'next/font/google';
+
+const josefinSans = Josefin_Sans({ subsets: ['latin'] })
 
 const Percepat = () => {
     const [loading, setLoading] = useState(true);
@@ -14,7 +17,7 @@ const Percepat = () => {
 
     return loading ? <Loading />
         : (
-            <>
+            <div className={`${josefinSans.className}`} >
                 <header>
                     <Hero />
                 </header>
@@ -24,7 +27,7 @@ const Percepat = () => {
                 <footer>
                     <Footer />
                 </footer>
-            </>
+            </div>
         )
 }
 
