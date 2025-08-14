@@ -68,7 +68,7 @@ export default function Loading() {
                       justify-content: center;
                       gap: 1rem;
                       font-family: sans-serif;
-                      transition: opacity 0.5s ease;
+                      transition: opacity 0.1s ease;
                       opacity: 1;
                     }
                     #global-loader.fade-out {

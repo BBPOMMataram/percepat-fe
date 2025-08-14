@@ -3,7 +3,7 @@ import { useCallback } from "react";
 import Particles from "react-tsparticles";
 import { loadSlim } from "tsparticles-slim";
 
-const ParticlesBackground = () => {
+const ParticlesBackground = ({ particleColor }: { particleColor: string }) => {
     const particlesInit = useCallback(async (engine: any) => {
         await loadSlim(engine); // gunakan Slim daripada Full
     }, []);
@@ -16,9 +16,9 @@ const ParticlesBackground = () => {
                 fullScreen: { enable: false },
                 background: { color: "transparent" },
                 particles: {
-                    number: { value: 65 + 13 + 17 },
-                    color: { value: "#004282" },
-                    size: { value: 2 },
+                    number: { value: 50 },
+                    color: { value: particleColor },
+                    size: { value: 3 },
                     move: { enable: true, speed: .3 },
                     links: {
                         enable: true,
@@ -26,7 +26,7 @@ const ParticlesBackground = () => {
                         distance: 100,
                         opacity: 0.4,
                     },
-                    opacity: { value: .3 },
+                    opacity: { value: .5 },
                 },
             }}
             className="absolute inset-0 -z-10"
