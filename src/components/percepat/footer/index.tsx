@@ -34,7 +34,7 @@ export default function Footer() {
                 <motion.div
                     className="logo hidden md:block flex-1"
                 >
-                    <Image src={"/assets/images/bpom.png"} alt="Logo BPOM RI" width={120} height={120} className="mx-auto" />
+                    <Image src={"/assets/images/bpom.webp"} alt="Logo BPOM RI" width={120} height={120} className="mx-auto" />
                 </motion.div>
             </div>
             <div className="footer text-center bg-quaternary py-4">
