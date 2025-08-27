@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Survey Pelayanan Publik</title>
+  <style>
+    h2 {
+      font-size: 2.5rem;
+      margin-top: 100px;
+      margin-bottom: 50px;
+      text-align: center;
+    }
+
+    .emojis {
+      text-align: center;
+      /* center-kan anak inline/inline-block */
+      margin-top: 20px;
+    }
+
+    .emoji-btn {
+      cursor: pointer;
+      display: inline-block;
+      /* membuat gap bisa lewat margin */
+      margin: 0 30px;
+      /* 10px kiri + 10px kanan = gap 20px */
+      /* ukuran emoji */
+      font-size: .5rem;
+      line-height: 1;
+      border: none;
+      background: none;
+    }
+
+    .emoji-btn img {
+      width: 130px;
+      /* ✅ ubah sesuka hati */
+      height: 130px;
+      transition: transform .1s ease;
+    }
+
+    /* .emoji-btn img:hover {
+      transform: scale(1.2);
+    } */
+
+    .emojis .label {
+      margin-top: 10px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .alert {
+      text-align: center;
+      margin-top: 150px;
+      font-size: 1.5rem;
+      color: green;
+      transition: opacity .3s ease;
+      opacity: 0;
+    }
+
+    .alert.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>SURVEI PELAYANAN PUBLIK <br> BBPOM DI MATARAM</h2>
+  <div class="emojis">
+    <button data-value="1" onclick="submitSurvey(1, this)" class="emoji-btn">
+      <img src="/assets/images/spp/angry.png" alt="Sangat Tidak Puas">
+      <div class="label">TIDAK PUAS</div>
+    </button>
+
+    <button data-value="2" onclick="submitSurvey(2, this)" class="emoji-btn">
+      <img src="/assets/images/spp/smile.png" alt="Netral">
+      <div class="label">PUAS</div>
+    </button>
+    <button data-value="3" onclick="submitSurvey(3, this)" class="emoji-btn">
+      <img src="/assets/images/spp/love.png" alt="Sangat Puas">
+      <div class="label">SANGAT PUAS</div>
+    </button>
+  </div>
+
+  <div class="alert">Terimakasih atas respon Anda 😊</div>
+
+  <script>
+    var isSubmitting = false; // flag global
+
+    function submitSurvey(val, el) {
+      if (isSubmitting) {
+        return; // kalau masih cooldown, abaikan klik
+      }
+      isSubmitting = true;
+
+      var img = el.querySelector("img");
+      var alertBox = document.querySelector(".alert");
+
+      // scale naik
+      img.style.transform = "scale(1.2)";
+
+      // tunggu animasi selesai, lalu alert
+      setTimeout(function () {
+        // tampilkan alert
+        alertBox.classList.add("show");
+
+        // reset kembali normal
+        img.style.transform = "scale(1)";
+
+       // kirim ke API
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "https://percepat.bbpommataram.id/api/spp", true);
+    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4) {
+        console.log("Response:", xhr.responseText);
+
+        // hilangkan alert lagi setelah 2 detik
+        setTimeout(function() {
+          alertBox.className = alertBox.className.replace(" show", "");
+
+          // reset flag setelah 3 detik
+          setTimeout(function() {
+            isSubmitting = false;
+          }, 3000);
+        }, 2000);
+      }
+    };
+
+    var payload = JSON.stringify({
+      rating: val,
+      comment: "User memilih rating " + val
+    });
+    xhr.send(payload);
+      }, 200);
+    }
+  </script>
+</body>
+
+</html>

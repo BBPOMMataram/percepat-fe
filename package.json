@@ -47,6 +47,7 @@
     "@types/react-dom": "19.1.6"
   },
   "devDependencies": {
-    "@types/js-cookie": "^3.0.6"
+    "@types/js-cookie": "^3.0.6",
+    "@types/styled-components": "^5.1.34"
   }
 }
