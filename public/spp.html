@@ -7,8 +7,8 @@
   <style>
     h2 {
       font-size: 2.5rem;
-      margin-top: 100px;
-      margin-bottom: 50px;
+      margin-top: 10px;
+      margin-bottom: 20px;
       text-align: center;
     }
 
@@ -51,7 +51,7 @@
 
     .alert {
       text-align: center;
-      margin-top: 150px;
+      margin-top: 50px;
       font-size: 1.5rem;
       color: green;
       transition: opacity .3s ease;
@@ -61,11 +61,43 @@
     .alert.show {
       opacity: 1;
     }
+
+    .identity {
+      margin: 0 200px;
+    }
+
+    .identity .section {
+      display: inline-block;
+      width: 48%;
+      vertical-align: top;
+    }
+
+    .identity input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 1rem;
+    }
   </style>
 </head>
 
 <body>
   <h2>SURVEI PELAYANAN PUBLIK <br> BBPOM DI MATARAM</h2>
+  <div class="identity">
+    <div class="section">
+      <input type="text" id="name" name="name" placeholder="Nama (Wajib diisi)" autofocus>
+      <input type="number" id="hp" name="hp" placeholder="No HP (Wajib diisi)">
+      <input type="text" id="instansi" name="instansi" placeholder="Instansi">
+    </div>
+    <div class="section">
+      <input type="email" id="email" name="email" placeholder="Email">
+      <input type="number" id="age" name="age" placeholder="Usia" min="10">
+      <input type="text" id="comment" name="comment" placeholder="Komentar / Saran">
+    </div>
+  </div>
   <div class="emojis">
     <button data-value="1" onclick="submitSurvey(1, this)" class="emoji-btn">
       <img src="/assets/images/spp/angry.png" alt="Sangat Tidak Puas">
@@ -87,7 +119,21 @@
   <script>
     var isSubmitting = false; // flag global
 
+    var nameInput = document.getElementById("name");
+    var instansiInput = document.getElementById("instansi");
+    var hpInput = document.getElementById("hp");
+    var emailInput = document.getElementById("email");
+    var ageInput = document.getElementById("age");
+    var commentInput = document.getElementById("comment");
+    
     function submitSurvey(val, el) {
+      // validasi input
+      if (nameInput.value.trim() === "" || hpInput.value.trim() === "") {
+        alert("Mohon isi Nama dan No HP.");
+        nameInput.focus();
+        return;
+      }
+
       if (isSubmitting) {
         return; // kalau masih cooldown, abaikan klik
       }
@@ -107,32 +153,37 @@
         // reset kembali normal
         img.style.transform = "scale(1)";
 
-       // kirim ke API
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "https://percepat-api.bbpommataram.id/api/spp", true);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        // kirim ke API
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "http://localhost/api/spp", true);
+        xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
 
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState === 4) {
-        console.log("Response:", xhr.responseText);
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4) {
+            console.log("Response:", xhr.responseText);
 
-        // hilangkan alert lagi setelah 2 detik
-        setTimeout(function() {
-          alertBox.className = alertBox.className.replace(" show", "");
+            // hilangkan alert lagi setelah 2 detik
+            setTimeout(function () {
+              alertBox.className = alertBox.className.replace(" show", "");
 
-          // reset flag setelah 3 detik
-          setTimeout(function() {
-            isSubmitting = false;
-          }, 3000);
-        }, 2000);
-      }
-    };
+              // reset flag setelah 3 detik
+              setTimeout(function () {
+                isSubmitting = false;
+              }, 3000);
+            }, 2000);
+          }
+        };
 
-    var payload = JSON.stringify({
-      rating: val,
-      comment: "User memilih rating " + val
-    });
-    xhr.send(payload);
+        var payload = JSON.stringify({
+          name: nameInput.value.trim(),
+          hp: hpInput.value.trim(),
+          instansi: instansiInput.value.trim(),
+          email: emailInput.value.trim(),
+          age: ageInput.value.trim(),
+          comment: commentInput.value.trim(),
+          rating: val,
+        });
+        xhr.send(payload);
       }, 200);
     }
   </script>
