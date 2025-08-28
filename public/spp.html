@@ -183,7 +183,16 @@
           comment: commentInput.value.trim(),
           rating: val,
         });
+
         xhr.send(payload);
+
+        // reset form
+        nameInput.value = "";
+        hpInput.value = "";
+        instansiInput.value = "";
+        emailInput.value = "";
+        ageInput.value = "";
+        commentInput.value = "";
       }, 200);
     }
   </script>
