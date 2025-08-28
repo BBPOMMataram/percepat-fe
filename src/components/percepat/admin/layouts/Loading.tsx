@@ -76,7 +76,7 @@ export default function Loading() {
                     }
         
                     .loader {
-                      --ANIMATION-DELAY-MULTIPLIER: 10ms;
+                      --ANIMATION-DELAY-MULTIPLIER: 70ms;
                       padding: 0;
                       margin: 0;
                       display: flex;
