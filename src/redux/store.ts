@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit'
-import sideBarReducer from '../features/layout/sideBarSlice'
+import sideBarReducer from '@/features/layout/sideBarSlice'
 import topBarReducer from '@/features/layout/topBarSlice'
 import penerimaanReducer from '@/features/penerimaanSlice'
 import permintaanReducer from '@/features/permintaanSlice'
@@ -9,6 +9,8 @@ import reagenReducer from '@/features/reagenSlice'
 import atkReducer from '@/features/atkSlice'
 import laporanPermintaanReducer from '@/features/laporanPermintaanSlice'
 import settingReducer from '@/features/settingSlice'
+import alertReducer from '@/features/alertSlice'
+import authReducer from '@/features/authSlice'
 
 export const store = configureStore({
     reducer: {
@@ -22,6 +24,8 @@ export const store = configureStore({
         atkReducer,
         laporanPermintaanReducer,
         settingReducer,
+        alert: alertReducer,
+        auth: authReducer
     },
 })
 

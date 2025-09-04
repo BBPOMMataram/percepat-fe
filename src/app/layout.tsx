@@ -5,6 +5,7 @@ import './percepat/globals.css';
 import { config } from '@fortawesome/fontawesome-svg-core'
 import '@fortawesome/fontawesome-svg-core/styles.css'
 import Loading from '@/components/percepat/admin/layouts/Loading';
+import Alert from '@/components/main/Alert';
 config.autoAddCss = false
 
 export const metadata = {
@@ -27,9 +28,8 @@ export default function RootLayout({
       </head>
       <body>
         <Providers>
-          {/* Remove loader after hydration */}
-          {/* <ClientLoaderRemover /> */}
           <Loading />
+          <Alert />
           {children}
         </Providers>
       </body>
