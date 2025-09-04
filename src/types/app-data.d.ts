@@ -7,7 +7,3 @@ export interface AppData {
     pic: string,
     clicks: number,
 }
-
-export interface AppSectionProps {
-    appData: AppData[];
-}

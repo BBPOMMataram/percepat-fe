@@ -8,9 +8,6 @@ import Footer from './simandalika/footer/Footer';
 const arOneSans = AR_One_Sans({ subsets: ['latin'] });
 
 const MainPage = async () => {
-    const datas = await axios('/api/site')
-
-    const { data } = datas.data //data pertama dari axios response dan data kedua dari laravel resource
     return (
         <div className={`${arOneSans.className}`}>
             <header>
@@ -21,7 +18,7 @@ const MainPage = async () => {
                     <VideoMaklumatSection />
                 </section>
                 <section className='mt-0'>
-                    <AppSection appData={data} />
+                    <AppSection />
                 </section>
             </main>
             <footer>
