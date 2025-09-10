@@ -15,6 +15,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
+          port: 56710
           script: |
             echo "[Deploy] Fetch latest code..."
             cd /home/bbpommataram.id/PERCEPAT || exit
