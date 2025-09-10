@@ -16,7 +16,7 @@ jobs:
         username: ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_KEY }}
         script: |
-          cd /home/bbpommataram.id/NEXT-PROJECT
+          cd /home/bbpommataram.id/PERCEPAT
           git pull origin main
           npm install --production=false
           npm run build
