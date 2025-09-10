@@ -9,15 +9,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Deploy to Server
-      uses: appleboy/ssh-action@v0.1.10
-      with:
-        host: ${{ secrets.SSH_HOST }}
-        username: ${{ secrets.SSH_USER }}
-        key: ${{ secrets.SSH_KEY }}
-        script: |
-          cd /home/bbpommataram.id/PERCEPAT
-          git pull origin main
-          npm install --production=false
-          npm run build
-          pm2 restart 0
+      - name: Jalankan deploy langsung di server
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            echo "[Deploy] Fetch latest code..."
+            cd /home/bbpommataram.id/PERCEPAT || exit
+            git fetch --all
+            git reset --hard origin/main
+
+            echo "[Deploy] Install dependencies..."
+            npm install --omit=dev
+
+            echo "[Deploy] Build Next.js..."
+            npm run build
+
+            echo "[Deploy] Restart app..."
+            pm2 restart 0
+
+            echo "[Deploy] Done ✅"
