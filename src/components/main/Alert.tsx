@@ -11,7 +11,7 @@ export default function Alert() {
 
   useEffect(() => {
     if (message) {
-      const timer = setTimeout(() => dispatch(clearAlert()), 3000);
+      const timer = setTimeout(() => dispatch(clearAlert()), 5000);
       return () => clearTimeout(timer);
     }
   }, [message, dispatch]);
