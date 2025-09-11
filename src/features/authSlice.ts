@@ -7,7 +7,7 @@ export const login = createAsyncThunk<LoginResponse, LoginPayload, { rejectValue
     "auth/login",
     async ({ email, password }, thunkAPI) => {
         try {
-            const res = await axios.post("/login", { email, password });
+            const res = await axios.post("http://localhost:8001/api/login", { email, password });
             return res.data as LoginResponse;
         } catch (error) {
             const err = error as AxiosError<{ message: string }>;
@@ -21,7 +21,7 @@ export const login = createAsyncThunk<LoginResponse, LoginPayload, { rejectValue
 export const refreshToken = createAsyncThunk<LoginResponse, void, { rejectValue: string }>(
     "auth/refresh", async (_, thunkAPI) => {
         try {
-            const res = await axios.post("/refresh");
+            const res = await axios.post("http://localhost:8001/api/refresh");
             return res.data;
         } catch (error) {
             const err = error as AxiosError<{ message: string }>;
@@ -48,7 +48,7 @@ const authSlice = createSlice({
     reducers: {
         logout: (state) => {
             state.user = null;
-            axios.post("/logout").catch(err => console.error(err));
+            axios.post("http://localhost:8001/api/logout").catch(err => console.error(err));
         },
     },
     extraReducers: (builder) => {

@@ -478,7 +478,9 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
                             type="button"
                             className="bg-quaternary text-secondary px-4 py-2 mt-4 mx-2 rounded shadow-md"
                             onClick={handleSubmit}
-                        ><FontAwesomeIcon icon={faPaperPlane}></FontAwesomeIcon> Simpan</button>
+                        >
+                            {/* <FontAwesomeIcon icon={faPaperPlane}></FontAwesomeIcon> */}
+                            Simpan</button>
                         }
                         {(isViewMode && (user.data.position !== 'pemohon' && user.data.position !== null)) &&
                             <button

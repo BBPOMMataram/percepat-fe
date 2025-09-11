@@ -1,3 +1,5 @@
+@import "material-symbols/outlined.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -17,8 +19,13 @@
 }
 
 @keyframes marquee {
-  0% { transform: translateX(100%); }
-  100% { transform: translateX(-100%); }
+  0% {
+    transform: translateX(100%);
+  }
+
+  100% {
+    transform: translateX(-100%);
+  }
 }
 
 .main-runtext {

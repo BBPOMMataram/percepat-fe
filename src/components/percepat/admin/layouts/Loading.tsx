@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 
 export default function Loading() {
@@ -14,7 +15,7 @@ export default function Loading() {
   return (
     <div id="global-loader">
       <div className="logo-wrapper animate-pulse">
-        <img src="/assets/images/bpom.webp" alt="Logo BBPOM" width="80" height="80" />
+        <Image src="/assets/images/bpom.webp" alt="Logo BBPOM" width="80" height="80" ></Image>
       </div>
 
       <div className="loader">
