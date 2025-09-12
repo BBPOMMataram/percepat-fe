@@ -50,3 +50,12 @@
   display: inline-block;
   white-space: nowrap;
 }
+
+/* Override Autofill color chrome */
+@layer base {
+  input:-webkit-autofill {
+    @apply bg-white text-gray-800;
+    -webkit-box-shadow: 0 0 0px 1000px theme('colors.green.200') inset !important;
+    -webkit-text-fill-color: theme('colors.green.800') !important;
+  }
+}

@@ -27,11 +27,14 @@ jobs:
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             nvm use 22
 
-            echo "[Deploy] Install dependencies..."
-            npm install --omit=dev
+            echo "[Deploy] Install dependencies (include dev)"
+            npm install # before build need dev dependencies
 
-            echo "[Deploy] Build Next.js..."
+            echo "[Deploy] Build"
             npm run build
+
+            echo "[Deploy] Install production dependencies only"
+            npm prune --omit=dev # after build remove dev dependencies
 
             echo "[Deploy] Restart app..."
             pm2 restart 0

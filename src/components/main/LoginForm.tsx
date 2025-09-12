@@ -7,6 +7,7 @@ import { login } from "@/features/authSlice";
 import type { RootState, AppDispatch } from "@/redux/store";
 import { showAlert } from "@/features/alertSlice";
 import { LoginResponse } from "@/types/auth";
+import Image from "next/image";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
@@ -35,9 +36,11 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-100">
-            <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-md">
-                <h1 className="mb-4 text-center text-2xl font-bold">Login</h1>
+        <div className="flex min-h-screen items-center justify-center">
+            <div className="w-full max-w-sm rounded-2xl p-6 shadow-xl bg-white/50 font-serif">
+                <Image src="/assets/images/bpom.webp" alt="Icon BPOM" width={100} height={100} priority className="mx-auto mb-6" />
+                <h1 className="text-center text-2xl font-bold tracking-wide">LOGIN FORM</h1>
+                <p className="text-center mb-4 text-gray-500">Gate of Balai Besar POM di Mataram</p>
 
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div>
@@ -49,7 +52,7 @@ export default function LoginPage() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            className="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+                            className="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring focus:ring-blue-100"
                         />
                     </div>
 
@@ -62,7 +65,7 @@ export default function LoginPage() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            className="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
+                            className="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring focus:ring-blue-100"
                         />
                     </div>
 
