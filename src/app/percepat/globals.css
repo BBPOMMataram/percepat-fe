@@ -52,10 +52,18 @@
 }
 
 /* Override Autofill color chrome */
-@layer base {
-  input:-webkit-autofill {
+@layer components {
+  .ar-input-text {
+    @apply mt-1 rounded-lg border px-3 py-2 text-sm focus:outline-none focus:bg-[#10b98115] focus:border-[#10b981] focus:ring-0 focus:ring-[#10b981];
+  }
+
+  .ar-input-text:-webkit-autofill {
     @apply bg-white text-gray-800;
     -webkit-box-shadow: 0 0 0px 1000px theme('colors.green.200') inset !important;
     -webkit-text-fill-color: theme('colors.green.800') !important;
+  }
+
+  .ar-btn-primary {
+    @apply rounded-lg px-4 py-2 font-semibold text-white bg-[#10b981] hover:bg-green-800 disabled:opacity-50;
   }
 }

@@ -10,9 +10,20 @@ export const login = createAsyncThunk<LoginResponse, LoginPayload, { rejectValue
             const res = await axios.post("http://localhost:8001/api/login", { email, password });
             return res.data as LoginResponse;
         } catch (error) {
-            const err = error as AxiosError<{ message: string }>;
+            const err = error as AxiosError<{ error: string }>;
+
+            console.log(err);
+
+            if (err.code === 'ERR_NETWORK') {
+                return thunkAPI.rejectWithValue("Network Error. Please check your connection.");
+            }
+
+            // if (err.code === 'ERR_BAD_REQUEST') {
+            //     return thunkAPI.rejectWithValue("");
+            // }
+
             return thunkAPI.rejectWithValue(
-                err.response?.data?.message || "Login failed"
+                err.response?.data?.error || "Login failed"
             );
         }
     }
