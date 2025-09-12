@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const apiBase = axios.create({
-  baseURL: "http://localhost/api",
+  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL,
   headers: { "Content-Type": "application/json" },
   withCredentials: true, // untuk kirim cookie
 });

@@ -7,6 +7,10 @@ import Form from "./Form"
 import Table from "./Table"
 import { reagenActions } from "@/features/reagenSlice"
 import { useAuth } from "@/hooks/useAuth"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { faDownload } from "@fortawesome/free-solid-svg-icons"
+import axios from "@/config/axios"
+import { toast } from "react-toastify"
 
 export default function Index() {
     const isFormOpen = useSelector((state: RootState) => state.reagenReducer.isFormOpen)
@@ -14,6 +18,21 @@ export default function Index() {
     const dispatch = useDispatch()
 
     const { user } = useAuth({ middleware: 'auth' })
+
+    const downloadReagenHandler = () => {
+        axios({
+            url: '/api/download-reagen',
+            method: 'GET',
+            responseType: 'blob'
+        })
+            .then(({ data }) => {
+                window.open(URL.createObjectURL(data));
+            })
+            .catch(err => {
+                toast.error('Terjadi kesalahan!')
+                console.log(err)
+            })
+    }
 
     return (
         <section className="p-4">
@@ -27,6 +46,14 @@ export default function Index() {
                 >
                     Tambah Data
                 </button>}
+            <div className="">
+                <FontAwesomeIcon icon={faDownload}
+                    className="text-quaternary hover:animate-[bounce_1s_infinite_200ms] p-2"
+                    role="button"
+                    size="xl"
+                    onClick={downloadReagenHandler}
+                />
+            </div>
             <Table
                 url='api/barang-reagen'
                 limit={0}

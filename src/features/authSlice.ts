@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "@/utils/axios";
+import axios from "@/utils/axios"; // axios baru
 import { AxiosError } from "axios";
 import { LoginPayload, LoginResponse } from "@/types/auth";
 
@@ -12,15 +12,9 @@ export const login = createAsyncThunk<LoginResponse, LoginPayload, { rejectValue
         } catch (error) {
             const err = error as AxiosError<{ error: string }>;
 
-            console.log(err);
-
             if (err.code === 'ERR_NETWORK') {
                 return thunkAPI.rejectWithValue("Network Error. Please check your connection.");
             }
-
-            // if (err.code === 'ERR_BAD_REQUEST') {
-            //     return thunkAPI.rejectWithValue("");
-            // }
 
             return thunkAPI.rejectWithValue(
                 err.response?.data?.error || "Login failed"
