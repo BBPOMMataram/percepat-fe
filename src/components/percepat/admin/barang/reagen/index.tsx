@@ -8,9 +8,10 @@ import Table from "./Table"
 import { reagenActions } from "@/features/reagenSlice"
 import { useAuth } from "@/hooks/useAuth"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faDownload } from "@fortawesome/free-solid-svg-icons"
+import { faDownload, faSun } from "@fortawesome/free-solid-svg-icons"
 import axios from "@/config/axios"
 import { toast } from "react-toastify"
+import { useState } from "react"
 
 export default function Index() {
     const isFormOpen = useSelector((state: RootState) => state.reagenReducer.isFormOpen)
@@ -19,7 +20,9 @@ export default function Index() {
 
     const { user } = useAuth({ middleware: 'auth' })
 
+    const [isLoading, setIsLoading] = useState(false)
     const downloadReagenHandler = () => {
+        setIsLoading(true)
         axios({
             url: '/api/download-reagen',
             method: 'GET',
@@ -27,10 +30,12 @@ export default function Index() {
         })
             .then(({ data }) => {
                 window.open(URL.createObjectURL(data));
+                setIsLoading(false)
             })
             .catch(err => {
                 toast.error('Terjadi kesalahan!')
                 console.log(err)
+                setIsLoading(false)
             })
     }
 
@@ -47,12 +52,20 @@ export default function Index() {
                     Tambah Data
                 </button>}
             <div className="">
-                <FontAwesomeIcon icon={faDownload}
-                    className="text-quaternary hover:animate-[bounce_1s_infinite_200ms] p-2"
-                    role="button"
-                    size="xl"
-                    onClick={downloadReagenHandler}
-                />
+                {isLoading ?
+                    <FontAwesomeIcon icon={faSun}
+                        className="text-quaternary animate-pulse p-2"
+                        role="button"
+                        size="xl"
+                        spin
+                    /> :
+                    <FontAwesomeIcon icon={faDownload}
+                        className="text-quaternary hover:animate-[bounce_1s_infinite_200ms] p-2"
+                        role="button"
+                        size="xl"
+                        onClick={downloadReagenHandler}
+                    />
+                }
             </div>
             <Table
                 url='api/barang-reagen'

@@ -6,13 +6,37 @@ import { useDispatch, useSelector } from "react-redux"
 import Form from "./Form"
 import Table from "./Table"
 import { useAuth } from "@/hooks/useAuth"
+import { useState } from "react"
+import axios from "@/config/axios"
+import { toast } from "react-toastify"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { faDownload, faSun } from "@fortawesome/free-solid-svg-icons"
 
 export default function Index() {
     const isFormOpen = useSelector((state: RootState) => state.atkReducer.isFormOpen)
 
     const dispatch = useDispatch()
 
-    const {user} = useAuth({middleware: 'auth'})
+    const { user } = useAuth({ middleware: 'auth' })
+
+    const [isLoading, setIsLoading] = useState(false)
+    const downloadAtkHandler = () => {
+        setIsLoading(true)
+        axios({
+            url: '/api/download-atk',
+            method: 'GET',
+            responseType: 'blob'
+        })
+            .then(({ data }) => {
+                window.open(URL.createObjectURL(data));
+                setIsLoading(false)
+            })
+            .catch(err => {
+                toast.error('Terjadi kesalahan!')
+                console.log(err)
+                setIsLoading(false)
+            })
+    }
 
     return (
         <section className="p-4">
@@ -27,6 +51,22 @@ export default function Index() {
                     Tambah Data
                 </button>
             }
+            <div className="">
+                {isLoading ?
+                    <FontAwesomeIcon icon={faSun}
+                        className="text-quaternary animate-pulse p-2"
+                        role="button"
+                        size="xl"
+                        spin
+                    /> :
+                    <FontAwesomeIcon icon={faDownload}
+                        className="text-quaternary hover:animate-[bounce_1s_infinite_200ms] p-2"
+                        role="button"
+                        size="xl"
+                        onClick={downloadAtkHandler}
+                    />
+                }
+            </div>
             <Table
                 url='/api/barang-atk'
                 limit={0}
