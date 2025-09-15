@@ -54,7 +54,7 @@ export default function Index() {
             <div className="">
                 {isLoading ?
                     <FontAwesomeIcon icon={faSun}
-                        className="text-quaternary animate-pulse p-2"
+                        className="text-quaternary animate-spin p-2"
                         role="button"
                         size="xl"
                         spin

@@ -4,10 +4,14 @@ import { penerimaanActions } from "@/features/penerimaanSlice"
 import { useAuth } from "@/hooks/useAuth"
 import { RootState } from "@/redux/store"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import FormPenerimaan from "./FormPenerimaan"
 import TablePenerimaanAtk from "./TablePenerimaanAtk"
+import axios from "@/config/axios"
+import { toast } from "react-toastify"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { faDownload, faSun } from "@fortawesome/free-solid-svg-icons"
 
 export default function Atk() {
     const isFormOpen = useSelector((state: RootState) => state.penerimaanReducer.isFormReagenOpen)
@@ -24,6 +28,24 @@ export default function Atk() {
         }
     })
 
+    const [isLoading, setIsLoading] = useState(false)
+    const downloadPenerimaanAtkHandler = () => {
+        setIsLoading(true)
+        axios({
+            url: '/api/download-penerimaan-atk',
+            method: 'GET',
+            responseType: 'blob'
+        })
+            .then(({ data }) => {
+                window.open(URL.createObjectURL(data));
+                setIsLoading(false)
+            })
+            .catch(err => {
+                toast.error('Terjadi kesalahan!')
+                console.log(err)
+                setIsLoading(false)
+            })
+    }
     return (
         <section className="p-4">
             <h1 className="text-2xl text-quaternary my-2 bg-secondary border-l-4 border-quaternary w-fit pb-1 pt-2 px-4 sm:text-3xl xl:text-5xl">Penerimaan ATK</h1>
@@ -35,6 +57,22 @@ export default function Atk() {
                     Tambah Data
                 </button>
             }
+            <div className="">
+                {isLoading ?
+                    <FontAwesomeIcon icon={faSun}
+                        className="text-quaternary animate-spin p-2"
+                        role="button"
+                        size="xl"
+                        spin
+                    /> :
+                    <FontAwesomeIcon icon={faDownload}
+                        className="text-quaternary hover:animate-[bounce_1s_infinite_200ms] p-2"
+                        role="button"
+                        size="xl"
+                        onClick={downloadPenerimaanAtkHandler}
+                    />
+                }
+            </div>
             <TablePenerimaanAtk
                 url='/api/penerimaan-atk'
                 limit={0}

@@ -7,7 +7,11 @@ import FormPenerimaan from "./FormPenerimaan"
 import TablePenerimaanReagen from "./TablePenerimaanReagen"
 import { useAuth } from "@/hooks/useAuth"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import axios from "@/config/axios"
+import { toast } from "react-toastify"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { faDownload, faSun } from "@fortawesome/free-solid-svg-icons"
 
 export default function Reagen() {
     const isFormOpen = useSelector((state: RootState) => state.penerimaanReducer.isFormReagenOpen)
@@ -24,6 +28,24 @@ export default function Reagen() {
         }
     })
 
+    const [isLoading, setIsLoading] = useState(false)
+    const downloadPenerimaanReagenHandler = () => {
+        setIsLoading(true)
+        axios({
+            url: '/api/download-penerimaan-reagen',
+            method: 'GET',
+            responseType: 'blob'
+        })
+            .then(({ data }) => {
+                window.open(URL.createObjectURL(data));
+                setIsLoading(false)
+            })
+            .catch(err => {
+                toast.error('Terjadi kesalahan!')
+                console.log(err)
+                setIsLoading(false)
+            })
+    }
     return (
         <section className="p-4">
             <h1 className="text-2xl text-quaternary my-2 bg-secondary border-l-4 border-quaternary w-fit pb-1 pt-2 px-4 sm:text-3xl xl:text-5xl">Penerimaan Reagen</h1>
@@ -35,6 +57,22 @@ export default function Reagen() {
                     Tambah Data
                 </button>
             }
+            <div className="">
+                {isLoading ?
+                    <FontAwesomeIcon icon={faSun}
+                        className="text-quaternary animate-spin p-2"
+                        role="button"
+                        size="xl"
+                        spin
+                    /> :
+                    <FontAwesomeIcon icon={faDownload}
+                        className="text-quaternary hover:animate-[bounce_1s_infinite_200ms] p-2"
+                        role="button"
+                        size="xl"
+                        onClick={downloadPenerimaanReagenHandler}
+                    />
+                }
+            </div>
             <TablePenerimaanReagen
                 url='api/penerimaan-reagen'
                 limit={0}
