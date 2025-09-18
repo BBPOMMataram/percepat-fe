@@ -13,7 +13,7 @@ const ParticlesBackground = ({ particleColor }: { particleColor: string }) => {
             id="tsparticles"
             init={particlesInit}
             options={{
-                fullScreen: { enable: false },
+                fullScreen: { enable: true },
                 background: { color: "transparent" },
                 particles: {
                     number: { value: 25 },
@@ -22,14 +22,13 @@ const ParticlesBackground = ({ particleColor }: { particleColor: string }) => {
                     move: { enable: true, speed: .3 },
                     links: {
                         enable: true,
-                        color: "#000000",
+                        color: particleColor,
                         distance: 200,
                         opacity: .4,
                     },
                     opacity: { value: .5 },
                 },
             }}
-            className="absolute inset-0 -z-10"
         />
     );
 };

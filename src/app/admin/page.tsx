@@ -54,7 +54,7 @@ const AdminPage = () => {
     }
 
     return (
-        <div>
+        <div className=''>
             <div>
                 Admin page
             </div>

@@ -27,6 +27,8 @@ export default function LoginPage() {
         dispatch(login({ email, password }))
             .unwrap()
             .then((data: LoginResponse) => {
+                console.log('user: ', data.user);
+
                 dispatch(showAlert({ type: "success", message: data.message ?? "No Message from Backend", description: "Login success" }));
                 router.push(callbackUrl);
             })

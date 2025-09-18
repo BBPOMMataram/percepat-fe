@@ -1,12 +1,12 @@
 "use client"
-import { AppData } from "@/types/app-data";
-import AppContainer from "./AppContainer"
-import { useEffect, useState } from "react";
-import axios from "@/config/axios";
 import LoadingWithoutText from "@/components/percepat/admin/layouts/LoadingWithoutText";
-import { useDispatch } from "react-redux";
-import { AppDispatch } from "@/redux/store";
+import axios from "@/config/axios";
 import { showAlert } from "@/features/alertSlice";
+import { AppDispatch } from "@/redux/store";
+import { AppData } from "@/types/app-data";
+import { useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
+import AppContainer from "./AppContainer";
 
 export default function AppSection() {
     const [dataApp, setDataApp] = useState<AppData[]>([])
@@ -15,7 +15,7 @@ export default function AppSection() {
 
     const fetchAppData = async () => {
         try {
-            const { data } = await axios('/api/site')
+            const { data } = await axios('http://localhost:8001/api/site')
             setDataApp(data.data)
         } catch (error) {
             console.log("Error fetching app data:", error)

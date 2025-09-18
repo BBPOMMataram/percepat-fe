@@ -1,11 +1,11 @@
 "use client";
 
-import { Suspense, useState } from "react";
 import LoginForm from "@/components/main/LoginForm";
 import ParticlesBackground from "@/components/simandalika/hero/ParticlesBackground";
+import { Suspense, useState } from "react";
 
 export default function LoginPage() {
-  const [particleColor, setParticleColor] = useState("#10b981");
+  const [particleColor] = useState("#10b981");
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
