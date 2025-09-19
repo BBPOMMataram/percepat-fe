@@ -18,7 +18,6 @@ export default function NavBarSiapMelayani() {
 
     useEffect(() => {
         dispatch(getUser());
-
     }, [dispatch]);
 
     return (
@@ -34,7 +33,7 @@ export default function NavBarSiapMelayani() {
                         <li>
                             <a>PKL</a>
                             <ul className="p-2">
-                                <li><a>Tata Tertib PKL</a></li>
+                                <li><Link href={'/siap-melayani/tata-tertib-pkl'}>Tata Tertib PKL</Link></li>
                                 <li><a className="whitespace-nowrap">Download Form Pakta Integritas</a></li>
                             </ul>
                         </li>
@@ -53,7 +52,8 @@ export default function NavBarSiapMelayani() {
                 </div>
 
                 <Image src="/assets/images/bpom_without_label.webp" alt="Logo BBPOM" width={40} height={40} />
-                <a className="text-xl ml-3 font-serif">SIAP MELAYANI</a>
+                <a href="/siap-melayani"
+                    className="text-xl ml-3 font-serif">SIAP MELAYANI</a>
             </div>
             <div className="navbar-center hidden lg:flex">
                 <ul className="menu menu-horizontal px-1">
@@ -70,8 +70,11 @@ export default function NavBarSiapMelayani() {
                                 tabIndex={0}
                                 className="menu dropdown-content shadow bg-base-100 rounded-box w-fit"
                             >
-                                <li><a>Tata Tertib PKL</a></li>
-                                <li><a className="whitespace-nowrap">Download Form Pakta Integritas</a></li>
+                                <li><Link href={'/siap-melayani/tata-tertib-pkl'}>Tata Tertib PKL</Link></li>
+                                <li><a href="https://docs.google.com/document/d/1V4NLEWwBvLvM7H6BbvT0YdQTg3ieuBRl/edit?usp=sharing&ouid=115845788467615630346&rtpof=true&sd=true"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="whitespace-nowrap">Download Form Pakta Integritas</a></li>
                             </ul>
                         </div>
                     </li>
@@ -114,15 +117,14 @@ export default function NavBarSiapMelayani() {
                                 </div>
                                 <ul
                                     tabIndex={0}
-                                    className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow">
+                                    className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 max-w-fit p-2 shadow">
                                     <li>
                                         <a className="whitespace-nowrap">
                                             {`${user.employee?.gelar_depan || ""} ${user.name} ${user.employee?.gelar_belakang || ""}`}
                                         </a>
                                     </li>
                                     <li><a>Profile</a></li>
-                                    <li className="divider m-0 mt-2 left-0 right-0 w-full"></li>
-                                    <li>
+                                    <li className="mt-2">
                                         <button onClick={() => dispatch(logout())}>Logout</button>
                                     </li>
                                 </ul>
