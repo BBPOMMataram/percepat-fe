@@ -11,6 +11,23 @@ export interface Role {
     updated_at: string | null;
 }
 
+export interface Employee {
+    id: number;
+    user_id: number;
+    position: string;
+    nip: string | null;
+    unit_kerja: string;
+    fungsi_id: number;
+    jabatan: string;
+    pangkat: string | null;
+    golongan: string | null;
+    gelar_depan: string | null;
+    gelar_belakang: string | null;
+    extra: string | null;
+    created_at: string | null; // ISO date string | null
+    updated_at: string | null; // ISO date string | null
+}
+
 export interface User {
     id: number;
     name: string;
@@ -21,7 +38,8 @@ export interface User {
     photo_path: string | null;
     signature_path: string | null;
     role_id: number;
-    role: Role;
+    role?: Role;
+    employee?: Employee | null;
     created_at: string;
     updated_at: string;
 }

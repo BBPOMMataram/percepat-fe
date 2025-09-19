@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: "class",
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -12,8 +13,10 @@ module.exports = {
         secondary: '#FAEAB1',
         teriary: '#E5BA73',
         quaternary: '#C58940',
+        "bpom-green": '#04A451',
+        "bpom-blue": '#004281'
       }
     },
   },
-  plugins: [],
+  plugins: [require('daisyui')],
 }

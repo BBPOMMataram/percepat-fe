@@ -19,7 +19,7 @@ const ParticlesBackground = ({ particleColor }: { particleColor: string }) => {
                     number: { value: 25 },
                     color: { value: particleColor },
                     size: { value: 4 },
-                    move: { enable: true, speed: .3 },
+                    move: { enable: true, speed: .6 },
                     links: {
                         enable: true,
                         color: particleColor,
@@ -28,6 +28,14 @@ const ParticlesBackground = ({ particleColor }: { particleColor: string }) => {
                     },
                     opacity: { value: .5 },
                 },
+                noise: {
+                    enable: true, // ✅ aktifkan noise
+                    delay: { value: 0 },
+                    factor: {
+                        value: "10", // semakin besar nilainya semakin berombak
+                    },
+                },
+                detectRetina: true,
             }}
         />
     );

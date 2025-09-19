@@ -15,7 +15,7 @@ export default function AppSection() {
 
     const fetchAppData = async () => {
         try {
-            const { data } = await axios('http://localhost:8001/api/site')
+            const { data } = await axios(process.env.NEXT_PUBLIC_BACKEND_AUTH_URL + '/site')
             setDataApp(data.data)
         } catch (error) {
             console.log("Error fetching app data:", error)
