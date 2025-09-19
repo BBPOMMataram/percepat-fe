@@ -53,7 +53,7 @@ export default function NavBarSiapMelayani() {
                 </div>
 
                 <Image src="/assets/images/bpom_without_label.webp" alt="Logo BBPOM" width={40} height={40} />
-                <a className="btn btn-ghost text-xl">SIAP MELAYANI</a>
+                <a className="text-xl ml-3 font-serif">SIAP MELAYANI</a>
             </div>
             <div className="navbar-center hidden lg:flex">
                 <ul className="menu menu-horizontal px-1">
