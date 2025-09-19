@@ -34,7 +34,11 @@ export default function NavBarSiapMelayani() {
                             <a>PKL</a>
                             <ul className="p-2">
                                 <li><Link href={'/siap-melayani/tata-tertib-pkl'}>Tata Tertib PKL</Link></li>
-                                <li><a className="whitespace-nowrap">Download Form Pakta Integritas</a></li>
+                                <li><a href="https://docs.google.com/document/d/1V4NLEWwBvLvM7H6BbvT0YdQTg3ieuBRl/edit?usp=sharing&ouid=115845788467615630346&rtpof=true&sd=true"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="whitespace-nowrap">Download Form Pakta Integritas</a></li>
+                                <li><a>Pengajuan PKL</a></li>
                             </ul>
                         </li>
                         <li><a>Kunjungan</a></li>
@@ -75,6 +79,7 @@ export default function NavBarSiapMelayani() {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="whitespace-nowrap">Download Form Pakta Integritas</a></li>
+                                <li><a>Pengajuan PKL</a></li>
                             </ul>
                         </div>
                     </li>
@@ -117,14 +122,15 @@ export default function NavBarSiapMelayani() {
                                 </div>
                                 <ul
                                     tabIndex={0}
-                                    className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 max-w-fit p-2 shadow">
+                                    className="menu dropdown-content bg-base-100 rounded-box z-1 mt-3 max-w-fit p-2 shadow">
                                     <li>
-                                        <a className="whitespace-nowrap">
+                                        <a className="whitespace-nowrap font-semibold">
                                             {`${user.employee?.gelar_depan || ""} ${user.name} ${user.employee?.gelar_belakang || ""}`}
                                         </a>
                                     </li>
+                                    <li><a>Presensi</a></li>
                                     <li><a>Profile</a></li>
-                                    <li className="mt-2">
+                                    <li className="mt-2 text-slate-700">
                                         <button onClick={() => dispatch(logout())}>Logout</button>
                                     </li>
                                 </ul>
