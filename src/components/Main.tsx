@@ -1,5 +1,6 @@
 "use client";
 import { AR_One_Sans } from 'next/font/google';
+import Script from 'next/script';
 import { useState } from 'react';
 import AppSection from './simandalika/content/AppSection';
 import VideoMaklumatSection from './simandalika/content/VideoMaklumatSection';
@@ -32,6 +33,7 @@ const MainPage = () => {
             <footer>
                 <Footer />
             </footer>
+            <Script src="https://website-widgets.pages.dev/dist/sienna.min.js" strategy="lazyOnload" />
         </div>
     )
 }

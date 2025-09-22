@@ -124,8 +124,14 @@ export default function NavBarSiapMelayani() {
                                     tabIndex={0}
                                     className="menu dropdown-content bg-base-100 rounded-box z-1 mt-3 max-w-fit p-2 shadow">
                                     <li>
-                                        <a className="whitespace-nowrap font-semibold">
-                                            {`${user.employee?.gelar_depan || ""} ${user.name} ${user.employee?.gelar_belakang || ""}`}
+                                        <a className="whitespace-nowrap font-semibold flex flex-col gap-0 items-start">
+                                            <span>{`${user.employee?.gelar_depan || ""} ${user.name} ${user.employee?.gelar_belakang || ""}`}</span>
+                                            {/* if student */}
+                                            {user.student ? (<span className="whitespace-nowrap text-[.6rem] text-gray-500">NIM: {user.student.nim} </span>) : null}
+                                            {user.student ? (<span className="whitespace-nowrap text-[.6rem] text-gray-500">{user.student.university} </span>) : null}
+                                            {/* if employee */}
+                                            {user.employee ? (<span className="whitespace-nowrap text-[.6rem] text-gray-500">NIP: {user.employee.nip} </span>) : null}
+                                            {user.employee ? (<span className="whitespace-nowrap text-[.6rem] text-gray-500">{user.employee.unit_kerja} </span>) : null}
                                         </a>
                                     </li>
                                     <li><a>Presensi</a></li>

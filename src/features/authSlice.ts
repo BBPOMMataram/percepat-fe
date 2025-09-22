@@ -9,7 +9,7 @@ export const login = createAsyncThunk<LoginResponse, LoginPayload, { rejectValue
     async ({ email, password }, thunkAPI) => {
         try {
             const res = await axios.post(
-                process.env.NEXT_PUBLIC_BACKEND_AUTH_URL + "/login",
+                process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/login",
                 { email, password },
             );
             return res.data as LoginResponse;
@@ -29,7 +29,7 @@ export const refreshToken = createAsyncThunk<LoginResponse, void, { rejectValue:
     async (_, thunkAPI) => {
         try {
             const res = await axios.post(
-                process.env.NEXT_PUBLIC_BACKEND_AUTH_URL + "/refresh",
+                process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/refresh",
                 {},
             );
             return res.data as LoginResponse;
@@ -45,7 +45,7 @@ export const getUser = createAsyncThunk<any, void, { rejectValue: string }>(
     "auth/me",
     async (_, thunkAPI) => {
         try {
-            const res = await axios.get(process.env.NEXT_PUBLIC_BACKEND_AUTH_URL + "/me", {
+            const res = await axios.get(process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/me", {
                 withCredentials: true,
             });
             return res.data;
@@ -73,7 +73,7 @@ const authSlice = createSlice({
     reducers: {
         logout: (state) => {
             state.user = null;
-            axios.post(process.env.NEXT_PUBLIC_BACKEND_AUTH_URL + "/logout", {})
+            axios.post(process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/logout", {})
                 .catch(err => console.error(err));
         },
     },

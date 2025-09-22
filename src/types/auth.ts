@@ -28,6 +28,17 @@ export interface Employee {
     updated_at: string | null; // ISO date string | null
 }
 
+export interface Student {
+    id: number;
+    user_id: number;
+    nim: string;
+    angkatan: string;
+    jurusan: string;
+    university: string;
+    created_at: string | null;
+    updated_at: string | null;
+}
+
 export interface User {
     id: number;
     name: string;
@@ -40,6 +51,7 @@ export interface User {
     role_id: number;
     role?: Role;
     employee?: Employee | null;
+    student?: Student | null;
     created_at: string;
     updated_at: string;
 }
