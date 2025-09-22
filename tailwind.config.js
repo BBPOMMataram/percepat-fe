@@ -18,5 +18,24 @@ module.exports = {
       }
     },
   },
-  plugins: [require('daisyui')],
+
+  plugins: [require("daisyui")],
+
+  // Tambahkan ini supaya DaisyUI tidak ke-purge di production
+  safelist: [
+    { pattern: /btn.*/ },
+    { pattern: /card.*/ },
+    { pattern: /alert.*/ },
+    { pattern: /badge.*/ },
+    { pattern: /input.*/ },
+    { pattern: /textarea.*/ },
+    { pattern: /select.*/ },
+    { pattern: /modal.*/ },
+    { pattern: /bg-.*/ },
+    { pattern: /text-.*/ },
+  ],
+
+  daisyui: {
+    themes: ["light"], // atau bisa custom tema
+  },
 }
