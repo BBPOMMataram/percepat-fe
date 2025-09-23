@@ -1,28 +1,21 @@
 @import "material-symbols/outlined.css";
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: light;
 }
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
-} */
+@theme {
+  --color-primary: #faf8f1;
+  --color-secondary: #faeab1;
+  --color-tertiary: #e5ba73;
+  --color-quaternary: #c58940;
+  --color-bpom-green: #04a451;
+  --color-bpom-blue: #004281;
+}
 
 @keyframes marquee {
   0% {
     transform: translateX(100%);
   }
-
   100% {
     transform: translateX(-100%);
   }
@@ -51,7 +44,7 @@
   white-space: nowrap;
 }
 
-/* Override Autofill color chrome */
+/* Komponen custom masih bisa pakai @layer */
 @layer components {
   .ar-input-text {
     @apply mt-1 rounded-lg border px-3 py-2 text-sm focus:outline-none focus:bg-[#10b98115] focus:border-[#10b981] focus:ring-0 focus:ring-[#10b981];
