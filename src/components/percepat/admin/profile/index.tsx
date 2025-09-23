@@ -190,7 +190,7 @@ export default function Profile() {
 
     return (
         <section className="p-4">
-            <div className="bg-teriary flex flex-col items-center lg:flex-row p-2 rounded bg-opacity-90 shadow-xl">
+            <div className="bg-teriary/90 flex flex-col items-center lg:flex-row p-2 rounded shadow-xl">
                 <div className="flex-1 text-center">
                     <label htmlFor="photo" className="relative cursor-pointer">
                         <div className="relative group">

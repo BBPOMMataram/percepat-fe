@@ -13,9 +13,6 @@ export default function NavBarSiapMelayani() {
     const { user, loading } = useSelector((state: RootState) => state.auth)
     const pathname = usePathname();
 
-    console.log('uss', user);
-
-
     useEffect(() => {
         dispatch(getUser());
     }, [dispatch]);

@@ -7,7 +7,7 @@ const Hero = () => {
         <>
             <div className="hero relative h-screen"> {/* relative here to avoid warning Image has "fill" adn parent elwith invalid "position" */}
                 <Image src={"/assets/images/percepat/hero.webp"} alt="Hero Image of Percepat" fill priority />
-                <div className="backdrop flex h-full w-full absolute bg-gray-800 bg-opacity-60">
+                <div className="backdrop flex h-full w-full absolute bg-gray-800/60">
                     <div className="welcome flex-1 flex flex-col justify-center p-8">
                         <motion.h1
                             initial={{ opacity: 0 }}

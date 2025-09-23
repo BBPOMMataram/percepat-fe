@@ -241,7 +241,7 @@ export default function Form() {
 
     return (
         // modal
-        <div className="fixed top-0 right-0 left-0 h-screen bg-quaternary bg-opacity-90 flex items-center justify-center">
+        <div className="fixed top-0 right-0 left-0 h-screen bg-quaternary/90 flex items-center justify-center">
             <div className="max-h-screen overflow-auto">
                 {/* form container */}
                 <div className="p-6 bg-teriary rounded mx-2 w-[45rem] my-4">

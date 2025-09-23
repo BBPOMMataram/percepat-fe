@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { useRouter, useSearchParams } from "next/navigation";
-import { login } from "@/features/authSlice";
-import type { RootState, AppDispatch } from "@/redux/store";
 import { showAlert } from "@/features/alertSlice";
+import { login } from "@/features/authSlice";
+import type { AppDispatch, RootState } from "@/redux/store";
 import { LoginResponse } from "@/types/auth";
 import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { toast } from "react-toastify";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
@@ -29,11 +30,11 @@ export default function LoginPage() {
             .then((data: LoginResponse) => {
                 console.log('user: ', data.user);
 
-                dispatch(showAlert({ type: "success", message: data.message ?? "No Message from Backend", description: "Login success" }));
+                dispatch(showAlert({ type: "success", message: `Welcome ${data.user.name} !`, description: data.message ?? "No Message from Backend" }));
                 router.push(callbackUrl);
             })
             .catch((err) => {
-                dispatch(showAlert({ type: "error", message: err || "Login failed", description: "Login failed" }));
+                dispatch(showAlert({ type: "error", message: "Login failed", description: err || "No Message from Backend" }));
             });
     };
 

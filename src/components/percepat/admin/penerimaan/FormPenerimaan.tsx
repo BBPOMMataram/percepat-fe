@@ -75,14 +75,14 @@ export default function FormPenerimaan({ isAtk }: { isAtk?: boolean }) {
             setTglPenerimaan(currentTglPenerimaanFormatted)
 
             // jika reagen nama nya 'barang', sedangkan atk namanya 'atk'
-            let inventorySelected =null;
-            if(data.barang){
+            let inventorySelected = null;
+            if (data.barang) {
                 inventorySelected = { value: data.barang.id, label: data.barang.name }
-            }else if(data.atk){
+            } else if (data.atk) {
                 inventorySelected = { value: data.atk.id, label: data.atk.name }
             }
             setSelectedInventory(inventorySelected)
-            
+
             setJumlah(data.jumlah)
             setVendor(data.vendor)
         }
@@ -229,7 +229,7 @@ export default function FormPenerimaan({ isAtk }: { isAtk?: boolean }) {
 
     return (
         // modal
-        <div className="fixed inset-0 bg-quaternary bg-opacity-90 flex items-center justify-center">
+        <div className="fixed inset-0 bg-quaternary/90 flex items-center justify-center">
             {/* form container */}
             <div className="p-6 bg-teriary rounded mx-2 w-[45rem]">
                 <h2 className="mb-4 text-xl sm:text-2xl md:text-3xl">Form Penerimaan {isAtk ? 'ATK' : 'Reagen'}</h2>

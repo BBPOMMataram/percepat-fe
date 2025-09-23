@@ -391,7 +391,7 @@ export default function FormListPermintaan({ isAtk }: { isAtk?: boolean }) {
 
     return (
         // modal
-        <div className="fixed inset-0 bg-quaternary bg-opacity-90 flex items-center justify-center">
+        <div className="fixed inset-0 bg-quaternary/90 flex items-center justify-center">
             {/* form container */}
             <div className="max-h-[calc(100vh-20px)] overflow-auto">
                 <div className="p-6 bg-teriary rounded mx-2 w-[45rem]">
