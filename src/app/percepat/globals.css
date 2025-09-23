@@ -1,13 +1,19 @@
-@import "material-symbols/outlined.css";
 @import "tailwindcss";
 @plugin "daisyui" {
-  themes: light;
+  themes: light --default;
 }
-@theme {
+@plugin "daisyui/theme" {
+  name: "percepat";
+  default: false;
   --color-primary: #faf8f1;
   --color-secondary: #faeab1;
-  --color-tertiary: #e5ba73;
-  --color-quaternary: #c58940;
+}
+
+@import "material-symbols/outlined.css";
+
+@theme {
+  --color-teriary: #e5ba73; /* unuk percepat */
+  --color-quaternary: #c58940; /* unuk percepat */
   --color-bpom-green: #04a451;
   --color-bpom-blue: #004281;
 }
