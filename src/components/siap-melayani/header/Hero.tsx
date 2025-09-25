@@ -2,7 +2,7 @@ import Image from "next/image";
 
 export default function HeroSiapMelayani() {
     return (
-        <div className="flex-1 lg:px-14 lg:py-10 p-4 flex flex-col">
+        <div className="lg:px-14 lg:py-10 p-4 flex flex-col gap-10 lg:gap-16" id="hero-siap-melayani">
             <div className="title flex-1 flex flex-col items-center justify-center">
                 <h1 className="font-serif text-xl font-bold lg:text-5xl">SIAP MELAYANI</h1>
                 <p className="text-sm lg:text-base text-gray-700">Sistem Aplikasi Manajemen Layanan Publik Informasi</p>

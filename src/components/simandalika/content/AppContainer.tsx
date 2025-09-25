@@ -1,15 +1,14 @@
-import React from 'react'
-import CardAppGreen from './CardAppGreen'
-import VisitButton from './VisitButton';
 import { AppData } from '@/types/app-data';
 import Link from 'next/link';
+import CardAppGreen from './CardAppGreen';
+import VisitButton from './VisitButton';
 
 const AppContainer = ({ appData }: { appData: AppData }) => {
     return (
         <>
             <div
                 className="relative flex items-center gap-8 px-12 shadow-lg 
-                bg-fixed bg-center bg-cover w-full mx-8 rounded-lg"
+                bg-fixed bg-center bg-cover w-full mx-8 lg:mx-20 rounded-lg"
                 style={{ backgroundImage: `url(${appData.logo_path})` }}
             >
                 {/* Overlay gelap + blur */}

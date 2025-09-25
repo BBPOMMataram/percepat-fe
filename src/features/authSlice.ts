@@ -45,9 +45,7 @@ export const getUser = createAsyncThunk<any, void, { rejectValue: string }>(
     "auth/me",
     async (_, thunkAPI) => {
         try {
-            const res = await axios.get(process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/me", {
-                withCredentials: true,
-            });
+            const res = await axios.get(process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/me");
             return res.data;
         } catch (error) {
             return thunkAPI.rejectWithValue("Gagal mengambil data user");

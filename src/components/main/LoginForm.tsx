@@ -8,7 +8,6 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { toast } from "react-toastify";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
@@ -28,13 +27,15 @@ export default function LoginPage() {
         dispatch(login({ email, password }))
             .unwrap()
             .then((data: LoginResponse) => {
-                console.log('user: ', data.user);
 
                 dispatch(showAlert({ type: "success", message: `Welcome ${data.user.name} !`, description: data.message ?? "No Message from Backend" }));
+                console.log('login success', data);
                 router.push(callbackUrl);
             })
             .catch((err) => {
                 dispatch(showAlert({ type: "error", message: "Login failed", description: err || "No Message from Backend" }));
+                console.log('login failed', err);
+
             });
     };
 

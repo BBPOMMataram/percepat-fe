@@ -9,9 +9,9 @@ import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 export default function NavBarSiapMelayani() {
+    const pathname = usePathname();
     const dispatch = useDispatch<AppDispatch>()
     const { user, loading } = useSelector((state: RootState) => state.auth)
-    const pathname = usePathname();
 
     useEffect(() => {
         dispatch(getUser());
@@ -35,7 +35,7 @@ export default function NavBarSiapMelayani() {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="whitespace-nowrap">Download Form Pakta Integritas</a></li>
-                                <li><a>Pengajuan PKL</a></li>
+                                <li><Link href={'/siap-melayani/pengajuan-pkl'}>Pengajuan PKL</Link></li>
                             </ul>
                         </li>
                         <li><a>Kunjungan</a></li>
@@ -76,7 +76,7 @@ export default function NavBarSiapMelayani() {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="whitespace-nowrap">Download Form Pakta Integritas</a></li>
-                                <li><a>Pengajuan PKL</a></li>
+                                <li><Link href={'/siap-melayani/pengajuan-pkl'}>Pengajuan PKL</Link></li>
                             </ul>
                         </div>
                     </li>

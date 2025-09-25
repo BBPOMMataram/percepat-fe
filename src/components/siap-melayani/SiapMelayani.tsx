@@ -1,23 +1,13 @@
-import ContentSiapMelayani from "./content/Content";
-import StatistikPklSiapMelayani from "./content/Statistik";
-import FooterSiapMelayani from "./footer/Footer";
 import HeroSiapMelayani from "./header/Hero";
-import NavBarSiapMelayani from "./header/NavBar";
+import ContentSiapMelayani from "./landing-page-content/Content";
+import StatistikPklSiapMelayani from "./landing-page-content/Statistik";
 
 export default function MainSiapMelayani() {
     return (
         <>
-            <header className="h-screen flex flex-col">
-                <NavBarSiapMelayani />
-                <HeroSiapMelayani />
-            </header>
-            <main className="lg:px-14 py-12 px-4">
-                <ContentSiapMelayani />
-                <StatistikPklSiapMelayani />
-            </main>
-            <footer>
-                <FooterSiapMelayani />
-            </footer>
+            <HeroSiapMelayani /> {/* <-- ini di dalam <main> tidak di <header> karena layout next js nya ga bisa handle */}
+            <ContentSiapMelayani />
+            <StatistikPklSiapMelayani />
         </>
     )
 }

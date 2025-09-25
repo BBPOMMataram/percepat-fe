@@ -25,7 +25,6 @@ export default function RootLayout({
     // data-theme nanti buatkan toggle dark mode
     <html lang="id" data-scroll-behavior="smooth">
       <head>
-        {/* <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=optional" rel="stylesheet" /> */}
       </head>
       <body>
         <Providers>
