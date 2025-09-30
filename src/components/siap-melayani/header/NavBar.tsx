@@ -143,7 +143,7 @@ export default function NavBarSiapMelayani() {
                 ) : (
                     <>
                         <Link href={`/login?redirectUrl=${pathname}`} className="underline">Masuk</Link>
-                        <Link href="/siap-melayani/register" className="btn bg-bpom-blue text-white">Daftar</Link>
+                        <Link href={`/register?redirectUrl=${pathname}`} className="btn bg-bpom-blue text-white">Daftar</Link>
                     </>
                 )}
             </div>

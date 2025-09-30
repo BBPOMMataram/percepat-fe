@@ -11,7 +11,7 @@ export default function StatistikPklSiapMelayani() {
     const [pkl, setPkl] = useState<any>(null)
 
     useEffect(() => {
-        axios.get(process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI + '/landing-page')
+        axios.get(process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI + '/api/landing-page')
             .then(res => {
                 setPkl(res.data)
             })
@@ -63,7 +63,7 @@ export default function StatistikPklSiapMelayani() {
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Posisi</th>
+                            <th>Penempatan</th>
                             <th>Kulifikasi Jurusan</th>
                             <th>Keterangan</th>
                             <th>Kuota Tersedia</th>

@@ -1,3 +1,15 @@
+export interface RegisterPayload {
+    role_id: number;
+    name: string;
+    email: string;
+    password: string;
+    password_confirmation: string;
+    call_name: string | null;
+    photo_path: string | null;
+    signature_path: string | null;
+    nik: string | null;
+}
+
 export interface LoginPayload {
     email: string;
     password: string;
@@ -56,7 +68,7 @@ export interface User {
     updated_at: string;
 }
 
-export interface LoginResponse {
+export interface LoginOrRegisterResponse {
     message?: string;
     expires_in?: number;
     user: User;

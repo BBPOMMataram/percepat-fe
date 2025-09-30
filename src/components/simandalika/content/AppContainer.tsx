@@ -12,9 +12,9 @@ const AppContainer = ({ appData }: { appData: AppData }) => {
                 style={{ backgroundImage: `url(${appData.logo_path})` }}
             >
                 {/* Overlay gelap + blur */}
-                <div className="absolute inset-0 bg-green-700/90 backdrop-blur-sm z-0 rounded-lg"></div>
+                <div className="absolute inset-0 glass z-0 rounded-lg"></div>
                 {/* konten */}
-                <div className="desc flex-1 relative z-10 text-white">
+                <div className="desc flex-1 relative z-10">
                     <h1 className="text-3xl font-bold mb-4">{appData.name}</h1>
                     <p className="text-lg">
                         {appData.desc}

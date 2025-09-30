@@ -51,19 +51,39 @@
 }
 
 /* Komponen custom masih bisa pakai @layer */
+/* SET w-full UNTUK WIDTH DI MASING2 FIELD / ELEMENT JIKA INGIN FULL WIDTH */
 @layer components {
-  .ar-input-text {
+  .ar-input-text-green {
     @apply mt-1 rounded-lg border px-3 py-2 text-sm focus:outline-none focus:bg-[#10b98115] focus:border-[#10b981] focus:ring-0 focus:ring-[#10b981];
   }
 
-  .ar-input-text:-webkit-autofill {
+  .ar-input-text-green:-webkit-autofill {
     @apply bg-white text-gray-800;
     -webkit-box-shadow: 0 0 0px 1000px theme("colors.green.200") inset !important;
     -webkit-text-fill-color: theme("colors.green.800") !important;
   }
 
-  .ar-btn-primary {
+  .ar-btn-green {
     @apply rounded-lg px-4 py-2 font-semibold text-white bg-[#10b981] hover:bg-green-800 disabled:opacity-50;
+  }
+
+  .ar-input-text-purple {
+    @apply mt-1 rounded-lg border px-3 py-2 text-sm focus:outline-none focus:bg-[#8b5cf615] focus:border-[#8b5cf6] focus:ring-0 focus:ring-[#8b5cf6];
+  }
+
+  .ar-input-text-purple:-webkit-autofill {
+    @apply bg-white text-gray-800;
+    -webkit-box-shadow: 0 0 0px 1000px theme("colors.purple.200") inset !important;
+    -webkit-text-fill-color: theme("colors.purple.800") !important;
+  }
+
+  .ar-btn-purple {
+    @apply rounded-lg px-4 py-2 font-semibold text-white bg-[#8b5cf6] hover:bg-purple-800 disabled:opacity-50;
+  }
+
+  .ar-label-required::after {
+    content: " *";
+    @apply text-red-500;
   }
 }
 

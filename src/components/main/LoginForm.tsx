@@ -3,13 +3,13 @@
 import { showAlert } from "@/features/alertSlice";
 import { login } from "@/features/authSlice";
 import type { AppDispatch, RootState } from "@/redux/store";
-import { LoginResponse } from "@/types/auth";
+import { LoginOrRegisterResponse } from "@/types/auth";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
-export default function LoginPage() {
+export default function LoginForm() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
@@ -26,7 +26,7 @@ export default function LoginPage() {
 
         dispatch(login({ email, password }))
             .unwrap()
-            .then((data: LoginResponse) => {
+            .then((data: LoginOrRegisterResponse) => {
 
                 dispatch(showAlert({ type: "success", message: `Welcome ${data.user.name} !`, description: data.message ?? "No Message from Backend" }));
                 console.log('login success', data);
@@ -56,7 +56,7 @@ export default function LoginPage() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            className="ar-input-text w-full"
+                            className="ar-input-text-green w-full"
                         />
                     </div>
 
@@ -69,17 +69,29 @@ export default function LoginPage() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            className="ar-input-text w-full"
+                            className="ar-input-text-green w-full"
                         />
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="ar-btn-primary w-full"
-                    >
-                        {loading ? "Loading..." : "Login"}
-                    </button>
+                    <div className="flex gap-0.5">
+                        <button
+                            type="button"
+                            disabled={loading}
+                            className="ar-btn-green flex gap-1 w-fit"
+                            onClick={() => window.history.back()}
+                        >
+                            <span className="material-symbols-outlined">
+                                arrow_left_alt
+                            </span> <span>Back</span>
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="ar-btn-green flex-1"
+                        >
+                            {loading ? "Loading..." : "Login"}
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>

@@ -1,5 +1,4 @@
 "use client"
-import React from 'react';
 import styled from 'styled-components';
 
 const VisitButton = () => {
@@ -36,9 +35,9 @@ const StyledWrapper = styled.div`
   .btn-53 {
     -webkit-tap-highlight-color: transparent;
     -webkit-appearance: button;
-    background-color: #000;
+    background-color: #CAFEF4;
     background-image: none;
-    color: #25ff66;
+    color: #04a451;
     cursor: pointer;
     font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
       Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif,
@@ -46,7 +45,7 @@ const StyledWrapper = styled.div`
     font-size: 100%;
     line-height: 1;
     margin: 0;
-    -webkit-mask-image: -webkit-radial-gradient(#000, #25ff66);
+    -webkit-mask-image: -webkit-radial-gradient(#CAFEF4, #04a451);
     padding: 0;
   }
 
@@ -80,8 +79,8 @@ const StyledWrapper = styled.div`
   }
 
   .btn-53 .original {
-    background: #25ff66;
-    color: #000;
+    background: #04a451;
+    color: #CAFEF4;
     display: grid;
     inset: 0;
     place-content: center;

@@ -1,18 +1,42 @@
-import { LoginPayload, LoginResponse, User } from "@/types/auth";
+import { LoginOrRegisterResponse, LoginPayload, User } from "@/types/auth";
 import axios from "@/utils/axios"; // axios baru
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { AxiosError } from "axios";
 
+// REGISTER
+export const register = createAsyncThunk<LoginOrRegisterResponse, FormData, { rejectValue: string }>(
+    "auth/register",
+    async (DataFormRegister, thunkAPI) => {
+        try {
+            const res = await axios.post(
+                process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/api/register",
+                DataFormRegister, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            }
+            );
+            return res.data as LoginOrRegisterResponse;
+        } catch (error) {
+            const err = error as AxiosError<{ error: string }>;
+            if (err.code === "ERR_NETWORK") {
+                return thunkAPI.rejectWithValue("Network Error. Please check your connection.");
+            }
+            return thunkAPI.rejectWithValue(err.response?.data?.error || "Login failed");
+        }
+    }
+);
+
 // LOGIN
-export const login = createAsyncThunk<LoginResponse, LoginPayload, { rejectValue: string }>(
+export const login = createAsyncThunk<LoginOrRegisterResponse, LoginPayload, { rejectValue: string }>(
     "auth/login",
     async ({ email, password }, thunkAPI) => {
         try {
             const res = await axios.post(
-                process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/login",
+                process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/api/login",
                 { email, password },
             );
-            return res.data as LoginResponse;
+            return res.data as LoginOrRegisterResponse;
         } catch (error) {
             const err = error as AxiosError<{ error: string }>;
             if (err.code === "ERR_NETWORK") {
@@ -24,15 +48,15 @@ export const login = createAsyncThunk<LoginResponse, LoginPayload, { rejectValue
 );
 
 // REFRESH TOKEN
-export const refreshToken = createAsyncThunk<LoginResponse, void, { rejectValue: string }>(
+export const refreshToken = createAsyncThunk<LoginOrRegisterResponse, void, { rejectValue: string }>(
     "auth/refresh",
     async (_, thunkAPI) => {
         try {
             const res = await axios.post(
-                process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/refresh",
+                process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/api/refresh",
                 {},
             );
-            return res.data as LoginResponse;
+            return res.data as LoginOrRegisterResponse;
         } catch (error) {
             const err = error as AxiosError<{ message: string }>;
             return thunkAPI.rejectWithValue(err.response?.data?.message || "Refresh failed");
@@ -45,7 +69,7 @@ export const getUser = createAsyncThunk<any, void, { rejectValue: string }>(
     "auth/me",
     async (_, thunkAPI) => {
         try {
-            const res = await axios.get(process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/me");
+            const res = await axios.get(process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/api/me");
             return res.data;
         } catch (error) {
             return thunkAPI.rejectWithValue("Gagal mengambil data user");
@@ -71,12 +95,25 @@ const authSlice = createSlice({
     reducers: {
         logout: (state) => {
             state.user = null;
-            axios.post(process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/logout", {})
+            axios.post(process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/api/logout", {})
                 .catch(err => console.error(err));
         },
     },
     extraReducers: (builder) => {
         builder
+            // REGISTER
+            .addCase(register.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(register.fulfilled, (state, action) => {
+                state.loading = false;
+                state.user = action.payload.user; // ✅ simpan user
+            })
+            .addCase(register.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload ?? "Unknown error";
+            })
             // LOGIN
             .addCase(login.pending, (state) => {
                 state.loading = true;

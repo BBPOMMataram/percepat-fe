@@ -1,25 +1,26 @@
 "use client";
 
-import { useDispatch, useSelector } from "react-redux";
-import { clearAlert } from "@/features/alertSlice"
-import { useEffect } from "react";
+import { clearAlert } from "@/features/alertSlice";
 import { RootState } from "@/redux/store";
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 
 export default function Alert() {
-  const { type, message } = useSelector((state: RootState) => state.alert);
+  const { type, message, description } = useSelector((state: RootState) => state.alert);
   const dispatch = useDispatch();
 
   useEffect(() => {
     if (message) {
-      const timer = setTimeout(() => dispatch(clearAlert()), 5000);
+      console.log('Description: ', description);
+      const timer = setTimeout(() => dispatch(clearAlert()), 7000);
       return () => clearTimeout(timer);
     }
-  }, [message, dispatch]);
+  }, [message, description, dispatch]);
 
   if (!message) return null;
 
   const base =
-    "fixed top-4 right-4 z-50 w-80 p-3 rounded-lg text-sm font-medium border shadow-md animate-fade-in";
+    "fixed top-18 right-4 z-50 w-80 p-3 rounded-lg text-sm font-medium border shadow-md animate-fade-in";
   const styles =
     type === "success"
       ? "bg-green-100 text-green-800 border-green-300"

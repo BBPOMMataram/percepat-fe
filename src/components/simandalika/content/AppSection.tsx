@@ -15,7 +15,7 @@ export default function AppSection() {
 
     const fetchAppData = async () => {
         try {
-            const { data } = await axios(process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + '/site')
+            const { data } = await axios(process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + '/api/site')
             setDataApp(data.data)
         } catch (error) {
             console.log("Error fetching app data:", error)
@@ -35,7 +35,7 @@ export default function AppSection() {
                 <h2 className="text-3xl font-bold text-center mb-4">INOVASI</h2>
                 <p className="text-center text-lg mb-4">Inovasi - inovasi Balai Besar POM di Mataram</p>
             </div>
-            <div className="flex items-center justify-around gap-20 flex-wrap">
+            <div className="flex items-center justify-around gap-28 flex-wrap">
                 {
                     isLoading && <LoadingWithoutText /> ||
                     dataApp.map((app, index) => (
