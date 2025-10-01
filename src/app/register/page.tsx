@@ -1,6 +1,6 @@
 "use client";
 
-import RegisterForm from "@/components/main/RegisterForm";
+import RegisterForm from "@/components/main/register/RegisterForm";
 import ParticlesBackground from "@/components/simandalika/hero/ParticlesBackground";
 import { Suspense, useState } from "react";
 
