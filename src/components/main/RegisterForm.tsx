@@ -61,7 +61,7 @@ export default function RegisterForm() {
 
     return (
         <div className="flex min-h-screen items-center justify-center">
-            <div className="w-full max-w-sm rounded-2xl p-6 shadow-xl bg-white/70 font-serif my-4 overflow-auto max-h-[calc(100vh-2rem)]">
+            <div className="w-full max-w-md rounded-2xl p-6 shadow-xl bg-white/70 font-serif my-4 overflow-auto max-h-[calc(100vh-2rem)]">
                 <Image src="/assets/images/bpom.webp" alt="Icon BPOM" width={100} height={100} priority className="mx-auto mb-6 w-auto h-auto" />
                 <h1 className="text-center text-2xl font-bold tracking-wide">REGISTER FORM</h1>
                 <p className="text-center mb-4 text-gray-500">Balai Besar POM di Mataram</p>
@@ -116,6 +116,7 @@ export default function RegisterForm() {
                             Password
                         </label>
                         <input
+                            autoComplete="new-password"
                             name="password"
                             type={showPassword ? "text" : "password"}
                             value={password}
@@ -124,6 +125,7 @@ export default function RegisterForm() {
                             className="ar-input-text-purple w-full"
                         />
                         <button
+                            tabIndex={-1}
                             type="button"
                             className="absolute right-3 top-8 text-[#8b5cf6]"
                             onClick={() => setShowPassword(!showPassword)}
@@ -149,6 +151,7 @@ export default function RegisterForm() {
                             className="ar-input-text-purple w-full"
                         />
                         <button
+                            tabIndex={-1}
                             type="button"
                             className="absolute right-3 top-8 text-[#8b5cf6]"
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
