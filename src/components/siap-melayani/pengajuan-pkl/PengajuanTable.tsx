@@ -1,3 +1,4 @@
+
 export default function PengajuanPKLTableSiapMelayani({ pengajuan }: { pengajuan: any }) {
     const openPdf = (filePath: string) => {
         const frontendUrl = `/api/proxy/pdf?path=${encodeURIComponent(filePath)}`;
@@ -10,7 +11,6 @@ export default function PengajuanPKLTableSiapMelayani({ pengajuan }: { pengajuan
                 {/* head */}
                 <thead>
                     <tr>
-                        <th>#</th>
                         <th>Penempatan</th>
                         <th>Mulai</th>
                         <th>Berakhir</th>
@@ -25,10 +25,9 @@ export default function PengajuanPKLTableSiapMelayani({ pengajuan }: { pengajuan
                 <tbody>
                     {pengajuan?.data?.length > 0 ? pengajuan.data.map((pengajuanPkl: any, index: number) =>
                         <tr key={pengajuanPkl.id} className="[&>td]:align-top">
-                            <td>{++index}</td>
                             <td>{pengajuanPkl.position.name || '-'}</td>
                             <td>{pengajuanPkl.period_start ? new Date(pengajuanPkl.period_start).toLocaleString('id-ID', { dateStyle: 'full' }) : '-'}</td>
-                            <td>{pengajuanPkl.period_end ? new Date(pengajuanPkl.period_start).toLocaleString('id-ID', { dateStyle: 'full' }) : '-'}</td>
+                            <td>{pengajuanPkl.period_end ? new Date(pengajuanPkl.period_end).toLocaleString('id-ID', { dateStyle: 'full' }) : '-'}</td>
                             <td className="text-center">{
                                 pengajuanPkl.surat_pengajuan ?
                                     <button onClick={() => openPdf(pengajuanPkl.surat_pengajuan)} className="cursor-pointer">
@@ -70,8 +69,8 @@ export default function PengajuanPKLTableSiapMelayani({ pengajuan }: { pengajuan
                         </tr>
                     ) : (
                         <tr>
-                            <td colSpan={5} className="text-center text-slate-500 py-4">
-                                Tidak ada posisi PKL tersedia
+                            <td colSpan={9} className="text-center text-slate-500 py-4">
+                                Tidak ada data pengajuan PKL tersedia
                             </td>
                         </tr>
                     )}

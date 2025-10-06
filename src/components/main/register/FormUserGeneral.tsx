@@ -115,6 +115,28 @@ export default function FormRegisterUserGeneral() {
 
             <div>
                 <label className="block text-sm font-medium text-gray-700">
+                    No HP / WA
+                </label>
+                <input
+                    name="phone"
+                    type="text"
+                    className="ar-input-text-purple w-full"
+                />
+            </div>
+
+            <div>
+                <label className="block text-sm font-medium text-gray-700">
+                    Alamat
+                </label>
+                <input
+                    name="address"
+                    type="text"
+                    className="ar-input-text-purple w-full"
+                />
+            </div>
+
+            <div>
+                <label className="block text-sm font-medium text-gray-700">
                     Foto Profil
                 </label>
                 <input

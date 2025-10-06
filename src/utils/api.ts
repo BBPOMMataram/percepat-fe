@@ -1,7 +1,7 @@
 // src/utils/api.ts
-import apiBase from "./axios";
+import { logout, refreshToken } from "@/features/authSlice";
 import { store } from "@/redux/store";
-import { refreshToken, logout } from "@/features/authSlice";
+import apiBase from "./axios";
 
 const api = apiBase;
 

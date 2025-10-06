@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 export function middleware(req: NextRequest) {
   const token = req.cookies.get("access_token"); // contoh pakai JWT di cookie
   const { pathname, search } = req.nextUrl;
 
   // daftar halaman yang perlu login
-  const protectedPaths = ["/dashboard", "/profile", "/admin"];
+  const protectedPaths = ["/dashboard", "/profile", "/admin", "/siap-melayani/pengajuan-pkl/form"];
 
   const isProtected = protectedPaths.some((path) =>
     pathname.startsWith(path)
@@ -23,5 +23,5 @@ export function middleware(req: NextRequest) {
 
 // halaman mana saja yang dipantau
 export const config = {
-  matcher: ["/dashboard/:path*", "/profile/:path*", "/admin/:path*"],
+  matcher: ["/dashboard/:path*", "/profile/:path*", "/admin/:path*", "/siap-melayani/pengajuan-pkl/form/:path*"],
 };

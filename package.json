@@ -24,6 +24,7 @@
     "axios": "^1.4.0",
     "classnames": "^2.3.2",
     "daisyui": "^5.1.13",
+    "dayjs": "^1.11.18",
     "eslint": "8.42.0",
     "eslint-config-next": "15.4.1",
     "framer-motion": "^12.23.6",

@@ -1,5 +1,5 @@
 import { LoginOrRegisterResponse, LoginPayload, User } from "@/types/auth";
-import axios from "@/utils/axios"; // axios baru
+import axios from "@/utils/axios";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { AxiosError } from "axios";
 
@@ -52,7 +52,7 @@ export const refreshToken = createAsyncThunk<LoginOrRegisterResponse, void, { re
     "auth/refresh",
     async (_, thunkAPI) => {
         try {
-            const res = await axios.post(
+            const res = await axios.post( // biar ga infinite loop jadi ga pake interceptor
                 process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/api/refresh",
                 {},
             );

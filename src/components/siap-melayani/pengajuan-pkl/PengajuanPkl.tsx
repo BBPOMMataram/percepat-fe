@@ -7,7 +7,6 @@ import { useDispatch, useSelector } from "react-redux";
 import PengajuanIfLoggedUserSiapMelayani from "./PengajuanIfLoggedUser";
 
 export default function PengajuanPklSiapMelayani() {
-
     const dispatch = useDispatch<AppDispatch>()
     const { user, loading } = useSelector((state: RootState) => state.auth)
 
