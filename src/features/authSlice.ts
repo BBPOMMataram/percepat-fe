@@ -135,6 +135,8 @@ const authSlice = createSlice({
 
             // GET USER
             .addCase(getUser.fulfilled, (state, action) => {
+                console.log(action.payload);
+
                 state.user = action.payload;
             })
             .addCase(getUser.rejected, (state) => {

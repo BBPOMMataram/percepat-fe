@@ -15,10 +15,13 @@ export default function LogoutBtn() {
 
     return (
         <button
-            className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded shadow-md"
+            className="flex items-center gap-2 p-2 tooltip tooltip-bottom"
+            data-tip="Logout"
             onClick={handleClick}
         >
-            Logout
+            <span className="material-symbols-outlined">
+                chip_extraction
+            </span>
         </button>
     )
 }

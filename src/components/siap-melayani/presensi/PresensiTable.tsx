@@ -1,11 +1,7 @@
 "use client";
 
-import dayjs from "dayjs";
+import dayjs from "@/utils/dayjs";
 import Image from "next/image";
-
-import "dayjs/locale/id"; // import locale Indonesia
-
-dayjs.locale("id"); // set ke locale Indonesia
 
 interface Presensi {
     id: number;
