@@ -131,8 +131,12 @@ export default function NavBarSiapMelayani() {
                                             {user.employee ? (<span className="whitespace-nowrap text-[.6rem] text-gray-500">{user.employee.unit_kerja} </span>) : null}
                                         </a>
                                     </li>
-                                    <li><a>Presensi</a></li>
-                                    <li><a>Profile</a></li>
+                                    <li>
+                                        <Link href={'/siap-melayani/presensi'}>Presensi</Link>
+                                    </li>
+                                    <li>
+                                        <Link href={'/siap-melayani/profile'}>Profile</Link>
+                                    </li>
                                     <li className="mt-2 text-slate-700">
                                         <button onClick={() => dispatch(logout())}>Logout</button>
                                     </li>
