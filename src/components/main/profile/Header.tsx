@@ -18,7 +18,7 @@ export default function HeaderProfile({ user, callName }: { user: User | null, c
                 </p>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center  gap-4">
                 <div className="relative hidden md:block">
                     <span className="material-symbols-outlined absolute left-2 top-2 text-gray-400 w-4 h-4">
                         search
@@ -41,7 +41,7 @@ export default function HeaderProfile({ user, callName }: { user: User | null, c
                     alt="Profile photo"
                     width={32}
                     height={32}
-                    className="rounded-full object-cover"
+                    className="rounded-full object-cover w-8 h-8"
                 />
             </div>
         </header>

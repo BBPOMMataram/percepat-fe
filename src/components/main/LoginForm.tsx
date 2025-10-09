@@ -19,7 +19,7 @@ export default function LoginForm() {
 
     const { loading } = useSelector((state: RootState) => state.auth);
 
-    const callbackUrl = searchParams.get("redirectUrl") || "admin";
+    const callbackUrl = searchParams.get("redirectUrl") || "/profile";
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();

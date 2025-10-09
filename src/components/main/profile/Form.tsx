@@ -1,126 +1,260 @@
 "use client";
 
+import { showAlert } from "@/features/alertSlice";
+import { AppDispatch } from "@/redux/store";
 import { User } from "@/types/auth";
+import api from "@/utils/api";
 import dayjs from "@/utils/dayjs";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useDispatch } from "react-redux";
 
 export default function FormProfile({ user, updateCallName, callName }: { user: User | null, updateCallName: (name: string) => void, callName: string }) {
     const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
     const [isEditing, setIsEditing] = useState(false);
+
+    const fullNameRef = useRef<HTMLInputElement>(null);
+    const formProfileRef = useRef<HTMLFormElement>(null);
+
+    const dispatch = useDispatch<AppDispatch>()
 
     useEffect(() => {
         if (user) {
             setName(user.name);
+            setEmail(user.email);
         }
     }, [user]);
 
+    useEffect(() => {
+        if (fullNameRef.current) {
+            fullNameRef.current.focus();
+        }
+    }, [isEditing]);
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+
+        if (formProfileRef.current) {
+            const formData = new FormData(formProfileRef.current);
+
+            formData.append('_method', 'PATCH');
+            api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/update`, formData)
+                .then(res => {
+                    dispatch(showAlert({ type: "success", message: res.data.message, description: res.data.message }))
+                    setIsEditing(false);
+                })
+                .catch(err => {
+                    dispatch(showAlert({ type: "error", message: err?.response?.data?.message, description: err.response?.data?.message || "No Message from Backend" }));
+                });
+        }
+    }
+
     return (
         <div className="flex flex-col">
-            <div className="bg-white rounded-2xl shadow p-8 mt-6">
-                <div className="flex items-center gap-4 mb-8">
-                    <Image
-                        src={user?.photo_path || "/assets/images/noimage.webp"}
-                        alt="Profile photo"
-                        width={64}
-                        height={64}
-                        className="rounded-full object-cover"
-                    />
-                    <div>
-                        <h3 className="text-lg font-semibold text-gray-800">{name}</h3>
-                        <p className="text-sm text-gray-500">{user?.email}</p>
-                    </div>
-                    <button className="ml-auto bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition"
-                        onClick={() => setIsEditing(!isEditing)}
-                    >
-                        {isEditing ? "Simpan" : "Edit"}
-                    </button>
-                </div>
+            <form ref={formProfileRef} onSubmit={handleSubmit}>
+                <div className="bg-white rounded-2xl shadow p-8 mt-6">
+                    <div className="flex gap-4 mb-8">
+                        <div className="flex flex-col gap-3">
+                            <div className="flex items-center gap-4">
+                                <Image
+                                    src={user?.photo_path || "/assets/images/noimage.webp"}
+                                    alt="Profile photo"
+                                    width={64}
+                                    height={64}
+                                    className="w-16 h-16 rounded-full object-cover"
+                                />
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-800">{name}</h3>
+                                    <p className="text-sm text-gray-500">{email}</p>
+                                </div>
+                            </div>
+                            {isEditing &&
+                                <div className="text-xs flex flex-col">
+                                    <label htmlFor="photo_path">Update Photo</label>
+                                    <input type="file" name="photo_path" className="ar-input-text-purple text-xs w-32" />
+                                </div>
+                            }
+                        </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label className="text-sm text-gray-500">Full Name</label>
-                        <input type="text" placeholder="Full Name" className="ar-input-text-purple w-full"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            readOnly={!isEditing}
-                        />
+                        <div className="ml-auto">
+                            {isEditing ?
+                                <>
+                                    <button className="btn btn-error btn-sm mx-2"
+                                        type="button"
+                                        onClick={() => setIsEditing(false)}
+                                    >
+                                        <span className="material-symbols-outlined">
+                                            cancel
+                                        </span>
+                                    </button>
+                                    <button className="btn btn-primary btn-sm"
+                                        type="submit"
+                                    >
+                                        <span className="material-symbols-outlined">
+                                            save
+                                        </span>
+                                    </button>
+                                </>
+                                :
+                                <button
+                                    className="btn btn-primary btn-sm"
+                                    type="button"
+                                    onClick={() => setIsEditing(true)}
+                                >
+                                    <span className="material-symbols-outlined">
+                                        edit
+                                    </span>
+                                </button>
+                            }
+                        </div>
                     </div>
-                    <div>
-                        <label className="text-sm text-gray-500">Nick Name</label>
-                        <input type="text" placeholder="Nick Name" className="ar-input-text-purple w-full"
-                            value={callName}
-                            onChange={(e) => updateCallName(e.target.value)}
-                            readOnly={!isEditing}
-                        />
-                    </div>
-                    <div>
-                        <label className="text-sm text-gray-500">NIK</label>
-                        <input type="text" placeholder="NIK" className="ar-input-text-purple w-full"
-                            value={user?.nik}
-                            readOnly={!isEditing}
-                        />
-                    </div>
-                </div>
-            </div>
 
-            {/* EMPLOYEE SECTION */}
-            {
-                user?.employee &&
-                <div className="bg-white rounded-2xl shadow px-8 py-4 mt-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="text-sm text-gray-500">NIP</label>
-                            <input type="text" placeholder="NIP" className="ar-input-text-purple w-full"
-                                value={user.employee.nip || ""}
+                            <label className="text-sm text-gray-500">Full Name</label>
+                            <input type="text" placeholder="Full Name" className="ar-input-text-purple w-full"
+                                ref={fullNameRef}
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
                                 readOnly={!isEditing}
+                                name="name"
                             />
                         </div>
                         <div>
-                            <label className="text-sm text-gray-500">Gelar Depan</label>
-                            <input type="text" placeholder="Gelar Depan" className="ar-input-text-purple w-full"
-                                value={user.employee.gelar_depan || ""}
+                            <label className="text-sm text-gray-500">Email</label>
+                            <input type="text" placeholder="Email" className="ar-input-text-purple w-full"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 readOnly={!isEditing}
+                                name="email"
                             />
                         </div>
                         <div>
-                            <label className="text-sm text-gray-500">Gelar Belakang</label>
-                            <input type="text" placeholder="Gelar Belakang" className="ar-input-text-purple w-full"
-                                value={user.employee.gelar_belakang || ""}
+                            <label className="text-sm text-gray-500">Nick Name</label>
+                            <input type="text" placeholder="Nick Name" className="ar-input-text-purple w-full"
+                                value={callName}
+                                onChange={(e) => updateCallName(e.target.value)}
                                 readOnly={!isEditing}
+                                name="call_name"
                             />
                         </div>
                         <div>
-                            <label className="text-sm text-gray-500">Jabatan</label>
-                            <input type="text" placeholder="Jabatan" className="ar-input-text-purple w-full"
-                                value={user.employee.jabatan || ""}
+                            <label className="text-sm text-gray-500">NIK</label>
+                            <input type="text" placeholder="NIK" className="ar-input-text-purple w-full"
+                                defaultValue={user?.nik || ""}
                                 readOnly={!isEditing}
-                            />
-                        </div>
-                        <div>
-                            <label className="text-sm text-gray-500">Golongan</label>
-                            <input type="text" placeholder="Golongan" className="ar-input-text-purple w-full"
-                                value={user.employee.golongan || ""}
-                                readOnly={!isEditing}
-                            />
-                        </div>
-                        <div>
-                            <label className="text-sm text-gray-500">Pangkat</label>
-                            <input type="text" placeholder="Pangkat" className="ar-input-text-purple w-full"
-                                value={user.employee.pangkat || ""}
-                                readOnly={!isEditing}
+                                name="nik"
                             />
                         </div>
                     </div>
                 </div>
-            }
+
+                {/* EMPLOYEE SECTION */}
+                {
+                    user?.employee &&
+                    <div className="bg-white rounded-2xl shadow px-8 py-4 mt-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="text-sm text-gray-500">NIP</label>
+                                <input type="text" placeholder="NIP" className="ar-input-text-purple w-full"
+                                    defaultValue={user.employee.nip || ""}
+                                    readOnly={!isEditing}
+                                    name="employee[nip]"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm text-gray-500">Gelar Depan</label>
+                                <input type="text" placeholder="Gelar Depan" className="ar-input-text-purple w-full"
+                                    defaultValue={user.employee.gelar_depan || ""}
+                                    readOnly={!isEditing}
+                                    name="employee[gelar_depan]"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm text-gray-500">Gelar Belakang</label>
+                                <input type="text" placeholder="Gelar Belakang" className="ar-input-text-purple w-full"
+                                    defaultValue={user.employee.gelar_belakang || ""}
+                                    readOnly={!isEditing}
+                                    name="employee[gelar_belakang]"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm text-gray-500">Jabatan</label>
+                                <input type="text" placeholder="Jabatan" className="ar-input-text-purple w-full"
+                                    defaultValue={user.employee.jabatan || ""}
+                                    readOnly={!isEditing}
+                                    name="employee[jabatan]"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm text-gray-500">Golongan</label>
+                                <input type="text" placeholder="Golongan" className="ar-input-text-purple w-full"
+                                    defaultValue={user.employee.golongan || ""}
+                                    readOnly={!isEditing}
+                                    name="employee[golongan]"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm text-gray-500">Pangkat</label>
+                                <input type="text" placeholder="Pangkat" className="ar-input-text-purple w-full"
+                                    defaultValue={user.employee.pangkat || ""}
+                                    readOnly={!isEditing}
+                                    name="employee[pangkat]"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                {/* STUDENT SECTION */}
+                {
+                    user?.student &&
+                    <div className="bg-white rounded-2xl shadow px-8 py-4 mt-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="text-sm text-gray-500">Universitas</label>
+                                <input type="text" placeholder="Universitas" className="ar-input-text-purple w-full"
+                                    defaultValue={user.student.university || ""}
+                                    readOnly={!isEditing}
+                                    name="student[university]"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm text-gray-500">Jurusan</label>
+                                <input type="text" placeholder="Jurusan" className="ar-input-text-purple w-full"
+                                    defaultValue={user.student.jurusan || ""}
+                                    readOnly={!isEditing}
+                                    name="student[jurusan]"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm text-gray-500">NIM</label>
+                                <input type="text" placeholder="NIM" className="ar-input-text-purple w-full"
+                                    defaultValue={user.student.nim || ""}
+                                    readOnly={!isEditing}
+                                    name="student[nim]"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm text-gray-500">Angkatan</label>
+                                <input type="text" placeholder="Angkatan" className="ar-input-text-purple w-full"
+                                    defaultValue={user.student.angkatan || ""}
+                                    readOnly={!isEditing}
+                                    name="student[angkatan]"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                }
+            </form>
 
             <div className="bg-white rounded-2xl shadow px-8 py-4 mt-6">
                 <div>
                     <p className="text-sm text-gray-400">Join since {user?.created_at ? dayjs(user.created_at).format("DD MMMM YYYY") : "-"}</p>
                     <p className="text-sm text-gray-400 mt-1">
-                        <span className="capitalize">{user?.employee && user?.employee.position + " " + user?.employee.unit_kerja}</span>
-                        <span>{user?.student && "Mahasiswa"}</span>
+                        <span className="capitalize">{user?.employee && `${user?.employee.position} ${user?.employee.fungsi?.name} ${user?.employee.unit_kerja}`}</span>
+                        <span>{user?.student && `Mahasiswa PKL ${user?.student.university}`}</span>
                     </p>
                 </div>
             </div>
@@ -131,6 +265,6 @@ export default function FormProfile({ user, updateCallName, callName }: { user: 
                     Copyright &copy; BBPOM di Mataram {dayjs().format("YYYY")} All rights reserved
                 </p>
             </div>
-        </div >
+        </div>
     );
 }

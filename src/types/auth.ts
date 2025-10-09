@@ -38,6 +38,9 @@ export interface Employee {
     extra: string | null;
     created_at: string | null; // ISO date string | null
     updated_at: string | null; // ISO date string | null
+    fungsi: {
+        name: string;
+    }
 }
 
 export interface Student {

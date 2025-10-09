@@ -15,7 +15,7 @@ export default function SidebarProfile({ user }: { user: User | null }) {
                     account_circle
                 </span>
             </button>
-            <button className="tooltip tooltip-right p-2 rounded-lg hover:bg-gray-100" data-tip="Our Apps">
+            <button className="tooltip tooltip-right p-2 rounded-lg hover:bg-gray-100" data-tip="Forum">
                 <span className="material-symbols-outlined">
                     forum
                 </span>
@@ -25,7 +25,7 @@ export default function SidebarProfile({ user }: { user: User | null }) {
                     report_gmailerrorred
                 </span>
             </button>
-            <button className="tooltip tooltip-right p-2 rounded-lg hover:bg-gray-100" data-tip="Forum">
+            <button className="tooltip tooltip-right p-2 rounded-lg hover:bg-gray-100" data-tip="Our Apps">
                 <span className="material-symbols-outlined">
                     apps
                 </span>
