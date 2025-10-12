@@ -2,13 +2,9 @@
 import Footer from "@/components/percepat/footer";
 import Hero from "@/components/percepat/header/Hero";
 import Inventory from "@/components/percepat/inventory";
-import { Josefin_Sans } from 'next/font/google';
-
-const josefinSans = Josefin_Sans({ subsets: ['latin'] })
-
 const Percepat = () => {
     return (
-        <div className={`${josefinSans.className}`} data-theme="percepat">
+        <div>
             <header>
                 <Hero />
             </header>
