@@ -1,5 +1,7 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
+import ButtonLogin from "./ButtonLogin";
 import DynamicText from "./DynamicText";
 import SimandalikaText from "./SimandalikaText";
 
@@ -12,12 +14,17 @@ const Hero = () => {
             <div className="hidden sm:block">
                 <DynamicText />
             </div>
-            <div className="flex flex-col items-center mb-2">
+            <div className="flex flex-col items-center">
                 <h1 className="text-2xl font-semibold mb-2 uppercase">Selamat datang di</h1>
                 <SimandalikaText />
             </div>
             <p className="text-center text-lg">Sistem Monitoring Digitalisasi Aplikasi Terpadu Balai Besar POM di Mataram</p>
-            <div className="arrow-icon mt-12 animate-bounce">
+            <div className="mt-12">
+                <Link href="/login" aria-label="Login to Si Mandalika">
+                    <ButtonLogin />
+                </Link>
+            </div>
+            <div className="arrow-icon mt-6 animate-bounce">
                 <a href="#main">
                     <span className="material-symbols-outlined">
                         arrow_cool_down

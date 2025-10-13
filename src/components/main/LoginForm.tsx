@@ -1,12 +1,12 @@
 "use client";
-
 import { showAlert } from "@/features/alertSlice";
 import { login } from "@/features/authSlice";
 import type { AppDispatch, RootState } from "@/redux/store";
 import { LoginOrRegisterResponse } from "@/types/auth";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 export default function LoginForm() {
@@ -17,9 +17,15 @@ export default function LoginForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    const { loading } = useSelector((state: RootState) => state.auth);
+    const { user, loading } = useSelector((state: RootState) => state.auth);
 
     const callbackUrl = searchParams.get("redirectUrl") || "/profile";
+
+    useEffect(() => {
+        if (user) {
+            router.push(callbackUrl);
+        }
+    })
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -91,6 +97,11 @@ export default function LoginForm() {
                         >
                             {loading ? "Loading..." : "Login"}
                         </button>
+                    </div>
+                    <div className="w-fit underline mt-10" aria-label="Register a new account">
+                        <Link href={"/register"}>
+                            Register Instead
+                        </Link>
                     </div>
                 </form>
             </div>

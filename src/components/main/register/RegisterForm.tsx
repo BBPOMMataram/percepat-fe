@@ -5,7 +5,8 @@ import { register } from "@/features/authSlice";
 import type { AppDispatch, RootState } from "@/redux/store";
 import { LoginOrRegisterResponse } from "@/types/auth";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import SignatureCanvas from "react-signature-canvas";
@@ -116,6 +117,12 @@ export default function RegisterForm() {
                         >
                             {loading ? "Loading..." : "Register"}
                         </button>
+                    </div>
+
+                    <div className="w-fit underline mt-10" aria-label="Login instead if you already have an account">
+                        <Link href={"/login"}>
+                            Login Instead
+                        </Link>
                     </div>
                 </form>
             </div >
