@@ -15,6 +15,10 @@ const nextConfig = {
                 protocol: 'https',
                 hostname: 'media.giphy.com',
             },
+            {
+                protocol: 'https',
+                hostname: 'auth.bbpommataram.com',
+            },
         ],
     }
 }
