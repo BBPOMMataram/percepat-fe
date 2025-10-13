@@ -17,7 +17,7 @@ const nextConfig = {
             },
             {
                 protocol: 'https',
-                hostname: 'auth.bbpommataram.com',
+                hostname: 'auth.bbpommataram.id',
             },
         ],
     }
