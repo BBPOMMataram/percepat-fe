@@ -1,19 +1,19 @@
 import styled from 'styled-components';
 
 const ButtonLogin = () => {
-    return (
-        <StyledWrapper>
-            <div className="container-button">
-                <div className="hover bt-1" />
-                <div className="hover bt-2" />
-                <div className="hover bt-3" />
-                <div className="hover bt-4" />
-                <div className="hover bt-5" />
-                <div className="hover bt-6" />
-                <button />
-            </div>
-        </StyledWrapper>
-    );
+  return (
+    <StyledWrapper>
+      <div className="container-button">
+        <div className="hover bt-1" />
+        <div className="hover bt-2" />
+        <div className="hover bt-3" />
+        <div className="hover bt-4" />
+        <div className="hover bt-5" />
+        <div className="hover bt-6" />
+        <button />
+      </div>
+    </StyledWrapper>
+  );
 }
 
 const StyledWrapper = styled.div`
@@ -115,7 +115,7 @@ const StyledWrapper = styled.div`
     top: -110%;
     transform: translate(-50%, 0);
     font-size: 34px;
-    color: #f19c2b;
+    color: #004281;
   }
 
   button {
@@ -126,7 +126,7 @@ const StyledWrapper = styled.div`
     background: transparent;
     font-size: 17px;
     font-weight: 900;
-    border: 3px solid #f39923;
+    border: 3px solid #004281ff;
     border-radius: 12px;
     transition: all 0.3s ease-in-out;
   }
@@ -139,7 +139,7 @@ const StyledWrapper = styled.div`
     transform: translate(-50%, -50%);
     width: 135px;
     height: 47px;
-    background-color: #f5ae51;
+    background-color: #004281ee;
     border-radius: 12px;
     transition: all 0.3s ease-in-out;
     z-index: -1;

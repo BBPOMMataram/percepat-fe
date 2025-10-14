@@ -1,6 +1,6 @@
 "use client";
 import { showAlert } from "@/features/alertSlice";
-import { login } from "@/features/authSlice";
+import { getUser, login } from "@/features/authSlice";
 import type { AppDispatch, RootState } from "@/redux/store";
 import { LoginOrRegisterResponse } from "@/types/auth";
 import Image from "next/image";
@@ -14,18 +14,27 @@ export default function LoginForm() {
     const [password, setPassword] = useState("");
 
     const dispatch = useDispatch<AppDispatch>();
+
     const router = useRouter();
     const searchParams = useSearchParams();
-
     const { user, loading } = useSelector((state: RootState) => state.auth);
 
     const callbackUrl = searchParams.get("redirectUrl") || "/profile";
 
     useEffect(() => {
+        try {
+            dispatch(getUser())
+        } catch (error) {
+            console.log(error);
+        }
+    }, [dispatch])
+
+    useEffect(() => {
         if (user) {
+            dispatch(showAlert({ type: "success", message: `You are already logged in ${user.call_name}`, description: "Redirecting to your profile page..." }));
             router.push(callbackUrl);
         }
-    })
+    }, [user, router, callbackUrl, dispatch])
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -33,15 +42,12 @@ export default function LoginForm() {
         dispatch(login({ email, password }))
             .unwrap()
             .then((data: LoginOrRegisterResponse) => {
-
                 dispatch(showAlert({ type: "success", message: `Welcome ${data.user.name} !`, description: data.message ?? "No Message from Backend" }));
-                console.log('login success', data);
                 router.push(callbackUrl);
             })
             .catch((err) => {
                 dispatch(showAlert({ type: "error", message: "Login failed", description: err || "No Message from Backend" }));
                 console.log('login failed', err);
-
             });
     };
 

@@ -3,10 +3,11 @@
 import { User } from "@/types/auth";
 import dayjs from "@/utils/dayjs";
 import Image from "next/image";
+import Link from "next/link";
 import LogoutBtn from "../LogoutBtn";
 import NotificationBell from "../NotificationBell";
 
-export default function HeaderProfile({ user, callName }: { user: User | null, callName: string }) {
+export default function Header({ user, callName }: { user: User | null, callName: string }) {
     return (
         <header className="flex justify-between items-center px-6 py-4 bg-white shadow-md">
             <div>
@@ -29,20 +30,32 @@ export default function HeaderProfile({ user, callName }: { user: User | null, c
                         className="pl-9 pr-3 py-2 border rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-400"
                     />
                 </div>
-                {/* <div className="tooltip tooltip-bottom" data-tip="Not Available">
-                    <span className="material-symbols-outlined">
-                        notifications
-                    </span>
-                </div> */}
                 <NotificationBell />
-                <LogoutBtn />
-                <Image
-                    src={user?.photo_path || "/assets/images/noimage.webp"}
-                    alt="Profile photo"
-                    width={32}
-                    height={32}
-                    className="rounded-full object-cover w-8 h-8"
-                />
+                <div className="dropdown dropdown-end">
+                    <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
+                        <Image
+                            src={user?.photo_path || "/assets/images/noimage.webp"}
+                            alt="Profile photo"
+                            width={32}
+                            height={32}
+                            className="rounded-full object-cover w-8 h-8"
+                        />
+                    </div>
+                    <ul
+                        tabIndex={0}
+                        className="menu dropdown-content bg-base-100 rounded-box z-1 mt-3 max-w-fit p-2 shadow"
+                    >
+                        {
+                            user?.student &&
+                            <li>
+                                <Link href={'/siap-melayani/presensi'}>Presensi</Link>
+                            </li>
+                        }
+                        <li className="mt-2 w-fit">
+                            <LogoutBtn />
+                        </li>
+                    </ul>
+                </div>
             </div>
         </header>
     );

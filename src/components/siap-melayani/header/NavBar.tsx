@@ -1,6 +1,7 @@
 "use client";
 
-import { getUser, logout } from "@/features/authSlice";
+import LogoutBtn from "@/components/main/LogoutBtn";
+import { getUser } from "@/features/authSlice";
 import { AppDispatch, RootState } from "@/redux/store";
 import Image from "next/image";
 import Link from "next/link";
@@ -137,8 +138,8 @@ export default function NavBarSiapMelayani() {
                                     <li>
                                         <Link href={'/profile'}>Profile</Link>
                                     </li>
-                                    <li className="mt-2 text-slate-700">
-                                        <button onClick={() => dispatch(logout())}>Logout</button>
+                                    <li className="mt-2 w-fit">
+                                        <LogoutBtn />
                                     </li>
                                 </ul>
                             </div>

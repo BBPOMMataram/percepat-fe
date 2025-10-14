@@ -5,23 +5,33 @@ import apiBase from "./axios";
 
 const api = apiBase;
 
-// request interceptor (gak perlu token lagi)
-api.interceptors.request.use((config) => config);
-
-// response interceptor
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
+    const originalRequest = error.config;
+
+    // Jangan refresh jika error datang dari /api/refresh atau /api/logout
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry && // untuk mencegah infinite loop
+      !originalRequest.url.includes("/api/refresh") &&
+      !originalRequest.url.includes("/api/logout")
+    ) {
+      originalRequest._retry = true;
       try {
         await store.dispatch(refreshToken()).unwrap();
-        return api(error.config);
+        return api(originalRequest);
       } catch {
-        store.dispatch(logout());
+        // hanya logout kalau refresh token gagal *dan* user masih login
+        const { user } = store.getState().auth;
+        if (user) store.dispatch(logout());
+        return Promise.reject(error);
       }
     }
+
     return Promise.reject(error);
   }
 );
+
 
 export default api;

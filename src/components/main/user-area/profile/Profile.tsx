@@ -9,7 +9,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 
-export default function FormProfile({ user, updateCallName, callName }: { user: User | null, updateCallName: (name: string) => void, callName: string }) {
+export default function Profile({ user, updateCallName, callName }: { user: User | null, updateCallName: (name: string) => void, callName: string }) {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [isEditing, setIsEditing] = useState(false);
@@ -39,7 +39,7 @@ export default function FormProfile({ user, updateCallName, callName }: { user: 
             const formData = new FormData(formProfileRef.current);
 
             formData.append('_method', 'PATCH');
-            api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/update`, formData)
+            api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/update-profile`, formData)
                 .then(res => {
                     dispatch(showAlert({ type: "success", message: res.data.message, description: res.data.message }))
                     setIsEditing(false);
@@ -53,7 +53,7 @@ export default function FormProfile({ user, updateCallName, callName }: { user: 
     return (
         <div className="flex flex-col">
             <form ref={formProfileRef} onSubmit={handleSubmit}>
-                <div className="bg-white rounded-2xl shadow p-8 mt-6">
+                <div className="bg-white rounded-2xl shadow p-8">
                     <div className="flex gap-4 mb-8">
                         <div className="flex flex-col gap-3">
                             <div className="flex items-center gap-4">
@@ -80,29 +80,30 @@ export default function FormProfile({ user, updateCallName, callName }: { user: 
                         <div className="ml-auto">
                             {isEditing ?
                                 <>
-                                    <button className="btn btn-error btn-sm mx-2"
+                                    <button className="btn btn-error mx-2"
                                         type="button"
                                         onClick={() => setIsEditing(false)}
                                     >
-                                        <span className="material-symbols-outlined">
+                                        <span className="material-symbols-outlined !text-[20px]">
                                             cancel
                                         </span>
                                     </button>
-                                    <button className="btn btn-primary btn-sm"
+                                    <button className="btn btn-primary"
                                         type="submit"
                                     >
-                                        <span className="material-symbols-outlined">
+                                        <span className="material-symbols-outlined !text-[20px]">
                                             save
                                         </span>
                                     </button>
                                 </>
                                 :
                                 <button
-                                    className="btn btn-primary btn-sm"
+                                    className="btn btn-error tooltip tooltip-top"
+                                    data-tip="Edit"
                                     type="button"
                                     onClick={() => setIsEditing(true)}
                                 >
-                                    <span className="material-symbols-outlined">
+                                    <span className="material-symbols-outlined !text-[20px]">
                                         edit
                                     </span>
                                 </button>
@@ -257,13 +258,6 @@ export default function FormProfile({ user, updateCallName, callName }: { user: 
                         <span>{user?.student && `Mahasiswa PKL ${user?.student.university}`}</span>
                     </p>
                 </div>
-            </div>
-
-            {/* Footer */}
-            <div className="bg-white rounded-2xl shadow px-8 py-4 mt-4">
-                <p className="text-sm text-gray-400">
-                    Copyright &copy; BBPOM di Mataram {dayjs().format("YYYY")} All rights reserved
-                </p>
             </div>
         </div>
     );

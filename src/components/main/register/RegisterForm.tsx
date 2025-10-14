@@ -1,13 +1,13 @@
 "use client";
 
 import { showAlert } from "@/features/alertSlice";
-import { register } from "@/features/authSlice";
+import { getUser, register } from "@/features/authSlice";
 import type { AppDispatch, RootState } from "@/redux/store";
 import { LoginOrRegisterResponse } from "@/types/auth";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import SignatureCanvas from "react-signature-canvas";
 import FormRegisterAdditionalExternal from "./FormAdditionalExternal";
@@ -24,10 +24,23 @@ export default function RegisterForm() {
 
     const router = useRouter();
 
-    const { loading } = useSelector((state: RootState) => state.auth);
+    const { user, loading } = useSelector((state: RootState) => state.auth);
 
     // redirect ke form login setelah reg karena setelah register hanya membuat akun dan belum login
     const callbackUrl = "login";
+
+    // const callbackUrl = searchParams.get("redirectUrl") || "/profile";
+
+    useEffect(() => {
+        dispatch(getUser())
+    }, [dispatch])
+
+    useEffect(() => {
+        if (user) {
+            dispatch(showAlert({ type: "success", message: `You are already logged in as ${user.name}`, description: "Redirecting to your profile page..." }));
+            router.push(callbackUrl);
+        }
+    })
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();

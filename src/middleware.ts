@@ -6,7 +6,12 @@ export function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
 
   // daftar halaman yang perlu login
-  const protectedPaths = ["/dashboard", "/profile", "/admin", "/siap-melayani/pengajuan-pkl/form", "/siap-melayani/presensi"];
+  const protectedPaths = [
+    "/profile",
+    "/settings",
+    "/siap-melayani/pengajuan-pkl/form",
+    "/siap-melayani/presensi"
+  ];
 
   const isProtected = protectedPaths.some((path) =>
     pathname.startsWith(path)
@@ -23,5 +28,10 @@ export function middleware(req: NextRequest) {
 
 // halaman mana saja yang dipantau
 export const config = {
-  matcher: ["/dashboard/:path*", "/profile/:path*", "/admin/:path*", "/siap-melayani/pengajuan-pkl/form/:path*", "/siap-melayani/presensi/:path*"],
+  matcher: [
+    "/profile/:path*",
+    "/settings/:path*",
+    "/siap-melayani/pengajuan-pkl/form/:path*",
+    "/siap-melayani/presensi/:path*"
+  ],
 };
