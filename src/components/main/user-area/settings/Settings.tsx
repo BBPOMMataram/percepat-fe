@@ -49,7 +49,7 @@ export default function Settings({ user }: { user: User | null }) {
             <form ref={formUpdatePasswordRef} onSubmit={handleSubmit} autoComplete="off">
                 <div className="bg-white rounded-2xl shadow p-8">
                     <div className="flex gap-4 mb-8">
-                        <h2 className="text-lg font-semibold text-gray-800">Update Password</h2>
+                        <h2 className="text-xl font-semibold text-gray-800">Update Password</h2>
 
                         <div className="ml-auto">
                             {isEditing ?
@@ -88,7 +88,7 @@ export default function Settings({ user }: { user: User | null }) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="relative">
                             <label className="text-sm text-gray-500">Password Lama</label>
-                            <input placeholder="Password Lama" className="ar-input-text-purple w-full"
+                            <input placeholder="Password Lama" className="ar-input-text-green w-full"
                                 type={showOldPassword ? "text" : "password"}
                                 readOnly={!isEditing}
                                 name="old_password"
@@ -110,7 +110,7 @@ export default function Settings({ user }: { user: User | null }) {
                         </div>
                         <div className="relative">
                             <label className="text-sm text-gray-500">Password Baru</label>
-                            <input placeholder="Password Baru" className="ar-input-text-purple w-full"
+                            <input placeholder="Password Baru" className="ar-input-text-green w-full"
                                 type={showNewPassword ? "text" : "password"}
                                 readOnly={!isEditing}
                                 name="new_password"
@@ -131,7 +131,7 @@ export default function Settings({ user }: { user: User | null }) {
                         </div>
                         <div className="relative">
                             <label className="text-sm text-gray-500">Konfirmasi Password Baru</label>
-                            <input placeholder="Ketik ulang password baru" className="ar-input-text-purple w-full"
+                            <input placeholder="Ketik ulang password baru" className="ar-input-text-green w-full"
                                 type={showConfirmPassword ? "text" : "password"}
                                 readOnly={!isEditing}
                                 name="new_password_confirmation"

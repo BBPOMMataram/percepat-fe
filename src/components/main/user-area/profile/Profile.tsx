@@ -9,6 +9,7 @@ import dayjs from "@/utils/dayjs";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
+import SignatureCanvas from "react-signature-canvas";
 
 export default function Profile({ user, updateCallName, callName }: { user: User | null, updateCallName: (name: string) => void, callName: string }) {
     const [name, setName] = useState("");
@@ -17,6 +18,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
 
     const fullNameRef = useRef<HTMLInputElement>(null);
     const formProfileRef = useRef<HTMLFormElement>(null);
+    const signatureSelectRef = useRef<any>(null)
 
     const dispatch = useDispatch<AppDispatch>()
 
@@ -38,6 +40,13 @@ export default function Profile({ user, updateCallName, callName }: { user: User
 
         if (formProfileRef.current) {
             const formData = new FormData(formProfileRef.current);
+            // Get the signature data URL
+            const signatureDataURL = signatureSelectRef.current.toDataURL();
+
+            // jika kosong, berarti user tidak mengubah tanda tangan, maka tidak usah dikirim ke backend
+            if (!signatureSelectRef.current.isEmpty()) {
+                formData.append('signature_path', signatureDataURL);
+            }
 
             formData.append('_method', 'PATCH');
             api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/update-profile`, formData)
@@ -74,7 +83,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                             {isEditing &&
                                 <div className="text-xs flex flex-col">
                                     <label htmlFor="photo_path">Update Photo</label>
-                                    <input type="file" name="photo_path" className="ar-input-text-purple text-xs w-32" />
+                                    <input type="file" name="photo_path" className="ar-input-text-green text-xs w-32" />
                                 </div>
                             }
                         </div>
@@ -115,8 +124,8 @@ export default function Profile({ user, updateCallName, callName }: { user: User
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="text-sm text-gray-500">Full Name</label>
-                            <input type="text" placeholder="Full Name" className="ar-input-text-purple w-full"
+                            <label className="text-sm text-gray-500">Nama lengkap</label>
+                            <input type="text" placeholder="Nama lengkap" className="ar-input-text-green w-full"
                                 ref={fullNameRef}
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
@@ -126,7 +135,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                         </div>
                         <div>
                             <label className="text-sm text-gray-500">Email</label>
-                            <input type="text" placeholder="Email" className="ar-input-text-purple w-full"
+                            <input type="text" placeholder="Email" className="ar-input-text-green w-full"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 readOnly={!isEditing}
@@ -134,8 +143,8 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                             />
                         </div>
                         <div>
-                            <label className="text-sm text-gray-500">Nick Name</label>
-                            <input type="text" placeholder="Nick Name" className="ar-input-text-purple w-full"
+                            <label className="text-sm text-gray-500">Nama panggilan</label>
+                            <input type="text" placeholder="Nama panggilan" className="ar-input-text-green w-full"
                                 value={callName}
                                 onChange={(e) => updateCallName(e.target.value)}
                                 readOnly={!isEditing}
@@ -144,7 +153,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                         </div>
                         <div>
                             <label className="text-sm text-gray-500">NIK</label>
-                            <input type="text" placeholder="NIK" className="ar-input-text-purple w-full"
+                            <input type="text" placeholder="NIK" className="ar-input-text-green w-full"
                                 defaultValue={user?.nik || ""}
                                 readOnly={!isEditing}
                                 name="nik"
@@ -160,7 +169,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="text-sm text-gray-500">NIP</label>
-                                <input type="text" placeholder="NIP" className="ar-input-text-purple w-full"
+                                <input type="text" placeholder="NIP" className="ar-input-text-green w-full"
                                     defaultValue={user.employee.nip || ""}
                                     readOnly={!isEditing}
                                     name="employee[nip]"
@@ -168,7 +177,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                             </div>
                             <div>
                                 <label className="text-sm text-gray-500">Gelar Depan</label>
-                                <input type="text" placeholder="Gelar Depan" className="ar-input-text-purple w-full"
+                                <input type="text" placeholder="Gelar Depan" className="ar-input-text-green w-full"
                                     defaultValue={user.employee.gelar_depan || ""}
                                     readOnly={!isEditing}
                                     name="employee[gelar_depan]"
@@ -176,7 +185,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                             </div>
                             <div>
                                 <label className="text-sm text-gray-500">Gelar Belakang</label>
-                                <input type="text" placeholder="Gelar Belakang" className="ar-input-text-purple w-full"
+                                <input type="text" placeholder="Gelar Belakang" className="ar-input-text-green w-full"
                                     defaultValue={user.employee.gelar_belakang || ""}
                                     readOnly={!isEditing}
                                     name="employee[gelar_belakang]"
@@ -184,7 +193,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                             </div>
                             <div>
                                 <label className="text-sm text-gray-500">Jabatan</label>
-                                <input type="text" placeholder="Jabatan" className="ar-input-text-purple w-full"
+                                <input type="text" placeholder="Jabatan" className="ar-input-text-green w-full"
                                     defaultValue={user.employee.jabatan || ""}
                                     readOnly={!isEditing}
                                     name="employee[jabatan]"
@@ -192,7 +201,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                             </div>
                             <div>
                                 <label className="text-sm text-gray-500">Golongan</label>
-                                <input type="text" placeholder="Golongan" className="ar-input-text-purple w-full"
+                                <input type="text" placeholder="Golongan" className="ar-input-text-green w-full"
                                     defaultValue={user.employee.golongan || ""}
                                     readOnly={!isEditing}
                                     name="employee[golongan]"
@@ -200,7 +209,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                             </div>
                             <div>
                                 <label className="text-sm text-gray-500">Pangkat</label>
-                                <input type="text" placeholder="Pangkat" className="ar-input-text-purple w-full"
+                                <input type="text" placeholder="Pangkat" className="ar-input-text-green w-full"
                                     defaultValue={user.employee.pangkat || ""}
                                     readOnly={!isEditing}
                                     name="employee[pangkat]"
@@ -217,7 +226,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="text-sm text-gray-500">Universitas</label>
-                                <input type="text" placeholder="Universitas" className="ar-input-text-purple w-full"
+                                <input type="text" placeholder="Universitas" className="ar-input-text-green w-full"
                                     defaultValue={user.student.university || ""}
                                     readOnly={!isEditing}
                                     name="student[university]"
@@ -225,7 +234,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                             </div>
                             <div>
                                 <label className="text-sm text-gray-500">Jurusan</label>
-                                <input type="text" placeholder="Jurusan" className="ar-input-text-purple w-full"
+                                <input type="text" placeholder="Jurusan" className="ar-input-text-green w-full"
                                     defaultValue={user.student.jurusan || ""}
                                     readOnly={!isEditing}
                                     name="student[jurusan]"
@@ -233,7 +242,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                             </div>
                             <div>
                                 <label className="text-sm text-gray-500">NIM</label>
-                                <input type="text" placeholder="NIM" className="ar-input-text-purple w-full"
+                                <input type="text" placeholder="NIM" className="ar-input-text-green w-full"
                                     defaultValue={user.student.nim || ""}
                                     readOnly={!isEditing}
                                     name="student[nim]"
@@ -241,7 +250,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                             </div>
                             <div>
                                 <label className="text-sm text-gray-500">Angkatan</label>
-                                <input type="text" placeholder="Angkatan" className="ar-input-text-purple w-full"
+                                <input type="text" placeholder="Angkatan" className="ar-input-text-green w-full"
                                     defaultValue={user.student.angkatan || ""}
                                     readOnly={!isEditing}
                                     name="student[angkatan]"
@@ -250,6 +259,43 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                         </div>
                     </div>
                 }
+
+                <div className="bg-white rounded-2xl shadow px-8 py-4 mt-6">
+                    <div>
+                        {isEditing ?
+                            <>
+                                <label className="block text-sm font-medium text-gray-700 mb-4">
+                                    Ubah Tanda Tangan
+                                </label>
+                                <SignatureCanvas
+                                    canvasProps={{
+                                        className: '',
+                                        width: 160, // 40 * 4 (karena Tailwind w-40 = 10rem = 160px)
+                                        height: 160,
+                                    }}
+                                    ref={signatureSelectRef}
+                                />
+                                <button className="mt-1 w-fit text-red-500 flex items-center justify-start gap-1 text-sm" type="button" onClick={() => signatureSelectRef.current.clear()}>
+                                    <span className="material-symbols-outlined !text-[20px]">
+                                        change_circle
+                                    </span> <span>Clear</span>
+                                </button>
+                            </> :
+                            <>
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Tanda Tangan
+                                </label>
+                                <Image
+                                    src={user?.signature_path || "/assets/images/noimage.webp"}
+                                    alt="Profile photo"
+                                    width={64}
+                                    height={64}
+                                    className="w-30 h-30 object-contain"
+                                />
+                            </>
+                        }
+                    </div>
+                </div>
             </form>
 
             <div className="bg-white rounded-2xl shadow px-8 py-4 mt-6">

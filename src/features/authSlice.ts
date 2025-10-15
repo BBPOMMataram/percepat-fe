@@ -94,7 +94,7 @@ const authSlice = createSlice({
         logout: (state) => {
             state.user = null;
             axios.post(process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/api/logout", {})
-                .catch(err => console.error(err));
+                .catch(err => console.log(err));
         },
     },
     extraReducers: (builder) => {

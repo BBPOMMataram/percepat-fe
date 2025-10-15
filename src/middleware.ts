@@ -9,6 +9,7 @@ export function middleware(req: NextRequest) {
   const protectedPaths = [
     "/profile",
     "/settings",
+    "/our-apps",
     "/siap-melayani/pengajuan-pkl/form",
     "/siap-melayani/presensi"
   ];
@@ -30,6 +31,7 @@ export function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     "/profile/:path*",
+    "/our-apps/:path*",
     "/settings/:path*",
     "/siap-melayani/pengajuan-pkl/form/:path*",
     "/siap-melayani/presensi/:path*"

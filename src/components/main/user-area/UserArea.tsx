@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Footer from "./Footer";
 import Header from "./Header";
+import OurApps from "./our-apps/OurApps";
 import Profile from "./profile/Profile";
 import Settings from "./settings/Settings";
 import Sidebar from "./Sidebar";
@@ -41,6 +42,10 @@ export default function UserArea() {
                     {
                         pathname === '/settings' && user &&
                         <Settings user={user} />
+                    }
+                    {
+                        pathname === '/our-apps' && user &&
+                        <OurApps user={user} />
                     }
                     <Footer />
                 </div>

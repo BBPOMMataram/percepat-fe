@@ -1,5 +1,4 @@
 "use client";
-
 import { clearAlert } from "@/features/alertSlice";
 import { RootState } from "@/redux/store";
 import { useEffect } from "react";
@@ -11,7 +10,7 @@ export default function Alert() {
 
   useEffect(() => {
     if (message) {
-      console.log('Description: ', description);
+      console.log('Alert Description: ', description);
       const timer = setTimeout(() => dispatch(clearAlert()), 7000);
       return () => clearTimeout(timer);
     }
