@@ -1,6 +1,7 @@
 "use client";
 
 import { showAlert } from "@/features/alertSlice";
+import { getUser } from "@/features/authSlice";
 import { AppDispatch } from "@/redux/store";
 import { User } from "@/types/auth";
 import api from "@/utils/api";
@@ -42,6 +43,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
             api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/update-profile`, formData)
                 .then(res => {
                     dispatch(showAlert({ type: "success", message: res.data.message, description: res.data.message }))
+                    dispatch(getUser());
                     setIsEditing(false);
                 })
                 .catch(err => {

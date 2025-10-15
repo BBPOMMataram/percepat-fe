@@ -17,12 +17,11 @@ export const register = createAsyncThunk<LoginOrRegisterResponse, FormData, { re
             }
             );
             return res.data as LoginOrRegisterResponse;
-        } catch (error) {
-            const err = error as AxiosError<{ error: string }>;
-            if (err.code === "ERR_NETWORK") {
+        } catch (error: any) {
+            if (error.code === "ERR_NETWORK") {
                 return thunkAPI.rejectWithValue("Network Error. Please check your connection.");
             }
-            return thunkAPI.rejectWithValue(err.response?.data?.error || "Login failed");
+            return thunkAPI.rejectWithValue(error.response?.data?.error);
         }
     }
 );
@@ -37,12 +36,11 @@ export const login = createAsyncThunk<LoginOrRegisterResponse, LoginPayload, { r
                 { email, password },
             );
             return res.data as LoginOrRegisterResponse;
-        } catch (error) {
-            const err = error as AxiosError<{ error: string }>;
-            if (err.code === "ERR_NETWORK") {
+        } catch (error: any) {
+            if (error.code === "ERR_NETWORK") {
                 return thunkAPI.rejectWithValue("Network Error. Please check your connection.");
             }
-            return thunkAPI.rejectWithValue(err.response?.data?.error || "Login failed");
+            return thunkAPI.rejectWithValue(error.response?.data?.error);
         }
     }
 );

@@ -12,6 +12,7 @@ import { useDispatch, useSelector } from "react-redux";
 export default function LoginForm() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
 
     const dispatch = useDispatch<AppDispatch>();
 
@@ -46,8 +47,7 @@ export default function LoginForm() {
                 router.push(callbackUrl);
             })
             .catch((err) => {
-                dispatch(showAlert({ type: "error", message: "Login failed", description: err || "No Message from Backend" }));
-                console.log('login failed', err);
+                dispatch(showAlert({ type: "error", message: err, description: err || "No Message from Backend" }));
             });
     };
 
@@ -72,17 +72,29 @@ export default function LoginForm() {
                         />
                     </div>
 
-                    <div>
+                    <div className="relative">
                         <label className="block text-sm font-medium text-gray-700">
                             Password
                         </label>
                         <input
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             className="ar-input-text-green w-full"
                         />
+                        <button
+                            tabIndex={-1}
+                            type="button"
+                            className="absolute right-3 top-8"
+                            onClick={() => setShowPassword(!showPassword)}
+                        >
+                            {
+                                showPassword ?
+                                    <span className="material-symbols-outlined !text-[20px]">visibility_off</span>
+                                    : <span className="material-symbols-outlined !text-[20px]">visibility</span>
+                            }
+                        </button>
                     </div>
 
                     <div className="flex gap-0.5">
