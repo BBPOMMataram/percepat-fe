@@ -7,6 +7,7 @@ import { AppDispatch, RootState } from "@/redux/store";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import AdminPesertaSiapMelayani from "../siap-melayani/peserta/AdminPesertaSiapMelayani";
 import SidebarAdminSiapMelayani from "./sidebar/SidebarAdminSiapMelayani";
 
 export default function AdminArea() {
@@ -24,21 +25,23 @@ export default function AdminArea() {
     useEffect(() => {
         if (user) {
             setCallName(user.call_name || "");
-            console.log("user updated:", user);
-
         }
     }, [user]);
 
     return (
-        <main className="flex h-screen bg-gray-100 select-none">
+        <main className="flex h-screen bg-gray-100 w-full">
             <SidebarAdminSiapMelayani />
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col w-[calc(100%-4rem)]">
                 <HeaderUserArea user={user} callName={callName} />
                 <div className="flex-1 p-8 overflow-y-auto">
                     {/* ADMIN PANEL */}
                     {
-                        pathname.startsWith('/admin/siap-melayani') && user &&
+                        pathname === '/admin/siap-melayani' && user &&
                         <AdminSiapMelayani />
+                    }
+                    {
+                        pathname === '/admin/siap-melayani/peserta' && user &&
+                        <AdminPesertaSiapMelayani />
                     }
                     <FooterUserArea />
                 </div>

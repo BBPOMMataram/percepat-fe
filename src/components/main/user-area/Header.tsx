@@ -20,7 +20,7 @@ export default function HeaderUserArea({ user, callName }: { user: User | null, 
             </div>
 
             <div className="flex items-center  gap-4">
-                <div className="relative hidden md:block">
+                {/* <div className="relative hidden md:block">
                     <span className="material-symbols-outlined absolute left-2 top-2 text-gray-400 w-4 h-4">
                         search
                     </span>
@@ -29,7 +29,7 @@ export default function HeaderUserArea({ user, callName }: { user: User | null, 
                         placeholder="Search"
                         className="pl-9 pr-3 py-2 border rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-400"
                     />
-                </div>
+                </div> */}
                 <NotificationBell />
                 <div className="dropdown dropdown-end">
                     <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
@@ -51,6 +51,9 @@ export default function HeaderUserArea({ user, callName }: { user: User | null, 
                                 <Link href={'/siap-melayani/presensi'}>Presensi</Link>
                             </li>
                         }
+                        <li>
+                            <Link href={'/profile'}>Profile</Link>
+                        </li>
                         <li className="mt-2 w-fit">
                             <LogoutBtn />
                         </li>
