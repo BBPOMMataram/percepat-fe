@@ -54,6 +54,19 @@ export interface Student {
     updated_at: string | null;
 }
 
+export interface Sites {
+    clicks: number;
+    desc: string;
+    expansion_name: string | null;
+    id: number;
+    link: string;
+    logo_path: string;
+    name: string;
+    pic: string;
+    updated_at: string;
+    created_at: string;
+}
+
 export interface User {
     id: number;
     name: string;
@@ -67,6 +80,7 @@ export interface User {
     role?: Role;
     employee?: Employee | null;
     student?: Student | null;
+    sites?: Sites[] | [];
     created_at: string;
     updated_at: string;
 }

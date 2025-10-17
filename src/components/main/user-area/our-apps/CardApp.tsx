@@ -3,40 +3,47 @@ import Image from 'next/image';
 import Link from 'next/link';
 import styled from 'styled-components';
 
-const CardApp = ({ appData }: { appData: AppData }) => {
-    return (
-        <StyledWrapper>
-            <div className="card card-5">
-                <div className="card__icon max-w-10/12 uppercase">
-                    {appData.name}
-                </div>
-                <p className="card__exit">
-                    <Image
-                        className='w-12 h-12 rounded-full'
-                        alt={appData.name}
-                        width={50}
-                        height={50}
-                        src={appData.logo_path}
-                    />
-                </p>
-                <div className="text">{appData.desc}</div>
-                <p className="card__apply">
-                    {
-                        // JIKA URL EXTERNAL MAKA GUNAKAN ANCHOR
-                        // Jika link mengandung 'http', berarti itu adalah link eksternal
-                        // Jika tidak, gunakan Link dari Next.js untuk navigasi internal
-                        appData.link.includes('http') ? (
-                            <a className="card__link" href={appData.link} target="_blank" rel="noopener noreferrer">Visit Now <i className="fas fa-arrow-right" /></a>
-                        ) : (
-                            <Link href={appData.link}>
-                                <span className="card__link">Visit Now <i className="fas fa-arrow-right" /></span>
-                            </Link>
-                        )
-                    }
-                </p>
-            </div>
-        </StyledWrapper>
-    );
+const CardApp = ({ appData, isAdmin }: { appData: AppData, isAdmin?: boolean }) => {
+  return (
+    <StyledWrapper>
+      <div className="card card-5">
+        <div className="card__icon max-w-10/12 uppercase">
+          {appData.name}
+        </div>
+        <p className="card__exit">
+          <Image
+            className='w-12 h-12 rounded-full'
+            alt={appData.name}
+            width={50}
+            height={50}
+            src={appData.logo_path}
+          />
+        </p>
+        <div className="text">{appData.desc}</div>
+        <p className="card__apply">
+          {
+            // JIKA URL EXTERNAL MAKA GUNAKAN ANCHOR
+            // Jika link mengandung 'http', berarti itu adalah link eksternal
+            // Jika tidak, gunakan Link dari Next.js untuk navigasi internal
+            appData.link.includes('http') ? (
+              <a className="card__link" href={appData.link} target="_blank" rel="noopener noreferrer">Visit Now <i className="fas fa-arrow-right" /></a>
+            ) : (
+
+              isAdmin ? (
+                <Link href={`/admin/${appData.link}`}>
+                  <span className="card__link">Visit Admin panel <i className="fas fa-arrow-right" /></span>
+                </Link>
+              )
+                :
+                <Link href={appData.link}>
+                  <span className="card__link">Visit Now <i className="fas fa-arrow-right" /></span>
+                </Link>
+            )
+          }
+        </p>
+      </div>
+    </StyledWrapper>
+  );
 }
 
 const StyledWrapper = styled.div`

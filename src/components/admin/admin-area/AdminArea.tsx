@@ -1,17 +1,15 @@
 "use client"
+import AdminSiapMelayani from "@/components/admin/siap-melayani/AdminSiapMelayani";
+import FooterUserArea from "@/components/main/user-area/Footer";
+import HeaderUserArea from "@/components/main/user-area/Header";
 import { getUser } from "@/features/authSlice";
 import { AppDispatch, RootState } from "@/redux/store";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import FooterUserArea from "./Footer";
-import HeaderUserArea from "./Header";
-import OurApps from "./our-apps/OurApps";
-import Profile from "./profile/Profile";
-import Settings from "./settings/Settings";
-import Sidebar from "./Sidebar";
+import SidebarAdminSiapMelayani from "./sidebar/SidebarAdminSiapMelayani";
 
-export default function UserArea() {
+export default function AdminArea() {
     const [callName, setCallName] = useState<string>("");
 
     const { user } = useSelector((state: RootState) => state.auth);
@@ -33,21 +31,14 @@ export default function UserArea() {
 
     return (
         <main className="flex h-screen bg-gray-100 select-none">
-            <Sidebar />
+            <SidebarAdminSiapMelayani />
             <div className="flex-1 flex flex-col">
                 <HeaderUserArea user={user} callName={callName} />
                 <div className="flex-1 p-8 overflow-y-auto">
+                    {/* ADMIN PANEL */}
                     {
-                        pathname === '/profile' && user &&
-                        <Profile user={user} updateCallName={setCallName} callName={callName} />
-                    }
-                    {
-                        pathname === '/settings' && user &&
-                        <Settings user={user} />
-                    }
-                    {
-                        pathname === '/our-apps' && user &&
-                        <OurApps user={user} />
+                        pathname.startsWith('/admin/siap-melayani') && user &&
+                        <AdminSiapMelayani />
                     }
                     <FooterUserArea />
                 </div>

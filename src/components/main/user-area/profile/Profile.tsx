@@ -287,7 +287,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                                 </label>
                                 <Image
                                     src={user?.signature_path || "/assets/images/noimage.webp"}
-                                    alt="Profile photo"
+                                    alt="Signature Image"
                                     width={64}
                                     height={64}
                                     className="w-30 h-30 object-contain"

@@ -2,7 +2,6 @@ import { showAlert } from "@/features/alertSlice";
 import { AppDispatch } from "@/redux/store";
 import api from "@/utils/api";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import Webcam from "react-webcam";
@@ -32,6 +31,24 @@ export default function ModalWebcamSiapMelayani({
 
     const dispatch = useDispatch<AppDispatch>();
 
+    const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+    const [deviceId, setDeviceId] = useState<string | null>(null);
+
+    useEffect(() => {
+        // ambil daftar kamera
+        navigator.mediaDevices.enumerateDevices().then((mediaDevices) => {
+            const videoDevices = mediaDevices.filter((d) => d.kind === "videoinput");
+            setDevices(videoDevices);
+
+            // default: pilih kamera depan ("user-facing")
+            if (videoDevices.length > 0) {
+                const userCamera = videoDevices.find((d) =>
+                    d.label.toLowerCase().includes("front")
+                );
+                setDeviceId(userCamera ? userCamera.deviceId : videoDevices[0].deviceId);
+            }
+        });
+    }, []);
     useEffect(() => {
         if (show && navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -118,13 +135,30 @@ export default function ModalWebcamSiapMelayani({
                         </h2>
 
                         {!selfie ? (
-                            <Webcam
-                                audio={false}
-                                ref={webcamRef}
-                                screenshotFormat="image/jpeg"
-                                className="rounded-lg"
-                                videoConstraints={{ facingMode: "user" }}
-                            />
+                            <>
+                                <select
+                                    value={deviceId || ""}
+                                    onChange={(e) => setDeviceId(e.target.value)}
+                                    className="border p-2 rounded-lg mb-4"
+                                >
+                                    {devices.map((device, index) => (
+                                        <option key={device.deviceId} value={device.deviceId}>
+                                            Kamera {index + 1}: {device.label || `Device ${index + 1}`}
+                                        </option>
+                                    ))}
+                                </select>
+                                <Webcam
+                                    audio={false}
+                                    ref={webcamRef}
+                                    screenshotFormat="image/jpeg"
+                                    className="rounded-lg"
+                                    videoConstraints={
+                                        deviceId
+                                            ? { deviceId: { exact: deviceId } } // jika user pilih kamera
+                                            : { facingMode: "user" } // default kamera depan
+                                    }
+                                />
+                            </>
                         ) : (
                             <Image
                                 src={selfie}

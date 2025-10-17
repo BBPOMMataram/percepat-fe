@@ -1,13 +1,13 @@
 "use client";
 
+import LogoutBtn from "@/components/main/LogoutBtn";
+import NotificationBell from "@/components/main/NotificationBell";
 import { User } from "@/types/auth";
 import dayjs from "@/utils/dayjs";
 import Image from "next/image";
 import Link from "next/link";
-import LogoutBtn from "../LogoutBtn";
-import NotificationBell from "../NotificationBell";
 
-export default function HeaderUserArea({ user, callName }: { user: User | null, callName: string }) {
+export default function Header({ user, callName }: { user: User | null, callName: string }) {
     return (
         <header className="flex justify-between items-center px-6 py-4 bg-white shadow-md">
             <div>

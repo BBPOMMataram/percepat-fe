@@ -32,6 +32,21 @@ export default function OurApps({ user }: { user: User | null }) {
 
     return (
         <div className="flex flex-col">
+            {user?.role?.level == "admin" && (user?.sites?.length ?? 0) > 0 &&
+                <div className="bg-white rounded-2xl shadow px-8 py-4 mb-6">
+                    <div className="mb-4">
+                        <h2 className="text-xl font-semibold text-gray-800">Apps You as an Admin</h2>
+                    </div>
+                    <div>
+                        {
+                            user.sites?.map((app, index) => (
+                                <CardApp key={index} appData={app} isAdmin={true} />
+                            ))
+                        }
+                    </div>
+                </div>
+            }
+
             <div className="bg-white rounded-2xl shadow p-8">
                 <div className="mb-4">
                     <h2 className="text-xl font-semibold text-gray-800">Our Apps</h2>
@@ -46,12 +61,6 @@ export default function OurApps({ user }: { user: User | null }) {
                     }
                 </div>
             </div>
-
-            {/* <div className="bg-white rounded-2xl shadow px-8 py-4 mt-6">
-                <div>
-                    others stuff here
-                </div>
-            </div> */}
         </div>
     );
 }
