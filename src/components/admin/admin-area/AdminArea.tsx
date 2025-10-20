@@ -7,6 +7,7 @@ import { AppDispatch, RootState } from "@/redux/store";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import AdminPenempatanSiapMelayani from "../siap-melayani/penempatan/AdminPenempatanSiapMelayani";
 import AdminPesertaSiapMelayani from "../siap-melayani/peserta/AdminPesertaSiapMelayani";
 import AdminPresensiSiapMelayani from "../siap-melayani/presensi/AdminPresensiSiapMelayani";
 import SidebarAdminSiapMelayani from "./sidebar/SidebarAdminSiapMelayani";
@@ -47,6 +48,10 @@ export default function AdminArea() {
                     {
                         pathname === '/admin/siap-melayani/presensi' && user &&
                         <AdminPresensiSiapMelayani />
+                    }
+                    {
+                        pathname === '/admin/siap-melayani/penempatan' && user &&
+                        <AdminPenempatanSiapMelayani />
                     }
                     <FooterUserArea />
                 </div>

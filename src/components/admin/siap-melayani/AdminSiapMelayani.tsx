@@ -12,7 +12,8 @@ export default function AdminSiapMelayani() {
                 </div>
             </div>
             <div className="bg-white rounded-2xl shadow px-8 py-4 mt-2">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+                {/* make content center */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 justify-items-center">
                     <div className="card bg-success text-success-content w-60 shadow-sm">
                         <div className="card-body">
                             <h2 className="card-title">Card title!</h2>

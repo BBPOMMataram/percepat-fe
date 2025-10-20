@@ -7,6 +7,7 @@ export function middleware(req: NextRequest) {
 
   // daftar halaman yang perlu login
   const protectedPaths = [
+    "/admin",
     "/profile",
     "/settings",
     "/our-apps",
@@ -30,6 +31,7 @@ export function middleware(req: NextRequest) {
 // halaman mana saja yang dipantau
 export const config = {
   matcher: [
+    "/admin/:path*",
     "/profile/:path*",
     "/our-apps/:path*",
     "/settings/:path*",

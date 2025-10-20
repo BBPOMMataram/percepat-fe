@@ -10,7 +10,6 @@ export default function AdminPresensiSiapMelayani() {
         api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/presensi`)
             .then(res => {
                 setPresensi(res.data)
-                console.log('presensi:', res.data);
             })
     }, [])
 
