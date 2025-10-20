@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import AdminPesertaSiapMelayani from "../siap-melayani/peserta/AdminPesertaSiapMelayani";
+import AdminPresensiSiapMelayani from "../siap-melayani/presensi/AdminPresensiSiapMelayani";
 import SidebarAdminSiapMelayani from "./sidebar/SidebarAdminSiapMelayani";
 
 export default function AdminArea() {
@@ -42,6 +43,10 @@ export default function AdminArea() {
                     {
                         pathname === '/admin/siap-melayani/peserta' && user &&
                         <AdminPesertaSiapMelayani />
+                    }
+                    {
+                        pathname === '/admin/siap-melayani/presensi' && user &&
+                        <AdminPresensiSiapMelayani />
                     }
                     <FooterUserArea />
                 </div>

@@ -85,6 +85,10 @@
     content: " *";
     @apply text-red-500;
   }
+
+  .ar-table {
+    @apply table table-zebra [&_tbody_tr:hover]:bg-gray-100;
+  }
 }
 
 @keyframes gradientAnimation {

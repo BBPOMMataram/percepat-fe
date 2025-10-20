@@ -26,8 +26,6 @@ export default function UserArea() {
     useEffect(() => {
         if (user) {
             setCallName(user.call_name || "");
-            console.log("user updated:", user);
-
         }
     }, [user]);
 

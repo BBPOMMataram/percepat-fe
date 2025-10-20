@@ -9,8 +9,6 @@ export default function AdminPesertaSiapMelayani() {
         api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/peserta`)
             .then(res => {
                 setPeserta(res.data)
-                console.log('peserta:', res.data);
-
             })
     }, [])
 
@@ -22,7 +20,7 @@ export default function AdminPesertaSiapMelayani() {
             </div>
             <div className="bg-white rounded-2xl shadow px-8 py-4">
                 <div className="w-full overflow-x-auto">
-                    <table className="table table-zebra">
+                    <table className="ar-table">
                         <thead>
                             <tr>
                                 <th>No</th>
@@ -43,7 +41,7 @@ export default function AdminPesertaSiapMelayani() {
                         <tbody>
                             {
                                 peserta?.data?.map((item: any, index: number) => (
-                                    <tr key={item.id} className="[&>td]:align-top hover:bg-gray-100">
+                                    <tr key={item.id} className="">
                                         <td>{(peserta?.current_page - 1) * parseInt(peserta?.per_page) + index + 1}</td>
                                         <td>{item.pengajuan?.user?.name}</td>
                                         <td>{item.pengajuan?.user?.universitas}</td>
