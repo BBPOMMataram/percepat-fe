@@ -7,11 +7,13 @@ import { AppDispatch, RootState } from "@/redux/store";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import AdminPaktaIntegritasSiapMelayani from "../siap-melayani/pakta-integritas/AdminPaktaIntegritasSiapMelayani";
 import AdminPenempatanSiapMelayani from "../siap-melayani/penempatan/AdminPenempatanSiapMelayani";
+import AdminPengajuanSiapMelayani from "../siap-melayani/pengajuan/AdminPengajuanSiapMelayani";
 import AdminPesertaSiapMelayani from "../siap-melayani/peserta/AdminPesertaSiapMelayani";
 import AdminPresensiSiapMelayani from "../siap-melayani/presensi/AdminPresensiSiapMelayani";
+import AdminTataTertibSiapMelayani from "../siap-melayani/tata-tertib/AdminTataTertibSiapMelayani";
 import SidebarAdminSiapMelayani from "./sidebar/SidebarAdminSiapMelayani";
-import AdminPengajuanSiapMelayani from "../siap-melayani/pengajuan/AdminPengajuanSiapMelayani";
 
 export default function AdminArea() {
     const [callName, setCallName] = useState<string>("");
@@ -57,6 +59,14 @@ export default function AdminArea() {
                     {
                         pathname === '/admin/siap-melayani/pengajuan' && user &&
                         <AdminPengajuanSiapMelayani />
+                    }
+                    {
+                        pathname === '/admin/siap-melayani/tata-tertib' && user &&
+                        <AdminTataTertibSiapMelayani />
+                    }
+                    {
+                        pathname === '/admin/siap-melayani/pakta-integritas' && user &&
+                        <AdminPaktaIntegritasSiapMelayani />
                     }
 
                     <FooterUserArea />

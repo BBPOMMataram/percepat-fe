@@ -47,6 +47,15 @@ export default function SidebarAdminSiapMelayani() {
                     <li>
                         <Link href={'/admin/siap-melayani/pengajuan'}>Pengajuan</Link>
                     </li>
+                    <li>
+                        <Link href={'/admin/siap-melayani/tata-tertib'}>Tata Tertib</Link>
+                    </li>
+                    <li>
+                        <Link href={'/admin/siap-melayani/e-learning'}>E-Learning</Link>
+                    </li>
+                    <li>
+                        <Link href={'/admin/siap-melayani/pakta-integritas'} className="whitespace-nowrap">Link Pakta Integritas</Link>
+                    </li>
                 </ul>
             </div>
             <button className={`tooltip tooltip-right p-2 pb-1 rounded-lg ${isActive('/admin/siap-melayani/kunjungan-narasumber')}`} data-tip="Kunjungan & Narasumber">

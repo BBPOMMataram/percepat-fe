@@ -3,16 +3,31 @@
 import LogoutBtn from "@/components/main/LogoutBtn";
 import { getUser } from "@/features/authSlice";
 import { AppDispatch, RootState } from "@/redux/store";
+import api from "@/utils/api";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 export default function NavBarSiapMelayani() {
     const pathname = usePathname();
     const dispatch = useDispatch<AppDispatch>()
     const { user, loading } = useSelector((state: RootState) => state.auth)
+
+    const [formPaktaIntegritas, setFormPaktaIntegritas] = useState<any>({ link: '' });
+
+    const loadData = () => {
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/links/form_pakta_integritas`)
+            .then(res => {
+                setFormPaktaIntegritas(res.data)
+            })
+    }
+
+    useEffect(() => {
+        loadData()
+    }, [])
+
 
     useEffect(() => {
         dispatch(getUser());
@@ -32,7 +47,7 @@ export default function NavBarSiapMelayani() {
                             <a>PKL</a>
                             <ul className="p-2">
                                 <li><Link href={'/siap-melayani/tata-tertib-pkl'}>Tata Tertib PKL</Link></li>
-                                <li><a href="https://docs.google.com/document/d/1V4NLEWwBvLvM7H6BbvT0YdQTg3ieuBRl/edit?usp=sharing&ouid=115845788467615630346&rtpof=true&sd=true"
+                                <li><a href={formPaktaIntegritas?.link}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="whitespace-nowrap">Download Form Pakta Integritas</a></li>
@@ -73,7 +88,7 @@ export default function NavBarSiapMelayani() {
                                 className="menu dropdown-content shadow bg-base-100 rounded-box w-fit"
                             >
                                 <li><Link href={'/siap-melayani/tata-tertib-pkl'}>Tata Tertib PKL</Link></li>
-                                <li><a href="https://docs.google.com/document/d/1V4NLEWwBvLvM7H6BbvT0YdQTg3ieuBRl/edit?usp=sharing&ouid=115845788467615630346&rtpof=true&sd=true"
+                                <li><a href={formPaktaIntegritas?.link}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="whitespace-nowrap">Download Form Pakta Integritas</a></li>
