@@ -62,7 +62,7 @@ export default function AdminFormPenempatanSiapMelayani({ open, onClose, initial
             formData['_method'] = 'PUT'; // untuk method spoofing di Laravel
         }
 
-        await api.request({
+        await api({
             url, method, data: formData
         })
             .then((res) => {

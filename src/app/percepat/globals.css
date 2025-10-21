@@ -68,7 +68,8 @@
   }
 
   .ar-input-text-purple {
-    @apply mt-1 rounded-lg border px-3 py-2 text-sm focus:outline-none focus:bg-[#8b5cf615] focus:border-[#8b5cf6] focus:ring-0 focus:ring-[#8b5cf6];
+    /* @apply mt-1 rounded-lg border px-3 py-2 text-sm focus:outline-none focus:bg-[#8b5cf615] focus:border-[#8b5cf6] focus:ring-0 focus:ring-[#8b5cf6]; */
+    @apply mt-1 border-b px-3 py-2 text-sm focus:outline-none focus:bg-[#8b5cf615] focus:border-[#8b5cf6] focus:ring-0 focus:ring-[#8b5cf6];
   }
 
   .ar-input-text-purple:-webkit-autofill {
