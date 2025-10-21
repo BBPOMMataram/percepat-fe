@@ -1,15 +1,20 @@
 import api from "@/utils/api"
 import dayjs from "dayjs"
 import { useEffect, useState } from "react"
+import UploadCertificateBtn from "./UploadCertificateBtn"
 
 export default function AdminPesertaSiapMelayani() {
     const [peserta, setPeserta] = useState<any>([])
 
-    useEffect(() => {
+    const loadData = () => {
         api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/peserta`)
             .then(res => {
                 setPeserta(res.data)
             })
+    }
+
+    useEffect(() => {
+        loadData()
     }, [])
 
     return (
@@ -77,13 +82,9 @@ export default function AdminPesertaSiapMelayani() {
                                                 : '-'}
                                         </td>
                                         <td>
-                                            <button className="btn btn-info btn-circle btn-sm tooltip tooltip-left" data-tip="Upload Sertifikat">
-                                                {/* icon upload */}
-                                                <span className="material-symbols-outlined !text-sm">
-                                                    upload
-                                                </span>
-                                            </button>
+                                            <UploadCertificateBtn id={item.id} onSuccess={loadData} />
                                         </td>
+
                                     </tr>
                                 ))
                             }

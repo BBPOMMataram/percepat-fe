@@ -41,9 +41,9 @@ export default function SidebarAdminSiapMelayani() {
                     <li>
                         <Link href={'/admin/siap-melayani/penempatan'}>Penempatan</Link>
                     </li>
-                    <li>
+                    {/* <li>
                         <Link href={'/admin/siap-melayani/quiz'}>Quiz</Link>
-                    </li>
+                    </li> */}
                     <li>
                         <Link href={'/admin/siap-melayani/pengajuan'}>Pengajuan</Link>
                     </li>

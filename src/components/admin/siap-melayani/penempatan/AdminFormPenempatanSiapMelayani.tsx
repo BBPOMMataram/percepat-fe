@@ -33,8 +33,6 @@ export default function AdminFormPenempatanSiapMelayani({ open, onClose, initial
                 desc: "",
                 kuota: 0,
             });
-        console.log(initialData);
-
     }, [initialData, open]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -49,9 +47,6 @@ export default function AdminFormPenempatanSiapMelayani({ open, onClose, initial
         e.preventDefault();
         setLoading(true);
 
-        // try {
-
-        // Ganti URL ini sesuai endpoint API Laravel kamu
         const url = initialData
             ? `${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/positions/${initialData.id}`
             : `${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/positions`;
@@ -74,13 +69,6 @@ export default function AdminFormPenempatanSiapMelayani({ open, onClose, initial
                 dispatch(showAlert({ type: 'error', message: err.response?.data?.message, description: err.data?.message }))
             })
         setLoading(false);
-
-        // } catch (error) {
-        //     console.error(error);
-        //     alert("Terjadi kesalahan saat menyimpan data");
-        // } finally {
-        //     setLoading(false);
-        // }
     };
 
     return (

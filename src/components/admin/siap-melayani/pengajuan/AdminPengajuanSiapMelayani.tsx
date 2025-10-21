@@ -16,7 +16,6 @@ export default function AdminPengajuanSiapMelayani() {
         api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/pengajuan`)
             .then(res => {
                 setPengajuan(res.data)
-                console.log(res.data);
             })
     }
 
