@@ -1,8 +1,7 @@
-
 export default function TataTertibPklSiapMelayani() {
 
     return (
-        <div id="informasi" className="min-h-screen my-8 lg:my-12 flex justify-center items-center flex-col mx-2">
+        <div id="informasi" className="min-h-screen my-8 flex justify-center items-center flex-col mx-2">
             <h2 className="text-center font-bold text-lg lg:text-3xl font-serif">ATURAN PRAKTIK KERJA LAPANGAN (PKL)</h2>
             <p className="text-center text-sm lg:text-base text-gray-700">Balai Besar Pengawas Obat dan Makanan (BBPOM) di Mataram</p>
 
