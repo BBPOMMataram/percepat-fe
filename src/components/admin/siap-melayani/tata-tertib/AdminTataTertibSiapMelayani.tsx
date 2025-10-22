@@ -1,3 +1,4 @@
+import TextEditor from "@/components/main/TextEditor";
 import { showAlert } from "@/features/alertSlice";
 import { AppDispatch } from "@/redux/store";
 import api from "@/utils/api";
@@ -5,15 +6,13 @@ import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 
 export default function AdminTataTertibSiapMelayani() {
-    const [data, setData] = useState<any>({
-        content: ''
-    })
+    const [content, setContent] = useState<string>();
 
     const dispatch = useDispatch<AppDispatch>();
 
     const handleUpdateLink = () => {
-        api.put(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/ducuments/tata_tertib`, {
-            content: data.content
+        api.put(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/documents/tata_tertib`, {
+            content
         })
             .then(res => {
                 dispatch(showAlert({ type: 'success', message: res.data.message, description: res.data.message || 'Content tata tertib berhasil diperbarui.' }))
@@ -27,7 +26,7 @@ export default function AdminTataTertibSiapMelayani() {
     const loadData = () => {
         api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/documents/tata_tertib`)
             .then(res => {
-                setData(res.data)
+                setContent(res.data?.content)
             })
     }
 
@@ -47,12 +46,7 @@ export default function AdminTataTertibSiapMelayani() {
                         Update content tata tertib
                     </label>
                     <div className="flex flex-col">
-                        <input type="text" id="content" name="content"
-                            className="ar-input-text-purple mt-2 flex-1"
-                            placeholder="Input content tata tertib"
-                            value={data?.content}
-                            onChange={(e) => setData({ ...data, content: e.target.value })}
-                        />
+                        <TextEditor content={content} setContent={setContent} />
                         <button className="btn btn-primary mt-2 ml-2" onClick={handleUpdateLink}>Update</button>
                     </div>
                 </div>
