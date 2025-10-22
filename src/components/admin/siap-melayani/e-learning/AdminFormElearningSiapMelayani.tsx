@@ -12,13 +12,13 @@ interface Props {
     onSuccess?: () => void; // callback kalau data berhasil disimpan
 }
 
-export default function AdminFormPenempatanSiapMelayani({ open, onClose, initialData, onSuccess }: Props) {
+export default function AdminFormElearningSiapMelayani({ open, onClose, initialData, onSuccess }: Props) {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<any>({
         name: "",
-        kualifikasi: "",
+        link: "",
         desc: "",
-        kuota: 0,
+        category: "pengujian",
     });
 
     const dispatch = useDispatch<AppDispatch>()
@@ -28,9 +28,9 @@ export default function AdminFormPenempatanSiapMelayani({ open, onClose, initial
         else
             setFormData({
                 name: "",
-                kualifikasi: "",
+                link: "",
                 desc: "",
-                kuota: 0,
+                category: "pengujian",
             });
     }, [initialData, open]);
 
@@ -38,7 +38,7 @@ export default function AdminFormPenempatanSiapMelayani({ open, onClose, initial
         const { name, value } = e.target;
         setFormData((prev: any) => ({
             ...prev,
-            [name]: name === "kuota" ? Number(value) : value,
+            [name]: value,
         }));
     };
 
@@ -47,8 +47,8 @@ export default function AdminFormPenempatanSiapMelayani({ open, onClose, initial
         setLoading(true);
 
         const url = initialData
-            ? `${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/positions/${initialData.id}`
-            : `${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/positions`;
+            ? `${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/elearnings/${initialData.id}`
+            : `${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/elearnings`;
 
         const method = "POST";
 
@@ -86,6 +86,22 @@ export default function AdminFormPenempatanSiapMelayani({ open, onClose, initial
 
                     <form onSubmit={handleSubmit} className="space-y-3">
                         <div>
+                            <label className="block text-sm font-medium mb-1">Category</label>
+                            <select
+                                name="category"
+                                value={formData.category}
+                                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                required
+                                className="select select-bordered w-full"
+                            >
+                                <option value='pengujian'>Pengujian</option>
+                                <option value='sertifikasi'>Sertifikasi</option>
+                                <option value='infokom'>Informasi dan Komunikasi</option>
+                                <option value='umum'>Umum</option>
+                            </select>
+                        </div>
+
+                        <div>
                             <label className="block text-sm font-medium mb-1">Name</label>
                             <input
                                 type="text"
@@ -98,11 +114,11 @@ export default function AdminFormPenempatanSiapMelayani({ open, onClose, initial
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-1">Kualifikasi Jurusan</label>
+                            <label className="block text-sm font-medium mb-1">Link</label>
                             <input
                                 type="text"
-                                name="kualifikasi"
-                                value={formData.kualifikasi}
+                                name="link"
+                                value={formData.link}
                                 onChange={handleChange}
                                 required
                                 className="input input-bordered w-full"
@@ -110,25 +126,12 @@ export default function AdminFormPenempatanSiapMelayani({ open, onClose, initial
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-1">Keterangan</label>
+                            <label className="block text-sm font-medium mb-1">Description</label>
                             <textarea
                                 name="desc"
                                 value={formData.desc}
                                 onChange={handleChange}
                                 className="textarea textarea-bordered w-full"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Kuota</label>
-                            <input
-                                type="number"
-                                name="kuota"
-                                value={formData.kuota}
-                                onChange={handleChange}
-                                required
-                                className="input input-bordered w-full"
-                                min={0}
                             />
                         </div>
 

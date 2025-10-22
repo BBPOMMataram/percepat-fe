@@ -3,26 +3,18 @@ import { AppDispatch } from "@/redux/store"
 import api from "@/utils/api"
 import { useEffect, useState } from "react"
 import { useDispatch } from "react-redux"
-import AdminFormPenempatanSiapMelayani from "./AdminFormPenempatanSiapMelayani"
+import AdminFormElearningSiapMelayani from "./AdminFormElearningSiapMelayani"
 
-export default function AdminPenempatanSiapMelayani() {
-    const [positions, setPositions] = useState<any>([])
-
+export default function AdminElearningSiapMelayani() {
+    const [elearning, setElearning] = useState<any>([])
     const [open, setOpen] = useState<boolean>(false)
     const [editData, setEditData] = useState<any>(null)
 
     const dispatch = useDispatch<AppDispatch>()
 
-    const loadData = () => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/positions`)
-            .then(res => {
-                setPositions(res.data)
-            })
-    }
-
     const handleRemove = (id: number) => {
         if (window.confirm('Confirm delete?')) {
-            api.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/positions/${id}`)
+            api.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/elearnings/${id}`)
                 .then((res) => {
                     dispatch(showAlert({ type: 'success', message: res.data.message, description: res.data.message }))
                     loadData()
@@ -33,16 +25,23 @@ export default function AdminPenempatanSiapMelayani() {
         }
     }
 
+    const loadData = () => {
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/elearnings`)
+            .then(res => {
+                setElearning(res.data)
+            })
+    }
+
     useEffect(() => {
         loadData()
     }, [])
 
     return (
         <>
-            <AdminFormPenempatanSiapMelayani open={open} onClose={() => setOpen(false)} initialData={editData} onSuccess={loadData} />
+            <AdminFormElearningSiapMelayani open={open} onClose={() => setOpen(false)} initialData={editData} onSuccess={loadData} />
 
             <div className="bg-white rounded-2xl shadow px-8 py-4 mb-2 flex flex-col md:flex-row">
-                <div className="text-lg font-semibold text-gray-800 uppercase">Penempatan PKL</div>
+                <div className="text-lg font-semibold text-gray-800 uppercase">E learning PKL</div>
                 <h2 className="text-xl font-semibold text-gray-800 uppercase md:ml-auto">Admin Panel Siap Melayani</h2>
             </div>
             <div className="bg-white rounded-2xl shadow px-8 py-4">
@@ -60,21 +59,21 @@ export default function AdminPenempatanSiapMelayani() {
                             <tr>
                                 <th>No</th>
                                 <th>Name</th>
-                                <th>Kualifikasi Jurusan</th>
-                                <th>Keterangan</th>
-                                <th>Kuota</th>
+                                <th>URL</th>
+                                <th>Description</th>
+                                <th>Category</th>
                                 <th>#</th>
                             </tr>
                         </thead>
                         <tbody>
                             {
-                                positions?.data?.map((item: any, index: number) => (
-                                    <tr key={item.id} className="">
-                                        <td>{(positions?.current_page - 1) * parseInt(positions?.per_page) + index + 1}</td>
+                                elearning?.data?.map((item: any, index: number) => (
+                                    <tr key={item.id}>
+                                        <td>{(elearning?.current_page - 1) * parseInt(elearning?.per_page) + index + 1}</td>
                                         <td>{item.name}</td>
-                                        <td>{item.kualifikasi}</td>
+                                        <td>{item.link}</td>
                                         <td>{item.desc || "-"}</td>
-                                        <td>{item.kuota}</td>
+                                        <td>{item.category}</td>
                                         <td>
                                             <button
                                                 className="btn btn-sm"
@@ -102,7 +101,7 @@ export default function AdminPenempatanSiapMelayani() {
                 <div className="flex justify-end mt-8">
                     <div className="btn-group">
                         {
-                            positions?.links?.map((link: any, index: number) =>
+                            elearning?.links?.map((link: any, index: number) =>
                                 <button
                                     key={index}
                                     className={`btn ${link.active && 'btn-active'} ${!link.url && 'btn-disabled'} mr-1`}
@@ -110,7 +109,7 @@ export default function AdminPenempatanSiapMelayani() {
                                         if (link.url) {
                                             api.get(link.url)
                                                 .then(res => {
-                                                    setPositions(res.data)
+                                                    setElearning(res.data)
                                                 })
                                         }
                                     }}
