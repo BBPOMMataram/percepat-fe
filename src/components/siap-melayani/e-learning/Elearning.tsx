@@ -33,8 +33,6 @@ export default function ElearningSiapMelayani({ category }: { category: string }
         }
     }
 
-
-
     useEffect(() => {
         api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/elearnings-by-category/${category}`)
             .then(res => {
