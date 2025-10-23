@@ -47,7 +47,7 @@ export default function ElearningSiapMelayani({ category }: { category: string }
             <h2 className="text-center font-bold text-lg lg:text-3xl font-serif uppercase">E LEARNING {category}</h2>
             <p className="text-center text-sm lg:text-base text-gray-700">Balai Besar Pengawas Obat dan Makanan (BBPOM) di Mataram</p>
 
-            <div className="max-w-4xl mx-auto my-6 bg-white shadow-md rounded-xl p-6 prose prose-slate space-y-8">
+            <div className="max-w-4xl w-full mx-auto my-6 bg-white shadow-md rounded-xl p-6 prose prose-slate space-y-8">
                 {videos?.data?.map((video: any, index: number) => (
                     <div key={index} className="border-b pb-4">
                         <h3 className="text-xl font-semibold">{video.name}</h3>

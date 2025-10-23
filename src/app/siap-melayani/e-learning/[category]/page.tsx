@@ -1,9 +1,6 @@
 import ElearningSiapMelayani from "@/components/siap-melayani/e-learning/Elearning";
 
-export default function SiapMelayaniTataTertibPklPage({ params }: { params: { category: string } }) {
-    return (
-        <>
-            <ElearningSiapMelayani category={params.category} />
-        </>
-    )
+export default async function SiapMelayaniTataTertibPklPage({ params }: { params: Promise<{ category: string }> }) {
+    const { category } = await params
+    return <ElearningSiapMelayani category={category} />
 }
