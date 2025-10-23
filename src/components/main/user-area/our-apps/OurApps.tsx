@@ -1,6 +1,5 @@
 "use client";
 
-import { showAlert } from "@/features/alertSlice";
 import { AppDispatch } from "@/redux/store";
 import { AppData } from "@/types/app-data";
 import { User } from "@/types/auth";
@@ -20,7 +19,6 @@ export default function OurApps({ user }: { user: User | null }) {
             setDataApp(data.data)
         } catch (error) {
             console.log("Error fetching app data:", error)
-            dispatch(showAlert({ type: "error", message: "Error fetching app data", description: "Error fetching app data" }))
         }
         setIsLoading(false)
     }
