@@ -59,10 +59,10 @@ export default function NavBarSiapMelayani() {
                         <li>
                             <a>E-Learning</a>
                             <ul className="p-2">
-                                <li><a>Pengujian</a></li>
-                                <li><a>Sertifikasi</a></li>
-                                <li><a>Informasi & Komunikasi</a></li>
-                                <li><a>Umum</a></li>
+                                <li><Link href={'/siap-melayani/e-learning/pengujian'}>Pengujian</Link></li>
+                                <li><Link href={'/siap-melayani/e-learning/sertifikasi'}>Sertifikasi</Link></li>
+                                <li><Link href={'/siap-melayani/e-learning/infokom'} className="whitespace-nowrap">Informasi & Komunikasi</Link></li>
+                                <li><Link href={'/siap-melayani/e-learning/umum'}>Umum</Link></li>
                             </ul>
                         </li>
                     </ul>
@@ -108,10 +108,10 @@ export default function NavBarSiapMelayani() {
                                 </span>
                             </div>
                             <ul tabIndex={0} className="menu dropdown-content shadow bg-base-100 rounded-box w-fit">
-                                <li><a href="/siap-melayani/e-learning/pengujian">Pengujian</a></li>
-                                <li><a href="/siap-melayani/e-learning/sertifikasi">Sertifikasi</a></li>
-                                <li><a href="/siap-melayani/e-learning/infokom" className="whitespace-nowrap">Informasi & Komunikasi</a></li>
-                                <li><a href="/siap-melayani/e-learning/umum">Umum</a></li>
+                                <li><Link href={'/siap-melayani/e-learning/pengujian'}>Pengujian</Link></li>
+                                <li><Link href={'/siap-melayani/e-learning/sertifikasi'}>Sertifikasi</Link></li>
+                                <li><Link href={'/siap-melayani/e-learning/infokom'} className="whitespace-nowrap">Informasi & Komunikasi</Link></li>
+                                <li><Link href={'/siap-melayani/e-learning/umum'}>Umum</Link></li>
                             </ul>
                         </div>
                     </li>
