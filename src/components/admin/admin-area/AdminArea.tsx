@@ -40,11 +40,12 @@ export default function AdminArea() {
             <div className="flex-1 flex flex-col w-[calc(100%-4rem)]">
                 <HeaderUserArea user={user} callName={callName} />
                 <div className="flex-1 p-8 overflow-y-auto">
-                    {/* ADMIN PANEL */}
+                    {/* ADMIN DASHBOARD PANEL */}
                     {
                         pathname === '/admin/siap-melayani' && user &&
                         <AdminSiapMelayani />
                     }
+                    {/* OTHERS */}
                     {
                         pathname === '/admin/siap-melayani/peserta' && user &&
                         <AdminPesertaSiapMelayani />
@@ -73,7 +74,6 @@ export default function AdminArea() {
                         pathname === '/admin/siap-melayani/pakta-integritas' && user &&
                         <AdminPaktaIntegritasSiapMelayani />
                     }
-
                     <FooterUserArea />
                 </div>
             </div>

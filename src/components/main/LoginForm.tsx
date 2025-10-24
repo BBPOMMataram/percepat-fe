@@ -43,7 +43,7 @@ export default function LoginForm() {
         dispatch(login({ email, password }))
             .unwrap()
             .then((data: LoginOrRegisterResponse) => {
-                dispatch(showAlert({ type: "success", message: `Welcome ${data.user.name} !`, description: data.message ?? "No Message from Backend" }));
+                dispatch(showAlert({ type: "success", message: `Welcome ${data.user.call_name || data.user.name} !`, description: data.message ?? "No Message from Backend" }));
                 router.push(callbackUrl);
             })
             .catch((err) => {
