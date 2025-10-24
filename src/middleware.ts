@@ -1,34 +1,52 @@
+import { jwtVerify } from "jose";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-export function middleware(req: NextRequest) {
-  const token = req.cookies.get("access_token"); // contoh pakai JWT di cookie
+export async function middleware(req: NextRequest) {
+  const token = req.cookies.get("access_token")?.value;
   const { pathname, search } = req.nextUrl;
 
-  // daftar halaman yang perlu login
   const protectedPaths = [
     "/admin",
     "/profile",
     "/settings",
     "/our-apps",
     "/siap-melayani/pengajuan-pkl/form",
-    "/siap-melayani/presensi"
+    "/siap-melayani/presensi",
   ];
 
   const isProtected = protectedPaths.some((path) =>
     pathname.startsWith(path)
   );
 
-  if (isProtected && !token) {
+  if (!isProtected) return NextResponse.next();
+
+  if (!token) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("redirectUrl", pathname + search);
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  try {
+    // ✅ Verifikasi token pakai jose (bisa di Edge)
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+    const { payload } = await jwtVerify(token, secret);
+
+    console.log('payload', payload);
+
+    // set role to some pages
+    if (pathname.startsWith("/admin") && payload.role !== "superadmin" && payload.role !== "admin") {
+      return NextResponse.redirect(new URL("/unauthorized", req.url));
+    }
+
+    return NextResponse.next();
+  } catch (error) {
+    console.error("Invalid token:", error);
+    const loginUrl = new URL("/login", req.url);
+    return NextResponse.redirect(loginUrl);
+  }
 }
 
-// halaman mana saja yang dipantau
 export const config = {
   matcher: [
     "/admin/:path*",
@@ -36,6 +54,6 @@ export const config = {
     "/our-apps/:path*",
     "/settings/:path*",
     "/siap-melayani/pengajuan-pkl/form/:path*",
-    "/siap-melayani/presensi/:path*"
+    "/siap-melayani/presensi/:path*",
   ],
 };

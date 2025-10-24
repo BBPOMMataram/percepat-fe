@@ -28,7 +28,7 @@ export default function Alert() {
   return (
     <div className={`${base} ${styles}`}>
       <div className="flex justify-between items-center">
-        <span>{message}</span>
+        <span>{typeof message !== "string" ? JSON.stringify(message) : message}</span>
         <button
           className="ml-3 font-bold text-gray-700 hover:text-black"
           onClick={() => dispatch(clearAlert())}

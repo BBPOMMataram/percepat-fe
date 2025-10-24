@@ -3,7 +3,7 @@ export default function AdminSiapMelayani() {
         <>
             <div className="bg-white rounded-2xl shadow px-8 py-4 flex items-center">
                 <h2 className="text-xl font-semibold text-gray-800 uppercase">Admin Panel Siap Melayani</h2>
-                <div className="tooltip tooltip-right ml-auto" data-tip="Visit Siap Melayani">
+                <div className="tooltip tooltip-left ml-auto" data-tip="Visit Siap Melayani">
                     <a href="/siap-melayani" target="_blank" rel="noopener noreferrer">
                         <span className="material-symbols-outlined">
                             open_in_new
