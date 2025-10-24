@@ -30,9 +30,7 @@ const MainPage = () => {
                     <AppSection />
                 </section>
             </main>
-            <footer>
-                <Footer />
-            </footer>
+            <Footer />
             <Script src="https://website-widgets.pages.dev/dist/sienna.min.js" strategy="lazyOnload" />
         </div>
     )

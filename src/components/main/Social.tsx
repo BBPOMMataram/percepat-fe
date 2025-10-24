@@ -1,5 +1,4 @@
 "use client"
-import React from 'react';
 import styled from 'styled-components';
 
 const Social = () => {
@@ -124,6 +123,7 @@ const StyledWrapper = styled.div`
     justify-content: center;
     width: 60px;
     height: 60px;
+    border-radius: 0px;
     border-top-left-radius: 10px;
     background: lightgrey;
     transition: 0.4s ease-in-out, 0.2s background-color ease-in-out,
