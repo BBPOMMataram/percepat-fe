@@ -19,6 +19,10 @@ const nextConfig = {
                 protocol: 'https',
                 hostname: 'auth.bbpommataram.id',
             },
+            {
+                protocol: 'https',
+                hostname: 'siap-melayani.bbpommataram.id',
+            },
         ],
     }
 }
