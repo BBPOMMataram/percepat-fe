@@ -34,7 +34,7 @@ export default function AdminSiapMelayani() {
             <div className="bg-white rounded-2xl shadow px-8 py-4 mt-2">
                 {/* make content center */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 justify-items-center">
-                    <div className="card bg-success text-success-content w-60 shadow-sm">
+                    <div className="card bg-success text-success-content w-52 shadow-sm">
                         <div className="card-body">
                             <h2 className="card-title">Total Peserta PKL</h2>
                             <p className="text-4xl lg:text-6xl font-bold flex items-center justify-center">
@@ -53,7 +53,7 @@ export default function AdminSiapMelayani() {
                             </div>
                         </div>
                     </div>
-                    <div className="card bg-info text-info-content w-60 shadow-sm">
+                    <div className="card bg-info text-info-content w-52 shadow-sm">
                         <div className="card-body">
                             <h2 className="card-title">Presensi Hari ini</h2>
                             <p className="text-4xl lg:text-6xl font-bold flex items-center justify-center">
@@ -72,7 +72,7 @@ export default function AdminSiapMelayani() {
                             </div>
                         </div>
                     </div>
-                    <div className="card bg-accent text-accent-content w-60 shadow-sm">
+                    <div className="card bg-accent text-accent-content w-52 shadow-sm">
                         <div className="card-body">
                             <h2 className="card-title">Total Pengajuan</h2>
                             <p className="text-4xl lg:text-6xl font-bold flex items-center justify-center">
@@ -91,7 +91,7 @@ export default function AdminSiapMelayani() {
                             </div>
                         </div>
                     </div>
-                    <div className="card bg-warning text-warning-content w-60 shadow-sm">
+                    <div className="card bg-warning text-warning-content w-52 shadow-sm">
                         <div className="card-body">
                             <h2 className="card-title">Kuota PKL Tersedia</h2>
                             <p className="text-4xl lg:text-6xl font-bold flex items-center justify-center">

@@ -11,22 +11,21 @@ export default function SidebarAdminSiapMelayani() {
         "hover:bg-gray-100 hover:text-black";
 
     return (
-        <aside className="w-16 bg-white flex flex-col items-center py-3 gap-4 shadow-xl">
-            <Image src="/assets/images/bpom.webp" alt="Icon BPOM" width={100} height={100} priority className="mx-auto w-auto h-auto p-2" />
-            <button className={`tooltip tooltip-right p-2 pb-1 rounded-lg ${isActive('/admin/siap-melayani')}`} data-tip="Dashboard Admin">
-                <Link href={'/admin/siap-melayani'}>
-                    <span className="material-symbols-outlined">
-                        apps
-                    </span>
-                </Link>
-            </button>
-            <div className="dropdown dropdown-right dropdown-center">
-                <button className={`tooltip tooltip-top p-2 pb-1 rounded-lg ${isActive('/admin/siap-melayani/peserta')} flex flex-col`}
+        <aside className="w-16 lg:w-52 bg-white flex flex-col items-center py-3 gap-4 shadow-xl px-2">
+            <Image src="/assets/images/bpom.webp" alt="Icon BPOM" width={100} height={100} priority className="mx-auto w-16 h-auto p-2" />
+            <Link href={'/admin/siap-melayani'} className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/siap-melayani')}`} data-tip="Dashboard Admin">
+                <span className="material-symbols-outlined">
+                    apps
+                </span>
+                <span className="hidden lg:block whitespace-nowrap">Dashboard</span>
+            </Link>
+            <div className="dropdown dropdown-right dropdown-center lg:w-full">
+                <button className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/siap-melayani/peserta')}`}
                     data-tip="Data PKL">
                     <span className="material-symbols-outlined">
-                        select
+                        diversity_2
                     </span>
-                    <span className="text-xs">PKL</span>
+                    <span className="hidden lg:block whitespace-nowrap">PKL</span>
                 </button>
                 <ul
                     tabIndex={0}
@@ -58,27 +57,28 @@ export default function SidebarAdminSiapMelayani() {
                     </li>
                 </ul>
             </div>
-            <button className={`tooltip tooltip-right p-2 pb-1 rounded-lg ${isActive('/admin/siap-melayani/kunjungan-narasumber')}`} data-tip="Kunjungan & Narasumber">
-                <Link href={'/admin/siap-melayani/kunjungan-narasumber'}>
-                    <span className="material-symbols-outlined">
-                        select
-                    </span>
-                </Link>
+            <button className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/siap-melayani/kunjungan-narasumber')}`} data-tip="Kunjungan & Narasumber">
+                {/* <Link href={'/admin/siap-melayani/kunjungan-narasumber'}> */}
+                <span className="material-symbols-outlined">
+                    interpreter_mode
+                </span>
+                <span className="hidden lg:block whitespace-nowrap">Narasumber</span>
+                {/* </Link> */}
             </button>
-            <button className={`tooltip tooltip-right p-2 pb-1 rounded-lg ${isActive('/admin/siap-melayani/pengaduan')}`} data-tip="Pengaduan">
-                <Link href={'/admin/siap-melayani/pengaduan'}>
-                    <span className="material-symbols-outlined">
-                        select
-                    </span>
-                </Link>
+            <button className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/siap-melayani/pengaduan')}`} data-tip="Pengaduan">
+                {/* <Link href={'/admin/siap-melayani/pengaduan'}> */}
+                <span className="material-symbols-outlined">
+                    support_agent
+                </span>
+                <span className="hidden lg:block whitespace-nowrap">Pengaduan</span>
+                {/* </Link> */}
             </button>
-            <button className={`mt-auto tooltip tooltip-right p-2 pb-1 rounded-lg ${isActive('/settings')}`} data-tip="Settings">
-                <Link href={'/settings'}>
-                    <span className="material-symbols-outlined">
-                        settings
-                    </span>
-                </Link>
-            </button>
+            <Link href={'/admin/siap-melayani/settings'} className={`mt-auto flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/settings')}`} data-tip="Settings">
+                <span className="material-symbols-outlined">
+                    settings
+                </span>
+                <span className="hidden lg:block whitespace-nowrap">Settings</span>
+            </Link>
         </aside >
     );
 }

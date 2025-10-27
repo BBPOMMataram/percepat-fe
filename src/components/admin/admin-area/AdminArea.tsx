@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import AdminElearningSiapMelayani from "../siap-melayani/e-learning/AdminElearningSiapMelayani";
+import AdminSettingsSiapMelayani from "../siap-melayani/pakta-integritas copy/AdminSettingsSiapMelayani";
 import AdminPaktaIntegritasSiapMelayani from "../siap-melayani/pakta-integritas/AdminPaktaIntegritasSiapMelayani";
 import AdminPenempatanSiapMelayani from "../siap-melayani/penempatan/AdminPenempatanSiapMelayani";
 import AdminPengajuanSiapMelayani from "../siap-melayani/pengajuan/AdminPengajuanSiapMelayani";
@@ -73,6 +74,10 @@ export default function AdminArea() {
                     {
                         pathname === '/admin/siap-melayani/pakta-integritas' && user &&
                         <AdminPaktaIntegritasSiapMelayani />
+                    }
+                    {
+                        pathname === '/admin/siap-melayani/settings' && user &&
+                        <AdminSettingsSiapMelayani user={user} />
                     }
                     <FooterUserArea />
                 </div>
