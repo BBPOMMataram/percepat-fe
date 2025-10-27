@@ -46,7 +46,7 @@ export default function AdminSiapMelayani() {
                                     />
                                 }
                             </p>
-                            <div className="card-actions justify-end">
+                            <div className="card-actions justify-center">
                                 <Link href="/admin/siap-melayani/peserta">
                                     <button className="btn btn-success">Check it out</button>
                                 </Link>
@@ -65,7 +65,7 @@ export default function AdminSiapMelayani() {
                                     />
                                 }
                             </p>
-                            <div className="card-actions justify-end">
+                            <div className="card-actions justify-center">
                                 <Link href="/admin/siap-melayani/presensi">
                                     <button className="btn btn-info">Check it out</button>
                                 </Link>
@@ -84,7 +84,7 @@ export default function AdminSiapMelayani() {
                                     />
                                 }
                             </p>
-                            <div className="card-actions justify-end">
+                            <div className="card-actions justify-center">
                                 <Link href="/admin/siap-melayani/penempatan">
                                     <button className="btn btn-accent">Check it out</button>
                                 </Link>
@@ -103,7 +103,7 @@ export default function AdminSiapMelayani() {
                                     />
                                 }
                             </p>
-                            <div className="card-actions justify-end">
+                            <div className="card-actions justify-center">
                                 <Link href="/admin/siap-melayani/presensi">
                                     <button className="btn btn-warning">Check it out</button>
                                 </Link>
