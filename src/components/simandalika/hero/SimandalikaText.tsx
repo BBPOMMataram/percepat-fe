@@ -1,11 +1,11 @@
 import styled from 'styled-components';
 
 const SimandalikaText = () => {
-    return (
-        <StyledWrapper>
-            <a href="#" className="btn-shine">SI MANDALIKA</a>
-        </StyledWrapper>
-    );
+  return (
+    <StyledWrapper>
+      <a href="#" className="btn-shine">SI MANDALIKA</a>
+    </StyledWrapper>
+  );
 }
 
 const StyledWrapper = styled.div`
