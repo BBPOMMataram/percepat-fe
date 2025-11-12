@@ -4,13 +4,15 @@ import { AppDispatch, RootState } from "@/redux/store";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import TimelineFlowSimpelBmn from "./TimelineFlow";
 
 export default function MainSimpelBmn() {
     const dispatch = useDispatch<AppDispatch>()
-    const { user, loading } = useSelector((state: RootState) => state.auth)
+    const { user } = useSelector((state: RootState) => state.auth)
+    const pathname = usePathname()
 
     useEffect(() => {
         dispatch(getUser());
@@ -58,17 +60,17 @@ export default function MainSimpelBmn() {
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            transition={{ duration: 2, staggerChildren: 1, delay: 2 }}
+                            transition={{ duration: 1, staggerChildren: 1, }}
                             className="button"
                         >
                             {user ?
                                 <motion.a
-                                    href="#inventory"
+                                    href="/simpel-bmn/pemeliharaan/form"
                                     className="btn btn-primary rounded px-6 py-3">
                                     AJUKAN PEMELIHARAAN
                                 </motion.a>
                                 :
-                                <Link href={'/login?redirectUrl=/simpel-bmn'}>
+                                <Link href={`/login?redirectUrl=${pathname}`}>
                                     <motion.button
                                         className="btn btn-primary rounded px-6 py-2 mr-2 mb-2">
                                         Masuk

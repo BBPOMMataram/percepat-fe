@@ -31,11 +31,13 @@ export default function LoginForm() {
     }, [dispatch])
 
     useEffect(() => {
+        if (loading) return
+
         if (user) {
             dispatch(showAlert({ type: "success", message: `You are already logged in ${user.call_name}`, description: "Redirecting to your profile page..." }));
             router.push(callbackUrl);
         }
-    }, [user, router, callbackUrl, dispatch])
+    }, [user, router, callbackUrl, dispatch, loading])
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();

@@ -1,11 +1,11 @@
-import FooterSiapMelayani from '@/components/siap-melayani/footer/Footer';
-import NavBarSiapMelayani from '@/components/siap-melayani/header/NavBar';
+import FooterSiapMelayani from '@/components/simpel-bmn/footer/Footer';
+import NavBarSiapMelayani from '@/components/simpel-bmn/header/NavBar';
 import React from 'react';
 
 export const metadata = {
     title: {
-        template: '%s | Siap Melayani | BBPOM di Mataram',
-        default: 'Siap Melayani | BBPOM di Mataram'
+        template: '%s | Simpel BMN | BBPOM di Mataram',
+        default: 'Simpel BMN | BBPOM di Mataram'
     },
     description: 'Sistem Monitoring Digitalisasi Aplikasi Terpadu Balai Besar POM di Mataram',
 }

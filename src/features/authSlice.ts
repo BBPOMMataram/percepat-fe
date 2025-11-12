@@ -82,7 +82,7 @@ interface AuthState {
 }
 
 const initialState: AuthState = {
-    loading: false,
+    loading: true,
     error: null,
     user: null,
 };
@@ -132,11 +132,16 @@ const authSlice = createSlice({
             })
 
             // GET USER
+            .addCase(getUser.pending, (state) => {
+                state.loading = true;
+            })
             .addCase(getUser.fulfilled, (state, action) => {
                 state.user = action.payload;
+                state.loading = false;
             })
             .addCase(getUser.rejected, (state) => {
                 state.user = null;
+                state.loading = false;
             });
     },
 });

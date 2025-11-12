@@ -35,7 +35,6 @@ export default function PresensiSiapMelayani() {
         fetchDataPresensi();
     }, [fetchDataPresensi])
 
-
     useEffect(() => {
         dispatch(getUser());
     }, [dispatch])
