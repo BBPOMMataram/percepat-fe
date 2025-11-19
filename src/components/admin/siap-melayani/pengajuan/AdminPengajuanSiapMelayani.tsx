@@ -1,3 +1,4 @@
+"use client"
 import api from "@/utils/api"
 import dayjs from "dayjs"
 import { useEffect, useState } from "react"
@@ -5,7 +6,7 @@ import AdminFormPengajuanSiapMelayani from "./AdminFormPengajuanSiapMelayani"
 
 export default function AdminPengajuanSiapMelayani() {
     const [pengajuan, setPengajuan] = useState<any>([])
-
+    const [mergedPengajuanWithUser, setMergedPengajuanWithUser] = useState<any>({})
     //for modal
     const [pengajuanItem, setPengajuanItem] = useState<any>(null)
     const [open, setOpen] = useState(false)
@@ -18,6 +19,54 @@ export default function AdminPengajuanSiapMelayani() {
                 setPengajuan(res.data)
             })
     }
+
+    useEffect(() => {
+        console.log(mergedPengajuanWithUser);
+    }, [mergedPengajuanWithUser]);
+
+    useEffect(() => {
+        if (!Array.isArray(pengajuan?.data)) return;
+
+        const items = pengajuan?.data;
+
+        // 1. Kumpulkan external_user_id dari setiap disposisi
+        const ids = items
+            .map((d: any) => d.user?.external_user_id)
+            .filter((v: any, i: number, arr: any) => v && arr.indexOf(v) === i);
+
+        if (ids.length === 0) {
+            setMergedPengajuanWithUser(pengajuan);
+            return;
+        }
+
+        // 2. Fetch batch user
+        api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-user-batch`, { ids })
+            .then(res => {
+                const authUsers = res.data;
+
+                const authMap: Record<string, any> = {};
+                authUsers.forEach((u: any) => authMap[u.id] = u);
+
+                // 3. Merge ke setiap disposisi
+                const merged = items.map((item: any) => ({
+                    ...item,
+                    user: item.user
+                        ? {
+                            ...item.user,
+                            auth_user: authMap[item.user.external_user_id] || null
+                        }
+                        : null
+                }));
+
+
+                setMergedPengajuanWithUser({ ...pengajuan, data: merged });
+            })
+            .catch(err => {
+                console.log(err);
+                setMergedPengajuanWithUser(pengajuan);
+            });
+
+    }, [pengajuan]);
 
     const handleAccept = (item: any) => {
         setMode("Accept")
@@ -76,15 +125,15 @@ export default function AdminPengajuanSiapMelayani() {
                         </thead>
                         <tbody>
                             {
-                                pengajuan?.data?.map((item: any, index: number) => (
+                                mergedPengajuanWithUser?.data?.map((item: any, index: number) => (
                                     <tr key={item.id} className="">
-                                        <td>{(pengajuan?.current_page - 1) * parseInt(pengajuan?.per_page) + index + 1}</td>
-                                        <td>{item.user?.name}</td>
-                                        <td>{item.user?.email}</td>
-                                        <td>{item.user?.phone}</td>
-                                        <td>{item.user?.universitas}</td>
-                                        <td>{item.user?.jurusan}</td>
-                                        <td>{item.user?.nim}</td>
+                                        <td>{(mergedPengajuanWithUser?.current_page - 1) * parseInt(mergedPengajuanWithUser?.per_page) + index + 1}</td>
+                                        <td>{item.user?.auth_user?.name}</td>
+                                        <td>{item.user?.auth_user?.email}</td>
+                                        <td>{item.user?.auth_user?.phones.map((phone: any) => phone.phone_number)}</td>
+                                        <td>{item.user?.auth_user?.student?.university}</td>
+                                        <td>{item.user?.auth_user?.student?.jurusan}</td>
+                                        <td>{item.user?.auth_user?.student?.nim}</td>
                                         <td>{item.position?.name}</td>
                                         <td>{item.period_start ? dayjs(item.created_at).format("dddd, DD MMMM YYYY (HH:mm)") : '-'}</td>
                                         <td>{item.period_end ? dayjs(item.created_at).format("dddd, DD MMMM YYYY (HH:mm)") : '-'}</td>
