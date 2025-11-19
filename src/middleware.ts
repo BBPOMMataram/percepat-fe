@@ -32,8 +32,6 @@ export async function middleware(req: NextRequest) {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const { payload } = await jwtVerify(token, secret);
 
-    console.log('payload', payload);
-
     // set role to some pages
     if (pathname.startsWith("/admin") && payload.role !== "superadmin" && payload.role !== "admin") {
       return NextResponse.redirect(new URL("/unauthorized", req.url));

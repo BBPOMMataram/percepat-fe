@@ -21,7 +21,7 @@ export const register = createAsyncThunk<LoginOrRegisterResponse, FormData, { re
             if (error.code === "ERR_NETWORK") {
                 return thunkAPI.rejectWithValue("Network Error. Please check your connection.");
             }
-            return thunkAPI.rejectWithValue(error.response?.data?.error);
+            return thunkAPI.rejectWithValue(error);
         }
     }
 );

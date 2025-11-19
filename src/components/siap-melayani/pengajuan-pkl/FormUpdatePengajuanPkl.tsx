@@ -27,7 +27,6 @@ export default function FormUpdatePengajuanPklSiapMelayani() {
             .then(res => {
                 setPengajuanPkl(res.data)
                 setPenempatan(res.data.position_id) // agar dropdown penempatan terisi sesuai data yg akan diubah
-                console.log('pengajuan pkl', res.data);
             })
             .catch(err => {
                 console.log(err);
@@ -55,7 +54,6 @@ export default function FormUpdatePengajuanPklSiapMelayani() {
             api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/pengajuan-pkl/${id}`, formData)
                 .then(res => {
                     dispatch(showAlert({ type: "success", message: res.data.message, description: res.data.message }))
-                    console.log(res.data);
                     setLoading(false);
                     router.push('/siap-melayani/pengajuan-pkl');
                 })

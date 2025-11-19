@@ -54,11 +54,10 @@ export default function RegisterForm() {
             .unwrap()
             .then((data: LoginOrRegisterResponse) => {
                 dispatch(showAlert({ type: "success", message: data.message || 'Register success', description: data.message ?? "No Message from Backend" }));
-                console.log('Register success', data);
                 router.push(callbackUrl);
             })
             .catch((err) => {
-                dispatch(showAlert({ type: "error", message: "Register failed", description: err || "No Message from Backend" }));
+                dispatch(showAlert({ type: "error", message: err.response?.data?.message, description: err || "No Message from Backend" }));
                 console.log('Register failed', err);
             });
     };

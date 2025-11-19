@@ -10,7 +10,6 @@ export async function GET(req: NextRequest) {
     const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI; // misal: https://api.webku.id
     const fullUrl = `${apiBase}/storage/${filePath}`;
 
-    console.log("Fetching from:", fullUrl); // debug
     // Ambil file dari backend
     const res = await fetch(fullUrl, {
         headers: {

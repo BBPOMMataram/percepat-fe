@@ -40,7 +40,17 @@ export interface Employee {
     updated_at: string | null; // ISO date string | null
     fungsi: {
         name: string;
-    }
+    };
+    group_jabatan: {
+        id: number;
+        name: string;
+    };
+    is_katim_pengujian: boolean;
+    petugas_bmn: {
+        id: number;
+        name: string;
+    };
+
 }
 
 export interface Student {

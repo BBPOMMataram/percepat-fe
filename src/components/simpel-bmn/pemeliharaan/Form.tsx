@@ -17,6 +17,7 @@ export default function FormPemeliharaanSimpelBmn() {
     const [kaTu, setKaTu] = useState<any>({});
     const [listKaTimPengujian, setListKaTimPengujian] = useState<any[]>([]);
     const [kaTimPengujianId, setKaTimPengujianId] = useState<any>("");
+    const [note, setNote] = useState<string>("");
 
     const dispatch = useDispatch<AppDispatch>();
 
@@ -167,6 +168,7 @@ export default function FormPemeliharaanSimpelBmn() {
             {
                 tipeBarang,
                 listBarang,
+                note,
                 fungsiId: user?.employee?.fungsi_id,
                 disposisiToId: tipeBarang !== 'lab' ? kaTu?.user_id : kaTimPengujianId,
             }
@@ -199,7 +201,7 @@ export default function FormPemeliharaanSimpelBmn() {
                             className="ar-input-text-purple"
                         >
                             {listTipeBarang.map((tipeBarang, index) => (
-                                <option key={index} value={tipeBarang}>
+                                <option key={index} value={tipeBarang} disabled={tipeBarang === 'non-bmn'}>
                                     {tipeBarang.toUpperCase()}
                                 </option>
                             ))}
@@ -309,6 +311,10 @@ export default function FormPemeliharaanSimpelBmn() {
                         </tbody>
                     </table>
 
+                    <textarea className="ar-input-text-purple w-full h-20 mt-10"
+                        placeholder={`Catatan untuk ${tipeBarang === 'lab' ? 'Katim Pengujian' : 'KaTu'}`}
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}></textarea>
 
                     <button className="btn btn-primary w-full">SUBMIT</button>
                 </form>

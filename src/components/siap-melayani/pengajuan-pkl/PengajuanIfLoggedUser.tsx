@@ -19,7 +19,6 @@ export default function PengajuanIfLoggedUserSiapMelayani({ user }: { user: User
         apiBase.get(process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI + "/api/pengajuan-pkl")
             .then(res => {
                 setPengajuan(res.data)
-                console.log(res.data);
             })
             .catch(err => {
                 dispatch(showAlert({ type: "error", message: err.response?.data?.message, description: err.response?.data?.message || "No Message from Backend" }));
@@ -34,7 +33,6 @@ export default function PengajuanIfLoggedUserSiapMelayani({ user }: { user: User
             apiBase.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/upload-laporan-akhir`, formData)
                 .then(res => {
                     dispatch(showAlert({ type: "success", message: res.data.message, description: res.data.message }))
-                    console.log(res.data);
 
                     // PERBAHARUI DATA TABLE
                     apiBase.get(process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI + "/api/pengajuan-pkl")

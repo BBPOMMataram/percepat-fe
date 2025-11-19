@@ -21,7 +21,6 @@ export default function FormPengajuanPklSiapMelayani() {
         api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/penempatan`)
             .then(res => {
                 setListPenempatan(res.data)
-                console.log('position', res.data);
             })
             .catch(err => {
                 console.log(err);
@@ -38,8 +37,6 @@ export default function FormPengajuanPklSiapMelayani() {
                     dispatch(showAlert({ type: "error", message: "Anda sudah memiliki pengajuan pkl", description: "Anda sudah memiliki pengajuan pkl" }))
                     router.push('/siap-melayani/pengajuan-pkl')
                 }
-
-                console.log('pengajuan pkl', res.data.data);
             })
             .catch(err => {
                 console.log(err);
@@ -55,7 +52,6 @@ export default function FormPengajuanPklSiapMelayani() {
             api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/pengajuan-pkl`, formData)
                 .then(res => {
                     dispatch(showAlert({ type: "success", message: res.data.message, description: res.data.message }))
-                    console.log(res.data);
                     setLoading(false);
                     window.history.back();
                 })
