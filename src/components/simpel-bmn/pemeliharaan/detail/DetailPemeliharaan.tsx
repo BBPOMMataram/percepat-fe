@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 export default function DetailPemeliharaan({ detailData, pelaporData }: any) {
     return (
         <>
-            <h2 className="text-lg font-semibold font-serif">Data Pemeliharaan</h2>
+            <h2 className="text-xl font-semibold font-serif">Data Pemeliharaan</h2>
 
             <div className="mb-4 flex flex-col gap-1">
                 <div className="flex items-center space-x-2">

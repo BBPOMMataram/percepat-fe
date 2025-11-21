@@ -5,15 +5,15 @@ export default function ContentPemeliharaan({ data, handleOpenDetail }: { data: 
         <>
             <h2 className="mb-10 font-bold text-lg lg:text-3xl font-serif">Data Pemeliharaan Anda</h2>
             <div className="overflow-x-auto rounded-2xl shadow-sm border border-gray-200 bg-white">
-                <table className="min-w-full text-sm text-gray-700">
-                    <thead className="bg-gray-100 text-gray-900 uppercase text-xs">
+                <table className="table table-zebra">
+                    <thead className="bg-primary text-primary-content uppercase text-xs">
                         <tr>
                             <th className="px-4 py-3 text-left">#</th>
                             <th className="px-4 py-3 text-left">Kode</th>
                             <th className="px-4 py-3 text-left">Status</th>
                             <th className="px-4 py-3 text-left">Tipe Barang</th>
                             <th className="px-4 py-3 text-left">Tanggal Lapor</th>
-                            <th className="px-4 py-3">##</th>
+                            <th className="px-4 py-3 text-center">##</th>
                         </tr>
                     </thead>
                     <tbody>

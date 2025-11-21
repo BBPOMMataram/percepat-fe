@@ -50,7 +50,8 @@ export interface Employee {
         id: number;
         name: string;
     };
-
+    is_ppk: boolean;
+    is_pp: boolean;
 }
 
 export interface Student {

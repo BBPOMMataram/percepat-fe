@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useSelector } from "react-redux";
 import ModalDisposisiPemeliharaan from "./ModalDisposisiPemeliharaan";
 
-export default function ContentDisposisi({ disposisi, handleOpenDetail }: { disposisi: any[], handleOpenDetail: (code: string) => void }) {
+export default function ContentDisposisi({ disposisi, handleOpenDetail, updateDataDisposisi }: { disposisi: any[], handleOpenDetail: (code: string) => void, updateDataDisposisi: () => void }) {
     const [showModalDiposisiPemeliharaan, setShowModalDiposisiPemeliharaan] = useState(false);
     const [code, setCode] = useState<string>("");
 
@@ -16,16 +16,12 @@ export default function ContentDisposisi({ disposisi, handleOpenDetail }: { disp
 
     const { user } = useSelector((state: RootState) => state.auth);
 
-    console.log('diposisi', disposisi);
-    console.log('user', user);
-
-
     return (
         <>
             <h2 className="mb-10 font-bold text-lg lg:text-3xl font-serif">Data Disposisi</h2>
             <div className="overflow-x-auto rounded-2xl shadow-sm border border-gray-200 bg-white">
-                <table className="min-w-full text-sm text-gray-700">
-                    <thead className="bg-gray-100 text-gray-900 uppercase text-xs">
+                <table className="table table-zebra">
+                    <thead className="bg-primary text-primary-content uppercase text-xs">
                         <tr>
                             <th className="px-4 py-3 text-left">#</th>
                             <th className="px-4 py-3 text-left">Kode</th>
@@ -33,7 +29,7 @@ export default function ContentDisposisi({ disposisi, handleOpenDetail }: { disp
                             <th className="px-4 py-3 text-left">Tipe Barang</th>
                             <th className="px-4 py-3 text-left">Pelapor</th>
                             <th className="px-4 py-3 text-left">Tanggal Lapor</th>
-                            <th className="px-4 py-3">##</th>
+                            <th className="px-4 py-3 text-center">##</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -89,7 +85,7 @@ export default function ContentDisposisi({ disposisi, handleOpenDetail }: { disp
                     </tbody>
                 </table>
             </div>
-            <ModalDisposisiPemeliharaan show={showModalDiposisiPemeliharaan} onClose={() => setShowModalDiposisiPemeliharaan(false)} code={code} />
+            <ModalDisposisiPemeliharaan show={showModalDiposisiPemeliharaan} onClose={() => setShowModalDiposisiPemeliharaan(false)} code={code} updateDataDisposisi={updateDataDisposisi} />
         </>
     )
 }

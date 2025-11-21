@@ -4,8 +4,8 @@ export default function TableListBarangSimpelBmn({ listBarangRusak }: any) {
         <div>
             <h2 className="mb-4 font-semibold text-lg font-serif">List Barang</h2>
             <div className="overflow-x-auto rounded-2xl shadow-sm border border-gray-200 bg-white">
-                <table className="min-w-full text-sm text-gray-700">
-                    <thead className="bg-gray-100 text-gray-900 uppercase text-xs">
+                <table className="table table-zebra">
+                    <thead className="bg-primary text-primary-content uppercase text-xs">
                         <tr>
                             <th className="px-4 py-3 text-left">#</th>
                             <th className="px-4 py-3 text-left">Nama</th>
