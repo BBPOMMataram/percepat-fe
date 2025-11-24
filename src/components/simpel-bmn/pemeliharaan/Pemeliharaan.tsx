@@ -5,14 +5,26 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import ContentDisposisi from "./ContentDisposisi"
 import ContentPemeliharaan from "./ContentPemeliharaan"
+import ContentPemeliharaanAll from "./ContentPemeliharaanAll"
 import ModalDetailPemeliharaan from "./detail/ModalDetailPemeliharaan"
 
 export default function PemeliharaanSimpelBmn() {
     const [data, setData] = useState<any[]>([])
+    const [dataAll, setDataAll] = useState<any[]>([])
     const [showModalDetailPemeliharaan, setShowModalDetailPemeliharaan] = useState(false);
     const [code, setCode] = useState<string>("");
     const [listDisposisi, setListDisposisi] = useState<any[]>([]);
     const [mergedDisposisi, setMergedDisposisi] = useState<any[]>([]);
+
+    const getAllData = () => {
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-all`)
+            .then(res => {
+                setDataAll(res?.data)
+            })
+            .catch(err => {
+                console.error(err)
+            })
+    }
 
     const getData = () => {
         api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-by-user`)
@@ -35,6 +47,7 @@ export default function PemeliharaanSimpelBmn() {
     }
 
     useEffect(() => {
+        getAllData()
         getData()
         getDataDisposisi()
     }, [])
@@ -116,6 +129,17 @@ export default function PemeliharaanSimpelBmn() {
             <div className="tabs tabs-lift">
                 <label className="tab">
                     <input type="radio" name="my_tabs_4" defaultChecked />
+                    <span className="material-symbols-outlined">
+                        assignment
+                    </span>
+                    Pemeliharaan
+                </label>
+                <div className="tab-content bg-base-100 border-base-300 p-6">
+                    <ContentPemeliharaanAll data={dataAll} handleOpenDetail={handleOpenDetail} />
+                </div>
+
+                <label className="tab">
+                    <input type="radio" name="my_tabs_4" />
                     <span className="material-symbols-outlined">
                         assignment
                     </span>
