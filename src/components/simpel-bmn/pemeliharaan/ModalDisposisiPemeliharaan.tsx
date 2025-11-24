@@ -30,9 +30,14 @@ export default function ModalDisposisiPemeliharaan({
     const [ppSelected, setPpSelected] = useState<any>(null);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [isButuhPengadaan, setIsButuhPengadaan] = useState<boolean>(false);
+    const [itemPengadaan, setItemPengadaan] = useState<any>({
+        name: "",
+        qty: 1,
+        satuan: ""
+    });
     const [listPengadaan, setListPengadaan] = useState<any[]>([]);
-    const [itemPengadaan, setItemPengadaan] = useState<any>(null);
     const [isDone, setIsDone] = useState<boolean>(false); // tanda untuk menandakan pemeliharaan sudah selesai oleh petugas bmn
+    const [mergedDetailData, setMergedDetailData] = useState<any>(null);
 
     const { user } = useSelector((state: RootState) => state.auth);
 
@@ -46,8 +51,6 @@ export default function ModalDisposisiPemeliharaan({
             { code }
         ).then((res) => {
             setDetailData(res?.data);
-            console.log(res?.data);
-
         }).catch((err) => {
             console.log(err);
         });
@@ -102,11 +105,119 @@ export default function ModalDisposisiPemeliharaan({
     }, [show, getDetailPemeliharaan]);
 
     useEffect(() => {
-        // ALUR SELANJUTNYA ADALAH TANDAI SELESAI ATAU RB JIKA DISPO SEBELUMNYA IN PROGRESS & JIKA BUTUH PENGADAAN MAKA LANJUT KE PPK SETISDONE NYA FALSE
+        // JIKA DISPO SEBELUMNYA IN PROGRESS (OLEH PETUGAS) 
+        // MAKA ALUR SELANJUTNYA ADALAH TANDAI SELESAI ATAU RB 
+        // NAMUN JIKA BUTUH PENGADAAN MAKA LANJUT KE PPK NANTI SETISDONE NYA FALSE
         if (detailData?.disposisi_new_pemeliharaan.at(-1).status === 'in_progress') {
             setIsDone(true);
         }
-    }, [detailData])
+
+        // SETISDONE TRUE JUGA JIKA DISPO SEBELUMNYA DARI PP UNTUK MENGAKTIFKAN BUTTON SELESAI PETUGAS
+        if (mergedDetailData?.disposisi_new_pemeliharaan.at(-1).from_user?.auth_user?.employee?.is_pp) {
+            setIsDone(true);
+        }
+
+    }, [detailData, mergedDetailData])
+
+    useEffect(() => {
+        const data = detailData;
+        if (!data || typeof data !== "object") return;
+
+        // =====================================
+        // 1. Kumpulkan SEMUA external_user_id
+        // =====================================
+        const ids: string[] = [];
+
+        // petugas
+        if (data.petugas?.external_user_id) {
+            ids.push(data.petugas.external_user_id);
+        }
+
+        // pelapor
+        if (data.pelapor?.external_user_id) {
+            ids.push(data.pelapor.external_user_id);
+        }
+
+        // disposisi from_user & to_user
+        data.disposisi_new_pemeliharaan?.forEach((d: any) => {
+            if (d.from_user?.external_user_id) ids.push(d.from_user.external_user_id);
+            if (d.to_user?.external_user_id) ids.push(d.to_user.external_user_id);
+        });
+
+        // unique
+        const uniqueIds = [...new Set(ids)];
+
+        if (uniqueIds.length === 0) {
+            setMergedDetailData(detailData);
+            return;
+        }
+
+        // =====================================
+        // 2. Fetch batch user dari AUTH server
+        // =====================================
+        api.post(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-user-batch`,
+            { ids: uniqueIds }
+        )
+            .then(res => {
+                const authUsers = res.data || [];
+
+                // authMap[id] = user_object
+                const authMap: Record<string, any> = {};
+                authUsers.forEach((u: any) => {
+                    authMap[u.id] = u;
+                });
+
+                // =====================================
+                // 3. Merge auth_user berdasarkan masing2 ID
+                // =====================================
+                const merged = {
+                    ...data,
+
+                    // petugas
+                    petugas: data.petugas
+                        ? {
+                            ...data.petugas,
+                            auth_user: authMap[data.petugas.external_user_id] || null,
+                        }
+                        : null,
+
+                    // pelapor
+                    pelapor: data.pelapor
+                        ? {
+                            ...data.pelapor,
+                            auth_user: authMap[data.pelapor.external_user_id] || null,
+                        }
+                        : null,
+
+                    // disposisi
+                    disposisi_new_pemeliharaan:
+                        data.disposisi_new_pemeliharaan?.map((d: any) => ({
+                            ...d,
+                            from_user: d.from_user
+                                ? {
+                                    ...d.from_user,
+                                    auth_user:
+                                        authMap[d.from_user.external_user_id] || null,
+                                }
+                                : null,
+                            to_user: d.to_user
+                                ? {
+                                    ...d.to_user,
+                                    auth_user:
+                                        authMap[d.to_user.external_user_id] || null,
+                                }
+                                : null,
+                        })) || [],
+                };
+
+                setMergedDetailData(merged);
+            })
+            .catch(err => {
+                console.log(err);
+                setMergedDetailData(detailData);
+            });
+    }, [detailData]);
 
     const submitDisposisi = (isRejected = false, isMarkedDone: false | 'done' | 'rb' = false) => {
         if (!note) {
@@ -118,6 +229,8 @@ export default function ModalDisposisiPemeliharaan({
         const isKatimPengujian = user?.employee?.is_katim_pengujian
         const isKaBalai = user?.employee?.group_jabatan?.id === 1
         const isPetugasBmn = user?.employee?.petugas_bmn
+        const isPpk = user?.employee?.is_ppk
+        const isPp = user?.employee?.is_pp
 
         let toUser = null;
         let lastStatusDisposisi = null; // status disposisi sebelum nya
@@ -142,20 +255,37 @@ export default function ModalDisposisiPemeliharaan({
             inProgress = true; // TANDAI IN PROGRESS
             toUser = user; // JIKA PETUGAS TINDAK LANJUT IN PROGRESS MAKA DISPOSISI NYA KE DIRINYA SENDIRI UNTUK NANTI DI TANDAI SELESAI ATAU RB OLEH DIRINYA SENDIRI
 
-            // JIKA MARKED SELESAI DONE / RB
+            // JIKA MARKED SELESAI (DONE / RB)
             if (isMarkedDone) {
                 inProgress = false;
+                // toUser nya dibuat null di backend
             }
 
+            // JIKA BUTUH PENGADAAN MAKA LANJUT KE PPK
             if (isButuhPengadaan) {
-
+                inProgress = false
                 if (!ppkSelected) {
                     alert("Silahkan pilih PPK terlebih dahulu.");
                     return;
                 }
-                toUser = ppkSelected;
-            }
+                toUser = ppkSelected; // TANDAI DARI PETUGAS KE PPK
 
+                if (listPengadaan.length === 0) {
+                    alert("Silahkan tambahkan barang pengadaan terlebih dahulu.");
+                    return;
+                }
+            }
+            // DISPO PPK
+        } else if (isPpk) {
+            lastStatusDisposisi = 'forwarded'; // status disposisi sebelumnya hanya forwarded karena tidak bisa menolak kecuali di katu / katim / kabalai / ppk / pp
+            toUser = ppSelected; // TANDAI DARI PPK KE PP
+            if (!ppSelected) {
+                alert("Silahkan pilih PP terlebih dahulu.");
+                return;
+            }
+        } else if (isPp) {
+            lastStatusDisposisi = 'forwarded'; // status disposisi sebelumnya hanya forwarded karena tidak bisa menolak kecuali di katu / katim / kabalai / ppk / pp
+            toUser = mergedDetailData?.petugas?.auth_user;
         }
 
         if (!window.confirm(`Apakah Anda yakin ingin ${isRejected ? 'menolak' : 'melanjutkan'} disposisi ini?`)) {
@@ -174,10 +304,10 @@ export default function ModalDisposisiPemeliharaan({
                 petugasBmnSelected: isKaBalai ? petugasBmnSelected : null, // jika petugasBmnSelected tidak null berarti didisposisi oleh kabalai dan petugas ini dipake untuk update data new pemeliharaan sebagai petugas di backend
                 inProgress,
                 isMarkedDone, // MAU DONE MAUPUN RB JIKA BUKAN FALSE ARTINYA SELESAI DIKERJAKAN
+                listPengadaan, // JIKA TIDAK NULL BERARTI INI DARI PETUGAS KE PPK
             })
             .then((res) => {
                 dispatch(showAlert({ type: "success", message: res.data.message, description: res.data.message }));
-                console.log(res.data);
                 closeModal();
                 setIsSubmitting(false);
                 updateDataDisposisi(); // update table
@@ -285,15 +415,32 @@ export default function ModalDisposisiPemeliharaan({
                                         <label className="ar-label-required">Tambahkan Pengadaan</label>
                                         <div className="flex gap-2">
                                             <input type="text" className="ar-input-text-purple w-fit"
-                                                value={itemPengadaan || ""}
-                                                onChange={(e) => setItemPengadaan(e.target.value)}
+                                                value={itemPengadaan.name || ""}
+                                                onChange={(e) => setItemPengadaan((prevItemPengadaan: any) => ({ ...prevItemPengadaan, name: e.target.value }))}
                                                 ref={inputPengadaanRef}
+                                                placeholder="Nama"
                                             />
-                                            <button className="btn btn-primary" onClick={() => {
-                                                setListPengadaan(list => [...list, itemPengadaan])
-                                                setItemPengadaan("")
-                                                inputPengadaanRef.current?.focus()
-                                            }}>
+                                            <input type="number" className="ar-input-text-purple w-fit"
+                                                value={itemPengadaan.qty}
+                                                onChange={(e) => setItemPengadaan((prevItemPengadaan: any) => ({ ...prevItemPengadaan, qty: e.target.value }))}
+                                                placeholder="qty"
+                                                min={1}
+                                            />
+                                            <input type="text" className="ar-input-text-purple w-fit"
+                                                value={itemPengadaan.satuan}
+                                                onChange={(e) => setItemPengadaan((prevItemPengadaan: any) => ({ ...prevItemPengadaan, satuan: e.target.value }))}
+                                                placeholder="satuan"
+                                            />
+                                            <button className="btn btn-primary"
+                                                onClick={() => {
+                                                    if (!itemPengadaan.name || !itemPengadaan.qty || !itemPengadaan.satuan) return
+                                                    setListPengadaan(list => [...list, {
+                                                        ...itemPengadaan,
+                                                        qty: parseInt(itemPengadaan.qty)
+                                                    }])
+                                                    setItemPengadaan({ name: "", qty: 1, satuan: "" })  // reset benar
+                                                    inputPengadaanRef.current?.focus()
+                                                }}>
                                                 Tambah
                                             </button>
                                         </div>
@@ -301,7 +448,7 @@ export default function ModalDisposisiPemeliharaan({
                                     <ul className="list-decimal list-inside mt-2 flex flex-col">
                                         {
                                             listPengadaan?.map((item, index) => (
-                                                <li key={index}>{item}</li>
+                                                <li key={index}>{`${item.name} (${item.qty} ${item.satuan})`}</li>
                                             ))
                                         }
                                     </ul>
@@ -355,7 +502,8 @@ export default function ModalDisposisiPemeliharaan({
                                 >
                                     Tandai Rusak Berat
                                 </button>
-                            </> :
+                            </>
+                            :
                             <button
                                 type="button"
                                 onClick={() => submitDisposisi(false)}
@@ -379,6 +527,7 @@ export default function ModalDisposisiPemeliharaan({
                             Tolak
                         </button>
                     }
+
                     <button
                         type="button"
                         onClick={closeModal}

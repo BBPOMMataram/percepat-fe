@@ -55,11 +55,10 @@ export default function ListDisposisiPemeliharaan({ listDisposisi }: any) {
                 console.log(err);
                 setMergedDisposisi(listDisposisi); // fallback ke data asli kalau error
             })
-
     }, [listDisposisi]);
 
     return (
-        <div>
+        <div className="mb-6">
             <h2 className="mb-4 font-semibold text-lg font-serif">Riwayat Disposisi</h2>
             <div>
                 <ul className="list bg-base-100 rounded-box shadow-md">
@@ -80,7 +79,9 @@ export default function ListDisposisiPemeliharaan({ listDisposisi }: any) {
                         </li>
                     ))
                     }
-
+                    {mergedDisposisi.at(-1)?.to_user?.auth_user ? (
+                        <div className="p-4 text-error animate-pulse">Menunggu response dari {mergedDisposisi.at(-1)?.to_user?.auth_user?.name}</div>
+                    ) : null}
                 </ul >
             </div >
         </div >

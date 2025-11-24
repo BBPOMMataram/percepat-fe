@@ -1,7 +1,7 @@
 
 export default function TableListBarangSimpelBmn({ listBarangRusak }: any) {
     return (
-        <div>
+        <div className="mb-6">
             <h2 className="mb-4 font-semibold text-lg font-serif">List Barang</h2>
             <div className="overflow-x-auto rounded-2xl shadow-sm border border-gray-200 bg-white">
                 <table className="table table-zebra">
