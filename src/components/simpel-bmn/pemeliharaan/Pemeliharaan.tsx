@@ -1,8 +1,10 @@
 "use client"
 
+import { RootState } from "@/redux/store"
 import api from "@/utils/api"
 import Link from "next/link"
 import { useEffect, useState } from "react"
+import { useSelector } from "react-redux"
 import ContentDisposisi from "./ContentDisposisi"
 import ContentPemeliharaan from "./ContentPemeliharaan"
 import ContentPemeliharaanAll from "./ContentPemeliharaanAll"
@@ -11,15 +13,20 @@ import ModalDetailPemeliharaan from "./detail/ModalDetailPemeliharaan"
 export default function PemeliharaanSimpelBmn() {
     const [data, setData] = useState<any[]>([])
     const [dataAll, setDataAll] = useState<any[]>([])
+    const [mergedDataAll, setMergedDataAll] = useState<any[]>([])
     const [showModalDetailPemeliharaan, setShowModalDetailPemeliharaan] = useState(false);
     const [code, setCode] = useState<string>("");
     const [listDisposisi, setListDisposisi] = useState<any[]>([]);
     const [mergedDisposisi, setMergedDisposisi] = useState<any[]>([]);
 
+    const { user } = useSelector((state: RootState) => state.auth);
+    const currentUserId = user?.id
+
     const getAllData = () => {
         api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-all`)
             .then(res => {
-                setDataAll(res?.data)
+                const allData = res?.data;
+                setDataAll(allData);
             })
             .catch(err => {
                 console.error(err)
@@ -48,7 +55,7 @@ export default function PemeliharaanSimpelBmn() {
 
     useEffect(() => {
         getAllData()
-        getData()
+        // getData()
         getDataDisposisi()
     }, [])
 
@@ -118,6 +125,51 @@ export default function PemeliharaanSimpelBmn() {
 
     }, [listDisposisi]);
 
+    useEffect(() => {
+        if (!Array.isArray(dataAll)) return;
+
+        // ambil semua external_user_id pelapor
+        const ids = [...new Set(
+            dataAll
+                .map(item => item.pelapor?.external_user_id)
+                .filter(Boolean)
+        )];
+
+        if (ids.length === 0) {
+            setMergedDataAll(dataAll);
+            return;
+        }
+
+        api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-user-batch`, { ids })
+            .then(res => {
+                const authMap = Object.fromEntries(
+                    res.data.map((u: any) => [u.id, u])
+                );
+
+                setMergedDataAll(
+                    dataAll.map(item => ({
+                        ...item,
+                        pelapor: item.pelapor
+                            ? {
+                                ...item.pelapor,
+                                auth_user: authMap[item.pelapor.external_user_id] || null,
+                            }
+                            : null
+                    }))
+                );
+            })
+            .catch(() => setMergedDataAll(dataAll));
+    }, [dataAll]);
+
+    useEffect(() => {
+        // filter data hanya pelapor yg login untuk data pemeliharaan ANDA
+        const filtered = mergedDataAll.filter(
+            (item: any) => item.pelapor?.external_user_id === currentUserId
+        );
+
+        setData(filtered);
+    }, [mergedDataAll, currentUserId]);
+
     const handleOpenDetail = (code: string) => {
         setCode(code);
         setShowModalDetailPemeliharaan(true);
@@ -135,7 +187,7 @@ export default function PemeliharaanSimpelBmn() {
                     Pemeliharaan
                 </label>
                 <div className="tab-content bg-base-100 border-base-300 p-6">
-                    <ContentPemeliharaanAll data={dataAll} handleOpenDetail={handleOpenDetail} />
+                    <ContentPemeliharaanAll data={mergedDataAll} handleOpenDetail={handleOpenDetail} />
                 </div>
 
                 <label className="tab">

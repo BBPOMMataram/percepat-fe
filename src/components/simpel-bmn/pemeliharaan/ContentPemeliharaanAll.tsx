@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 export default function ContentPemeliharaanAll({ data, handleOpenDetail }: { data: any[], handleOpenDetail: (code: string) => void }) {
     return (
         <>
-            <h2 className="mb-10 font-bold text-lg lg:text-3xl font-serif">Data Pemeliharaan Anda</h2>
+            <h2 className="mb-10 font-bold text-lg lg:text-3xl font-serif">Data Pemeliharaan</h2>
             <div className="overflow-x-auto rounded-2xl shadow-sm border border-gray-200 bg-white">
                 <table className="table table-zebra">
                     <thead className="bg-primary text-primary-content uppercase text-xs">
@@ -13,6 +13,7 @@ export default function ContentPemeliharaanAll({ data, handleOpenDetail }: { dat
                             <th className="px-4 py-3 text-left">Status</th>
                             <th className="px-4 py-3 text-left">Tipe Barang</th>
                             <th className="px-4 py-3 text-left">Tanggal Lapor</th>
+                            <th className="px-4 py-3 text-left">Pelapor</th>
                             <th className="px-4 py-3 text-center">##</th>
                         </tr>
                     </thead>
@@ -35,12 +36,12 @@ export default function ContentPemeliharaanAll({ data, handleOpenDetail }: { dat
                                     </td>
                                     <td className={`px-4 py-3 font-semibold ${item.status === 'open' ? 'text-bpom-green' : 'text-red-500'}`}>{item.status}</td>
                                     <td className={`px-4 py-3 uppercase`}>{item.tipe}</td>
-
                                     <td className="px-4 py-3 text-sm ">
                                         {dayjs(item.created_at).format("DD MMM YYYY")}
                                         <br />
                                         {dayjs(item.created_at).format("HH:mm:ss")}
                                     </td>
+                                    <td className={`px-4 py-3 uppercase`}>{item.pelapor?.auth_user?.call_name || item.pelapor?.auth_user?.name}</td>
                                     <td className="px-4 py-3 text-center">
                                         <button
                                             onClick={() => handleOpenDetail(item.code)}
