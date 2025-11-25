@@ -14,7 +14,11 @@ import SignatureCanvas from "react-signature-canvas";
 export default function Profile({ user, updateCallName, callName }: { user: User | null, updateCallName: (name: string) => void, callName: string }) {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
+    const [gelarDepan, setGelarDepan] = useState("");
+    const [gelarBelakang, setGelarBelakang] = useState("");
     const [isEditing, setIsEditing] = useState(false);
+    const [listFungsi, setListFungsi] = useState([]);
+    const [fungsiId, setFungsiId] = useState(user?.employee?.fungsi_id ?? "");
 
     const fullNameRef = useRef<HTMLInputElement>(null);
     const formProfileRef = useRef<HTMLFormElement>(null);
@@ -22,10 +26,27 @@ export default function Profile({ user, updateCallName, callName }: { user: User
 
     const dispatch = useDispatch<AppDispatch>()
 
+    const getFungsi = () => {
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/fungsis`)
+            .then(res => {
+                setListFungsi(res.data);
+            })
+            .catch(err => {
+                console.log(err);
+            });
+    }
+
+    useEffect(() => {
+        getFungsi();
+    }, [])
+
     useEffect(() => {
         if (user) {
             setName(user.name);
             setEmail(user.email);
+            setGelarDepan(user.employee?.gelar_depan ?? "");
+            setGelarBelakang(user.employee?.gelar_belakang ?? "");
+            setFungsiId(user.employee?.fungsi_id ?? "");
         }
     }, [user]);
 
@@ -76,7 +97,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                                     className="w-16 h-16 rounded-full object-cover"
                                 />
                                 <div>
-                                    <h3 className="text-lg font-semibold text-gray-800">{name}</h3>
+                                    <h3 className="text-lg font-semibold text-gray-800">{`${gelarDepan ? gelarDepan + ". " : ""}${name}${gelarBelakang ? ", " + gelarBelakang : ""}`}</h3>
                                     <p className="text-sm text-gray-500">{email}</p>
                                 </div>
                             </div>
@@ -179,6 +200,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                                 <label className="text-sm text-gray-500">Gelar Depan</label>
                                 <input type="text" placeholder="Gelar Depan" className="ar-input-text-green w-full"
                                     defaultValue={user.employee.gelar_depan || ""}
+                                    onChange={(e) => setGelarDepan(e.target.value)}
                                     readOnly={!isEditing}
                                     name="employee[gelar_depan]"
                                 />
@@ -187,6 +209,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                                 <label className="text-sm text-gray-500">Gelar Belakang</label>
                                 <input type="text" placeholder="Gelar Belakang" className="ar-input-text-green w-full"
                                     defaultValue={user.employee.gelar_belakang || ""}
+                                    onChange={(e) => setGelarBelakang(e.target.value)}
                                     readOnly={!isEditing}
                                     name="employee[gelar_belakang]"
                                 />
@@ -214,6 +237,24 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                                     readOnly={!isEditing}
                                     name="employee[pangkat]"
                                 />
+                            </div>
+                            <div>
+                                <label className="text-sm text-gray-500">Fungsi</label>
+                                <select
+                                    className="ar-input-text-green w-full"
+                                    disabled={!isEditing}
+                                    name="employee[fungsi_id]"
+                                    value={fungsiId}
+                                    onChange={(e) => setFungsiId(e.target.value)}
+                                >
+                                    <option value="">Pilih Fungsi</option>
+
+                                    {listFungsi?.map((fungsi: any) => (
+                                        <option key={fungsi.id} value={String(fungsi.id)}>
+                                            {fungsi.name}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
                     </div>
