@@ -5,12 +5,13 @@ import api from "@/utils/api";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { ModalWebcamInputBarang } from "./ModalWebcamInputBarang";
 import QRScannerModal from "./QRScannerModal";
 
 export default function FormPemeliharaanSimpelBmn() {
     const [kodeBarang, setKodeBarang] = useState("");
     const [nup, setNup] = useState("");
-    const [listBarang, setDaftar] = useState<any>([]);
+    const [listBarang, setListBarang] = useState<any>([]);
     const [openScanner, setOpenScanner] = useState(false);
     const { user } = useSelector((state: RootState) => state.auth);
     const [tipeBarang, setSetTipeBarang] = useState("non-lab");
@@ -18,11 +19,11 @@ export default function FormPemeliharaanSimpelBmn() {
     const [listKaTimPengujian, setListKaTimPengujian] = useState<any[]>([]);
     const [kaTimPengujianId, setKaTimPengujianId] = useState<any>("");
     const [note, setNote] = useState<string>("");
+    const [webcamIndex, setWebcamIndex] = useState<number | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
     const dispatch = useDispatch<AppDispatch>();
-
     const handleInputQrCode = () => setOpenScanner(true);
-
     const router = useRouter();
 
     const listTipeBarang = [
@@ -70,7 +71,7 @@ export default function FormPemeliharaanSimpelBmn() {
                         return;
                     }
 
-                    setDaftar([
+                    setListBarang([
                         ...listBarang,
                         {
                             id: data.id,
@@ -110,7 +111,7 @@ export default function FormPemeliharaanSimpelBmn() {
                         return;
                     }
 
-                    setDaftar([
+                    setListBarang([
                         ...listBarang,
                         {
                             id: data.id,
@@ -137,15 +138,24 @@ export default function FormPemeliharaanSimpelBmn() {
     const updateKeluhan = (i: number, value: string) => {
         const salin = [...listBarang];
         salin[i].keluhan = value;
-        setDaftar(salin);
+        setListBarang(salin);
+    };
+
+    const updateBukti = (index: number, file: File | null) => {
+        setListBarang((prev: any) => {
+            const clone = [...prev];
+            clone[index] = { ...clone[index], bukti: file };
+            return clone;
+        });
     };
 
     const removeItem = (i: number) => {
-        setDaftar(listBarang.filter((_: any, idx: number) => idx !== i));
+        setListBarang(listBarang.filter((_: any, idx: number) => idx !== i));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
         if (tipeBarang === 'lab' && !kaTimPengujianId) {
             alert("Silakan pilih KaTim Pengujian terlebih dahulu.");
             return;
@@ -163,6 +173,10 @@ export default function FormPemeliharaanSimpelBmn() {
             return; // <-- ini menghentikan handleSubmit
         }
 
+        setIsSubmitting(true);
+        setTimeout(() => {
+            setIsSubmitting(false);
+        }, 4000);
         api.post(
             `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/store-new-pemeliharaan`,
             {
@@ -171,17 +185,23 @@ export default function FormPemeliharaanSimpelBmn() {
                 note,
                 fungsiId: user?.employee?.fungsi_id,
                 disposisiToId: tipeBarang !== 'lab' ? kaTu?.user_id : kaTimPengujianId,
+            },
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
             }
         ).then((res) => {
             dispatch(showAlert({ type: "success", message: res.data.message || "Berhasil mengajukan pemeliharaan BMN", description: res.data.message || "Berhasil mengajukan pemeliharaan BMN" }));
-            setDaftar([]);
+            setListBarang([]);
             router.push('/simpel-bmn/pemeliharaan');
+            setIsSubmitting(false);
         }).catch((err) => {
             dispatch(showAlert({ type: "error", message: err?.response?.data?.message, description: err.response?.data?.message || "No Message from Backend" }));
             console.log(err);
+            setIsSubmitting(false);
         });
     };
-
 
     return (
         <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -273,6 +293,15 @@ export default function FormPemeliharaanSimpelBmn() {
                     onClose={() => setOpenScanner(false)}
                     onScan={handleScanQrCode}
                 />
+
+                {webcamIndex !== null && (
+                    <ModalWebcamInputBarang
+                        index={webcamIndex}
+                        updateBukti={updateBukti}
+                        onClose={() => setWebcamIndex(null)}
+                    />
+                )}
+
             </div>
 
             {/* Daftar Barang Diajukan */}
@@ -285,6 +314,7 @@ export default function FormPemeliharaanSimpelBmn() {
                                 <th>NUP</th>
                                 <th>Nama</th>
                                 <th>Keluhan</th>
+                                <th>Bukti</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -301,6 +331,26 @@ export default function FormPemeliharaanSimpelBmn() {
                                             onChange={(e) => updateKeluhan(i, e.target.value)}
                                         />
                                     </td>
+                                    <td className="flex items-center gap-2">
+
+                                        {/* FILE INPUT */}
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            capture="environment"
+                                            className="ar-input-text-purple w-22"
+                                            onChange={(e) => updateBukti(i, e.target.files?.[0] || null)}
+                                        />
+
+                                        {/* BUTTON BUKA MODAL WEBCAM */}
+                                        <button
+                                            type="button"
+                                            onClick={() => setWebcamIndex(i)}
+                                            className="btn btn-ghost btn-circle"
+                                        >
+                                            <span className="material-symbols-outlined">photo_camera</span>
+                                        </button>
+                                    </td>
                                     <td>
                                         <button type="button" className="btn btn-ghost" onClick={() => removeItem(i)}>
                                             <span className="material-symbols-outlined text-red-500">delete</span>
@@ -316,7 +366,7 @@ export default function FormPemeliharaanSimpelBmn() {
                         value={note}
                         onChange={(e) => setNote(e.target.value)}></textarea>
 
-                    <button className="btn btn-primary w-full">SUBMIT</button>
+                    <button className={`btn btn-primary w-full ${isSubmitting ? 'loading' : ''}`} type="submit" disabled={isSubmitting}>SUBMIT</button>
                 </form>
             )}
         </div>

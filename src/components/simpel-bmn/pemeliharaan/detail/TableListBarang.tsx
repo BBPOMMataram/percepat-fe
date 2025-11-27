@@ -1,3 +1,4 @@
+import Image from "next/image";
 
 export default function TableListBarangSimpelBmn({ listBarangRusak }: any) {
     return (
@@ -12,6 +13,7 @@ export default function TableListBarangSimpelBmn({ listBarangRusak }: any) {
                             <th className="px-4 py-3 text-left">Kode</th>
                             <th className="px-4 py-3 text-left">NUP</th>
                             <th className="px-4 py-3 text-left">Keluhan</th>
+                            <th className="px-4 py-3 text-center">Foto Bukti</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -39,6 +41,11 @@ export default function TableListBarangSimpelBmn({ listBarangRusak }: any) {
                                     </td>
                                     <td className="px-4 py-3">
                                         {item.keluhan}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        {item.foto_bukti ? (
+                                            <Image src={item.foto_bukti} alt={`Foto bukti ${item.barang.nama}`} width={100} height={100} priority className="mx-auto w-32 h-auto p-2" />
+                                        ) : <p>Tidak ada gambar</p>}
                                     </td>
                                 </tr>
                             ))

@@ -65,7 +65,10 @@ export default function ListDisposisiPemeliharaan({ listDisposisi }: any) {
 
                     {mergedDisposisi.map((disposisi, i) => (
                         < li className="list-row" key={i} >
-                            <div><Image alt="profile photo" width={40} height={40} className="size-10 rounded-full" src={disposisi?.from_user?.auth_user?.photo_path} /></div>
+                            <div>
+                                <Image alt="profile photo" width={40} height={40} className="size-10 rounded-full" src={disposisi?.from_user?.auth_user?.photo_path ? disposisi?.from_user?.auth_user?.photo_path : "/assets/images/noimage.webp"} />
+                            </div>
+
                             < div >
                                 <div>{disposisi?.from_user?.auth_user?.name}</div>
                                 <GroupJabatan disposisi={disposisi} />
