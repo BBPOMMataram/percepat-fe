@@ -14,7 +14,6 @@ interface ModalDetailPemeliharaanProps {
     code: string;
 }
 
-
 export default function ModalDetailPemeliharaan({
     show,
     onClose,
@@ -47,9 +46,15 @@ export default function ModalDetailPemeliharaan({
                     console.log(err);
                 })
         }).catch((err) => {
+            dispatch(showAlert({ type: "error", message: "Pemeliharaan tidak ditemukan", description: "Pemeliharaan tidak ditemukan" }));
+            setDetailData(null);
+            setPelaporData(null);
+            setListDisposisi([]);
+
             console.log(err);
+            onClose();
         });
-    }, [code, dispatch]);
+    }, [code, dispatch, onClose]);
 
     useEffect(() => {
         if (show && code) {

@@ -5,14 +5,34 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import TimelineFlowSimpelBmn from "./TimelineFlow";
+import ModalDetailPemeliharaan from "./pemeliharaan/detail/ModalDetailPemeliharaan";
 
 export default function MainSimpelBmn() {
     const dispatch = useDispatch<AppDispatch>()
     const { user } = useSelector((state: RootState) => state.auth)
     const pathname = usePathname()
+    const modalTrackingRef = useRef<HTMLDialogElement>(null)
+    const inputCodeRef = useRef<HTMLInputElement>(null)
+    const [code, setCode] = useState<string>("")
+    const [showModalDetailPemeliharaan, setShowModalDetailPemeliharaan] = useState<boolean>(false)
+
+    const tracking = () => {
+        setShowModalDetailPemeliharaan(true)
+        modalTrackingRef.current?.close()
+        setTimeout(() => {
+            setCode("")
+        }, 1);
+    }
+
+    const openModalTracking = () => {
+        modalTrackingRef.current?.showModal()
+        setTimeout(() => {
+            inputCodeRef.current?.focus()
+        }, 100);
+    }
 
     useEffect(() => {
         dispatch(getUser());
@@ -64,11 +84,36 @@ export default function MainSimpelBmn() {
                             className="button"
                         >
                             {user ?
-                                <motion.a
-                                    href="/simpel-bmn/pemeliharaan/form"
-                                    className="btn btn-primary rounded px-6 py-3">
-                                    AJUKAN PEMELIHARAAN
-                                </motion.a>
+                                <div className="flex gap-2">
+                                    <motion.a
+                                        href="/simpel-bmn/pemeliharaan/form"
+                                        className="btn btn-primary rounded px-6 py-3">
+                                        AJUKAN PEMELIHARAAN
+                                    </motion.a>
+
+                                    {/* MODAL TRACKING PEMELIHARAAN  */}
+                                    <motion.button className="btn btn-accent" onClick={openModalTracking}>
+                                        TRACKING PEMELIHARAAN
+                                    </motion.button>
+                                    <dialog id="my_modal_2" className="modal" ref={modalTrackingRef}>
+                                        <div className="modal-box">
+                                            <h3 className="font-bold text-lg mb-4">Masukkan kode pemeliharaan!</h3>
+                                            <input type="text" value={code} onChange={(e) => setCode(e.target.value)} className="ar-input-text-purple w-full" ref={inputCodeRef} />
+                                            <div className="modal-action">
+                                                <button className="btn btn-accent" onClick={tracking}>Cari</button>
+                                            </div>
+                                        </div>
+                                        <form method="dialog" className="modal-backdrop">
+                                            <button>Tutup</button>
+                                        </form>
+                                    </dialog>
+
+                                    <ModalDetailPemeliharaan
+                                        show={showModalDetailPemeliharaan}
+                                        onClose={() => setShowModalDetailPemeliharaan(false)}
+                                        code={code}
+                                    />
+                                </div>
                                 :
                                 <Link href={`/login?redirectUrl=${pathname}`}>
                                     <motion.button

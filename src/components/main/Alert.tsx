@@ -19,14 +19,14 @@ export default function Alert() {
   if (!message) return null;
 
   const base =
-    "fixed top-18 right-4 z-[9999] w-80 p-3 rounded-lg text-sm font-medium border shadow-md animate-fade-in";
+    "fixed top-12 right-4 z-[9999] w-80 p-3 rounded-lg text-sm font-medium border shadow-md animate-fade-in";
   const styles =
     type === "success"
       ? "bg-green-100 text-green-800 border-green-300"
       : "bg-red-100 text-red-800 border-red-300";
 
   return (
-    <div className={`${base} ${styles}`}>
+    <div className={`${base} ${styles}`} onClick={() => dispatch(clearAlert())}>
       <div className="flex justify-between items-center">
         <span>{typeof message !== "string" ? JSON.stringify(message) : message}</span>
         <button
