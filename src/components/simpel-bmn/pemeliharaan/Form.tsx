@@ -157,7 +157,7 @@ export default function FormPemeliharaanSimpelBmn() {
         e.preventDefault();
 
         if (tipeBarang === 'lab' && !kaTimPengujianId) {
-            alert("Silakan pilih KaTim Pengujian terlebih dahulu.");
+            alert("Silahkan pilih KaTim Pengujian terlebih dahulu.");
             return;
         }
 
@@ -366,7 +366,7 @@ export default function FormPemeliharaanSimpelBmn() {
                         value={note}
                         onChange={(e) => setNote(e.target.value)}></textarea>
 
-                    <button className={`btn btn-primary w-full ${isSubmitting ? 'loading' : ''}`} type="submit" disabled={isSubmitting}>SUBMIT</button>
+                    <button className={`btn btn-primary ${isSubmitting ? 'loading' : ''}`} type="submit" disabled={isSubmitting}>SUBMIT</button>
                 </form>
             )}
         </div>

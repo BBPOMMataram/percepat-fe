@@ -11,6 +11,8 @@ interface ModalDisposisiPemeliharaanProps {
     updateDataDisposisi: () => void;
 }
 
+type DispositionStatus = 'pending' | 'forwarded' | 'in_progress' | 'done' | 'rb' | 'rejected' | null
+
 export default function ModalDisposisiPemeliharaan({
     show,
     onClose,
@@ -219,7 +221,7 @@ export default function ModalDisposisiPemeliharaan({
             });
     }, [detailData]);
 
-    const submitDisposisi = (isRejected = false, isMarkedDone: false | 'done' | 'rb' = false) => {
+    const submitDisposisi = (isRejected: boolean = false, isMarkedDone: false | 'done' | 'rb' = false) => {
         if (!note) {
             alert("Silahkan isi catatan terlebih dahulu.");
             return;
@@ -233,7 +235,7 @@ export default function ModalDisposisiPemeliharaan({
         const isPp = user?.employee?.is_pp
 
         let toUser = null;
-        let lastStatusDisposisi = null; // status disposisi sebelum nya
+        let lastStatusDisposisi: DispositionStatus = null; // status disposisi sebelum nya
         let inProgress = false;
 
         // DISPO KATIM PENGUJIAN / KATU
@@ -338,7 +340,7 @@ export default function ModalDisposisiPemeliharaan({
                 className="bg-white rounded-lg p-6 w-full max-w-6xl space-y-4 mx-4 overflow-auto max-h-[calc(100vh-50px)]"
                 onClick={(e) => e.stopPropagation()}
             >
-                <h2 className="text-xl font-semibold font-serif">Disposisi</h2>
+                <h2 className="text-xl font-semibold font-serif ar-label-required">Disposisi</h2>
                 <textarea className="ar-input-text-purple w-full h-20"
                     placeholder={`Catatan`}
                     value={note}
@@ -516,7 +518,7 @@ export default function ModalDisposisiPemeliharaan({
 
                     {
                         //ga usah tampilkan tolak untuk petugas bmn atau pelapor
-                        (!user?.employee?.petugas_bmn && !user?.id === detailData?.pelapor?.external_user_id)
+                        (!user?.employee?.petugas_bmn && user?.id !== detailData?.pelapor?.external_user_id)
                         &&
                         <button
                             type="button"

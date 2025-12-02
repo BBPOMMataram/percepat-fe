@@ -24,7 +24,7 @@ export default function MainSimpelBmn() {
         modalTrackingRef.current?.close()
         setTimeout(() => {
             setCode("")
-        }, 1);
+        }, 100);
     }
 
     const openModalTracking = () => {

@@ -79,8 +79,8 @@ export default function ModalDetailPemeliharaan({
                     <title>Cetak Pemeliharaan</title>
                     ${styles} 
                     <style>
-                        @page { size: A4; margin: 20mm; }
-                        body { padding: 20px; }
+                        @page { size: A4; }
+                        .button-action { display: none; }
                     </style>
                 </head>
                 <body>
@@ -114,7 +114,7 @@ export default function ModalDetailPemeliharaan({
                 <TableListBarangSimpelBmn listBarangRusak={detailData?.barang_new_pemeliharaan} />
                 <ListDisposisiPemeliharaan listDisposisi={listDisposisi} />
                 <PermintaanBarangPemeliharaan barangPengadaan={detailData?.pengadaan} />
-                <div className="flex w-fit ml-auto gap-2 mt-10">
+                <div className="flex w-fit ml-auto gap-2 mt-10 button-action">
                     <button
                         type="button"
                         onClick={handlePrint}
