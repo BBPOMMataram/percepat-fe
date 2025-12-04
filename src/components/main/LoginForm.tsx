@@ -15,6 +15,7 @@ export default function LoginForm() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [captchaToken, setCaptchaToken] = useState(""); // ⬅ Turnstile Token
+    const [captchaKey, setCaptchaKey] = useState(0);
 
     const dispatch = useDispatch<AppDispatch>();
     const turnstileRef = useRef<any>(null);
@@ -73,8 +74,8 @@ export default function LoginForm() {
                 router.push(callbackUrl);
             })
             .catch((err) => {
-                turnstileRef.current?.reset();
-                // setCaptchaToken(""); // buang token lama
+                setCaptchaKey(k => k + 1); // re-render captcha baru
+                setCaptchaToken("");
                 dispatch(
                     showAlert({
                         type: "error",
@@ -148,7 +149,7 @@ export default function LoginForm() {
 
                     {/* 👇 Turnstile Colokan Paling Penting */}
                     <Turnstile
-                        ref={turnstileRef}
+                        key={captchaKey}
                         sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
                         onVerify={(token) => setCaptchaToken(token)}
                     />
