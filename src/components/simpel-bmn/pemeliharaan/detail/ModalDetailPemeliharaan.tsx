@@ -7,6 +7,7 @@ import DetailPemeliharaan from "./DetailPemeliharaan";
 import ListDisposisiPemeliharaan from "./ListDisposisiPemeliharaan";
 import PermintaanBarangPemeliharaan from "./PermintaanBarangPemeliharaan";
 import TableListBarangSimpelBmn from "./TableListBarang";
+import TableListBarangNonBmnSimpelBmn from "./TableListBarangNonBmn";
 
 interface ModalDetailPemeliharaanProps {
     show: boolean;
@@ -62,6 +63,10 @@ export default function ModalDetailPemeliharaan({
         }
     }, [show, code, getDetailPemeliharaan]);
 
+    useEffect(() => {
+        console.log(detailData);
+    }, [detailData]);
+
     const handlePrint = () => {
         const content = printRef.current;
         if (!content) return;
@@ -111,7 +116,12 @@ export default function ModalDetailPemeliharaan({
                 ref={printRef}
             >
                 <DetailPemeliharaan detailData={detailData} pelaporData={pelaporData} />
-                <TableListBarangSimpelBmn listBarangRusak={detailData?.barang_new_pemeliharaan} />
+                {
+                    detailData?.tipe === 'non-bmn' ?
+                        <TableListBarangNonBmnSimpelBmn listBarangRusak={detailData?.barang_new_pemeliharaan_non_bmn} />
+                        :
+                        <TableListBarangSimpelBmn listBarangRusak={detailData?.barang_new_pemeliharaan} />
+                }
                 <ListDisposisiPemeliharaan listDisposisi={listDisposisi} />
                 <PermintaanBarangPemeliharaan barangPengadaan={detailData?.pengadaan} />
                 <div className="flex w-fit ml-auto gap-2 mt-10 button-action">

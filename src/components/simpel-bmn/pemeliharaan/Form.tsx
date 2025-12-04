@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { ModalWebcamInputBarang } from "./ModalWebcamInputBarang";
 import QRScannerModal from "./QRScannerModal";
+import FormNonBmn from "./FormNonBmn";
 
 export default function FormPemeliharaanSimpelBmn() {
     const [kodeBarang, setKodeBarang] = useState("");
@@ -174,9 +175,6 @@ export default function FormPemeliharaanSimpelBmn() {
         }
 
         setIsSubmitting(true);
-        setTimeout(() => {
-            setIsSubmitting(false);
-        }, 4000);
         api.post(
             `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/store-new-pemeliharaan`,
             {
@@ -208,6 +206,7 @@ export default function FormPemeliharaanSimpelBmn() {
             <h1 className="md:text-2xl font-semibold text-center">Form Pemeliharaan BMN</h1>
 
             <div className="space-y-2 mb-10">
+                {/* TIPE BARANG */}
                 <div className="mb-6 flex gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 ar-label-required">
@@ -221,7 +220,7 @@ export default function FormPemeliharaanSimpelBmn() {
                             className="ar-input-text-purple"
                         >
                             {listTipeBarang.map((tipeBarang, index) => (
-                                <option key={index} value={tipeBarang} disabled={tipeBarang === 'non-bmn'}>
+                                <option key={index} value={tipeBarang}>
                                     {tipeBarang.toUpperCase()}
                                 </option>
                             ))}
@@ -252,122 +251,132 @@ export default function FormPemeliharaanSimpelBmn() {
                     }
                 </div>
 
-                <div className="flex gap-2 flex-col md:flex-row">
-                    {/* Input Kode + NUP */}
-                    <div className="flex gap-4 items-end flex-1">
-                        <div className="flex-1">
-                            {/* <label className="block text-sm">Kode Barang</label> */}
-                            <input
-                                type="text"
-                                value={kodeBarang}
-                                onChange={(e) => setKodeBarang(e.target.value)}
-                                className="ar-input-text-purple w-full"
-                                placeholder="Kode Barang"
-                                autoFocus
+                {tipeBarang !== 'non-bmn' ?
+                    <>
+                        {/* INPUT BARANG LAB / NON-LAB */}
+                        <div className="mb-6 flex gap-2 flex-col md:flex-row">
+                            {/* Input Kode + NUP */}
+                            <div className="flex gap-4 items-end flex-1">
+                                <div className="flex-1">
+                                    {/* <label className="block text-sm">Kode Barang</label> */}
+                                    <input
+                                        type="text"
+                                        value={kodeBarang}
+                                        onChange={(e) => setKodeBarang(e.target.value)}
+                                        className="ar-input-text-purple w-full"
+                                        placeholder="Kode Barang"
+                                        autoFocus
+                                    />
+                                </div>
+
+                                <div>
+                                    {/* <label className="block text-sm">NUP</label> */}
+                                    <input
+                                        placeholder="NUP"
+                                        maxLength={4}
+                                        type="number"
+                                        value={nup}
+                                        onChange={(e) => setNup(e.target.value)}
+                                        className="ar-input-text-purple w-20"
+                                    />
+                                </div>
+
+                                <button onClick={handleInput} className="btn btn-primary">INPUT</button>
+                            </div>
+
+                            <button onClick={handleInputQrCode} className="btn btn-accent flex justify-center items-center gap-2">
+                                INPUT BY SCAN QRCODE BMN
+                                <span className="material-symbols-outlined">qr_code_scanner</span>
+                            </button>
+
+                            <QRScannerModal
+                                open={openScanner}
+                                onClose={() => setOpenScanner(false)}
+                                onScan={handleScanQrCode}
                             />
                         </div>
 
-                        <div>
-                            {/* <label className="block text-sm">NUP</label> */}
-                            <input
-                                placeholder="NUP"
-                                maxLength={4}
-                                type="number"
-                                value={nup}
-                                onChange={(e) => setNup(e.target.value)}
-                                className="ar-input-text-purple w-20"
-                            />
-                        </div>
+                        {/* LIST BARANG LAB / NON LAB YANG DIAJUKAN */}
+                        {listBarang.length > 0 && (
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <table className="table table-zebra w-full text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Kode</th>
+                                            <th>NUP</th>
+                                            <th>Nama</th>
+                                            <th>Keluhan</th>
+                                            <th>Bukti</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {listBarang.map((item: any, i: number) => (
+                                            <tr key={i}>
+                                                <td>{item.kode}</td>
+                                                <td>{item.nup}</td>
+                                                <td>{item.nama}</td>
+                                                <td>
+                                                    <input
+                                                        className="ar-input-text-purple w-full"
+                                                        value={item.keluhan}
+                                                        onChange={(e) => updateKeluhan(i, e.target.value)}
+                                                    />
+                                                </td>
+                                                <td className="flex items-center gap-2">
 
-                        <button onClick={handleInput} className="btn btn-primary">INPUT</button>
-                    </div>
+                                                    {/* FILE INPUT */}
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        capture="environment"
+                                                        className="ar-input-text-purple w-22"
+                                                        onChange={(e) => updateBukti(i, e.target.files?.[0] || null)}
+                                                    />
 
-                    <button onClick={handleInputQrCode} className="btn btn-accent flex justify-center items-center gap-2">
-                        INPUT BY SCAN QRCODE BMN
-                        <span className="material-symbols-outlined">qr_code_scanner</span>
-                    </button>
-                </div>
+                                                    {/* BUTTON BUKA MODAL WEBCAM */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setWebcamIndex(i)}
+                                                        className="btn btn-ghost btn-circle"
+                                                    >
+                                                        <span className="material-symbols-outlined">photo_camera</span>
+                                                    </button>
+                                                </td>
+                                                <td>
+                                                    <button type="button" className="btn btn-ghost" onClick={() => removeItem(i)}>
+                                                        <span className="material-symbols-outlined text-red-500">delete</span>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
 
-                <QRScannerModal
-                    open={openScanner}
-                    onClose={() => setOpenScanner(false)}
-                    onScan={handleScanQrCode}
-                />
+                                <textarea className="ar-input-text-purple w-full h-20 mt-10"
+                                    placeholder={`Catatan untuk ${tipeBarang === 'lab' ? 'Katim Pengujian' : 'KaTu'}`}
+                                    value={note}
+                                    onChange={(e) => setNote(e.target.value)}></textarea>
 
-                {webcamIndex !== null && (
-                    <ModalWebcamInputBarang
-                        index={webcamIndex}
-                        updateBukti={updateBukti}
-                        onClose={() => setWebcamIndex(null)}
-                    />
-                )}
+                                <div className="flex w-full justify-end">
+                                    <button className={`btn btn-primary ${isSubmitting ? 'loading' : ''}`} type="submit" disabled={isSubmitting}>SUBMIT</button>
+                                </div>
+                            </form>
+                        )}
+                    </>
+                    :
+                    <FormNonBmn user={user} kaTu={kaTu} />
+
+                }
 
             </div>
 
-            {/* Daftar Barang Diajukan */}
-            {listBarang.length > 0 && (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <table className="table table-zebra w-full text-sm">
-                        <thead>
-                            <tr>
-                                <th>Kode</th>
-                                <th>NUP</th>
-                                <th>Nama</th>
-                                <th>Keluhan</th>
-                                <th>Bukti</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {listBarang.map((item: any, i: number) => (
-                                <tr key={i}>
-                                    <td>{item.kode}</td>
-                                    <td>{item.nup}</td>
-                                    <td>{item.nama}</td>
-                                    <td>
-                                        <input
-                                            className="ar-input-text-purple w-full"
-                                            value={item.keluhan}
-                                            onChange={(e) => updateKeluhan(i, e.target.value)}
-                                        />
-                                    </td>
-                                    <td className="flex items-center gap-2">
-
-                                        {/* FILE INPUT */}
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            capture="environment"
-                                            className="ar-input-text-purple w-22"
-                                            onChange={(e) => updateBukti(i, e.target.files?.[0] || null)}
-                                        />
-
-                                        {/* BUTTON BUKA MODAL WEBCAM */}
-                                        <button
-                                            type="button"
-                                            onClick={() => setWebcamIndex(i)}
-                                            className="btn btn-ghost btn-circle"
-                                        >
-                                            <span className="material-symbols-outlined">photo_camera</span>
-                                        </button>
-                                    </td>
-                                    <td>
-                                        <button type="button" className="btn btn-ghost" onClick={() => removeItem(i)}>
-                                            <span className="material-symbols-outlined text-red-500">delete</span>
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-
-                    <textarea className="ar-input-text-purple w-full h-20 mt-10"
-                        placeholder={`Catatan untuk ${tipeBarang === 'lab' ? 'Katim Pengujian' : 'KaTu'}`}
-                        value={note}
-                        onChange={(e) => setNote(e.target.value)}></textarea>
-
-                    <button className={`btn btn-primary ${isSubmitting ? 'loading' : ''}`} type="submit" disabled={isSubmitting}>SUBMIT</button>
-                </form>
+            {webcamIndex !== null && (
+                <ModalWebcamInputBarang
+                    index={webcamIndex}
+                    updateBukti={updateBukti}
+                    onClose={() => setWebcamIndex(null)}
+                />
             )}
         </div>
     );
