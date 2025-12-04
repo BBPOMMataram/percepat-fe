@@ -13,6 +13,7 @@ export interface RegisterPayload {
 export interface LoginPayload {
     email: string;
     password: string;
+    turnstile_token: string;
 }
 
 export interface Role {

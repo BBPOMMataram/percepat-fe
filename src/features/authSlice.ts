@@ -29,18 +29,18 @@ export const register = createAsyncThunk<LoginOrRegisterResponse, FormData, { re
 // LOGIN
 export const login = createAsyncThunk<LoginOrRegisterResponse, LoginPayload, { rejectValue: string }>(
     "auth/login",
-    async ({ email, password }, thunkAPI) => {
+    async (DataFormLogin, thunkAPI) => {
         try {
             const res = await axios.post(
                 process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/api/login",
-                { email, password },
+                DataFormLogin,
             );
             return res.data as LoginOrRegisterResponse;
         } catch (error: any) {
             if (error.code === "ERR_NETWORK") {
                 return thunkAPI.rejectWithValue("Network Error. Please check your connection.");
             }
-            return thunkAPI.rejectWithValue(error.response?.data?.error);
+            return thunkAPI.rejectWithValue(error.response?.data);
         }
     }
 );

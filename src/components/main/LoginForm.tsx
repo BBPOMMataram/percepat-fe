@@ -6,15 +6,18 @@ import { LoginOrRegisterResponse } from "@/types/auth";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import Turnstile from "react-turnstile";
 
 export default function LoginForm() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+    const [captchaToken, setCaptchaToken] = useState(""); // ⬅ Turnstile Token
 
     const dispatch = useDispatch<AppDispatch>();
+    const turnstileRef = useRef<any>(null);
 
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -24,41 +27,81 @@ export default function LoginForm() {
 
     useEffect(() => {
         try {
-            dispatch(getUser())
+            dispatch(getUser());
         } catch (error) {
             console.log(error);
         }
-    }, [dispatch])
+    }, [dispatch]);
 
     useEffect(() => {
-        if (loading) return
+        if (loading) return;
 
         if (user) {
-            dispatch(showAlert({ type: "success", message: `You are already logged in ${user.call_name}`, description: "Redirecting to your profile page..." }));
+            dispatch(
+                showAlert({
+                    type: "success",
+                    message: `You are already logged in ${user.call_name}`,
+                    description: "Redirecting to your profile page...",
+                })
+            );
             router.push(callbackUrl);
         }
-    }, [user, router, callbackUrl, dispatch, loading])
+    }, [user, router, callbackUrl, dispatch, loading]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        dispatch(login({ email, password }))
+        if (!captchaToken) {
+            dispatch(showAlert({
+                type: "error",
+                message: "Please verify you are human",
+                description: "Captcha validation is required.",
+            }));
+            return;
+        }
+
+        dispatch(login({ email, password, turnstile_token: captchaToken }))
             .unwrap()
             .then((data: LoginOrRegisterResponse) => {
-                dispatch(showAlert({ type: "success", message: `Welcome ${data.user.call_name || data.user.name} !`, description: data.message ?? "No Message from Backend" }));
+                dispatch(
+                    showAlert({
+                        type: "success",
+                        message: `Welcome ${data.user.call_name || data.user.name}!`,
+                        description: data.message ?? "No Message from Backend",
+                    })
+                );
                 router.push(callbackUrl);
             })
             .catch((err) => {
-                dispatch(showAlert({ type: "error", message: err, description: err || "No Message from Backend" }));
+                turnstileRef.current?.reset();
+                // setCaptchaToken(""); // buang token lama
+                dispatch(
+                    showAlert({
+                        type: "error",
+                        message: err.error,
+                        description: err || "No Message from Backend",
+                    })
+                );
             });
     };
 
     return (
         <div className="flex min-h-screen items-center justify-center">
             <div className="w-full max-w-sm rounded-2xl p-6 shadow-xl bg-white/70 font-serif">
-                <Image src="/assets/images/bpom.webp" alt="Icon BPOM" width={100} height={100} priority className="mx-auto mb-6 w-auto h-auto" />
-                <h1 className="text-center text-2xl font-bold tracking-wide">LOGIN FORM</h1>
-                <p className="text-center mb-4 text-gray-500">Balai Besar POM di Mataram</p>
+                <Image
+                    src="/assets/images/bpom.webp"
+                    alt="Icon BPOM"
+                    width={100}
+                    height={100}
+                    priority
+                    className="mx-auto mb-6 w-auto h-auto"
+                />
+                <h1 className="text-center text-2xl font-bold tracking-wide">
+                    LOGIN FORM
+                </h1>
+                <p className="text-center mb-4 text-gray-500">
+                    Balai Besar POM di Mataram
+                </p>
 
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div>
@@ -91,13 +134,24 @@ export default function LoginForm() {
                             className="absolute right-3 top-8"
                             onClick={() => setShowPassword(!showPassword)}
                         >
-                            {
-                                showPassword ?
-                                    <span className="material-symbols-outlined !text-[20px]">visibility_off</span>
-                                    : <span className="material-symbols-outlined !text-[20px]">visibility</span>
-                            }
+                            {showPassword ? (
+                                <span className="material-symbols-outlined !text-[20px]">
+                                    visibility_off
+                                </span>
+                            ) : (
+                                <span className="material-symbols-outlined !text-[20px]">
+                                    visibility
+                                </span>
+                            )}
                         </button>
                     </div>
+
+                    {/* 👇 Turnstile Colokan Paling Penting */}
+                    <Turnstile
+                        ref={turnstileRef}
+                        sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                        onVerify={(token) => setCaptchaToken(token)}
+                    />
 
                     <div className="flex gap-0.5">
                         <button
@@ -108,7 +162,8 @@ export default function LoginForm() {
                         >
                             <span className="material-symbols-outlined">
                                 arrow_left_alt
-                            </span> <span>Back</span>
+                            </span>{" "}
+                            <span>Back</span>
                         </button>
                         <button
                             type="submit"
@@ -118,10 +173,12 @@ export default function LoginForm() {
                             {loading ? "Loading..." : "Login"}
                         </button>
                     </div>
-                    <div className="w-fit underline mt-10" aria-label="Register a new account">
-                        <Link href={"/register"}>
-                            Register Instead
-                        </Link>
+
+                    <div
+                        className="w-fit underline mt-10"
+                        aria-label="Register a new account"
+                    >
+                        <Link href={"/register"}>Register Instead</Link>
                     </div>
                 </form>
             </div>
