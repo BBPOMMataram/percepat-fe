@@ -1,10 +1,11 @@
 "use client"
-import { getUser } from "@/features/authSlice";
+import { showAlert } from "@/features/alertSlice";
+import { getUser, logout } from "@/features/authSlice";
 import { AppDispatch, RootState } from "@/redux/store";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import TimelineFlowSimpelBmn from "./TimelineFlow";
@@ -18,6 +19,7 @@ export default function MainSimpelBmn() {
     const inputCodeRef = useRef<HTMLInputElement>(null)
     const [code, setCode] = useState<string>("")
     const [showModalDetailPemeliharaan, setShowModalDetailPemeliharaan] = useState<boolean>(false)
+    const router = useRouter()
 
     const tracking = () => {
         setShowModalDetailPemeliharaan(true)
@@ -38,18 +40,40 @@ export default function MainSimpelBmn() {
         dispatch(getUser());
     }, [dispatch]);
 
+
+    const handleClick = () => {
+        dispatch(logout())
+        dispatch(showAlert({ type: 'success', message: 'You have been logged out', description: 'logout success' }))
+        router.push('/login')
+    }
+
     return (
         <>
             <div className="relative h-screen">
                 <Image src={"/assets/images/simpel-bmn/bg-simpel-bmn.webp"} alt="Background simpel bmn" fill priority className="object-cover" />
                 <div className="backdrop flex h-full w-full absolute bg-bpom-blue/10">
-                    <div className="welcome flex-1 flex flex-col justify-center p-8 md:pl-12">
+
+                    {/* button logout */}
+                    {
+                        user &&
+                        < button
+                            onClick={handleClick}
+                            className="fixed top-6 right-6 z-50 btn btn-error btn-circle p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110 flex items-center justify-center"
+                            title="Logout"
+                        >
+                            <span className="material-symbols-outlined text-xl">
+                                logout
+                            </span>
+                        </button>
+                    }
+
+                    <div className="welcome flex-1 flex flex-col justify-center p-8 md:pl-12 items-center lg:items-start text-center lg:text-left">
                         <motion.div
                             initial={{ x: "-50%" }}
                             animate={{ x: 0 }}
                             transition={{ delay: .5 }}
                         >
-                            <Image src={"/assets/images/bpom.webp"} alt="Background simpel bmn" priority width={150} height={150} className="w-28 md:w-40 p-2" />
+                            <Image src={"/assets/images/bpom.webp"} alt="Background simpel bmn" priority width={150} height={150} className="w-40 mb-10" />
                         </motion.div>
                         <motion.h1
                             initial={{ opacity: 0 }}
@@ -81,10 +105,10 @@ export default function MainSimpelBmn() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ duration: 1, staggerChildren: 1, }}
-                            className="button"
+                            className="buttons"
                         >
                             {user ?
-                                <div className="flex gap-2 flex-wrap">
+                                <div className="flex gap-2 flex-wrap justify-center lg:justify-start">
                                     <Link
                                         href="/simpel-bmn/pemeliharaan"
                                         className="btn btn-primary">
