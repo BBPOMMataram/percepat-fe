@@ -54,26 +54,26 @@ export default function MainSimpelBmn() {
                         <motion.h1
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="text-primary text-xl sm:text-2xl md:text-3xl lg:text-5xl mb-8">
+                            className="text-primary mb-8">
                             <motion.strong
                                 initial={{ filter: "blur(10px)" }}
                                 animate={{ filter: "none" }}
                                 transition={{ delay: 0.5 }}
-                                className="block">
+                                className="block text-xl sm:text-2xl md:text-3xl lg:text-5xl">
                                 SIMPEL BMN
                             </motion.strong>
                             <motion.strong
                                 initial={{ filter: "blur(10px)" }}
                                 animate={{ filter: "none" }}
                                 transition={{ delay: 1 }}
-                                className="block text-lg">
+                                className="block text-sm sm:text-lg">
                                 SISTEM MANAJEMEN PEMELIHARAAN
                             </motion.strong>
                             <motion.p
                                 initial={{ filter: "blur(10px)" }}
                                 animate={{ filter: "none" }}
                                 transition={{ delay: 1.5 }}
-                                className="text-black text-sm mt-1 mb-1">
+                                className="text-black text-xs sm:text-sm mt-1 mb-1">
                                 Inovasi Digitalisasi Permintaan Perawatan dan Pemeliharaan Sarana dan Prasarana<br /><span className="text-bpom-blue font-semibold">Balai Besar</span> <span className="text-bpom-green font-semibold">Pengawas Obat dan Makanan di Mataram</span>
                             </motion.p>
                         </motion.h1>
@@ -84,10 +84,16 @@ export default function MainSimpelBmn() {
                             className="button"
                         >
                             {user ?
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 flex-wrap">
+                                    <Link
+                                        href="/simpel-bmn/pemeliharaan"
+                                        className="btn btn-primary">
+                                        DATA PEMELIHARAAN
+                                    </Link>
+
                                     <motion.a
                                         href="/simpel-bmn/pemeliharaan/form"
-                                        className="btn btn-primary rounded px-6 py-3">
+                                        className="btn btn-error">
                                         AJUKAN PEMELIHARAAN
                                     </motion.a>
 
