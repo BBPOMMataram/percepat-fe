@@ -19,6 +19,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
     const [isEditing, setIsEditing] = useState(false);
     const [listFungsi, setListFungsi] = useState([]);
     const [fungsiId, setFungsiId] = useState(user?.employee?.fungsi_id ?? "");
+    const [groupJabatan, setGroupJabatan] = useState("");
 
     const fullNameRef = useRef<HTMLInputElement>(null);
     const formProfileRef = useRef<HTMLFormElement>(null);
@@ -47,6 +48,19 @@ export default function Profile({ user, updateCallName, callName }: { user: User
             setGelarDepan(user.employee?.gelar_depan ?? "");
             setGelarBelakang(user.employee?.gelar_belakang ?? "");
             setFungsiId(user.employee?.fungsi_id ?? "");
+
+            if (user.employee?.group_jabatan?.id === 1) {
+                setGroupJabatan("Kepala Balai")
+            } else if (user.employee?.group_jabatan?.id === 2) {
+                setGroupJabatan("Kepala Tata Usaha")
+            } else if (user.employee?.group_jabatan?.id === 3) {
+                setGroupJabatan("Ketua Tim")
+            } else if (user.employee?.group_jabatan?.id === 4) {
+                setGroupJabatan("Staf")
+            } else if (user.employee?.group_jabatan?.id === 5) {
+                setGroupJabatan("Staf OS")
+            }
+            console.log('user', user);
         }
     }, [user]);
 
@@ -98,7 +112,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                                 />
                                 <div>
                                     <h3 className="text-lg font-semibold text-gray-800">{`${gelarDepan ? gelarDepan + ". " : ""}${name}${gelarBelakang ? ", " + gelarBelakang : ""}`}</h3>
-                                    <p className="text-sm text-gray-500">{email}</p>
+                                    <p className="text-sm text-gray-500">{groupJabatan}</p>
                                 </div>
                             </div>
                             {isEditing &&
