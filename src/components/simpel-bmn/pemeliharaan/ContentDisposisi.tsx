@@ -9,6 +9,7 @@ export default function ContentDisposisi({ disposisi, handleOpenDetail, updateDa
     const [showModalDiposisiPemeliharaan, setShowModalDiposisiPemeliharaan] = useState(false);
     const [code, setCode] = useState<string>("");
 
+
     const handleOpenDisposisi = (code: string, pelapor: any) => {
         setCode(code);
         setShowModalDiposisiPemeliharaan(true);

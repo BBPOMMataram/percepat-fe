@@ -18,6 +18,7 @@ export default function PemeliharaanSimpelBmn() {
     const [code, setCode] = useState<string>("");
     const [listDisposisi, setListDisposisi] = useState<any[]>([]);
     const [mergedDisposisi, setMergedDisposisi] = useState<any[]>([]);
+    const [jumlahDisposisi, setJumlahDisposisi] = useState(0);
 
     const { user } = useSelector((state: RootState) => state.auth);
     const currentUserId = user?.id
@@ -27,16 +28,6 @@ export default function PemeliharaanSimpelBmn() {
             .then(res => {
                 const allData = res?.data;
                 setDataAll(allData);
-            })
-            .catch(err => {
-                console.error(err)
-            })
-    }
-
-    const getData = () => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-by-user`)
-            .then(res => {
-                setData(res?.data)
             })
             .catch(err => {
                 console.error(err)
@@ -55,7 +46,6 @@ export default function PemeliharaanSimpelBmn() {
 
     useEffect(() => {
         getAllData()
-        // getData()
         getDataDisposisi()
     }, [])
 
@@ -175,6 +165,22 @@ export default function PemeliharaanSimpelBmn() {
         setShowModalDetailPemeliharaan(true);
     }
 
+    // HITUNG JUMLAH DISPOSISI YANG DITUJU USER YANG LOGIN
+    useEffect(() => {
+        if (!mergedDisposisi || !Array.isArray(mergedDisposisi)) return;
+
+        const total = mergedDisposisi.reduce((count, item) => {
+            const last = item.disposisi_new_pemeliharaan?.at(-1);
+
+            if (last?.to_user?.external_user_id === user?.id) {
+                return count + 1;
+            }
+            return count;
+        }, 0);
+
+        setJumlahDisposisi(total);
+    }, [mergedDisposisi, user]);
+
     return (
         <div>
             {/* name of each tab group should be unique */}
@@ -201,12 +207,13 @@ export default function PemeliharaanSimpelBmn() {
                     <ContentPemeliharaan data={data} handleOpenDetail={handleOpenDetail} />
                 </div>
 
-                <label className="tab">
+                <label className="tab indicator">
                     <input type="radio" name="my_tabs_4" />
                     <span className="material-symbols-outlined">
                         assignment_turned_in
                     </span>
                     Disposisi
+                    {jumlahDisposisi > 0 && <span className="indicator-item badge badge-error animate-pulse badge-xs">{jumlahDisposisi}</span>}
                 </label>
                 <div className="tab-content bg-base-100 border-base-300 p-6">
                     <ContentDisposisi disposisi={mergedDisposisi} handleOpenDetail={handleOpenDetail} updateDataDisposisi={getDataDisposisi} />
