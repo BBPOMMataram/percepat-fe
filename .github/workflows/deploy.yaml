@@ -5,9 +5,9 @@ on:
     branches: ["main"]
 
 jobs:
-  deploy:
+  build_and_deploy:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 30
     steps:
       - name: Jalankan deploy langsung di server
         uses: appleboy/ssh-action@v0.1.10
