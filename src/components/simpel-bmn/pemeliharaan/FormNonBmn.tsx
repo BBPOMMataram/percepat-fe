@@ -193,7 +193,7 @@ export default function FormNonBmn({ user, kaTu }: { user: any, kaTu: any }) {
                     </table>
 
                     <textarea className="ar-input-text-purple w-full h-20 mt-10"
-                        placeholder={`Catatan untuk KaTu`}
+                        placeholder={`Catatan`}
                         value={note}
                         onChange={(e) => setNote(e.target.value)}></textarea>
 

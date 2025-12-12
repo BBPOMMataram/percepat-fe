@@ -5,9 +5,9 @@ import api from "@/utils/api";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import FormNonBmn from "./FormNonBmn";
 import { ModalWebcamInputBarang } from "./ModalWebcamInputBarang";
 import QRScannerModal from "./QRScannerModal";
-import FormNonBmn from "./FormNonBmn";
 
 export default function FormPemeliharaanSimpelBmn() {
     const [kodeBarang, setKodeBarang] = useState("");
@@ -19,6 +19,8 @@ export default function FormPemeliharaanSimpelBmn() {
     const [kaTu, setKaTu] = useState<any>({});
     const [listKaTimPengujian, setListKaTimPengujian] = useState<any[]>([]);
     const [kaTimPengujianId, setKaTimPengujianId] = useState<any>("");
+    const [listKaTim, setListKaTim] = useState<any[]>([]);
+    const [kaTimId, setKaTimId] = useState<any>("");
     const [note, setNote] = useState<string>("");
     const [webcamIndex, setWebcamIndex] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -47,11 +49,21 @@ export default function FormPemeliharaanSimpelBmn() {
         })
     }
 
+    const getKaTim = () => {
+        api(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-katim`
+        ).then((res) => {
+            setListKaTim(res.data);
+        })
+    }
+
     useEffect(() => {
         getKaTu();
 
         if (tipeBarang === 'lab') {
             getKaTimPengujian();
+        } else {
+            getKaTim();
         }
     }, [tipeBarang]);
 
@@ -162,6 +174,11 @@ export default function FormPemeliharaanSimpelBmn() {
             return;
         }
 
+        if (tipeBarang !== 'lab' && user?.employee?.fungsi_id !== 1 && user?.employee?.group_jabatan?.id !== 3 && !kaTimId) {
+            alert("Silahkan pilih KaTim terlebih dahulu.");
+            return;
+        }
+
         if (listBarang.length === 0) return alert("Belum ada barang yang diajukan");
 
         const adaKosong = listBarang.some((item: any) => {
@@ -175,6 +192,19 @@ export default function FormPemeliharaanSimpelBmn() {
         }
 
         setIsSubmitting(true);
+        let disposisiToId = null;
+
+        // JIKA BUKAN BARANG LAB MAKA DISPO KE KATIM (UNTUK SELAIN TU) ATAU KATU (UNTUK TU ATAU KATIM SENDIRI)
+        // JIKA BARANG LAB MAKA DISPO KE KATIM PENGUJIAN
+        if (tipeBarang !== 'lab') {
+            if (user?.employee?.fungsi_id !== 1 && user?.employee?.group_jabatan?.id !== 3) {
+                disposisiToId = kaTimId;
+            } else {
+                disposisiToId = kaTu?.user_id;
+            }
+        } else {
+            disposisiToId = kaTimPengujianId;
+        }
         api.post(
             `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/store-new-pemeliharaan`,
             {
@@ -182,7 +212,7 @@ export default function FormPemeliharaanSimpelBmn() {
                 listBarang,
                 note,
                 fungsiId: user?.employee?.fungsi_id,
-                disposisiToId: tipeBarang !== 'lab' ? kaTu?.user_id : kaTimPengujianId,
+                disposisiToId,
             },
             {
                 headers: {
@@ -228,26 +258,53 @@ export default function FormPemeliharaanSimpelBmn() {
                     </div>
 
                     {
-                        tipeBarang === 'lab' &&
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 ar-label-required">
-                                Katim Pengujian
-                            </label>
-                            <select
-                                name="katim_pengujian_id"
-                                value={kaTimPengujianId}
-                                onChange={(e) => setKaTimPengujianId(e.target.value)}
-                                required
-                                className="ar-input-text-purple"
-                            >
-                                <option value="">-- Pilih Katim Pengujian --</option>
-                                {listKaTimPengujian.map((kaTimPengujian, index) => (
-                                    <option key={index} value={kaTimPengujian.user_id}>
-                                        {kaTimPengujian.user.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                        tipeBarang === 'lab' ?
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 ar-label-required">
+                                    Katim Pengujian
+                                </label>
+                                <select
+                                    name="katim_pengujian_id"
+                                    value={kaTimPengujianId}
+                                    onChange={(e) => setKaTimPengujianId(e.target.value)}
+                                    required
+                                    className="ar-input-text-purple"
+                                >
+                                    <option value="">-- Pilih Katim Pengujian --</option>
+                                    {listKaTimPengujian.map((kaTimPengujian, index) => (
+                                        <option key={index} value={kaTimPengujian.user_id}>
+                                            {kaTimPengujian.user.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            :
+                            ( // HARUS PILIH KATIM
+                                user?.employee?.fungsi_id !== 1 // KECUALI FUNGSI TU
+                                && // ATAU
+                                user?.employee?.group_jabatan?.id !== 3 // KECUALI GROUP JABATAN KATIM
+                            )
+                                ?
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 ar-label-required">
+                                        Katim
+                                    </label>
+                                    <select
+                                        name="katim_id"
+                                        value={kaTimId}
+                                        onChange={(e) => setKaTimId(e.target.value)}
+                                        required
+                                        className="ar-input-text-purple"
+                                    >
+                                        <option value="">-- Pilih Katim --</option>
+                                        {listKaTim.map((kaTim, index) => (
+                                            <option key={index} value={kaTim.user_id}>
+                                                {kaTim.user.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                : null
                     }
                 </div>
 
@@ -354,7 +411,7 @@ export default function FormPemeliharaanSimpelBmn() {
                                 </table>
 
                                 <textarea className="ar-input-text-purple w-full h-20 mt-10"
-                                    placeholder={`Catatan untuk ${tipeBarang === 'lab' ? 'Katim Pengujian' : 'KaTu'}`}
+                                    placeholder={`Catatan`}
                                     value={note}
                                     onChange={(e) => setNote(e.target.value)}></textarea>
 
