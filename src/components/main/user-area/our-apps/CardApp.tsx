@@ -16,7 +16,7 @@ const CardApp = ({ appData, isAdmin }: { appData: AppData, isAdmin?: boolean }) 
             alt={appData.name}
             width={50}
             height={50}
-            src={appData.logo_path}
+            src={appData.logo_path ?? '/assets/images/noimage.svg'}
           />
         </p>
         <div className="text">{appData.desc}</div>
