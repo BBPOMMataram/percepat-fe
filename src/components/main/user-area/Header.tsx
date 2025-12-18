@@ -11,10 +11,10 @@ export default function HeaderUserArea({ user, callName }: { user: User | null, 
     return (
         <header className="flex justify-between items-center px-6 py-4 bg-white shadow-md">
             <div>
-                <h2 className="text-lg font-semibold text-gray-800">
+                <h2 className="md:text-lg font-semibold text-gray-800">
                     Welcome, {callName || `${user?.employee?.gelar_depan ? user?.employee?.gelar_depan + ". " : ""}${user?.name}${user?.employee?.gelar_belakang ? ", " + user?.employee?.gelar_belakang : ""}`}
                 </h2>
-                <p className="text-sm text-gray-500">
+                <p className="text-xs text-gray-500">
                     {dayjs().format("dddd, DD MMMM YYYY")}
                 </p>
             </div>

@@ -100,9 +100,9 @@ export default function Profile({ user, updateCallName, callName }: { user: User
         <div className="flex flex-col">
             <form ref={formProfileRef} onSubmit={handleSubmit}>
                 <div className="bg-white rounded-2xl shadow p-8">
-                    <div className="flex gap-4 mb-8">
+                    <div className="flex flex-wrap gap-4 mb-8">
                         <div className="flex flex-col gap-3">
-                            <div className="flex items-center gap-4">
+                            <div className="flex flex-wrap items-center gap-4">
                                 <Image
                                     src={user?.photo_path || "/assets/images/noimage.webp"}
                                     alt="Profile photo"
@@ -111,8 +111,8 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                                     className="w-16 h-16 rounded-full object-cover"
                                 />
                                 <div>
-                                    <h3 className="text-lg font-semibold text-gray-800">{`${gelarDepan ? gelarDepan + ". " : ""}${name}${gelarBelakang ? ", " + gelarBelakang : ""}`}</h3>
-                                    <p className="text-sm text-gray-500">{groupJabatan}</p>
+                                    <h3 className=" md:text-lg font-semibold text-gray-800">{`${gelarDepan ? gelarDepan + ". " : ""}${name}${gelarBelakang ? ", " + gelarBelakang : ""}`}</h3>
+                                    <p className="text-xs md:text-sm text-gray-500">{groupJabatan}</p>
                                 </div>
                             </div>
                             {isEditing &&
@@ -341,7 +341,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                                     Tanda Tangan
                                 </label>
                                 <Image
-                                    src={user?.signature_path || "/assets/images/noimage.webp"}
+                                    src={user?.signature_path || "/assets/images/noimage.svg"}
                                     alt="Signature Image"
                                     width={64}
                                     height={64}
@@ -353,11 +353,11 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                 </div>
             </form>
 
-            <div className="bg-white rounded-2xl shadow px-8 py-4 mt-6">
+            <div className="bg-white rounded-2xl shadow px-8 py-4 mt-6 text-xs">
                 <div>
-                    <p className="text-sm text-gray-400">Join since {user?.created_at ? dayjs(user.created_at).format("DD MMMM YYYY") : "-"}</p>
-                    <p className="text-sm text-gray-400 mt-1">
-                        <span className="capitalize">{user?.employee && `${user?.employee.position} ${user?.employee.fungsi?.name} ${user?.employee.unit_kerja}`}</span>
+                    <p className="text-gray-400">Join since {user?.created_at ? dayjs(user.created_at).format("DD MMMM YYYY") : "-"}</p>
+                    <p className="text-gray-400 mt-1">
+                        <span className="capitalize">{user?.employee && `${user?.employee.group_jabatan?.name} ${user?.employee.fungsi?.name} ${user?.employee.unit_kerja}`}</span>
                         <span>{user?.student && `Mahasiswa PKL ${user?.student.university}`}</span>
                     </p>
                 </div>
