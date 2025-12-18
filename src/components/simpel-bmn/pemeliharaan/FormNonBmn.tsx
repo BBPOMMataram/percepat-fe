@@ -1,11 +1,10 @@
-import { useState } from "react";
-import { ModalWebcamInputBarang } from "./ModalWebcamInputBarang";
-import api from "@/utils/api";
-import { User } from "@/types/auth";
-import { useDispatch } from "react-redux";
-import { AppDispatch } from "@/redux/store";
 import { showAlert } from "@/features/alertSlice";
+import { AppDispatch } from "@/redux/store";
+import api from "@/utils/api";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useDispatch } from "react-redux";
+import { ModalWebcamInputBarang } from "./ModalWebcamInputBarang";
 
 export default function FormNonBmn({ user, kaTu }: { user: any, kaTu: any }) {
     const [listBarang, setListBarang] = useState<any>([]);
@@ -140,57 +139,59 @@ export default function FormNonBmn({ user, kaTu }: { user: any, kaTu: any }) {
 
             {listBarang.length > 0 && (
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <table className="table table-zebra w-full text-sm">
-                        <thead>
-                            <tr>
-                                <th>Nama Barang</th>
-                                <th>Merk Barang</th>
-                                <th>Keluhan</th>
-                                <th>Bukti</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {listBarang.map((item: any, i: number) => (
-                                <tr key={i}>
-                                    <td>{item.namaBarang}</td>
-                                    <td>{item.merkBarang}</td>
-                                    <td>
-                                        <input
-                                            className="ar-input-text-purple w-full"
-                                            value={item.keluhan}
-                                            onChange={(e) => updateKeluhan(i, e.target.value)}
-                                        />
-                                    </td>
-                                    <td className="flex items-center gap-2">
-
-                                        {/* FILE INPUT */}
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            capture="environment"
-                                            className="ar-input-text-purple w-22"
-                                            onChange={(e) => updateBukti(i, e.target.files?.[0] || null)}
-                                        />
-
-                                        {/* BUTTON BUKA MODAL WEBCAM */}
-                                        <button
-                                            type="button"
-                                            onClick={() => setWebcamIndex(i)}
-                                            className="btn btn-ghost btn-circle"
-                                        >
-                                            <span className="material-symbols-outlined">photo_camera</span>
-                                        </button>
-                                    </td>
-                                    <td>
-                                        <button type="button" className="btn btn-ghost" onClick={() => removeItem(i)}>
-                                            <span className="material-symbols-outlined text-red-500">delete</span>
-                                        </button>
-                                    </td>
+                    <div className="overflow-auto">
+                        <table className="table table-zebra w-full text-sm">
+                            <thead>
+                                <tr>
+                                    <th>Nama Barang</th>
+                                    <th>Merk Barang</th>
+                                    <th>Keluhan</th>
+                                    <th>Bukti</th>
+                                    <th></th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {listBarang.map((item: any, i: number) => (
+                                    <tr key={i}>
+                                        <td>{item.namaBarang}</td>
+                                        <td>{item.merkBarang}</td>
+                                        <td>
+                                            <input
+                                                className="ar-input-text-purple w-full"
+                                                value={item.keluhan}
+                                                onChange={(e) => updateKeluhan(i, e.target.value)}
+                                            />
+                                        </td>
+                                        <td className="flex items-center gap-2">
+
+                                            {/* FILE INPUT */}
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                capture="environment"
+                                                className="ar-input-text-purple w-22"
+                                                onChange={(e) => updateBukti(i, e.target.files?.[0] || null)}
+                                            />
+
+                                            {/* BUTTON BUKA MODAL WEBCAM */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setWebcamIndex(i)}
+                                                className="btn btn-ghost btn-circle"
+                                            >
+                                                <span className="material-symbols-outlined">photo_camera</span>
+                                            </button>
+                                        </td>
+                                        <td>
+                                            <button type="button" className="btn btn-ghost" onClick={() => removeItem(i)}>
+                                                <span className="material-symbols-outlined text-red-500">delete</span>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
 
                     <textarea className="ar-input-text-purple w-full h-20 mt-10"
                         placeholder={`Catatan`}
