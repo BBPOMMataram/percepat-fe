@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import AdminElearningSiapMelayani from "../siap-melayani/e-learning/AdminElearningSiapMelayani";
-import AdminSettingsSiapMelayani from "../siap-melayani/pakta-integritas copy/AdminSettingsSiapMelayani";
+import AdminSettingsSiapMelayani from "../siap-melayani/settings/AdminSettingsSiapMelayani";
 import AdminPaktaIntegritasSiapMelayani from "../siap-melayani/pakta-integritas/AdminPaktaIntegritasSiapMelayani";
 import AdminPenempatanSiapMelayani from "../siap-melayani/penempatan/AdminPenempatanSiapMelayani";
 import AdminPengajuanSiapMelayani from "../siap-melayani/pengajuan/AdminPengajuanSiapMelayani";
@@ -17,7 +17,7 @@ import AdminPresensiSiapMelayani from "../siap-melayani/presensi/AdminPresensiSi
 import AdminTataTertibSiapMelayani from "../siap-melayani/tata-tertib/AdminTataTertibSiapMelayani";
 import SidebarAdminSiapMelayani from "./sidebar/SidebarAdminSiapMelayani";
 
-export default function AdminArea() {
+export default function AdminAreaSiapMelayani() {
     const [callName, setCallName] = useState<string>("");
 
     const { user } = useSelector((state: RootState) => state.auth);

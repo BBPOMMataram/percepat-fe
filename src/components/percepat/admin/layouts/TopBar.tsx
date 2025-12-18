@@ -61,7 +61,7 @@ export default function TopBar() {
                 setPosition('No position')
                 break;
         }
-    }, [user])
+    }, [user, position])
 
     return (
         <div className="flex items-center bg-quaternary py-4 px-4">

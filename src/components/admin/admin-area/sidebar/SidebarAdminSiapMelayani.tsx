@@ -73,7 +73,7 @@ export default function SidebarAdminSiapMelayani() {
                 <span className="hidden lg:block whitespace-nowrap">Pengaduan</span>
                 {/* </Link> */}
             </button>
-            <Link href={'/admin/siap-melayani/settings'} className={`mt-auto flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/settings')}`} data-tip="Settings">
+            <Link href={'/admin/siap-melayani/settings'} className={`mt-auto flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/siap-melayani/settings')}`} data-tip="Settings">
                 <span className="material-symbols-outlined">
                     settings
                 </span>
