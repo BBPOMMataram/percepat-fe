@@ -70,6 +70,53 @@ export default function AdminPresensiBestEmployee() {
             </div>
             <div className="bg-white rounded-2xl shadow px-8 py-4">
                 <div className="flex flex-col mb-4 gap-8">
+                    <div className="flex flex-wrap gap-4">
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm text-gray-700">Bulan</label>
+                            <select
+                                className="select select-bordered select-xs"
+                                value={month}
+                                onChange={(e) => setMonth(Number(e.target.value))}
+                            >
+                                <option value={1}>Januari</option>
+                                <option value={2}>Februari</option>
+                                <option value={3}>Maret</option>
+                                <option value={4}>April</option>
+                                <option value={5}>Mei</option>
+                                <option value={6}>Juni</option>
+                                <option value={7}>Juli</option>
+                                <option value={8}>Agustus</option>
+                                <option value={9}>September</option>
+                                <option value={10}>Oktober</option>
+                                <option value={11}>November</option>
+                                <option value={12}>Desember</option>
+                            </select>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm text-gray-700">Tahun</label>
+                            <select
+                                className="select select-bordered select-xs"
+                                value={year}
+                                onChange={(e) => setYear(Number(e.target.value))}
+                            >
+                                {Array.from({ length: 2 }).map((_, i) => {
+                                    const y = new Date().getFullYear() + i
+                                    return (
+                                        <option key={y} value={y}>{y}</option>
+                                    )
+                                })}
+                            </select>
+                        </div>
+                        <div className="w-full md:w-auto md:ml-auto">
+                            <input
+                                type="text"
+                                className="input input-bordered input-sm w-full"
+                                placeholder="Cari NIP atau Nama..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                        </div>
+                    </div>
                     <form
                         className="flex flex-col sm:flex-row items-start sm:items-center gap-2"
                         onSubmit={async (e) => {
@@ -111,55 +158,8 @@ export default function AdminPresensiBestEmployee() {
                             {uploading ? 'Uploading...' : 'Upload'}
                         </button>
                     </form>
-                    <div className="flex flex-wrap gap-4">
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm text-gray-700">Bulan</label>
-                            <select
-                                className="select select-bordered select-sm"
-                                value={month}
-                                onChange={(e) => setMonth(Number(e.target.value))}
-                            >
-                                <option value={1}>Januari</option>
-                                <option value={2}>Februari</option>
-                                <option value={3}>Maret</option>
-                                <option value={4}>April</option>
-                                <option value={5}>Mei</option>
-                                <option value={6}>Juni</option>
-                                <option value={7}>Juli</option>
-                                <option value={8}>Agustus</option>
-                                <option value={9}>September</option>
-                                <option value={10}>Oktober</option>
-                                <option value={11}>November</option>
-                                <option value={12}>Desember</option>
-                            </select>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm text-gray-700">Tahun</label>
-                            <select
-                                className="select select-bordered select-sm"
-                                value={year}
-                                onChange={(e) => setYear(Number(e.target.value))}
-                            >
-                                {Array.from({ length: 2 }).map((_, i) => {
-                                    const y = new Date().getFullYear() + i
-                                    return (
-                                        <option key={y} value={y}>{y}</option>
-                                    )
-                                })}
-                            </select>
-                        </div>
-                        <div className="w-full md:w-auto md:ml-auto">
-                            <input
-                                type="text"
-                                className="input input-bordered input-sm w-full"
-                                placeholder="Cari NIP atau Nama..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                            />
-                        </div>
-                    </div>
                 </div>
-                <div className="w-full overflow-x-auto">
+                <div className="w-full overflow-x-auto mt-10">
                     <table className="ar-table">
                         <thead>
                             <tr>
