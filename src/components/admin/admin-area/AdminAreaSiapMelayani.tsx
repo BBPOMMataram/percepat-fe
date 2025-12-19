@@ -8,12 +8,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import AdminElearningSiapMelayani from "../siap-melayani/e-learning/AdminElearningSiapMelayani";
-import AdminSettingsSiapMelayani from "../siap-melayani/settings/AdminSettingsSiapMelayani";
 import AdminPaktaIntegritasSiapMelayani from "../siap-melayani/pakta-integritas/AdminPaktaIntegritasSiapMelayani";
 import AdminPenempatanSiapMelayani from "../siap-melayani/penempatan/AdminPenempatanSiapMelayani";
 import AdminPengajuanSiapMelayani from "../siap-melayani/pengajuan/AdminPengajuanSiapMelayani";
 import AdminPesertaSiapMelayani from "../siap-melayani/peserta/AdminPesertaSiapMelayani";
 import AdminPresensiSiapMelayani from "../siap-melayani/presensi/AdminPresensiSiapMelayani";
+import AdminSettingsSiapMelayani from "../siap-melayani/settings/AdminSettingsSiapMelayani";
 import AdminTataTertibSiapMelayani from "../siap-melayani/tata-tertib/AdminTataTertibSiapMelayani";
 import SidebarAdminSiapMelayani from "./sidebar/SidebarAdminSiapMelayani";
 
@@ -35,13 +35,13 @@ export default function AdminAreaSiapMelayani() {
             setCallName(user.call_name || "");
             const isSuperadmin = user.role?.level === 'superadmin'
             // admin jika role level admin DAN memiliki salah satu site dengan id = 10 (site siap melayani)
-            const hasBestEmployeeSite = Array.isArray(user.sites) && user.sites.some((s: any) => Number(s?.id) === 10)
-            const isAdmin = user.role?.level === 'admin' && hasBestEmployeeSite
+            const isAdminThisSite = Array.isArray(user.sites) && user.sites.some((s: any) => Number(s?.id) === 10)
+            const isAdmin = user.role?.level === 'admin' && isAdminThisSite
             if (!isAdmin && !isSuperadmin) {
                 router.replace('/unauthorized');
             }
         }
-    }, [user]);
+    }, [user, router]);
 
     return (
         <main className="flex h-screen bg-gray-100 w-full">

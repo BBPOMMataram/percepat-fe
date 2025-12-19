@@ -29,8 +29,8 @@ export default function AdminAreaBestEmployee() {
             setCallName(user.call_name || "");
             const isSuperadmin = user.role?.level === 'superadmin'
             // admin jika role level admin DAN memiliki salah satu site dengan id = 12 (site best employee)
-            const hasBestEmployeeSite = Array.isArray(user.sites) && user.sites.some((s: any) => Number(s?.id) === 12)
-            const isAdmin = user.role?.level === 'admin' && hasBestEmployeeSite
+            const isAdminThisSite = Array.isArray(user.sites) && user.sites.some((s: any) => Number(s?.id) === 12)
+            const isAdmin = user.role?.level === 'admin' && isAdminThisSite
             if (!isAdmin && !isSuperadmin) {
                 router.replace('/unauthorized');
             }

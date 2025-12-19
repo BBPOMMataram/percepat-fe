@@ -6,7 +6,7 @@ import { LoginOrRegisterResponse } from "@/types/auth";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Turnstile from "react-turnstile";
 
@@ -18,7 +18,6 @@ export default function LoginForm() {
     const [captchaKey, setCaptchaKey] = useState(0);
 
     const dispatch = useDispatch<AppDispatch>();
-    const turnstileRef = useRef<any>(null);
 
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -27,11 +26,7 @@ export default function LoginForm() {
     const callbackUrl = searchParams.get("redirectUrl") || "/profile";
 
     useEffect(() => {
-        try {
-            dispatch(getUser());
-        } catch (error) {
-            console.log(error);
-        }
+        dispatch(getUser());
     }, [dispatch]);
 
     useEffect(() => {
