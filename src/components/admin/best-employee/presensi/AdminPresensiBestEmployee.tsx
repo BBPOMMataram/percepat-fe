@@ -33,7 +33,6 @@ export default function AdminPresensiBestEmployee() {
         api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_BEST_EMPLOYEE}/api/kehadiran?m=${month}&y=${year}`)
             .then(res => {
                 setData(res.data)
-                console.log(res.data)
             })
     }, [month, year])
 

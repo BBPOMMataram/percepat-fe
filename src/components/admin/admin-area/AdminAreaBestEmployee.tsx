@@ -4,7 +4,7 @@ import FooterUserArea from "@/components/main/user-area/Footer";
 import HeaderUserArea from "@/components/main/user-area/Header";
 import { getUser } from "@/features/authSlice";
 import { AppDispatch, RootState } from "@/redux/store";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import AdminPresensiBestEmployee from "../best-employee/presensi/AdminPresensiBestEmployee";
@@ -17,6 +17,7 @@ export default function AdminAreaBestEmployee() {
     const { user } = useSelector((state: RootState) => state.auth);
     const dispatch = useDispatch<AppDispatch>()
     const pathname = usePathname();
+    const router = useRouter();
 
     useEffect(() => {
         dispatch(getUser())
@@ -26,8 +27,15 @@ export default function AdminAreaBestEmployee() {
     useEffect(() => {
         if (user) {
             setCallName(user.call_name || "");
+            const isSuperadmin = user.role?.level === 'superadmin'
+            // admin jika role level admin DAN memiliki salah satu site dengan id = 12 (site best employee)
+            const hasBestEmployeeSite = Array.isArray(user.sites) && user.sites.some((s: any) => Number(s?.id) === 12)
+            const isAdmin = user.role?.level === 'admin' && hasBestEmployeeSite
+            if (!isAdmin && !isSuperadmin) {
+                router.replace('/unauthorized');
+            }
         }
-    }, [user]);
+    }, [user, router]);
 
     return (
         <main className="flex h-screen bg-gray-100 w-full">
