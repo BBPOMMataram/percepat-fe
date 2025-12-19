@@ -24,9 +24,9 @@ export default function NotificationBell() {
                     <li className="p-3 bg-gray-100 hover:bg-gray-200 cursor-pointer text-xs rounded-sm mb-1">
                         Selamat datang di Sistem Informasi Balai Besar POM di Mataram
                     </li>
-                    <li className="p-3 bg-gray-100 hover:bg-gray-200 cursor-pointer text-xs rounded-sm mb-1">
+                    {/* <li className="p-3 bg-gray-100 hover:bg-gray-200 cursor-pointer text-xs rounded-sm mb-1">
                         Sistem presensi telah diperbarui
-                    </li>
+                    </li> */}
                 </ul>
                 {/* <div className="p-2 text-center text-xs text-blue-600 hover:underline cursor-pointer">
                         Lihat semua
