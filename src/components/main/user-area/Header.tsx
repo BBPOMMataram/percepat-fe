@@ -12,7 +12,16 @@ export default function HeaderUserArea({ user, callName }: { user: User | null, 
         <header className="flex justify-between items-center px-6 py-4 bg-white shadow-md">
             <div>
                 <h2 className="md:text-lg font-semibold text-gray-800">
-                    Welcome, {callName || `${user?.employee?.gelar_depan ? user?.employee?.gelar_depan + ". " : ""}${user?.name}${user?.employee?.gelar_belakang ? ", " + user?.employee?.gelar_belakang : ""}`}
+                    {(() => {
+                        const hour = dayjs().hour();
+                        const greeting =
+                            hour < 12 ? "Selamat pagi" :
+                                hour < 15 ? "Selamat siang" :
+                                    hour < 18 ? "Selamat sore" :
+                                        "Selamat malam";
+                        const fullName = `${user?.employee?.gelar_depan ? user?.employee?.gelar_depan + ". " : ""}${user?.name}${user?.employee?.gelar_belakang ? ", " + user?.employee?.gelar_belakang : ""}`;
+                        return `${greeting}, ${callName || fullName}`;
+                    })()}
                 </h2>
                 <p className="text-xs text-gray-500">
                     {dayjs().format("dddd, DD MMMM YYYY")}
