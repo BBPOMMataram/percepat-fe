@@ -10,12 +10,15 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import SignatureCanvas from "react-signature-canvas";
+import Turnstile from "react-turnstile";
 import FormRegisterAdditionalExternal from "./FormAdditionalExternal";
 import FormRegisterAdditionalMahasiswa from "./FormAdditionalMahasiswa";
 import FormRegisterUserGeneral from "./FormUserGeneral";
 
 export default function RegisterForm() {
     const [roleId, setRoleId] = useState<number>(3); // 3 = student
+    const [captchaToken, setCaptchaToken] = useState("");
+    const [captchaKey, setCaptchaKey] = useState(0);
 
     const signatureSelectRef = useRef<any>(null)
     const formRegisterRef = useRef<any>(null)
@@ -44,11 +47,22 @@ export default function RegisterForm() {
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!captchaToken) {
+            dispatch(showAlert({
+                type: "error",
+                message: "Please verify you are human",
+                description: "Captcha validation is required.",
+            }));
+            return;
+        }
+
         const formDataRegister = new FormData(formRegisterRef.current);
 
         // Get the signature data URL
         const signatureDataURL = signatureSelectRef.current.toDataURL();
         formDataRegister.append('signature_path', signatureDataURL);
+        formDataRegister.append('turnstile_token', captchaToken);
 
         dispatch(register(formDataRegister))
             .unwrap()
@@ -57,6 +71,8 @@ export default function RegisterForm() {
                 router.push(callbackUrl);
             })
             .catch((err) => {
+                setCaptchaKey(k => k + 1);
+                setCaptchaToken("");
                 dispatch(showAlert({ type: "error", message: err.response?.data?.message, description: err || "No Message from Backend" }));
                 console.log('Register failed', err);
             });
@@ -110,6 +126,13 @@ export default function RegisterForm() {
                     {/* FORM MAHASISWA OR EXTERNAL */}
                     {roleId == 3 && <FormRegisterAdditionalMahasiswa />}
                     {roleId == 4 && <FormRegisterAdditionalExternal />}
+
+                    {/* Captcha Turnstile */}
+                    <Turnstile
+                        key={captchaKey}
+                        sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                        onVerify={(token) => setCaptchaToken(token)}
+                    />
 
                     <div className="flex gap-0.5 mt-10">
                         <button
