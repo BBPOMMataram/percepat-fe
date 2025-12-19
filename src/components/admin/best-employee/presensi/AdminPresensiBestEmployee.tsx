@@ -1,5 +1,7 @@
 import api from "@/utils/api"
 import { useEffect, useState } from "react"
+import { useDispatch } from "react-redux"
+import { showAlert } from "@/features/alertSlice"
 
 export default function AdminPresensiBestEmployee() {
     const [data, setData] = useState<any>([])
@@ -10,6 +12,7 @@ export default function AdminPresensiBestEmployee() {
     const [loadingAll, setLoadingAll] = useState<boolean>(false)
     const [uploading, setUploading] = useState<boolean>(false)
     const [file, setFile] = useState<File | null>(null)
+    const dispatch = useDispatch()
 
     const formatSecondsHMS = (value: unknown) => {
         if (value === null || value === undefined || value === '') return '-'
@@ -136,8 +139,11 @@ export default function AdminPresensiBestEmployee() {
                                 setFullData(null)
                                 setFile(null)
                                     ; (document.getElementById('be-import-file') as HTMLInputElement | null)?.value && ((document.getElementById('be-import-file') as HTMLInputElement).value = '')
-                            } catch (err) {
+                                dispatch(showAlert({ type: 'success', message: 'Berhasil mengunggah file presensi', description: 'Data presensi telah diperbarui.' }))
+                            } catch (err: any) {
                                 console.error('Upload gagal', err)
+                                const description = err?.response?.data?.message || err?.message || 'Terjadi kesalahan saat mengunggah file.'
+                                dispatch(showAlert({ type: 'error', message: 'Upload gagal', description }))
                             } finally {
                                 setUploading(false)
                             }
