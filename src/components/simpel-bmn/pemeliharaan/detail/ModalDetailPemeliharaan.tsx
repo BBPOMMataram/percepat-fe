@@ -25,12 +25,14 @@ export default function ModalDetailPemeliharaan({
     const [detailData, setDetailData] = useState<any>(null);
     const [pelaporData, setPelaporData] = useState<any>(null);
     const [listDisposisi, setListDisposisi] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(false); // Track loading state
 
     const printRef = useRef<HTMLDivElement>(null);
 
     const getDetailPemeliharaan = useCallback(() => {
         if (!code) return; // hindari fetch kalau code kosong/null
 
+        setIsLoading(true); // Start loading
         api.post(
             `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-detail`,
             { code }
@@ -45,7 +47,7 @@ export default function ModalDetailPemeliharaan({
                 }).catch((err) => {
                     dispatch(showAlert({ type: "error", message: err?.response?.data?.message, description: err.response?.data?.message || "No Message from Backend" }));
                     console.log(err);
-                })
+                }).finally(() => setIsLoading(false)); // Stop loading after pelapor fetch
         }).catch((err) => {
             dispatch(showAlert({ type: "error", message: "Pemeliharaan tidak ditemukan", description: "Pemeliharaan tidak ditemukan" }));
             setDetailData(null);
@@ -54,7 +56,7 @@ export default function ModalDetailPemeliharaan({
 
             console.log(err);
             onClose();
-        });
+        }).finally(() => setIsLoading(false)); // Stop loading after main fetch
     }, [code, dispatch, onClose]);
 
     useEffect(() => {
@@ -103,6 +105,15 @@ export default function ModalDetailPemeliharaan({
         }, 400);
     };
 
+    if (isLoading) {
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                <div className="bg-white rounded-full m-4 w-10 h-10 shadow-lg flex items-center justify-center">
+                    <div className="loading"></div>
+                </div>
+            </div>
+        );
+    }
 
     if (!show) return null;
     return (
