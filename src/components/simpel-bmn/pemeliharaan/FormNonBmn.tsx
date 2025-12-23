@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { ModalWebcamInputBarang } from "./ModalWebcamInputBarang";
 
-export default function FormNonBmn({ user, kaTu }: { user: any, kaTu: any }) {
+export default function FormNonBmn({ user, kaTu, kaTimId }: { user: any, kaTu: any, kaTimId: string }) {
     const [listBarang, setListBarang] = useState<any>([]);
     const [namaBarang, setNamaBarang] = useState("");
     const [merkBarang, setMerkBarang] = useState("");
@@ -44,6 +44,11 @@ export default function FormNonBmn({ user, kaTu }: { user: any, kaTu: any }) {
         e.preventDefault();
 
         if (listBarang.length === 0) return alert("Belum ada barang yang diajukan");
+
+        if (user?.employee?.fungsi_id !== 1 && user?.employee?.group_jabatan?.id !== 3 && !kaTimId) {
+            alert("Silahkan pilih KaTim terlebih dahulu.");
+            return;
+        }
 
         const adaKosong = listBarang.some((item: any) => {
             return !item.keluhan || item.keluhan.trim() === "";

@@ -423,7 +423,8 @@ export default function FormPemeliharaanSimpelBmn() {
                         )}
                     </>
                     :
-                    <FormNonBmn user={user} kaTu={kaTu} />
+                    // KaTimId dikirim untuk validasi di FormNonBmn
+                    <FormNonBmn user={user} kaTu={kaTu} kaTimId={kaTimId} />
 
                 }
 
