@@ -61,6 +61,15 @@ export default function FormNonBmn({ user, kaTu, kaTimId }: { user: any, kaTu: a
         }
 
         setIsSubmitting(true);
+        let disposisiToId = null;
+
+        // JIKA BUKAN BARANG LAB MAKA DISPO KE KATIM (UNTUK SELAIN TU) ATAU KATU (UNTUK TU ATAU KATIM SENDIRI)
+        if (user?.employee?.fungsi_id !== 1 && user?.employee?.group_jabatan?.id !== 3) {
+            disposisiToId = kaTimId;
+        } else {
+            disposisiToId = kaTu?.user_id;
+        }
+
         api.post(
             `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/store-new-pemeliharaan-nonbmn`,
             {
@@ -68,7 +77,7 @@ export default function FormNonBmn({ user, kaTu, kaTimId }: { user: any, kaTu: a
                 listBarang,
                 note,
                 fungsiId: user?.employee?.fungsi_id,
-                disposisiToId: kaTu?.user_id,
+                disposisiToId,
             },
             {
                 headers: {
