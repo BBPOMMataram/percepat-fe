@@ -24,6 +24,7 @@ export default function ModalDisposisiPemeliharaan({
     const [detailData, setDetailData] = useState<any>(null);
     const [note, setNote] = useState<string>("");
     const [kabalai, setKabalai] = useState<any>(null);
+    const [kaTu, setKaTu] = useState<any>(null);
     const [listPetugasBmn, setListPetugasBmn] = useState<any[]>([]);
     const [petugasBmnSelected, setPetugasBmnSelected] = useState<any>(null);
     const [listPpk, setListPpk] = useState<any[]>([]);
@@ -68,6 +69,16 @@ export default function ModalDisposisiPemeliharaan({
         })
     }
 
+    const getKaTu = () => {
+        api(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-katu`
+        ).then((res) => {
+            setKaTu(res.data?.user); // karena "data" disini adalah employee
+        }).catch((err) => {
+            console.log(err);
+        })
+    }
+
     const getPetugasBmn = () => {
         api(
             `${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-petugas-bmn`
@@ -103,6 +114,7 @@ export default function ModalDisposisiPemeliharaan({
         getPetugasBmn();
         getPpk();
         getPp();
+        getKaTu();
         if (show) getDetailPemeliharaan();
     }, [show, getDetailPemeliharaan]);
 
@@ -233,6 +245,7 @@ export default function ModalDisposisiPemeliharaan({
         const isPetugasBmn = user?.employee?.petugas_bmn
         const isPpk = user?.employee?.is_ppk
         const isPp = user?.employee?.is_pp
+        const isKaTim = user?.employee?.group_jabatan?.id === 3
 
         let toUser = null;
         let lastStatusDisposisi: DispositionStatus = null; // status disposisi sebelum nya
@@ -242,6 +255,12 @@ export default function ModalDisposisiPemeliharaan({
         if (isKaTu || isKatimPengujian) {
             lastStatusDisposisi = isRejected ? 'rejected' : 'forwarded'; // status disposisi sebelum nya diupdate dengan ini sebelum buat disposisi baru
             toUser = kabalai; // kalau di reject nanti toUser nya dibalikin ke pelapor di backend, bukan pake ini
+
+            // DISPO KATIM
+        } else if (isKaTim) {
+            lastStatusDisposisi = isRejected ? 'rejected' : 'forwarded'; // status disposisi sebelum nya diupdate dengan ini sebelum buat disposisi baru
+            toUser = kaTu;
+
             // DISPO KABALAI
         } else if (isKaBalai) {
             lastStatusDisposisi = isRejected ? 'rejected' : 'forwarded';
