@@ -1,10 +1,44 @@
+import { showAlert } from "@/features/alertSlice";
+import { getUser, logout } from "@/features/authSlice";
+import { AppDispatch, RootState } from "@/redux/store";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 
 const Hero = () => {
+    const dispatch = useDispatch<AppDispatch>();
+    const router = useRouter();
+
+    const { user } = useSelector((state: RootState) => state.auth);
+
+    useEffect(() => {
+        dispatch(getUser());
+    }, [dispatch]);
+
+    const handleClick = () => {
+        dispatch(logout())
+        dispatch(showAlert({ type: 'success', message: 'You have been logged out', description: 'logout success' }))
+        router.push('/login')
+    }
+
     return (
         <>
+            {/* button logout */}
+            {
+                user &&
+                < button
+                    onClick={handleClick}
+                    className="fixed top-6 right-6 z-50 btn btn-error btn-circle p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110 flex items-center justify-center"
+                    title="Logout"
+                >
+                    <span className="material-symbols-outlined text-xl">
+                        logout
+                    </span>
+                </button>
+            }
             <div className="hero relative h-screen"> {/* relative here to avoid warning Image has "fill" adn parent elwith invalid "position" */}
                 <Image src={"/assets/images/percepat/hero.webp"} alt="Hero Image of Percepat" fill priority />
                 <div className="backdrop flex h-full w-full absolute bg-gray-800/60">
@@ -29,13 +63,22 @@ const Hero = () => {
                             transition={{ duration: 2, staggerChildren: 1 }}
                             className="button"
                         >
-                            <Link href={'percepat/login'}>
-                                <motion.button
-                                    whileHover={{ backgroundColor: '#C58940' }}
-                                    className="bg-secondary rounded px-6 py-2 mr-2 mb-2">
-                                    Masuk
-                                </motion.button>
-                            </Link>
+                            {user ?
+                                <Link href={'/percepat/permintaan/form'}>
+                                    <motion.button
+                                        whileHover={{ backgroundColor: '#C58940' }}
+                                        className="bg-secondary rounded px-6 py-2 mr-2 mb-2">
+                                        Buat Permintaan
+                                    </motion.button>
+                                </Link> :
+                                <Link href={'/login?redirectUrl=/percepat'}>
+                                    <motion.button
+                                        whileHover={{ backgroundColor: '#C58940' }}
+                                        className="bg-secondary rounded px-6 py-2 mr-2 mb-2">
+                                        Masuk
+                                    </motion.button>
+                                </Link>
+                            }
                             <motion.a
                                 whileHover={{ backgroundColor: '#C58940' }}
                                 href="#inventory"

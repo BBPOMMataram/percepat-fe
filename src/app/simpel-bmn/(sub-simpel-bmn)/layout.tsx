@@ -1,5 +1,5 @@
-import FooterSiapMelayani from '@/components/simpel-bmn/footer/Footer';
-import NavBarSiapMelayani from '@/components/simpel-bmn/header/NavBar';
+import Footer from '@/components/simpel-bmn/footer/Footer';
+import NavBar from '@/components/simpel-bmn/header/NavBar';
 import React from 'react';
 
 export const metadata = {
@@ -7,10 +7,10 @@ export const metadata = {
         template: '%s | Simpel BMN | BBPOM di Mataram',
         default: 'Simpel BMN | BBPOM di Mataram'
     },
-    description: 'Sistem Monitoring Digitalisasi Aplikasi Terpadu Balai Besar POM di Mataram',
+    description: 'Sistem Manajemen Pemeliharaan Balai Besar POM di Mataram',
 }
 
-export default function RootLayoutSiapMelayani({
+export default function RootLayoutSimpelBmnClient({
     children,
 }: {
     children: React.ReactNode,
@@ -18,13 +18,13 @@ export default function RootLayoutSiapMelayani({
     return (
         <>
             <header>
-                <NavBarSiapMelayani />
+                <NavBar />
             </header>
             <main className="lg:px-14 py-12 px-4">
                 {children}
             </main>
             <footer>
-                <FooterSiapMelayani />
+                <Footer />
             </footer>
 
         </>

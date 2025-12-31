@@ -1,18 +1,20 @@
 "use client"
-import Footer from "@/components/percepat/footer";
 import Hero from "@/components/percepat/header/Hero";
 import Inventory from "@/components/percepat/inventory";
+import FooterBottomSiMandalika from "../simandalika/footer/FooterBottom";
+
 const Percepat = () => {
     return (
         <div>
             <header>
                 <Hero />
             </header>
-            <main className="min-h-screen p-4 bg-primary" id="inventory">
+            <main className="min-h-screen p-4" id="inventory">
                 <Inventory />
             </main>
             <footer>
-                <Footer />
+                {/* <Footer /> */}
+                <FooterBottomSiMandalika />
             </footer>
         </div>
     )

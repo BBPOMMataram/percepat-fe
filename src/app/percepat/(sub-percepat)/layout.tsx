@@ -1,16 +1,16 @@
-import Footer from '@/components/siap-melayani/footer/Footer';
-import NavBar from '@/components/siap-melayani/header/NavBar';
+import Footer from '@/components/percepat/footer/Footer';
+import NavBar from '@/components/percepat/header/NavBar';
 import React from 'react';
 
 export const metadata = {
     title: {
-        template: '%s | Siap Melayani | BBPOM di Mataram',
-        default: 'Siap Melayani | BBPOM di Mataram'
+        template: '%s | Percepat | BBPOM di Mataram',
+        default: 'Percepat | BBPOM di Mataram'
     },
-    description: 'Aplikasi Siap Melayani Balai Besar POM di Mataram',
+    description: 'Aplikasi Percepatan Persediaan Balai Besar POM di Mataram',
 }
 
-export default function RootLayoutSiapMelayaniClient({
+export default function RootLayoutPercepatClient({
     children,
 }: {
     children: React.ReactNode,

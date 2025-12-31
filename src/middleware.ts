@@ -6,6 +6,7 @@ export async function middleware(req: NextRequest) {
   const token = req.cookies.get("access_token")?.value;
   const { pathname, search } = req.nextUrl;
 
+  // ini untuk logika tambahan jika diperlukan nanti
   const protectedPaths = [
     "/admin",
     "/profile",
@@ -39,7 +40,7 @@ export async function middleware(req: NextRequest) {
 
     return NextResponse.next();
   } catch (error) {
-    console.error("Invalid token:", error);
+    console.log("Invalid token:", error);
     const loginUrl = new URL("/login", req.url);
     return NextResponse.redirect(loginUrl);
   }
@@ -53,5 +54,6 @@ export const config = {
     "/settings/:path*",
     "/siap-melayani/pengajuan-pkl/form/:path*",
     "/siap-melayani/presensi/:path*",
+    "/percepat/:path*", // Added to protect all /percepat/* paths except /percepat
   ],
 };

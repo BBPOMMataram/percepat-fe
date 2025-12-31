@@ -37,7 +37,7 @@ export default function LoginForm() {
                 showAlert({
                     type: "success",
                     message: `You are already logged in ${user.call_name}`,
-                    description: "Redirecting to your profile page...",
+                    description: "Redirecting...",
                 })
             );
             router.push(callbackUrl);

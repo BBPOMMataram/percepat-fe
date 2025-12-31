@@ -40,7 +40,7 @@ export default function RegisterForm() {
 
     useEffect(() => {
         if (user) {
-            dispatch(showAlert({ type: "success", message: `You are already logged in as ${user.name}`, description: "Redirecting to your profile page..." }));
+            dispatch(showAlert({ type: "success", message: `You are already logged in as ${user.name}`, description: "Redirecting..." }));
             router.push(callbackUrl);
         }
     })

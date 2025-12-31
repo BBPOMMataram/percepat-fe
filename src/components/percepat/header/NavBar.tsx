@@ -1,37 +1,33 @@
 "use client";
 
 import LogoutBtn from "@/components/main/LogoutBtn";
+import { showAlert } from "@/features/alertSlice";
 import { getUser } from "@/features/authSlice";
 import { AppDispatch, RootState } from "@/redux/store";
-import api from "@/utils/api";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 export default function NavBarSiapMelayani() {
     const pathname = usePathname();
     const dispatch = useDispatch<AppDispatch>()
     const { user, loading } = useSelector((state: RootState) => state.auth)
-
-    const [formPaktaIntegritas, setFormPaktaIntegritas] = useState<any>({ link: '' });
-
-    const loadData = () => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/links/form_pakta_integritas`)
-            .then(res => {
-                setFormPaktaIntegritas(res.data)
-            })
-    }
-
-    useEffect(() => {
-        loadData()
-    }, [])
-
+    const router = useRouter()
 
     useEffect(() => {
         dispatch(getUser());
     }, [dispatch]);
+
+    useEffect(() => {
+        if (loading) return
+
+        if (!user) {
+            dispatch(showAlert({ type: 'error', message: 'You are not logged in', description: 'Please login first' }))
+            router.push(`/login?redirectUrl=${pathname}`)
+        }
+    }, [user, loading, router, pathname, dispatch])
 
     return (
         <div className="navbar bg-base-100 shadow-md px-6">
@@ -43,28 +39,7 @@ export default function NavBarSiapMelayani() {
                     <ul
                         tabIndex={0}
                         className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-fit p-2 shadow">
-                        <li>
-                            <a>PKL</a>
-                            <ul className="p-2">
-                                <li><Link href={'/siap-melayani/tata-tertib-pkl'}>Tata Tertib PKL</Link></li>
-                                <li><a href={formPaktaIntegritas?.link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="whitespace-nowrap">Download Form Pakta Integritas</a></li>
-                                <li><Link href={'/siap-melayani/pengajuan-pkl'}>Pengajuan PKL</Link></li>
-                            </ul>
-                        </li>
-                        <li><a>Kunjungan</a></li>
-                        <li><a>Narasumber</a></li>
-                        <li>
-                            <a>E-Learning</a>
-                            <ul className="p-2">
-                                <li><Link href={'/siap-melayani/e-learning/pengujian'}>Pengujian</Link></li>
-                                <li><Link href={'/siap-melayani/e-learning/sertifikasi'}>Sertifikasi</Link></li>
-                                <li><Link href={'/siap-melayani/e-learning/infokom'} className="whitespace-nowrap">Informasi & Komunikasi</Link></li>
-                                <li><Link href={'/siap-melayani/e-learning/umum'}>Umum</Link></li>
-                            </ul>
-                        </li>
+                        <li><Link href={'/percepat/permintaan'}>Permintaan</Link></li>
                     </ul>
                 </div>
 
@@ -72,51 +47,11 @@ export default function NavBarSiapMelayani() {
                     <Image src="/assets/images/bpom_without_label.webp" alt="Logo BBPOM" width={40} height={40} />
                 </Link>
 
-                <Link href="/siap-melayani" className="text-xl ml-3 font-serif tooltip tooltip-bottom" data-tip="Beranda Siap Melayani">SIAP MELAYANI</Link>
+                <Link href="/simpel-bmn" className="text-xl ml-3 font-serif tooltip tooltip-bottom" data-tip="Beranda PERCEPAT">PERCEPAT</Link>
             </div>
             <div className="navbar-center hidden md:flex">
                 <ul className="menu menu-horizontal px-1">
-                    <li>
-                        <div className="dropdown dropdown-bottom">
-                            <div tabIndex={0} className="flex items-center gap-1">
-                                <span>PKL</span>
-                                <span className="material-symbols-outlined">
-                                    arrow_drop_down
-                                </span>
-                            </div>
-
-                            <ul
-                                tabIndex={0}
-                                className="menu dropdown-content shadow bg-base-100 rounded-box w-fit"
-                            >
-                                <li><Link href={'/siap-melayani/tata-tertib-pkl'}>Tata Tertib PKL</Link></li>
-                                <li><a href={formPaktaIntegritas?.link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="whitespace-nowrap">Download Form Pakta Integritas</a></li>
-                                <li><Link href={'/siap-melayani/pengajuan-pkl'}>Pengajuan PKL</Link></li>
-                            </ul>
-                        </div>
-                    </li>
-
-                    <li><a>Kunjungan</a></li>
-                    <li><a>Narasumber</a></li>
-                    <li>
-                        <div className="dropdown dropdown-bottom">
-                            <div tabIndex={0} className="flex items-center gap-1">
-                                <span>E-Learning</span>
-                                <span className="material-symbols-outlined">
-                                    arrow_drop_down
-                                </span>
-                            </div>
-                            <ul tabIndex={0} className="menu dropdown-content shadow bg-base-100 rounded-box w-fit">
-                                <li><Link href={'/siap-melayani/e-learning/pengujian'}>Pengujian</Link></li>
-                                <li><Link href={'/siap-melayani/e-learning/sertifikasi'}>Sertifikasi</Link></li>
-                                <li><Link href={'/siap-melayani/e-learning/infokom'} className="whitespace-nowrap">Informasi & Komunikasi</Link></li>
-                                <li><Link href={'/siap-melayani/e-learning/umum'}>Umum</Link></li>
-                            </ul>
-                        </div>
-                    </li>
+                    <li><Link href={'/percepat/permintaan'}>Permintaan</Link></li>
                 </ul>
             </div>
 
@@ -148,9 +83,6 @@ export default function NavBarSiapMelayani() {
                                             {user.employee ? (<span className="whitespace-nowrap text-[.6rem] text-gray-500">NIP: {user.employee.nip} </span>) : null}
                                             {user.employee ? (<span className="whitespace-nowrap text-[.6rem] text-gray-500">{user.employee.unit_kerja} </span>) : null}
                                         </a>
-                                    </li>
-                                    <li>
-                                        <Link href={'/siap-melayani/presensi'}>Presensi</Link>
                                     </li>
                                     <li>
                                         <Link href={'/profile'}>Profile</Link>

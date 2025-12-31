@@ -43,9 +43,11 @@ export default function NavBarSiapMelayani() {
                     </ul>
                 </div>
 
-                <Image src="/assets/images/bpom_without_label.webp" alt="Logo BBPOM" width={40} height={40} />
-                <a href="/simpel-bmn"
-                    className="text-xl ml-3 font-serif">SIMPEL BMN</a>
+                <Link href="/" className="tooltip tooltip-right" data-tip="Go to SiMandalika">
+                    <Image src="/assets/images/bpom_without_label.webp" alt="Logo BBPOM" width={40} height={40} />
+                </Link>
+
+                <Link href="/simpel-bmn" className="text-xl ml-3 font-serif tooltip tooltip-bottom" data-tip="Beranda SIMPEL BMN">SIMPEL BMN</Link>
             </div>
             <div className="navbar-center hidden md:flex">
                 <ul className="menu menu-horizontal px-1">
