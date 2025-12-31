@@ -1,7 +1,7 @@
+import { showAlert } from "@/features/alertSlice"
 import api from "@/utils/api"
 import { useEffect, useState } from "react"
 import { useDispatch } from "react-redux"
-import { showAlert } from "@/features/alertSlice"
 
 export default function AdminPresensiBestEmployee() {
     const [data, setData] = useState<any>([])
@@ -12,6 +12,9 @@ export default function AdminPresensiBestEmployee() {
     const [loadingAll, setLoadingAll] = useState<boolean>(false)
     const [uploading, setUploading] = useState<boolean>(false)
     const [file, setFile] = useState<File | null>(null)
+    const [itemsPerPage, setItemsPerPage] = useState<number>(10)
+    const [sortColumn, setSortColumn] = useState<'work' | 'late'>('work')
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
     const dispatch = useDispatch()
 
     const formatSecondsHMS = (value: unknown) => {
@@ -30,11 +33,11 @@ export default function AdminPresensiBestEmployee() {
         // reset cache of full data when month/year changes
         setFullData(null)
         setLoadingAll(false)
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_BEST_EMPLOYEE}/api/kehadiran?m=${month}&y=${year}`)
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_BEST_EMPLOYEE}/api/kehadiran?m=${month}&y=${year}&per_page=${itemsPerPage}`)
             .then(res => {
                 setData(res.data)
             })
-    }, [month, year])
+    }, [month, year, itemsPerPage])
 
     // Load all pages when searching so results include all data, not just current page
     useEffect(() => {
@@ -62,7 +65,7 @@ export default function AdminPresensiBestEmployee() {
         if (search.trim() && fullData === null && !loadingAll) {
             loadAll()
         }
-    }, [search, month, year, fullData, loadingAll])
+    }, [search, month, year, fullData, loadingAll, itemsPerPage])
 
     return (
         <>
@@ -109,10 +112,23 @@ export default function AdminPresensiBestEmployee() {
                                 })}
                             </select>
                         </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm text-gray-700">Tampilkan</label>
+                            <select
+                                className="select select-bordered select-xs"
+                                value={itemsPerPage}
+                                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                            >
+                                <option value={10}>10 data</option>
+                                <option value={25}>25 data</option>
+                                <option value={50}>50 data</option>
+                                <option value={200}>Semua</option>
+                            </select>
+                        </div>
                         <div className="w-full md:w-auto md:ml-auto">
                             <input
                                 type="text"
-                                className="input input-bordered input-sm w-full"
+                                className="input input-bordered input-sm w-full md:w-64"
                                 placeholder="Cari NIP atau Nama..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
@@ -176,8 +192,38 @@ export default function AdminPresensiBestEmployee() {
                                 <th>Jml Hari Kerja Pegawai</th>
                                 <th>Jml Hari Cuti</th>
                                 <th>Jml Hari Lembur</th>
-                                <th>Total Waktu Kerja Pegawai</th>
-                                <th>Total Waktu Terlambat</th>
+                                <th
+                                    className={`cursor-pointer hover:bg-gray-100 select-none ${sortColumn === 'work' ? 'bg-gray-50' : ''}`}
+                                    onClick={() => {
+                                        if (sortColumn === 'work') {
+                                            setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')
+                                        } else {
+                                            setSortColumn('work')
+                                            setSortOrder('asc')
+                                        }
+                                    }}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Total Waktu Kerja Pegawai
+                                        {sortColumn === 'work' && (sortOrder === 'asc' ? <span>↑</span> : <span>↓</span>)}
+                                    </div>
+                                </th>
+                                <th
+                                    className={`cursor-pointer hover:bg-gray-100 select-none ${sortColumn === 'late' ? 'bg-gray-50' : ''}`}
+                                    onClick={() => {
+                                        if (sortColumn === 'late') {
+                                            setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')
+                                        } else {
+                                            setSortColumn('late')
+                                            setSortOrder('asc')
+                                        }
+                                    }}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Total Waktu Terlambat
+                                        {sortColumn === 'late' && (sortOrder === 'asc' ? <span>↑</span> : <span>↓</span>)}
+                                    </div>
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
@@ -191,14 +237,24 @@ export default function AdminPresensiBestEmployee() {
                                             </tr>
                                         )
                                     }
-                                    const list: any[] = searching ? (fullData || []) : (data?.data || [])
+                                    let list: any[] = searching ? (fullData || []) : (data?.data || [])
                                     const q = search.toLowerCase()
                                     const filtered = !searching ? list : list.filter((item: any) => {
                                         const nip = String(item.NIP || '').toLowerCase()
                                         const nama = String(item.Nama || '').toLowerCase()
                                         return nip.includes(q) || nama.includes(q)
                                     })
-                                    return filtered.map((item: any, index: number) => (
+                                    // Apply sorting for Total Waktu columns
+                                    const sorted = [...filtered].sort((a, b) => {
+                                        const timeA = sortColumn === 'work'
+                                            ? Number(a.Total_Waktu_Kerja_Detik) || 0
+                                            : Number(a.Total_Waktu_Terlambat_Detik) || 0
+                                        const timeB = sortColumn === 'work'
+                                            ? Number(b.Total_Waktu_Kerja_Detik) || 0
+                                            : Number(b.Total_Waktu_Terlambat_Detik) || 0
+                                        return sortOrder === 'asc' ? timeA - timeB : timeB - timeA
+                                    })
+                                    return sorted.map((item: any, index: number) => (
                                         <tr key={index} className="">
                                             <td>{searching ? index + 1 : ((data?.meta?.current_page - 1) * parseInt(data?.meta?.per_page) + index + 1)}</td>
                                             <td>{item.NIP || '-'}</td>

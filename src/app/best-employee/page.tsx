@@ -43,12 +43,20 @@ export default function BestEmployeePage() {
                         <Image
                             src="/assets/images/bpom.webp"
                             alt="BPOM Logo"
-                            width={100}
-                            height={100}
+                            width={120}
+                            height={120}
                             className="mb-4"
                         />
+                        <h2
+                            className="text-xl md:text-3xl font-medium bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 bg-clip-text text-transparent"
+                            style={{
+                                filter: "drop-shadow(0 0 10px rgba(139, 92, 246, 0.2))"
+                            }}
+                        >
+                            BBPOM di Mataram
+                        </h2>
                         <h1
-                            className="text-3xl md:text-7xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent leading-none tracking-tight"
+                            className="text-4xl md:text-7xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent leading-none tracking-tight"
                             style={{
                                 textShadow: "0 0 30px rgba(255, 255, 255, 0.3)",
                                 filter: "drop-shadow(0 0 20px rgba(139, 92, 246, 0.3))"
