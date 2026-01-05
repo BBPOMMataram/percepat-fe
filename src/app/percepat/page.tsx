@@ -1,5 +1,5 @@
 import Percepat from "@/components/percepat/Percepat"
 
-const Page = () => <Percepat />
+const PercepatPage = () => <Percepat />
 
-export default Page
+export default PercepatPage

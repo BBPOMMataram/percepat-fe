@@ -56,10 +56,10 @@ export default function MainSimpelBmn() {
                     {/* button logout */}
                     {
                         user &&
-                        < button
+                        <button
                             onClick={handleClick}
-                            className="fixed top-6 right-6 z-50 btn btn-error btn-circle p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110 flex items-center justify-center"
-                            title="Logout"
+                            className="fixed top-6 right-6 z-50 btn btn-error btn-circle p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110 flex items-center justify-center tooltip tooltip-left"
+                            data-tip="Logout"
                         >
                             <span className="material-symbols-outlined text-xl">
                                 logout
