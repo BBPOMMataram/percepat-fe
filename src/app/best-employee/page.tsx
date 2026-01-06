@@ -75,44 +75,46 @@ export default function BestEmployeePage() {
                     ></motion.div>
 
                     {/* Login Button */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 1.2 }}
-                        className="pt-8"
-                    >
-                        <motion.button
-                            whileHover={{
-                                scale: 1.05,
-                                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
-                            }}
-                            whileTap={{ scale: 0.95 }}
-                            className="group relative px-8 py-4 bg-white/10 backdrop-blur-md border border-white/20 text-white font-semibold rounded-full shadow-xl hover:bg-white/20 transition-all duration-300 overflow-hidden"
+                    <Link href={'/login?redirectUrl=/admin/best-employee'}>
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, delay: 1.2 }}
+                            className="pt-8"
                         >
-                            {/* Button background glow */}
-                            <motion.div
-                                className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20"
-                                initial={{ x: "100%" }}
-                                whileHover={{ x: 0 }}
-                                transition={{ duration: 0.3 }}
-                            />
+                            <motion.button
+                                whileHover={{
+                                    scale: 1.05,
+                                    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
+                                }}
+                                whileTap={{ scale: 0.95 }}
+                                className="group relative px-8 py-4 bg-white/10 backdrop-blur-md border border-white/20 text-white font-semibold rounded-full shadow-xl hover:bg-white/20 transition-all duration-300 overflow-hidden"
+                            >
+                                {/* Button background glow */}
+                                <motion.div
+                                    className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20"
+                                    initial={{ x: "100%" }}
+                                    whileHover={{ x: 0 }}
+                                    transition={{ duration: 0.3 }}
+                                />
 
-                            {/* Button content */}
-                            <span className="relative z-10 flex items-center space-x-2">
-                                <Link href={'/login?redirectUrl=/admin/best-employee'}>LOGIN</Link>
-                                <motion.svg
-                                    className="w-5 h-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                    whileHover={{ x: 3 }}
-                                    transition={{ duration: 0.2 }}
-                                >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                                </motion.svg>
-                            </span>
-                        </motion.button>
-                    </motion.div>
+                                {/* Button content */}
+                                <div className="relative z-10 flex items-center space-x-2">
+                                    <span>LOGIN</span>
+                                    <motion.svg
+                                        className="w-5 h-5"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                        whileHover={{ x: 3 }}
+                                        transition={{ duration: 0.2 }}
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                                    </motion.svg>
+                                </div>
+                            </motion.button>
+                        </motion.div>
+                    </Link>
 
                     {/* Floating decorative elements */}
                     <div className="absolute inset-0 pointer-events-none">
