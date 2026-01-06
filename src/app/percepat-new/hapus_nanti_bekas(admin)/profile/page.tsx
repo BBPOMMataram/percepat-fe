@@ -1,4 +1,4 @@
-import ProfileComponent from "@/components/percepat/admin/profile"
+import ProfileComponent from "@/components/percepat-new/admin/profile"
 
 export const metadata = {
     title: 'Profile'

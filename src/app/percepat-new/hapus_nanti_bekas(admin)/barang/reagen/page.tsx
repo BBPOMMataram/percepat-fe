@@ -1,4 +1,4 @@
-import Index from "@/components/percepat/admin/barang/reagen"
+import Index from "@/components/percepat-new/admin/barang/reagen"
 
 export const metadata = {
     title: 'Barang Reagen'

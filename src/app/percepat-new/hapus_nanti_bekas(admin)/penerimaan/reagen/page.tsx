@@ -1,4 +1,4 @@
-import Reagen from "@/components/percepat/admin/penerimaan/Reagen"
+import Reagen from "@/components/percepat-new/admin/penerimaan/Reagen"
 
 export const metadata = {
     title: 'Penerimaan Reagen'

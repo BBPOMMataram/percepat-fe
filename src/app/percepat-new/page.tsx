@@ -1,4 +1,4 @@
-import Percepat from "@/components/percepat/Percepat"
+import Percepat from "@/components/percepat-new/Percepat"
 
 const PercepatPage = () => <Percepat />
 

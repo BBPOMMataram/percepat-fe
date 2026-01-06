@@ -1,5 +1,5 @@
 "use client"
-import LoadingWithoutText from "@/components/percepat/admin/layouts/LoadingWithoutText";
+import LoadingWithoutText from "@/components/percepat-new/admin/layouts/LoadingWithoutText";
 import axios from "@/config/axios";
 import { showAlert } from "@/features/alertSlice";
 import { AppDispatch } from "@/redux/store";

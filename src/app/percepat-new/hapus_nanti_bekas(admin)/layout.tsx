@@ -1,5 +1,5 @@
 "use client"
-import ReagenEdNotifer from '@/components/percepat/admin/barang/reagen-ed/ReagenEdNotifer'
+import ReagenEdNotifer from '@/components/percepat-new/admin/barang/reagen-ed/ReagenEdNotifer'
 import { ToastContainer } from 'react-toastify'
 
 export default function AdminLayout({

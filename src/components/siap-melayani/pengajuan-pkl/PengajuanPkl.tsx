@@ -1,5 +1,5 @@
 'use client'
-import LoadingWithoutText from "@/components/percepat/admin/layouts/LoadingWithoutText";
+import LoadingWithoutText from "@/components/percepat-new/admin/layouts/LoadingWithoutText";
 import { getUser } from "@/features/authSlice";
 import { AppDispatch, RootState } from "@/redux/store";
 import { useEffect } from "react";

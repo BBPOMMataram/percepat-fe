@@ -1,4 +1,4 @@
-import Bidang from "@/components/percepat/admin/bidang/Bidang"
+import Bidang from "@/components/percepat-new/admin/bidang/Bidang"
 
 export const metadata = {
     title: 'Bidang'

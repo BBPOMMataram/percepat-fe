@@ -1,6 +1,6 @@
 "use client"
-import Hero from "@/components/percepat/header/Hero";
-import Inventory from "@/components/percepat/inventory";
+import Hero from "@/components/percepat-new/header/Hero";
+import Inventory from "@/components/percepat-new/inventory";
 import FooterBottomSiMandalika from "../simandalika/footer/FooterBottom";
 
 const Percepat = () => {

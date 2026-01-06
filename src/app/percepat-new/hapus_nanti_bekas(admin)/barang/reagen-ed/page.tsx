@@ -1,4 +1,4 @@
-import Index from "@/components/percepat/admin/barang/reagen-ed"
+import Index from "@/components/percepat-new/admin/barang/reagen-ed"
 
 export const metadata = {
     title: 'Barang Reagen Expired'

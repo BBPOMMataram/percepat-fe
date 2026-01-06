@@ -1,4 +1,4 @@
-import LaporanPermintaan from "@/components/percepat/admin/laporan/permintaan"
+import LaporanPermintaan from "@/components/percepat-new/admin/laporan/permintaan"
 
 export const metadata = {
     title: 'Laporan Permintaan'

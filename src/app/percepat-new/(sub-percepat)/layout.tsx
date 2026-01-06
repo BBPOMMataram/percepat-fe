@@ -1,5 +1,5 @@
-import Footer from '@/components/percepat/footer/Footer';
-import NavBar from '@/components/percepat/header/NavBar';
+import Footer from '@/components/percepat-new/footer/Footer';
+import NavBar from '@/components/percepat-new/header/NavBar';
 import React from 'react';
 
 export const metadata = {
