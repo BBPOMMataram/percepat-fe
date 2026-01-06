@@ -104,7 +104,7 @@ export default function AdminPresensiBestEmployee() {
                                 value={year}
                                 onChange={(e) => setYear(Number(e.target.value))}
                             >
-                                {Array.from({ length: 3 }).map((_, i) => {
+                                {Array.from({ length: 4 }).map((_, i) => {
                                     const y = 2025 + i
                                     return (
                                         <option key={y} value={y}>{y}</option>
