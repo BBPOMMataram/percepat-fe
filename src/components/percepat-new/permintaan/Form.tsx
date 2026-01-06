@@ -2,14 +2,11 @@
 import { showAlert } from "@/features/alertSlice";
 import { AppDispatch, RootState } from "@/redux/store";
 import api from "@/utils/api";
+import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import FormAtk from "./FormAtk";
-import FormBakuPembanding from "./FormBakuPembanding";
 import FormReagen from "./FormReagen";
-import FormSukuCadang from "./FormSukuCadang";
-import dayjs from "dayjs";
 
 export default function FormPemeliharaanSimpelBmn() {
     const [listBarang, setListBarang] = useState<any[]>([]);
@@ -117,7 +114,7 @@ export default function FormPemeliharaanSimpelBmn() {
                     {jenisBarang === 'reagen' && (
                         <FormReagen listBarang={listBarang} setListBarang={setListBarang} />
                     )}
-                    {jenisBarang === 'atk' && (
+                    {/* {jenisBarang === 'atk' && (
                         <FormAtk listBarang={listBarang} setListBarang={setListBarang} />
                     )}
                     {jenisBarang === 'bakuPembanding' && (
@@ -125,7 +122,7 @@ export default function FormPemeliharaanSimpelBmn() {
                     )}
                     {jenisBarang === 'sukuCadang' && (
                         <FormSukuCadang listBarang={listBarang} setListBarang={setListBarang} />
-                    )}
+                    )} */}
 
                     {/* CATATAN */}
                     <div className="mt-6">
