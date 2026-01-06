@@ -8,7 +8,7 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Jalankan deploy langsung di server
+      - name: Deploying Project Front End BBPOM di Mataram
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.SSH_HOST }}
