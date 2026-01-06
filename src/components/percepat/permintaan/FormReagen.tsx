@@ -31,7 +31,7 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
     const fetchReagen = async (query: string) => {
         setIsLoading(true);
         try {
-            const res = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/barang-reagen/getAll?name=${query}`);
+            const res = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/barang-reagen-all?name=${query}`);
             setReagenList(res.data || []);
             console.log(res.data);
 

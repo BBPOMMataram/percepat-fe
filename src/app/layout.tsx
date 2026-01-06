@@ -1,6 +1,6 @@
 import { Providers } from '@/redux/provider';
 import 'react-toastify/dist/ReactToastify.css';
-import './percepat/globals.css';
+import './percepat-new/globals.css';
 
 import Alert from '@/components/main/Alert';
 import Loading from '@/components/percepat/admin/layouts/Loading';

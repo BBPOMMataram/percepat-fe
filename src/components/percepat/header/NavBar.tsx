@@ -47,7 +47,7 @@ export default function NavBarSiapMelayani() {
                     <Image src="/assets/images/bpom_without_label.webp" alt="Logo BBPOM" width={40} height={40} />
                 </Link>
 
-                <Link href="/simpel-bmn" className="text-xl ml-3 font-serif tooltip tooltip-bottom" data-tip="Beranda PERCEPAT">PERCEPAT</Link>
+                <Link href="/percepat" className="text-xl ml-3 font-serif tooltip tooltip-bottom" data-tip="Beranda PERCEPAT">PERCEPAT</Link>
             </div>
             <div className="navbar-center hidden md:flex">
                 <ul className="menu menu-horizontal px-1">

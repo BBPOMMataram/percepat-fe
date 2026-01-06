@@ -9,26 +9,24 @@ import FormAtk from "./FormAtk";
 import FormBakuPembanding from "./FormBakuPembanding";
 import FormReagen from "./FormReagen";
 import FormSukuCadang from "./FormSukuCadang";
+import dayjs from "dayjs";
 
 export default function FormPemeliharaanSimpelBmn() {
-    const [kodeBarang, setKodeBarang] = useState("");
-    const [nup, setNup] = useState("");
     const [listBarang, setListBarang] = useState<any[]>([]);
-    const [openScanner, setOpenScanner] = useState(false);
     const { user } = useSelector((state: RootState) => state.auth);
-    const [jenisBarang, setSetTipeBarang] = useState("reagen");
+    const [jenisBarang, setSetTipeBarang] = useState("reagen"); // u menentukan end point saja, ga dikirim sbg payload
     const [kaTu, setKaTu] = useState<any>({});
     const [listKaTimPengujian, setListKaTimPengujian] = useState<any[]>([]);
     const [kaTimPengujianId, setKaTimPengujianId] = useState<any>("");
     const [listKaTim, setListKaTim] = useState<any[]>([]);
     const [kaTimId, setKaTimId] = useState<any>("");
     const [note, setNote] = useState<string>("");
-    const [webcamIndex, setWebcamIndex] = useState<number | null>(null);
+    const [tanggal, setTanggal] = useState<string>(dayjs().format('YYYY-MM-DD'));
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
     const dispatch = useDispatch<AppDispatch>();
-    const handleInputQrCode = () => setOpenScanner(true);
     const router = useRouter();
+
 
     const listJenisBarang = [
         'reagen', 'atk', 'bakuPembanding', 'sukuCadang'
@@ -45,7 +43,7 @@ export default function FormPemeliharaanSimpelBmn() {
         // DISPO
 
 
-        console.log({ jenisBarang, listBarang, note, disposisiToId });
+        console.log({ jenisBarang, listBarang, note, disposisiToId, pemohon: user });
 
         return
 
@@ -99,6 +97,18 @@ export default function FormPemeliharaanSimpelBmn() {
                                 </option>
                             ))}
                         </select>
+                    </div>
+                    <div className="ml-auto">
+                        <label className="block text-sm font-medium text-gray-700 ar-label-required">
+                            Tanggal
+                        </label>
+                        <input
+                            type="date"
+                            value={tanggal}
+                            onChange={(e) => setTanggal(e.target.value)}
+                            required
+                            className="ar-input-text-purple"
+                        />
                     </div>
                 </div>
 
