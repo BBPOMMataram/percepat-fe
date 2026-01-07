@@ -64,7 +64,7 @@ export default function AdminFormPengajuanSiapMelayani({ open, onClose, onSucces
             <div className="modal modal-bottom sm:modal-middle">
                 <div className="modal-box">
                     <h3 className="font-bold text-lg mb-4">
-                        {`${mode} pengajuan ${pengajuan?.user.name}`}
+                        {`${mode} pengajuan ${pengajuan?.user?.auth_user?.name}`}
                     </h3>
 
                     <form onSubmit={handleSubmit} className="space-y-3">
