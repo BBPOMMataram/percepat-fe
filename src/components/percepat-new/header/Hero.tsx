@@ -64,14 +64,14 @@ const Hero = () => {
                             className="button"
                         >
                             {user ?
-                                <Link href={'/percepat/permintaan/form'}>
+                                <Link href={'/percepat-new/permintaan/form'}>
                                     <motion.button
                                         whileHover={{ backgroundColor: '#C58940' }}
                                         className="bg-secondary rounded px-6 py-2 mr-2 mb-2">
                                         Buat Permintaan
                                     </motion.button>
                                 </Link> :
-                                <Link href={'/login?redirectUrl=/percepat'}>
+                                <Link href={'/login?redirectUrl=/percepat-new'}>
                                     <motion.button
                                         whileHover={{ backgroundColor: '#C58940' }}
                                         className="bg-secondary rounded px-6 py-2 mr-2 mb-2">
