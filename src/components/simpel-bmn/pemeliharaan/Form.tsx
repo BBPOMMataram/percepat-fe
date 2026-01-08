@@ -15,7 +15,7 @@ export default function FormPemeliharaanSimpelBmn() {
     const [listBarang, setListBarang] = useState<any>([]);
     const [openScanner, setOpenScanner] = useState(false);
     const { user } = useSelector((state: RootState) => state.auth);
-    const [tipeBarang, setSetTipeBarang] = useState("non-lab");
+    const [tipeBarang, setTipeBarang] = useState("non-lab");
     const [kaTu, setKaTu] = useState<any>({});
     const [listKaTimPengujian, setListKaTimPengujian] = useState<any[]>([]);
     const [kaTimPengujianId, setKaTimPengujianId] = useState<any>("");
@@ -245,7 +245,7 @@ export default function FormPemeliharaanSimpelBmn() {
                         <select
                             name="role_id"
                             value={tipeBarang}
-                            onChange={(e) => setSetTipeBarang(e.target.value)}
+                            onChange={(e) => setTipeBarang(e.target.value)}
                             required
                             className="ar-input-text-purple"
                         >
