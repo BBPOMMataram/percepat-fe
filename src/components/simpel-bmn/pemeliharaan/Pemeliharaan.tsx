@@ -1,5 +1,6 @@
 "use client"
 
+import LoadingWithText from "@/components/percepat-new/admin/layouts/LoadingWithText"
 import { RootState } from "@/redux/store"
 import api from "@/utils/api"
 import Link from "next/link"
@@ -19,34 +20,29 @@ export default function PemeliharaanSimpelBmn() {
     const [listDisposisi, setListDisposisi] = useState<any[]>([]);
     const [mergedDisposisi, setMergedDisposisi] = useState<any[]>([]);
     const [jumlahDisposisi, setJumlahDisposisi] = useState(0);
-
+    const [isLoading, setIsLoading] = useState(false);
     const { user } = useSelector((state: RootState) => state.auth);
     const currentUserId = user?.id
 
-    const getAllData = () => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-all`)
-            .then(res => {
-                const allData = res?.data;
-                setDataAll(allData);
+    const fetchAllData = () => {
+        setIsLoading(true);
+        Promise.all([
+            api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-all`),
+            api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-disposition-by-user`)
+        ])
+            .then(([resAllData, resDisposisi]) => {
+                setDataAll(resAllData?.data);
+                setListDisposisi(resDisposisi?.data);
+                setIsLoading(false);
             })
             .catch(err => {
                 console.error(err)
-            })
-    }
-
-    const getDataDisposisi = () => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-disposition-by-user`)
-            .then(res => {
-                setListDisposisi(res?.data)
-            })
-            .catch(err => {
-                console.error(err)
+                setIsLoading(false);
             })
     }
 
     useEffect(() => {
-        getAllData()
-        getDataDisposisi()
+        fetchAllData()
     }, [])
 
     useEffect(() => {
@@ -181,7 +177,9 @@ export default function PemeliharaanSimpelBmn() {
         setJumlahDisposisi(total);
     }, [mergedDisposisi, user]);
 
-    return (
+
+
+    return isLoading ? <LoadingWithText /> : (
         <div>
             {/* name of each tab group should be unique */}
             <div className="tabs tabs-lift">
@@ -216,7 +214,7 @@ export default function PemeliharaanSimpelBmn() {
                     {jumlahDisposisi > 0 && <span className="indicator-item badge badge-error animate-pulse badge-xs">{jumlahDisposisi}</span>}
                 </label>
                 <div className="tab-content bg-base-100 border-base-300 p-6">
-                    <ContentDisposisi disposisi={mergedDisposisi} handleOpenDetail={handleOpenDetail} updateDataDisposisi={getDataDisposisi} />
+                    <ContentDisposisi disposisi={mergedDisposisi} handleOpenDetail={handleOpenDetail} updateDataDisposisi={fetchAllData} />
                 </div>
             </div>
 
