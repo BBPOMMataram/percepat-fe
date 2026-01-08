@@ -251,13 +251,21 @@ export default function ModalDisposisiPemeliharaan({
         let lastStatusDisposisi: DispositionStatus = null; // status disposisi sebelum nya
         let inProgress = false;
 
-        // DISPO KATIM PENGUJIAN / KATU
-        if (isKaTu || isKatimPengujian) {
+        const tipeBarang = detailData?.tipe; // UNTUK MEMBEDAKAN DISPO DARI KATIM PENGUJIAN KE KABALI KARENA KATIM BIASA DISPO KE KATU DULU
+        const isDisposisiBaru = detailData?.disposisi_new_pemeliharaan.length === 1; // jika jml disposisinya baru 1 maka artinya baru dibuat oleh pelapor (untuk membedakan yg rangkap jabatan katim dan ppk)
+
+        // DISPO KATIM KATU
+        if (isKaTu) {
             lastStatusDisposisi = isRejected ? 'rejected' : 'forwarded'; // status disposisi sebelum nya diupdate dengan ini sebelum buat disposisi baru
             toUser = kabalai; // kalau di reject nanti toUser nya dibalikin ke pelapor di backend, bukan pake ini
 
-            // DISPO KATIM
-        } else if (isKaTim) {
+            // DISPO KATIM PENGUJIAN
+        } else if (isKatimPengujian && tipeBarang === 'lab') {
+            lastStatusDisposisi = isRejected ? 'rejected' : 'forwarded'; // status disposisi sebelum nya diupdate dengan ini sebelum buat disposisi baru
+            toUser = kabalai; // kalau di reject nanti toUser nya dibalikin ke pelapor di backend, bukan pake ini
+
+            // DISPO KATIM 
+        } else if (isKaTim && isDisposisiBaru) { // isDisposisiBaru untuk mengetahui yg login sedang bertindak sbg katim bukan ppk (karena bisa rangkap)
             lastStatusDisposisi = isRejected ? 'rejected' : 'forwarded'; // status disposisi sebelum nya diupdate dengan ini sebelum buat disposisi baru
             toUser = kaTu;
 
@@ -480,7 +488,7 @@ export default function ModalDisposisiPemeliharaan({
                 }
 
                 {
-                    user?.employee?.is_ppk &&
+                    (user?.employee?.is_ppk && detailData?.disposisi_new_pemeliharaan.length > 1) &&
                     <div className="mt-4 flex flex-col gap-2">
                         <label className="ar-label-required">PP</label>
                         <select className="ar-input-text-purple w-fit"
@@ -496,7 +504,7 @@ export default function ModalDisposisiPemeliharaan({
                             {listPp?.length > 0 ? (
                                 listPp?.map(item => <option key={item.user?.id} value={item.user?.id}>{item.user?.call_name || item.user?.name}</option>)
                             ) : (
-                                <option value="">Tidak ada data PPK</option>
+                                <option value="">Tidak ada data PP</option>
                             )}
                         </select>
                     </div>
