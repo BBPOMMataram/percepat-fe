@@ -1,12 +1,12 @@
 "use client";
 
+import LoadingWithoutText from "@/components/percepat/admin/layouts/LoadingWithoutText";
 import { showAlert } from "@/features/alertSlice";
 import { AppDispatch } from "@/redux/store";
 import api from "@/utils/api";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
-import LoadingWithoutText from "../admin/layouts/LoadingWithoutText";
 
 interface FormReagenProps {
     listBarang: any[];
@@ -18,15 +18,15 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
     const [isLoading, setIsLoading] = useState(false);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const dispatch = useDispatch<AppDispatch>();
-
-    useEffect(() => {
-        searchInputRef.current?.focus();
-    }, []);
     const [searchTerm, setSearchTerm] = useState("");
     const [reagenList, setReagenList] = useState<any[]>([]);
     const [selectedReagen, setSelectedReagen] = useState<any>(null);
     const [jumlah, setJumlah] = useState<number>(1);
     const [keterangan, setKeterangan] = useState<string>("");
+
+    useEffect(() => {
+        searchInputRef.current?.focus();
+    }, []);
 
     const fetchReagen = async (query: string) => {
         setIsLoading(true);
@@ -54,10 +54,10 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
         if (value.length === 0) {
             setReagenList([]);
         } else {
-            // Debounce: wait 300ms before fetching
+            // Debounce: wait 1000ms before fetching
             searchTimeoutRef.current = setTimeout(() => {
                 fetchReagen(value);
-            }, 300);
+            }, 1000);
         }
     };
 
@@ -148,7 +148,7 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
                 {isLoading ? (
                     <LoadingWithoutText />
                 ) : (
-                    <div className="max-h-48 overflow-y-auto border rounded">
+                    <div className="max-h-60 overflow-y-auto border rounded">
                         <table className="w-full">
                             <thead className="bg-gray-100 sticky top-0">
                                 <tr>
@@ -161,7 +161,7 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
                             </thead>
                             <tbody>
                                 {reagenList.map((item: any) => (
-                                    <tr key={item.id} className={`border-t hover:bg-gray-50 ${isOutOfStock(item) ? 'bg-gray-100' : ''}`}>
+                                    <tr key={item.id} className={`border-t hover:bg-bpom-green/10 ${isOutOfStock(item) ? 'bg-red-200' : ''}`}>
                                         <td className="p-2 text-sm">{item.name}</td>
                                         <td className="p-2 text-sm">{item.satuan}</td>
                                         <td className="p-2 text-sm">{item.stock}</td>
@@ -199,7 +199,7 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
 
                 {/* Quantity and Add Button */}
                 <div className="mt-4 flex gap-4 items-end">
-                    <div className="flex-1">
+                    <div className="">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Jumlah {selectedReagen ? `(Max: ${selectedReagen.stock})` : ''}
                         </label>
@@ -212,6 +212,19 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
                                 const val = parseInt(e.target.value) || 1;
                                 const maxStock = selectedReagen?.stock || 9999;
                                 setJumlah(Math.min(val, maxStock));
+                            }}
+                            className="ar-input-text-purple w-full"
+                        />
+                    </div>
+                    <div className="flex-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Keterangan
+                        </label>
+                        <input
+                            type="text"
+                            value={keterangan}
+                            onChange={(e) => {
+                                setKeterangan(e.target.value);
                             }}
                             className="ar-input-text-purple w-full"
                         />
@@ -242,6 +255,7 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
                                     <th className="p-2 text-left text-sm">Jumlah</th>
                                     <th className="p-2 text-left text-sm">Satuan</th>
                                     <th className="p-2 text-left text-sm">Expired</th>
+                                    <th className="p-2 text-left text-sm">Keterangan</th>
                                     <th className="p-2 text-left text-sm">Aksi</th>
                                 </tr>
                             </thead>
@@ -253,6 +267,7 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
                                         <td className="p-2 text-sm">{item.jumlah}</td>
                                         <td className="p-2 text-sm">{item.satuan}</td>
                                         <td className="p-2 text-sm">{item.expired ? dayjs(item.expired).format('DD MMM YYYY') : '-'}</td>
+                                        <td className="p-2 text-sm">{item.keterangan || '-'}</td>
                                         <td className="p-2 text-sm">
                                             <button
                                                 onClick={() => handleRemoveBarang(index)}

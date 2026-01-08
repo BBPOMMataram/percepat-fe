@@ -4,7 +4,7 @@ import { AppDispatch, RootState } from "@/redux/store";
 import api from "@/utils/api";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import FormReagen from "./FormReagen";
 
@@ -12,56 +12,60 @@ export default function FormPemeliharaanSimpelBmn() {
     const [listBarang, setListBarang] = useState<any[]>([]);
     const { user } = useSelector((state: RootState) => state.auth);
     const [jenisBarang, setSetTipeBarang] = useState("reagen"); // u menentukan end point saja, ga dikirim sbg payload
-    const [kaTu, setKaTu] = useState<any>({});
-    const [listKaTimPengujian, setListKaTimPengujian] = useState<any[]>([]);
-    const [kaTimPengujianId, setKaTimPengujianId] = useState<any>("");
     const [listKaTim, setListKaTim] = useState<any[]>([]);
     const [kaTimId, setKaTimId] = useState<any>("");
-    const [note, setNote] = useState<string>("");
     const [tanggal, setTanggal] = useState<string>(dayjs().format('YYYY-MM-DD'));
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
     const dispatch = useDispatch<AppDispatch>();
     const router = useRouter();
 
-
     const listJenisBarang = [
         'reagen', 'atk', 'bakuPembanding', 'sukuCadang'
     ];
+
+    const getKaTim = async () => {
+        try {
+            const [katimRes, katuRes] = await Promise.all([
+                api(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-katim`),
+                api(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-katu`)
+            ]);
+
+            const katim = katimRes.data; // array
+            const katu = katuRes.data;   // object
+
+            const merged = [...katim, katu]; // ⬅️ jumlah +1
+
+            setListKaTim(merged.reverse());
+            console.log('merged', merged);
+
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    useEffect(() => {
+        getKaTim();
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (listBarang.length === 0) return alert("Belum ada barang yang diajukan");
 
-        setIsSubmitting(true);
-        let disposisiToId = null;
+        if (!kaTimId) {
+            alert("Silahkan pilih KaTim terlebih dahulu.");
+            return;
+        }
 
-        // DISPO
-
-
-        console.log({ jenisBarang, listBarang, note, disposisiToId, pemohon: user });
-
-        return
-
+        // setIsSubmitting(true);
         api.post(
-            `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/store-new-pemeliharaan`,
-            {
-                jenisBarang,
-                listBarang,
-                note,
-                fungsiId: user?.employee?.fungsi_id,
-                disposisiToId,
-            },
-            {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            }
+            `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-reagen`,
+            { jenisBarang, listBarang, pemohon: user, kaTimId, createdAt: tanggal }
         ).then((res) => {
-            dispatch(showAlert({ type: "success", message: res.data.message || "Berhasil mengajukan pemeliharaan BMN", description: res.data.message || "Berhasil mengajukan pemeliharaan BMN" }));
+            dispatch(showAlert({ type: "success", message: res.data.message || `Berhasil mengajukan Permintaan ${jenisBarang}`, description: res.data.message || "Berhasil mengajukan permintaan" }));
             setListBarang([]);
-            router.push('/simpel-bmn/pemeliharaan');
+            router.push('/percepat-new/permintaan');
             setIsSubmitting(false);
         }).catch((err) => {
             dispatch(showAlert({ type: "error", message: err?.response?.data?.message, description: err.response?.data?.message || "No Message from Backend" }));
@@ -91,6 +95,25 @@ export default function FormPemeliharaanSimpelBmn() {
                             {listJenisBarang.map((jenisBarang, index) => (
                                 <option key={index} value={jenisBarang}>
                                     {jenisBarang.toUpperCase()}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 ar-label-required">
+                            Katim
+                        </label>
+                        <select
+                            name="katim_id"
+                            value={kaTimId}
+                            onChange={(e) => setKaTimId(e.target.value)}
+                            required
+                            className="ar-input-text-purple"
+                        >
+                            <option value="">-- Pilih Katim --</option>
+                            {listKaTim.map((kaTim, index) => (
+                                <option key={index} value={kaTim.user_id}>
+                                    {kaTim.user.name}
                                 </option>
                             ))}
                         </select>
@@ -125,7 +148,7 @@ export default function FormPemeliharaanSimpelBmn() {
                     )} */}
 
                     {/* CATATAN */}
-                    <div className="mt-6">
+                    {/* <div className="mt-6">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Catatan
                         </label>
@@ -135,7 +158,7 @@ export default function FormPemeliharaanSimpelBmn() {
                             value={note}
                             onChange={(e) => setNote(e.target.value)}
                         />
-                    </div>
+                    </div> */}
 
                     {/* SUBMIT BUTTON */}
                     <div className="mt-6">
