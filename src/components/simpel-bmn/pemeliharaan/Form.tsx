@@ -249,11 +249,27 @@ export default function FormPemeliharaanSimpelBmn() {
                             required
                             className="ar-input-text-purple"
                         >
-                            {listTipeBarang.map((tipeBarang, index) => (
-                                <option key={index} value={tipeBarang}>
-                                    {tipeBarang.toUpperCase()}
+                            {listTipeBarang.map((tipeBarang, index) => {
+                                let labelTipeBarang = ''
+
+                                switch (tipeBarang) {
+                                    case 'lab':
+                                        labelTipeBarang = 'BMN (ALAT LAB)';
+                                        break;
+                                    case 'non-lab':
+                                        labelTipeBarang = 'BMN (NON ALAT LAB)';
+                                        break;
+                                    case 'non-bmn':
+                                        labelTipeBarang = 'NON BMN';
+                                        break;
+                                    default:
+                                        labelTipeBarang = tipeBarang.toUpperCase();
+                                }
+
+                                return <option key={index} value={tipeBarang}>
+                                    {labelTipeBarang}
                                 </option>
-                            ))}
+                            })}
                         </select>
                     </div>
 
