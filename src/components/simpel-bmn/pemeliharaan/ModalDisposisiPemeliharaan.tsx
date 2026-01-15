@@ -355,6 +355,7 @@ export default function ModalDisposisiPemeliharaan({
         setPpkSelected(null);
         setPpSelected(null);
         setIsDone(false);
+        setIsButuhPengadaan(false);
     }
 
     if (!show) return null;
@@ -511,7 +512,6 @@ export default function ModalDisposisiPemeliharaan({
                 }
 
                 <div className="flex ml-auto w-fit gap-4">
-
                     {
                         (user?.employee?.petugas_bmn && isDone) ?
                             <>

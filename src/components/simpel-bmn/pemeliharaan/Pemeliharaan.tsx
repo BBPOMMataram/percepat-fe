@@ -1,18 +1,18 @@
 "use client"
 
-import LoadingWithText from "@/components/percepat-new/admin/layouts/LoadingWithText"
+import LoadingWithoutText from "@/components/percepat-new/admin/layouts/LoadingWithoutText"
 import { RootState } from "@/redux/store"
 import api from "@/utils/api"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useSelector } from "react-redux"
 import ContentDisposisi from "./ContentDisposisi"
-import ContentPemeliharaan from "./ContentPemeliharaan"
 import ContentPemeliharaanAll from "./ContentPemeliharaanAll"
+import ContentPemeliharaanAnda from "./ContentPemeliharaanAnda"
 import ModalDetailPemeliharaan from "./detail/ModalDetailPemeliharaan"
 
 export default function PemeliharaanSimpelBmn() {
-    const [data, setData] = useState<any[]>([])
+    const [dataPemeliharaanAnda, setDataPemeliharaanAnda] = useState<any[]>([])
     const [dataAll, setDataAll] = useState<any[]>([])
     const [mergedDataAll, setMergedDataAll] = useState<any[]>([])
     const [showModalDetailPemeliharaan, setShowModalDetailPemeliharaan] = useState(false);
@@ -26,12 +26,21 @@ export default function PemeliharaanSimpelBmn() {
 
     const fetchAllData = () => {
         setIsLoading(true);
-        Promise.all([
-            api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-all`),
-            api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-disposition-by-user`)
-        ])
-            .then(([resAllData, resDisposisi]) => {
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-all`)
+            .then(resAllData => {
                 setDataAll(resAllData?.data);
+                setIsLoading(false);
+            })
+            .catch(err => {
+                console.error(err)
+                setIsLoading(false);
+            })
+    }
+
+    const fetchDispositionData = () => {
+        setIsLoading(true);
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-disposition-by-user`)
+            .then(resDisposisi => {
                 setListDisposisi(resDisposisi?.data);
                 setIsLoading(false);
             })
@@ -41,8 +50,10 @@ export default function PemeliharaanSimpelBmn() {
             })
     }
 
+
     useEffect(() => {
         fetchAllData()
+        fetchDispositionData()
     }, [])
 
     useEffect(() => {
@@ -111,6 +122,7 @@ export default function PemeliharaanSimpelBmn() {
 
     }, [listDisposisi]);
 
+    // get user auth untuk pelapor
     useEffect(() => {
         if (!Array.isArray(dataAll)) return;
 
@@ -147,13 +159,13 @@ export default function PemeliharaanSimpelBmn() {
             .catch(() => setMergedDataAll(dataAll));
     }, [dataAll]);
 
+    // filter data hanya pelapor yg login untuk data pemeliharaan ANDA
     useEffect(() => {
-        // filter data hanya pelapor yg login untuk data pemeliharaan ANDA
         const filtered = mergedDataAll.filter(
             (item: any) => item.pelapor?.external_user_id === currentUserId
         );
 
-        setData(filtered);
+        setDataPemeliharaanAnda(filtered);
     }, [mergedDataAll, currentUserId]);
 
     const handleOpenDetail = (code: string) => {
@@ -179,7 +191,7 @@ export default function PemeliharaanSimpelBmn() {
 
 
 
-    return isLoading ? <LoadingWithText /> : (
+    return (
         <div>
             {/* name of each tab group should be unique */}
             <div className="tabs tabs-lift">
@@ -191,7 +203,10 @@ export default function PemeliharaanSimpelBmn() {
                     Pemeliharaan
                 </label>
                 <div className="tab-content bg-base-100 border-base-300 p-6">
-                    <ContentPemeliharaanAll data={mergedDataAll} handleOpenDetail={handleOpenDetail} />
+                    {
+                        isLoading ? <LoadingWithoutText /> :
+                            <ContentPemeliharaanAll dataAll={dataAll} handleOpenDetail={handleOpenDetail} setDataAll={setDataAll} />
+                    }
                 </div>
 
                 <label className="tab">
@@ -202,7 +217,10 @@ export default function PemeliharaanSimpelBmn() {
                     Pemeliharaan Anda
                 </label>
                 <div className="tab-content bg-base-100 border-base-300 p-6">
-                    <ContentPemeliharaan data={data} handleOpenDetail={handleOpenDetail} />
+                    {
+                        isLoading ? <LoadingWithoutText /> :
+                            <ContentPemeliharaanAnda data={dataPemeliharaanAnda} handleOpenDetail={handleOpenDetail} />
+                    }
                 </div>
 
                 <label className="tab indicator">
@@ -214,7 +232,10 @@ export default function PemeliharaanSimpelBmn() {
                     {jumlahDisposisi > 0 && <span className="indicator-item badge badge-error animate-pulse badge-xs">{jumlahDisposisi}</span>}
                 </label>
                 <div className="tab-content bg-base-100 border-base-300 p-6">
-                    <ContentDisposisi disposisi={mergedDisposisi} handleOpenDetail={handleOpenDetail} updateDataDisposisi={fetchAllData} />
+                    {
+                        isLoading ? <LoadingWithoutText /> :
+                            <ContentDisposisi disposisi={mergedDisposisi} handleOpenDetail={handleOpenDetail} updateDataDisposisi={fetchAllData} />
+                    }
                 </div>
             </div>
 

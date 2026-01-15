@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 
-export default function ContentPemeliharaan({ data, handleOpenDetail }: { data: any[], handleOpenDetail: (code: string) => void }) {
+export default function ContentPemeliharaanAnda({ data, handleOpenDetail }: { data: any[], handleOpenDetail: (code: string) => void }) {
     return (
         <>
             <h2 className="mb-10 font-bold text-lg lg:text-3xl font-serif">Data Pemeliharaan Anda</h2>
