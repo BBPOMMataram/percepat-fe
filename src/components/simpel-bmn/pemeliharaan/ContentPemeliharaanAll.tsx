@@ -4,9 +4,35 @@ import { useEffect, useState } from "react";
 
 export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpenDetail }: { dataAll: any, setDataAll: (data: any) => void, handleOpenDetail: (code: string) => void }) {
     const [mergedDataAll, setMergedDataAll] = useState<any>([])
+    const [perPage, setPerPage] = useState<string>("10")
 
-    console.log('dataAll?.data;;m ', mergedDataAll);
-    console.log('dataAll ', dataAll);
+    // Sync perPage with server response
+    useEffect(() => {
+        if (dataAll?.per_page) {
+            setPerPage(String(dataAll.per_page));
+        }
+    }, [dataAll?.per_page]);
+
+    // Calculate starting row number based on current page
+    const getStartingNumber = () => {
+        if (!dataAll?.current_page || dataAll?.current_page === 1) {
+            return 1;
+        }
+        return (dataAll.current_page - 1) * parseInt(perPage) + 1;
+    };
+
+    // Handle per page change
+    const handlePerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newPerPage = e.target.value;
+        setPerPage(newPerPage);
+        // Reset to first page with new per_page value
+        const baseUrl = dataAll?.links?.[0]?.url?.split('?')[0] || `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-all`;
+        api.get(`${baseUrl}?page=1&per_page=${newPerPage}`)
+            .then(res => {
+                setDataAll(res.data);
+            })
+            .catch(() => { });
+    };
 
     // get user auth untuk pelapor
     useEffect(() => {
@@ -75,7 +101,7 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                                     key={item.id}
                                     className={`border-t transition`}
                                 >
-                                    <td className="px-4 py-3 font-medium">{index + 1}</td>
+                                    <td className="px-4 py-3 font-medium">{getStartingNumber() + index}</td>
                                     <td className="px-4 py-3 font-semibold capitalize">
                                         {item.code}
                                     </td>
@@ -104,8 +130,21 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                     </tbody>
                 </table>
 
-                {/* links */}
-                <div className="flex justify-end mt-8">
+                {/* Per page selector and links */}
+                <div className="flex justify-end items-center m-4 gap-4">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">Tampilkan:</span>
+                        <select
+                            value={perPage}
+                            onChange={handlePerPageChange}
+                            className="select select-bordered select-sm"
+                        >
+                            <option value="5">5</option>
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
                     <div className="btn-group">
                         {
                             dataAll?.links?.map((link: any, index: number) =>
@@ -114,7 +153,10 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                                     className={`btn ${link.active && 'btn-active'} ${!link.url && 'btn-disabled'} mr-1`}
                                     onClick={() => {
                                         if (link.url) {
-                                            api.get(link.url)
+                                            // Preserve per_page parameter when navigating
+                                            const url = new URL(link.url, window.location.origin);
+                                            url.searchParams.set('per_page', perPage);
+                                            api.get(url.toString())
                                                 .then(res => {
                                                     setDataAll(res.data);
                                                 })
