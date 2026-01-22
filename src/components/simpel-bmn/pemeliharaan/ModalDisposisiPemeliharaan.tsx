@@ -110,12 +110,14 @@ export default function ModalDisposisiPemeliharaan({
     }
 
     useEffect(() => {
-        getKaBalai();
-        getPetugasBmn();
-        getPpk();
-        getPp();
-        getKaTu();
-        if (show) getDetailPemeliharaan();
+        if (show) {
+            getKaBalai();
+            getPetugasBmn();
+            getPpk();
+            getPp();
+            getKaTu();
+            getDetailPemeliharaan()
+        };
     }, [show, getDetailPemeliharaan]);
 
     useEffect(() => {
