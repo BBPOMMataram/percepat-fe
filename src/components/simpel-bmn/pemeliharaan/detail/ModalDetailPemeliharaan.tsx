@@ -65,10 +65,6 @@ export default function ModalDetailPemeliharaan({
         }
     }, [show, code, getDetailPemeliharaan]);
 
-    useEffect(() => {
-        console.log(detailData);
-    }, [detailData]);
-
     const handlePrint = () => {
         const content = printRef.current;
         if (!content) return;

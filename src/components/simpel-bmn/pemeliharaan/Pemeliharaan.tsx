@@ -43,12 +43,87 @@ export default function PemeliharaanSimpelBmn() {
             })
     }
 
-    const fetchDispositionData = () => {
+    const fetchDispositionData = (status?: string) => {
         setIsLoading(true);
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-disposition-by-user`)
+        let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-disposition-by-user`;
+        if (status && status !== "all") {
+            url += `?status=${status}`;
+        }
+        api.get(url)
             .then(resDisposisi => {
-                setListDisposisi(resDisposisi?.data);
-                setIsLoading(false);
+                const disposisiData = resDisposisi?.data || [];
+                setListDisposisi(disposisiData);
+
+                // Merge user data
+                if (!Array.isArray(disposisiData) || disposisiData.length === 0) {
+                    setMergedDisposisi(disposisiData);
+                    setIsLoading(false);
+                    return;
+                }
+
+                // 1. Kumpulkan semua external_user_id (disposisi + pelapor)
+                const ids = disposisiData.flatMap((item: any) => {
+                    const fromToIds =
+                        item.disposisi_new_pemeliharaan?.flatMap((d: any) => [
+                            d.from_user?.external_user_id,
+                            d.to_user?.external_user_id
+                        ]) || [];
+
+                    const pelaporId = item.pelapor?.external_user_id || null;
+
+                    return [...fromToIds, pelaporId];
+                })
+                    .filter(Boolean)
+                    .filter((v, i, arr) => arr.indexOf(v) === i); // unique
+
+                if (ids.length === 0) {
+                    setMergedDisposisi(disposisiData);
+                    setIsLoading(false);
+                    return;
+                }
+
+                // 2. Fetch batch user
+                api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-user-batch`, { ids })
+                    .then(res => {
+                        const authUsers = res.data;
+
+                        const authMap: Record<string, any> = {};
+                        authUsers.forEach((u: any) => authMap[u.id] = u);
+
+                        // 3. Merge disposisi + pelapor
+                        const merged = disposisiData.map((item: any) => ({
+                            ...item,
+
+                            // Merge pelapor
+                            pelapor: item.pelapor
+                                ? {
+                                    ...item.pelapor,
+                                    auth_user: authMap[item.pelapor.external_user_id] || null
+                                }
+                                : null,
+
+                            // Merge disposisi
+                            disposisi_new_pemeliharaan: item.disposisi_new_pemeliharaan?.map((d: any) => ({
+                                ...d,
+                                from_user: {
+                                    ...d.from_user,
+                                    auth_user: authMap[d.from_user?.external_user_id] || null,
+                                },
+                                to_user: {
+                                    ...d.to_user,
+                                    auth_user: authMap[d.to_user?.external_user_id] || null,
+                                },
+                            })) || []
+                        }));
+
+                        setMergedDisposisi(merged);
+                        setIsLoading(false);
+                    })
+                    .catch(err => {
+                        console.log(err);
+                        setMergedDisposisi(disposisiData);
+                        setIsLoading(false);
+                    });
             })
             .catch(err => {
                 console.error(err)
@@ -61,72 +136,6 @@ export default function PemeliharaanSimpelBmn() {
         fetchAllData()
         fetchDispositionData()
     }, [])
-
-    useEffect(() => {
-        if (!Array.isArray(listDisposisi)) return;
-
-        // 1. Kumpulkan semua external_user_id (disposisi + pelapor)
-        const ids = listDisposisi.flatMap(item => {
-            const fromToIds =
-                item.disposisi_new_pemeliharaan?.flatMap((d: any) => [
-                    d.from_user?.external_user_id,
-                    d.to_user?.external_user_id
-                ]) || [];
-
-            const pelaporId = item.pelapor?.external_user_id || null;
-
-            return [...fromToIds, pelaporId];
-        })
-            .filter(Boolean)
-            .filter((v, i, arr) => arr.indexOf(v) === i); // unique
-
-        if (ids.length === 0) {
-            setMergedDisposisi(listDisposisi);
-            return;
-        }
-
-        // 2. Fetch batch user
-        api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-user-batch`, { ids })
-            .then(res => {
-                const authUsers = res.data;
-
-                const authMap: Record<string, any> = {};
-                authUsers.forEach((u: any) => authMap[u.id] = u);
-
-                // 3. Merge disposisi + pelapor
-                const merged = listDisposisi.map(item => ({
-                    ...item,
-
-                    // Merge pelapor
-                    pelapor: item.pelapor
-                        ? {
-                            ...item.pelapor,
-                            auth_user: authMap[item.pelapor.external_user_id] || null
-                        }
-                        : null,
-
-                    // Merge disposisi
-                    disposisi_new_pemeliharaan: item.disposisi_new_pemeliharaan?.map((d: any) => ({
-                        ...d,
-                        from_user: {
-                            ...d.from_user,
-                            auth_user: authMap[d.from_user?.external_user_id] || null,
-                        },
-                        to_user: {
-                            ...d.to_user,
-                            auth_user: authMap[d.to_user?.external_user_id] || null,
-                        },
-                    })) || []
-                }));
-
-                setMergedDisposisi(merged);
-            })
-            .catch(err => {
-                console.log(err);
-                setMergedDisposisi(listDisposisi);
-            });
-
-    }, [listDisposisi]);
 
     // get user auth untuk pelapor
     useEffect(() => {
@@ -240,7 +249,7 @@ export default function PemeliharaanSimpelBmn() {
                 <div className="tab-content bg-base-100 border-base-300 p-6">
                     {
                         isLoading ? <LoadingWithoutText /> :
-                            <ContentDisposisi disposisi={mergedDisposisi} handleOpenDetail={handleOpenDetail} updateDataDisposisi={fetchAllData} />
+                            <ContentDisposisi dataDisposisi={mergedDisposisi} setDataDisposisi={setMergedDisposisi} handleOpenDetail={handleOpenDetail} updateDataDisposisi={fetchDispositionData} isLoading={isLoading} setIsloading={setIsLoading} />
                     }
                 </div>
             </div>

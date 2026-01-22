@@ -8,7 +8,7 @@ interface ModalDisposisiPemeliharaanProps {
     show: boolean;
     onClose: () => void;
     code: string;
-    updateDataDisposisi: () => void;
+    updateDataDisposisi: (status?: string) => void;
 }
 
 type DispositionStatus = 'pending' | 'forwarded' | 'in_progress' | 'done' | 'rb' | 'rejected' | null
