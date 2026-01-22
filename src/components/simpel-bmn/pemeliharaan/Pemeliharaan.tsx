@@ -205,7 +205,7 @@ export default function PemeliharaanSimpelBmn() {
                 <div className="tab-content bg-base-100 border-base-300 p-6">
                     {
                         isLoading ? <LoadingWithoutText /> :
-                            <ContentPemeliharaanAll dataAll={dataAll} handleOpenDetail={handleOpenDetail} setDataAll={setDataAll} />
+                            <ContentPemeliharaanAll dataAll={dataAll} handleOpenDetail={handleOpenDetail} setDataAll={setDataAll} isLoading={isLoading} setIsloading={setIsLoading} />
                     }
                 </div>
 

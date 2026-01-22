@@ -2,7 +2,7 @@ import api from "@/utils/api";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 
-export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpenDetail }: { dataAll: any, setDataAll: (data: any) => void, handleOpenDetail: (code: string) => void }) {
+export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpenDetail, isLoading, setIsloading }: { dataAll: any, setDataAll: (data: any) => void, handleOpenDetail: (code: string) => void, isLoading: boolean, setIsloading: (loading: boolean) => void }) {
     const [mergedDataAll, setMergedDataAll] = useState<any>([])
     const [perPage, setPerPage] = useState<string>("10")
 
@@ -27,11 +27,17 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
         setPerPage(newPerPage);
         // Reset to first page with new per_page value
         const baseUrl = dataAll?.links?.[0]?.url?.split('?')[0] || `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-all`;
+
+        setIsloading(true);
         api.get(`${baseUrl}?page=1&per_page=${newPerPage}`)
             .then(res => {
                 setDataAll(res.data);
+                setIsloading(false);
             })
-            .catch(() => { });
+            .catch((err) => {
+                console.log(err);
+                setIsloading(false);
+            });
     };
 
     // get user auth untuk pelapor
@@ -74,7 +80,20 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
 
     return (
         <>
-            <h2 className="mb-10 font-bold text-lg lg:text-3xl font-serif">Data Pemeliharaan</h2>
+            <h2 className="mb-5 font-bold text-lg lg:text-3xl font-serif">Data Pemeliharaan</h2>
+            <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm text-gray-600">Tampilkan</span>
+                <select
+                    value={perPage}
+                    onChange={handlePerPageChange}
+                    className="select select-bordered w-fit"
+                >
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                </select>
+            </div>
             <div className="overflow-x-auto rounded-2xl shadow-sm border border-gray-200 bg-white">
                 <table className="table table-zebra">
                     <thead className="bg-primary text-primary-content uppercase text-xs">
@@ -132,19 +151,6 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
 
                 {/* Per page selector and links */}
                 <div className="flex justify-end items-center m-4 gap-4">
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-600">Tampilkan:</span>
-                        <select
-                            value={perPage}
-                            onChange={handlePerPageChange}
-                            className="select select-bordered select-sm"
-                        >
-                            <option value="5">5</option>
-                            <option value="10">10</option>
-                            <option value="25">25</option>
-                            <option value="50">50</option>
-                        </select>
-                    </div>
                     <div className="btn-group">
                         {
                             dataAll?.links?.map((link: any, index: number) =>
@@ -156,8 +162,10 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                                             // Preserve per_page parameter when navigating
                                             const url = new URL(link.url, window.location.origin);
                                             url.searchParams.set('per_page', perPage);
+                                            setIsloading(true);
                                             api.get(url.toString())
                                                 .then(res => {
+                                                    setIsloading(false);
                                                     setDataAll(res.data);
                                                 })
                                         }
