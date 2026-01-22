@@ -24,10 +24,16 @@ export default function PemeliharaanSimpelBmn() {
     const { user } = useSelector((state: RootState) => state.auth);
     const currentUserId = user?.id
 
-    const fetchAllData = () => {
+    const fetchAllData = (status?: string) => {
         setIsLoading(true);
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-all`)
+        let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-all`;
+        if (status && status !== "all") {
+            url += `?status=${status}`;
+        }
+        api.get(url)
             .then(resAllData => {
+                // Store the full response object (not just the data array)
+                // This includes pagination info like links, current_page, per_page, etc.
                 setDataAll(resAllData?.data);
                 setIsLoading(false);
             })

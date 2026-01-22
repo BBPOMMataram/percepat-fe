@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpenDetail, isLoading, setIsloading }: { dataAll: any, setDataAll: (data: any) => void, handleOpenDetail: (code: string) => void, isLoading: boolean, setIsloading: (loading: boolean) => void }) {
     const [mergedDataAll, setMergedDataAll] = useState<any>([])
     const [perPage, setPerPage] = useState<string>("10")
+    const [statusFilter, setStatusFilter] = useState<string>("all")
 
     // Sync perPage with server response
     useEffect(() => {
@@ -12,6 +13,29 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
             setPerPage(String(dataAll.per_page));
         }
     }, [dataAll?.per_page]);
+
+    // Sync statusFilter from URL when dataAll changes
+    // Only update if URL has a different status param than current selection
+    useEffect(() => {
+        if (!dataAll?.links) return;
+
+        // Find the first link with a valid URL (skip the "Previous" link which has url: null)
+        const firstValidLink = dataAll.links.find((link: any) => link.url !== null);
+
+        if (!firstValidLink) return;
+
+        try {
+            const url = new URL(firstValidLink.url);
+            const statusParam = url.searchParams.get("status");
+
+            // Update statusFilter if URL has a different status param
+            if (statusParam !== null && statusParam !== statusFilter) {
+                setStatusFilter(statusParam);
+            }
+        } catch (e) {
+            // URL parsing failed, keep current statusFilter
+        }
+    }, [dataAll]);
 
     // Calculate starting row number based on current page
     const getStartingNumber = () => {
@@ -29,7 +53,34 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
         const baseUrl = dataAll?.links?.[0]?.url?.split('?')[0] || `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-all`;
 
         setIsloading(true);
-        api.get(`${baseUrl}?page=1&per_page=${newPerPage}`)
+        let url = `${baseUrl}?page=1&per_page=${newPerPage}`;
+        if (statusFilter !== "all") {
+            url += `&status=${statusFilter}`;
+        }
+        api.get(url)
+            .then(res => {
+                setDataAll(res.data);
+                setIsloading(false);
+            })
+            .catch((err) => {
+                console.log(err);
+                setIsloading(false);
+            });
+    };
+
+    // Handle status filter change
+    const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newStatus = e.target.value;
+        setStatusFilter(newStatus);
+        // Reset to first page with new status filter
+        const baseUrl = dataAll?.links?.[0]?.url?.split('?')[0] || `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-all`;
+
+        setIsloading(true);
+        let url = `${baseUrl}?page=1&per_page=${perPage}`;
+        if (newStatus !== "all") {
+            url += `&status=${newStatus}`;
+        }
+        api.get(url)
             .then(res => {
                 setDataAll(res.data);
                 setIsloading(false);
@@ -81,18 +132,32 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
     return (
         <>
             <h2 className="mb-5 font-bold text-lg lg:text-3xl font-serif">Data Pemeliharaan</h2>
-            <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm text-gray-600">Tampilkan</span>
-                <select
-                    value={perPage}
-                    onChange={handlePerPageChange}
-                    className="select select-bordered w-fit"
-                >
-                    <option value="5">5</option>
-                    <option value="10">10</option>
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                </select>
+            <div className="flex flex-wrap items-center gap-4 mb-4">
+                <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Tampilkan</span>
+                    <select
+                        value={perPage}
+                        onChange={handlePerPageChange}
+                        className="select select-bordered w-fit"
+                    >
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Status</span>
+                    <select
+                        value={statusFilter}
+                        onChange={handleStatusFilterChange}
+                        className="select select-bordered w-fit"
+                    >
+                        <option value="all">Semua</option>
+                        <option value="open">Open</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                </div>
             </div>
             <div className="overflow-x-auto rounded-2xl shadow-sm border border-gray-200 bg-white">
                 <table className="table table-zebra">
@@ -159,9 +224,12 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                                     className={`btn ${link.active && 'btn-active'} ${!link.url && 'btn-disabled'} mr-1`}
                                     onClick={() => {
                                         if (link.url) {
-                                            // Preserve per_page parameter when navigating
+                                            // Preserve per_page and status parameters when navigating
                                             const url = new URL(link.url, window.location.origin);
                                             url.searchParams.set('per_page', perPage);
+                                            if (statusFilter !== "all") {
+                                                url.searchParams.set('status', statusFilter);
+                                            }
                                             setIsloading(true);
                                             api.get(url.toString())
                                                 .then(res => {
