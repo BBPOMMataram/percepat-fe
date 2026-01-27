@@ -13,7 +13,7 @@ import ModalDetailPemeliharaan from "./detail/ModalDetailPemeliharaan"
 
 export default function PemeliharaanSimpelBmn() {
     const [dataPemeliharaanAnda, setDataPemeliharaanAnda] = useState<any[]>([])
-    const [dataAll, setDataAll] = useState<any[]>([])
+    const [dataAll, setDataAll] = useState<any>(null)
     const [mergedDataAll, setMergedDataAll] = useState<any[]>([])
     const [showModalDetailPemeliharaan, setShowModalDetailPemeliharaan] = useState(false);
     const [code, setCode] = useState<string>("");
@@ -139,17 +139,17 @@ export default function PemeliharaanSimpelBmn() {
 
     // get user auth untuk pelapor
     useEffect(() => {
-        if (!Array.isArray(dataAll)) return;
+        if (!dataAll?.data || !Array.isArray(dataAll.data)) return;
 
         // ambil semua external_user_id pelapor
         const ids = [...new Set(
-            dataAll
-                .map(item => item.pelapor?.external_user_id)
+            dataAll.data
+                .map((item: any) => item.pelapor?.external_user_id)
                 .filter(Boolean)
         )];
 
         if (ids.length === 0) {
-            setMergedDataAll(dataAll);
+            setMergedDataAll(dataAll.data);
             return;
         }
 
@@ -160,7 +160,7 @@ export default function PemeliharaanSimpelBmn() {
                 );
 
                 setMergedDataAll(
-                    dataAll.map(item => ({
+                    dataAll.data.map((item: any) => ({
                         ...item,
                         pelapor: item.pelapor
                             ? {
@@ -171,7 +171,7 @@ export default function PemeliharaanSimpelBmn() {
                     }))
                 );
             })
-            .catch(() => setMergedDataAll(dataAll));
+            .catch(() => setMergedDataAll(dataAll.data));
     }, [dataAll]);
 
     // filter data hanya pelapor yg login untuk data pemeliharaan ANDA
@@ -234,7 +234,7 @@ export default function PemeliharaanSimpelBmn() {
                 <div className="tab-content bg-base-100 border-base-300 p-6">
                     {
                         isLoading ? <LoadingWithoutText /> :
-                            <ContentPemeliharaanAnda data={dataPemeliharaanAnda} handleOpenDetail={handleOpenDetail} />
+                            <ContentPemeliharaanAnda dataAll={dataAll} mergedDataAll={mergedDataAll} currentUserId={currentUserId} handleOpenDetail={handleOpenDetail} />
                     }
                 </div>
 
