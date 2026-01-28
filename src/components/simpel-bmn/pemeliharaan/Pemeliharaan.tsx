@@ -18,7 +18,7 @@ export default function PemeliharaanSimpelBmn() {
     const [showModalDetailPemeliharaan, setShowModalDetailPemeliharaan] = useState(false);
     const [code, setCode] = useState<string>("");
     const [listDisposisi, setListDisposisi] = useState<any[]>([]);
-    const [mergedDisposisi, setMergedDisposisi] = useState<any[]>([]);
+    const [mergedDisposisi, setMergedDisposisi] = useState<any>(null);
     const [jumlahDisposisi, setJumlahDisposisi] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const { user } = useSelector((state: RootState) => state.auth);
@@ -190,9 +190,11 @@ export default function PemeliharaanSimpelBmn() {
 
     // HITUNG JUMLAH DISPOSISI YANG DITUJU USER YANG LOGIN
     useEffect(() => {
-        if (!mergedDisposisi || !Array.isArray(mergedDisposisi)) return;
+        console.log('merg: ', mergedDisposisi);
 
-        const total = mergedDisposisi.reduce((count, item) => {
+        if (!mergedDisposisi?.data || !Array.isArray(mergedDisposisi?.data)) return;
+
+        const total = mergedDisposisi?.data.reduce((count: number, item: any) => {
             const last = item.disposisi_new_pemeliharaan?.at(-1);
 
             if (last?.to_user?.external_user_id === user?.id) {
