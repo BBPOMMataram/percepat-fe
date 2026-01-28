@@ -91,14 +91,18 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
             });
     };
 
-    // get user auth untuk pelapor
+    // get user auth untuk pelapor dan petugas
     useEffect(() => {
         if (!Array.isArray(dataAll?.data)) return;
 
-        // ambil semua external_user_id pelapor
+        // ambil semua external_user_id pelapor dan petugas
         const ids = [...new Set(
             dataAll?.data
-                .map((item: any) => item.pelapor?.external_user_id)
+                .map((item: any) => [
+                    item.pelapor?.external_user_id,
+                    item.petugas?.external_user_id
+                ])
+                .flat()
                 .filter(Boolean)
         )];
 
@@ -120,6 +124,12 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                             ? {
                                 ...item.pelapor,
                                 auth_user: authMap[item.pelapor.external_user_id] || null,
+                            }
+                            : null,
+                        petugas: item.petugas
+                            ? {
+                                ...item.petugas,
+                                auth_user: authMap[item.petugas.external_user_id] || null,
                             }
                             : null
                     }))
@@ -169,13 +179,14 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                             <th className="px-4 py-3 text-left">Tipe Barang</th>
                             <th className="px-4 py-3 text-left">Tanggal Lapor</th>
                             <th className="px-4 py-3 text-left">Pelapor</th>
+                            <th className="px-4 py-3 text-left">Petugas</th>
                             <th className="px-4 py-3 text-center">##</th>
                         </tr>
                     </thead>
                     <tbody>
                         {mergedDataAll?.length === 0 ? (
                             <tr>
-                                <td colSpan={7} className="text-center py-6 text-gray-500">
+                                <td colSpan={8} className="text-center py-6 text-gray-500">
                                     Belum ada data pemeliharaan
                                 </td>
                             </tr>
@@ -197,6 +208,7 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                                         {dayjs(item.created_at).format("HH:mm:ss")}
                                     </td>
                                     <td className={`px-4 py-3 uppercase`}>{item.pelapor?.auth_user?.call_name || item.pelapor?.auth_user?.name}</td>
+                                    <td className={`px-4 py-3 uppercase`}>{item.petugas?.auth_user?.call_name || item.petugas?.auth_user?.name || '-'}</td>
                                     <td className="px-4 py-3 text-center">
                                         <button
                                             onClick={() => handleOpenDetail(item.code)}
