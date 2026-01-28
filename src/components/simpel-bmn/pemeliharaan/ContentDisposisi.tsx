@@ -2,7 +2,7 @@
 import { RootState } from "@/redux/store";
 import api from "@/utils/api";
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import ModalDisposisiPemeliharaan from "./ModalDisposisiPemeliharaan";
 
@@ -15,8 +15,15 @@ export default function ContentDisposisi({ dataDisposisi, setDataDisposisi, hand
     const [totalPages, setTotalPages] = useState<number>(1)
     const [mergedDisposisiData, setMergedDisposisiData] = useState<any[]>([])
 
+    // Use useMemo for stable disposisiData reference
+    const disposisiData = useMemo(() => {
+        return dataDisposisi?.data || dataDisposisi || [];
+    }, [dataDisposisi]);
+
+    // Track previous disposisiData to detect actual changes (not just reference changes)
+    const prevDisposisiDataRef = useRef<string>("");
+
     // Determine if we have paginated data or array
-    const disposisiData = dataDisposisi?.data || dataDisposisi || [];
     const hasPagination = dataDisposisi?.data !== undefined;
 
     // Calculate pagination
@@ -75,6 +82,16 @@ export default function ContentDisposisi({ dataDisposisi, setDataDisposisi, hand
 
     // get user auth untuk pelapor - same logic as ContentPemeliharaanAll
     useEffect(() => {
+        // Create a string representation of the data to detect actual changes
+        const currentDataString = JSON.stringify(disposisiData);
+
+        // Skip if data hasn't actually changed (prevents infinite loop)
+        if (prevDisposisiDataRef.current === currentDataString) {
+            return;
+        }
+
+        prevDisposisiDataRef.current = currentDataString;
+
         const sourceData = disposisiData;
         if (!Array.isArray(sourceData)) return;
 

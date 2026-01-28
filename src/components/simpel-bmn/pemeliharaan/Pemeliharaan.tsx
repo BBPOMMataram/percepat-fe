@@ -190,8 +190,6 @@ export default function PemeliharaanSimpelBmn() {
 
     // HITUNG JUMLAH DISPOSISI YANG DITUJU USER YANG LOGIN
     useEffect(() => {
-        console.log('merg: ', mergedDisposisi);
-
         if (!mergedDisposisi?.data || !Array.isArray(mergedDisposisi?.data)) return;
 
         const total = mergedDisposisi?.data.reduce((count: number, item: any) => {
