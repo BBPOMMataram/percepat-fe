@@ -8,17 +8,22 @@ import ListDisposisiPemeliharaan from "./ListDisposisiPemeliharaan";
 import PermintaanBarangPemeliharaan from "./PermintaanBarangPemeliharaan";
 import TableListBarangSimpelBmn from "./TableListBarang";
 import TableListBarangNonBmnSimpelBmn from "./TableListBarangNonBmn";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
+import ModalDisposisiPemeliharaan from "../ModalDisposisiPemeliharaan";
 
 interface ModalDetailPemeliharaanProps {
     show: boolean;
     onClose: () => void;
     code: string;
+    updateDataDisposisi?: () => void;
 }
 
 export default function ModalDetailPemeliharaan({
     show,
     onClose,
     code,
+    updateDataDisposisi,
 }: ModalDetailPemeliharaanProps) {
     const dispatch = useDispatch<AppDispatch>();
 
@@ -26,8 +31,10 @@ export default function ModalDetailPemeliharaan({
     const [pelaporData, setPelaporData] = useState<any>(null);
     const [listDisposisi, setListDisposisi] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false); // Track loading state
+    const [showModalDisposisi, setShowModalDisposisi] = useState<boolean>(false);
 
     const printRef = useRef<HTMLDivElement>(null);
+    const { user } = useSelector((state: RootState) => state.auth);
 
     const getDetailPemeliharaan = useCallback(() => {
         if (!code) return; // hindari fetch kalau code kosong/null
@@ -134,6 +141,14 @@ export default function ModalDetailPemeliharaan({
                 <div className="flex w-fit ml-auto gap-2 mt-10 button-action">
                     <button
                         type="button"
+                        onClick={() => setShowModalDisposisi(true)}
+                        className="btn btn-primary"
+                        disabled={detailData?.disposisi_new_pemeliharaan?.at(-1)?.to_user?.external_user_id !== user?.id}
+                    >
+                        Lanjut
+                    </button>
+                    <button
+                        type="button"
                         onClick={handlePrint}
                         className="btn btn-primary"
                     >
@@ -147,6 +162,17 @@ export default function ModalDetailPemeliharaan({
                         Tutup
                     </button>
                 </div>
+                <ModalDisposisiPemeliharaan
+                    show={showModalDisposisi}
+                    onClose={() => setShowModalDisposisi(false)}
+                    code={code}
+                    updateDataDisposisi={() => {
+                        setShowModalDisposisi(false);
+                        getDetailPemeliharaan();
+                        // notify parent to refresh disposisi listing if provided
+                        updateDataDisposisi?.();
+                    }}
+                />
             </div>
         </div>
     )

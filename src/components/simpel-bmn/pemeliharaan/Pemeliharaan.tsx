@@ -268,6 +268,7 @@ export default function PemeliharaanSimpelBmn() {
                 show={showModalDetailPemeliharaan}
                 onClose={() => setShowModalDetailPemeliharaan(false)}
                 code={code}
+                updateDataDisposisi={fetchDispositionData}
             />
         </div>
     )
