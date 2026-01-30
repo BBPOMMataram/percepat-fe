@@ -109,13 +109,6 @@ export default function ContentPemeliharaanAnda({ dataAll, mergedDataAll, curren
         return pages;
     };
 
-    // Debug logging (remove in production)
-    useEffect(() => {
-        console.log('[ContentPemeliharaanAnda] mergedDataAll:', mergedDataAll?.length, 'items');
-        console.log('[ContentPemeliharaanAnda] currentUserId:', currentUserId);
-        console.log('[ContentPemeliharaanAnda] filteredData:', filteredData.length, 'items');
-    }, [mergedDataAll, currentUserId, filteredData]);
-
     // Show loading state
     if (isInitialLoading && (!mergedDataAll || mergedDataAll.length === 0)) {
         return (

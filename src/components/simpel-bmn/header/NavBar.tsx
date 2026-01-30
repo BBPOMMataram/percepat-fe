@@ -24,7 +24,7 @@ export default function NavBarSiapMelayani() {
         if (loading) return
 
         if (!user) {
-            dispatch(showAlert({ type: 'error', message: 'You are not logged in', description: 'Please login first' }))
+            dispatch(showAlert({ type: 'error', message: 'You are logged out', description: 'Please login first' }))
             router.push(`/login?redirectUrl=${pathname}`)
         }
     }, [user, loading, router, pathname, dispatch])

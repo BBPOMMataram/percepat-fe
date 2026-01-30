@@ -6,6 +6,8 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
     const [mergedDataAll, setMergedDataAll] = useState<any>([])
     const [perPage, setPerPage] = useState<string>("10")
     const [statusFilter, setStatusFilter] = useState<string>("all")
+    const [petugasFilter, setPetugasFilter] = useState<string>("all")
+    const [listPetugasBmn, setListPetugasBmn] = useState<any[]>([])
 
     // Sync perPage with server response
     useEffect(() => {
@@ -14,7 +16,18 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
         }
     }, [dataAll?.per_page]);
 
-    // Sync statusFilter from URL when dataAll changes
+    // Fetch list of Petugas BMN for filter
+    useEffect(() => {
+        api(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-petugas-bmn`
+        ).then((res) => {
+            setListPetugasBmn(res.data);
+        }).catch((err) => {
+            console.log(err);
+        })
+    }, []);
+
+    // Sync status Filter from URL when dataAll changes
     // Only update if URL has a different status param than current selection
     useEffect(() => {
         if (!dataAll?.links) return;
@@ -25,17 +38,24 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
         if (!firstValidLink) return;
 
         try {
-            const url = new URL(firstValidLink.url);
+            // Use a base so relative URLs parse correctly in all environments
+            const url = new URL(firstValidLink.url, window.location.origin);
             const statusParam = url.searchParams.get("status");
+            const petugasParam = url.searchParams.get("petugas_id");
 
-            // Update statusFilter if URL has a different status param
+            // Update status Filter if URL has a different status param
             if (statusParam !== null && statusParam !== statusFilter) {
                 setStatusFilter(statusParam);
             }
+
+            // Update petugas Filter if URL has a different petugas param
+            if (petugasParam !== null && petugasParam !== petugasFilter) {
+                setPetugasFilter(petugasParam);
+            }
         } catch (e) {
-            // URL parsing failed, keep current statusFilter
+            // URL parsing failed, keep current status/petugas Filter
         }
-    }, [dataAll]);
+    }, [dataAll, statusFilter, petugasFilter]);
 
     // Calculate starting row number based on current page
     const getStartingNumber = () => {
@@ -56,6 +76,9 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
         let url = `${baseUrl}?page=1&per_page=${newPerPage}`;
         if (statusFilter !== "all") {
             url += `&status=${statusFilter}`;
+        }
+        if (petugasFilter !== "all") {
+            url += `&petugas_id=${petugasFilter}`;
         }
         api.get(url)
             .then(res => {
@@ -79,6 +102,35 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
         let url = `${baseUrl}?page=1&per_page=${perPage}`;
         if (newStatus !== "all") {
             url += `&status=${newStatus}`;
+        }
+        if (petugasFilter !== "all") {
+            url += `&petugas_id=${petugasFilter}`;
+        }
+        api.get(url)
+            .then(res => {
+                setDataAll(res.data);
+                setIsloading(false);
+            })
+            .catch((err) => {
+                console.log(err);
+                setIsloading(false);
+            });
+    };
+
+    // Handle petugas filter change
+    const handlePetugasFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newPetugas = e.target.value;
+        setPetugasFilter(newPetugas);
+        // Reset to first page with new petugas filter
+        const baseUrl = dataAll?.links?.[0]?.url?.split('?')[0] || `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-all`;
+
+        setIsloading(true);
+        let url = `${baseUrl}?page=1&per_page=${perPage}`;
+        if (statusFilter !== "all") {
+            url += `&status=${statusFilter}`;
+        }
+        if (newPetugas !== "all") {
+            url += `&petugas_id=${newPetugas}`;
         }
         api.get(url)
             .then(res => {
@@ -168,6 +220,25 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                         <option value="closed">Closed</option>
                     </select>
                 </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Petugas</span>
+                    <select
+                        value={petugasFilter}
+                        onChange={handlePetugasFilterChange}
+                        className="select select-bordered w-fit"
+                    >
+                        <option value="all">Semua</option>
+                        {listPetugasBmn?.length > 0 ? (
+                            listPetugasBmn?.map((item: any) => (
+                                <option key={item.user?.id} value={item.user?.id}>
+                                    {item.user?.call_name || item.user?.name}
+                                </option>
+                            ))
+                        ) : (
+                            <option value="">Tidak ada data petugas</option>
+                        )}
+                    </select>
+                </div>
             </div>
             <div className="overflow-x-auto rounded-2xl shadow-sm border border-gray-200 bg-white">
                 <table className="table table-zebra">
@@ -236,11 +307,14 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                                     className={`btn ${link.active && 'btn-active'} ${!link.url && 'btn-disabled'} mr-1`}
                                     onClick={() => {
                                         if (link.url) {
-                                            // Preserve per_page and status parameters when navigating
+                                            // Preserve per_page, status, and petugas parameters when navigating
                                             const url = new URL(link.url, window.location.origin);
                                             url.searchParams.set('per_page', perPage);
                                             if (statusFilter !== "all") {
                                                 url.searchParams.set('status', statusFilter);
+                                            }
+                                            if (petugasFilter !== "all") {
+                                                url.searchParams.set('petugas_id', petugasFilter);
                                             }
                                             setIsloading(true);
                                             api.get(url.toString())
