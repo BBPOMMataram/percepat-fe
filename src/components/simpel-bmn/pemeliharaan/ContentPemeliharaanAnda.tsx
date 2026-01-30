@@ -34,7 +34,7 @@ export default function ContentPemeliharaanAnda({ dataAll, mergedDataAll, curren
     useEffect(() => {
         try {
             localStorage.setItem('pemeliharaan_local_ratings', JSON.stringify(localRatings));
-        } catch (e) {}
+        } catch (e) { }
     }, [localRatings]);
 
     useEffect(() => {
@@ -42,13 +42,13 @@ export default function ContentPemeliharaanAnda({ dataAll, mergedDataAll, curren
         try {
             const raw = localStorage.getItem('pemeliharaan_rated_codes');
             if (raw) setRatedCodes(JSON.parse(raw));
-        } catch (e) {}
+        } catch (e) { }
     }, []);
 
     useEffect(() => {
         try {
             localStorage.setItem('pemeliharaan_rated_codes', JSON.stringify(ratedCodes));
-        } catch (e) {}
+        } catch (e) { }
     }, [ratedCodes]);
 
     // Sync perPage with dataAll response
@@ -198,7 +198,7 @@ export default function ContentPemeliharaanAnda({ dataAll, mergedDataAll, curren
                 window.dispatchEvent(new CustomEvent('pemeliharaan:rating-updated', { detail: { code } }));
                 // also request global refetch from server for lists
                 window.dispatchEvent(new Event('pemeliharaan:refetch'));
-            } catch (e) {}
+            } catch (e) { }
 
             setShowRatingModal(false);
             setRatingCode(null);
