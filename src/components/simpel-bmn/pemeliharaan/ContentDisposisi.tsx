@@ -181,6 +181,7 @@ export default function ContentDisposisi({ dataDisposisi, setDataDisposisi, hand
                             <th className="px-4 py-3 text-left">Status</th>
                             <th className="px-4 py-3 text-left">Tipe Barang</th>
                             <th className="px-4 py-3 text-left">Pelapor</th>
+                            <th className="px-4 py-3 text-left">Rating</th>
                             <th className="px-4 py-3 text-left">Tanggal Lapor</th>
                             <th className="px-4 py-3 text-center">##</th>
                         </tr>
@@ -188,7 +189,7 @@ export default function ContentDisposisi({ dataDisposisi, setDataDisposisi, hand
                     <tbody>
                         {displayData.length === 0 ? (
                             <tr>
-                                <td colSpan={7} className="text-center py-6 text-gray-500">
+                                <td colSpan={8} className="text-center py-6 text-gray-500">
                                     Belum ada data disposisi Anda
                                 </td>
                             </tr>
@@ -204,8 +205,25 @@ export default function ContentDisposisi({ dataDisposisi, setDataDisposisi, hand
                                     </td>
                                     <td className={`px-4 py-3 font-semibold ${item.status === 'open' ? 'text-bpom-green' : 'text-red-500'}`}>{item.status}</td>
                                     <td className={`px-4 py-3 uppercase`}>{item.tipe}</td>
-                                    <td className={`px-4 py-3 uppercase`}>
-                                        {item.pelapor?.auth_user?.call_name || item.pelapor?.auth_user?.name || '-'}
+                                    <td className={`px-4 py-3 uppercase`}>{item.pelapor?.auth_user?.call_name || item.pelapor?.auth_user?.name || '-'}</td>
+                                    <td className="px-4 py-3 text-center">
+                                        {(() => {
+                                            const rVal = item.rating?.rating ?? item.rating ?? null;
+                                            const rComment = item.rating?.comment ?? item.rating_comment ?? null;
+                                            if (!rVal) return '-';
+                                            const rounded = Math.round(Number(rVal));
+                                            return (
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <div className="text-yellow-400 font-semibold">
+                                                        {Array.from({ length: 5 }, (_, i) => i < rounded ? '★' : '☆').join('')}
+                                                    </div>
+                                                    <div className="text-sm">{rounded}/5</div>
+                                                    {rComment && (
+                                                        <button className="btn btn-ghost btn-xs tooltip" data-tip={rComment}>i</button>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
                                     </td>
 
                                     <td className="px-4 py-3 text-sm ">

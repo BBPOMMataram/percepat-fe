@@ -18,13 +18,13 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
 
     // Fetch list of Petugas BMN for filter
     useEffect(() => {
-        api(
-            `${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-petugas-bmn`
-        ).then((res) => {
-            setListPetugasBmn(res.data);
-        }).catch((err) => {
-            console.log(err);
-        })
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-petugas-bmn`)
+            .then((res) => {
+                setListPetugasBmn(res.data);
+            })
+            .catch((err) => {
+                console.log(err);
+            });
     }, []);
 
     // Sync status Filter from URL when dataAll changes
@@ -190,6 +190,45 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
             .catch(() => setMergedDataAll(dataAll?.data));
     }, [dataAll]);
 
+    // Apply persisted local ratings (and update when other components dispatch updates)
+    useEffect(() => {
+        const applyRatings = (ratings: Record<string, { rating: number; comment?: string }>) => {
+            if (!ratings) return;
+            setMergedDataAll(prev => prev.map((item: any) => {
+                const r = ratings[item.code];
+                if (!r) return item;
+                return { ...item, rating: { rating: r.rating, comment: r.comment } };
+            }));
+        };
+
+        try {
+            const raw = localStorage.getItem('pemeliharaan_local_ratings');
+            if (raw) {
+                const ratings = JSON.parse(raw);
+                applyRatings(ratings);
+            }
+        } catch (e) {
+            // ignore
+        }
+
+        const handler = (e: any) => {
+            try {
+                const stored = JSON.parse(localStorage.getItem('pemeliharaan_local_ratings') || '{}');
+                const code = e?.detail?.code;
+                if (code) {
+                    setMergedDataAll(prev => prev.map((item: any) => item.code === code && stored[code] ? { ...item, rating: { rating: stored[code].rating, comment: stored[code].comment } } : item));
+                } else {
+                    applyRatings(stored);
+                }
+            } catch (err) {
+                // ignore
+            }
+        };
+
+        window.addEventListener('pemeliharaan:rating-updated', handler as EventListener);
+        return () => window.removeEventListener('pemeliharaan:rating-updated', handler as EventListener);
+    }, []);
+
 
     return (
         <>
@@ -251,6 +290,7 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                             <th className="px-4 py-3 text-left">Tanggal Lapor</th>
                             <th className="px-4 py-3 text-left">Pelapor</th>
                             <th className="px-4 py-3 text-left">Petugas</th>
+                            <th className="px-4 py-3 text-left">Rating</th>
                             <th className="px-4 py-3 text-center">##</th>
                         </tr>
                     </thead>
@@ -280,6 +320,25 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                                     </td>
                                     <td className={`px-4 py-3 uppercase`}>{item.pelapor?.auth_user?.call_name || item.pelapor?.auth_user?.name}</td>
                                     <td className={`px-4 py-3 uppercase`}>{item.petugas?.auth_user?.call_name || item.petugas?.auth_user?.name || '-'}</td>
+                                    <td className="px-4 py-3 text-center">
+                                        {(() => {
+                                            const rVal = item.rating?.rating ?? item.rating ?? null;
+                                            const rComment = item.rating?.comment ?? item.rating_comment ?? null;
+                                            if (!rVal) return '-';
+                                            const rounded = Math.round(Number(rVal));
+                                            return (
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <div className="text-yellow-400 font-semibold">
+                                                        {Array.from({ length: 5 }, (_, i) => i < rounded ? '★' : '☆').join('')}
+                                                    </div>
+                                                    <div className="text-sm">{rounded}/5</div>
+                                                    {rComment && (
+                                                        <button className="btn btn-ghost btn-xs tooltip" data-tip={rComment}>i</button>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
+                                    </td>
                                     <td className="px-4 py-3 text-center">
                                         <button
                                             onClick={() => handleOpenDetail(item.code)}

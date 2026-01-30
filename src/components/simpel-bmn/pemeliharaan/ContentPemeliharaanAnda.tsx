@@ -1,5 +1,8 @@
+import { showAlert } from "@/features/alertSlice";
+import api from "@/utils/api";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
+import { useDispatch } from "react-redux";
 
 interface ContentPemeliharaanAndaProps {
     dataAll: any;
@@ -13,6 +16,40 @@ export default function ContentPemeliharaanAnda({ dataAll, mergedDataAll, curren
     const [statusFilter, setStatusFilter] = useState<string>("all");
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const dispatch = useDispatch();
+
+    // move ratedCodes here because we read/write it in effects below
+    const [ratedCodes, setRatedCodes] = useState<Record<string, boolean>>({});
+
+    // persisted rated codes & local ratings to reflect immediately across views
+    const [localRatings, setLocalRatings] = useState<Record<string, { rating: number; comment?: string }>>(() => {
+        try {
+            const raw = localStorage.getItem('pemeliharaan_local_ratings');
+            return raw ? JSON.parse(raw) : {};
+        } catch (e) {
+            return {};
+        }
+    });
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('pemeliharaan_local_ratings', JSON.stringify(localRatings));
+        } catch (e) {}
+    }, [localRatings]);
+
+    useEffect(() => {
+        // load ratedCodes from localStorage as well
+        try {
+            const raw = localStorage.getItem('pemeliharaan_rated_codes');
+            if (raw) setRatedCodes(JSON.parse(raw));
+        } catch (e) {}
+    }, []);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('pemeliharaan_rated_codes', JSON.stringify(ratedCodes));
+        } catch (e) {}
+    }, [ratedCodes]);
 
     // Sync perPage with dataAll response
     useEffect(() => {
@@ -109,6 +146,81 @@ export default function ContentPemeliharaanAnda({ dataAll, mergedDataAll, curren
         return pages;
     };
 
+    // Rating modal state
+    const [showRatingModal, setShowRatingModal] = useState(false);
+    const [ratingCode, setRatingCode] = useState<string | null>(null);
+    const [ratingValue, setRatingValue] = useState<number>(5);
+    const [ratingComment, setRatingComment] = useState<string>("");
+    const [submittingRating, setSubmittingRating] = useState(false);
+
+    const handleOpenRating = (code: string) => {
+        setRatingCode(code);
+        setRatingValue(5);
+        setRatingComment("");
+        setShowRatingModal(true);
+    };
+
+    const handleCloseRating = () => {
+        if (submittingRating) return;
+        setShowRatingModal(false);
+        setRatingCode(null);
+    };
+
+    const handleSubmitRating = async () => {
+        if (!ratingCode) return;
+        const code = ratingCode;
+        const rating = Math.min(5, Math.max(1, Math.round(ratingValue)));
+
+        setSubmittingRating(true);
+        try {
+            const url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN || ''}/api/rate-new-pemeliharaan`;
+            const res = await api.post(url, { code, rating, comment: ratingComment || undefined });
+
+            // mark as rated locally
+            setRatedCodes(prev => ({ ...prev, [code]: true }));
+
+            // fetch latest detail to obtain stored rating (in case backend returns it elsewhere)
+            try {
+                const detail = await api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-detail`, { code });
+                const ratingData = detail?.data?.rating ?? (detail?.data?.rating_value ? { rating: detail.data.rating_value, comment: detail.data.rating_comment } : null);
+                if (ratingData) {
+                    setLocalRatings(prev => ({ ...prev, [code]: { rating: ratingData.rating ?? ratingData, comment: ratingData.comment } }));
+                } else {
+                    // fallback use what user just submitted
+                    setLocalRatings(prev => ({ ...prev, [code]: { rating, comment: ratingComment || undefined } }));
+                }
+            } catch (e) {
+                setLocalRatings(prev => ({ ...prev, [code]: { rating, comment: ratingComment || undefined } }));
+            }
+
+            // notify other components to refresh if they wish
+            try {
+                window.dispatchEvent(new CustomEvent('pemeliharaan:rating-updated', { detail: { code } }));
+                // also request global refetch from server for lists
+                window.dispatchEvent(new Event('pemeliharaan:refetch'));
+            } catch (e) {}
+
+            setShowRatingModal(false);
+            setRatingCode(null);
+            dispatch(showAlert({ type: 'success', message: 'Terima kasih, rating berhasil dikirim.', description: res?.data?.message || 'Terima kasih, rating berhasil dikirim.' }));
+        } catch (error: any) {
+            console.error('Submit rating error', error);
+            const errMsg = error?.response?.data?.message || error?.message || 'Gagal mengirim rating. Silakan coba lagi.';
+            dispatch(showAlert({ type: 'error', message: errMsg, description: errMsg }));
+        } finally {
+            setSubmittingRating(false);
+        }
+    };
+
+    // helper to get displayed rating (prefer localRatings overlay)
+    const getDisplayedRating = (code: string, item: any) => {
+        if (localRatings[code]) return localRatings[code];
+        const rVal = item.rating?.rating ?? item.rating ?? null;
+        const rComment = item.rating?.comment ?? item.rating_comment ?? null;
+        if (!rVal) return null;
+        return { rating: Number(rVal), comment: rComment };
+    }
+
     // Show loading state
     if (isInitialLoading && (!mergedDataAll || mergedDataAll.length === 0)) {
         return (
@@ -167,6 +279,7 @@ export default function ContentPemeliharaanAnda({ dataAll, mergedDataAll, curren
                             <th className="px-4 py-3 text-left">Tipe Barang</th>
                             <th className="px-4 py-3 text-left">Tanggal Lapor</th>
                             <th className="px-4 py-3 text-left">Pelapor</th>
+                            <th className="px-4 py-3 text-left">Rating</th>
                             <th className="px-4 py-3 text-center">##</th>
                         </tr>
                     </thead>
@@ -198,15 +311,50 @@ export default function ContentPemeliharaanAnda({ dataAll, mergedDataAll, curren
                                     </td>
                                     <td className={`px-4 py-3 uppercase`}>{item.pelapor?.auth_user?.call_name || item.pelapor?.auth_user?.name}</td>
                                     <td className="px-4 py-3 text-center">
-                                        <button
-                                            onClick={() => handleOpenDetail(item.code)}
-                                            className="btn btn-sm btn-accent btn-soft"
-                                        >
-                                            <span className="hidden lg:block">Detail</span>
-                                            <span className="material-symbols-outlined">
-                                                visibility
-                                            </span>
-                                        </button>
+                                        {(() => {
+                                            const dr = getDisplayedRating(item.code, item);
+                                            if (!dr) return '-';
+                                            const rounded = Math.round(Number(dr.rating));
+                                            return (
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <div className="text-yellow-400 font-semibold">{Array.from({ length: 5 }, (_, i) => i < rounded ? '★' : '☆').join('')}</div>
+                                                    <div className="text-sm">{rounded}/5</div>
+                                                    {dr.comment && <button className="btn btn-ghost btn-xs tooltip" data-tip={dr.comment}>i</button>}
+                                                </div>
+                                            );
+                                        })()}
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                        <div className="flex items-center justify-center gap-2">
+                                            <button
+                                                onClick={() => handleOpenDetail(item.code)}
+                                                className="btn btn-sm btn-accent btn-soft"
+                                            >
+                                                <span className="hidden lg:block">Detail</span>
+                                                <span className="material-symbols-outlined">
+                                                    visibility
+                                                </span>
+                                            </button>
+
+                                            {/* Show Rate button only for items reported by current user and not already rated locally */}
+                                            {String(item.pelapor?.external_user_id) === String(currentUserId) && (
+                                                <button
+                                                    onClick={() => handleOpenRating(item.code)}
+                                                    className="btn btn-sm btn-primary btn-soft"
+                                                    disabled={Boolean(ratedCodes[item.code]) || Boolean(item.rating) || item.status !== 'closed'}
+                                                    title={
+                                                        (Boolean(ratedCodes[item.code]) || Boolean(item.rating))
+                                                            ? 'Sudah dirating'
+                                                            : item.status !== 'closed'
+                                                                ? 'Pemeliharaan belum closed'
+                                                                : 'Beri rating'
+                                                    }
+                                                >
+                                                    <span className="hidden lg:block">Rate</span>
+                                                    <span className="material-symbols-outlined">star</span>
+                                                </button>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))
@@ -246,6 +394,42 @@ export default function ContentPemeliharaanAnda({ dataAll, mergedDataAll, curren
                     </div>
                 )}
             </div>
+
+            {/* Rating Modal */}
+            {showRatingModal && ratingCode && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-4">
+                        <h3 className="text-lg font-semibold mb-2">Rating untuk {ratingCode}</h3>
+                        <div className="flex items-center gap-2 mb-3">
+                            {[1, 2, 3, 4, 5].map((v) => (
+                                <button
+                                    key={v}
+                                    onClick={() => setRatingValue(v)}
+                                    className={`btn btn-ghost btn-sm ${v <= ratingValue ? 'text-yellow-400' : 'text-gray-400'}`}
+                                    aria-label={`Set rating ${v}`}
+                                >
+                                    {v <= ratingValue ? '★' : '☆'}
+                                </button>
+                            ))}
+                            <div className="text-sm text-gray-600">{ratingValue} / 5</div>
+                        </div>
+                        <textarea
+                            value={ratingComment}
+                            onChange={(e) => setRatingComment(e.target.value)}
+                            placeholder="Tambahkan komentar (opsional)"
+                            className="textarea textarea-bordered w-full mb-3"
+                            rows={3}
+                        />
+
+                        <div className="flex justify-end gap-2">
+                            <button className="btn btn-sm btn-ghost" onClick={handleCloseRating} disabled={submittingRating}>Batal</button>
+                            <button className="btn btn-sm btn-primary" onClick={handleSubmitRating} disabled={submittingRating}>
+                                {submittingRating ? 'Mengirim...' : 'Kirim Rating'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     )
 }
