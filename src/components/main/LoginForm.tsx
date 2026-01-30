@@ -1,4 +1,5 @@
 "use client";
+
 import { showAlert } from "@/features/alertSlice";
 import { getUser, login } from "@/features/authSlice";
 import type { AppDispatch, RootState } from "@/redux/store";
@@ -11,20 +12,27 @@ import { useDispatch, useSelector } from "react-redux";
 import Turnstile from "react-turnstile";
 
 export default function LoginForm() {
+    const dispatch = useDispatch<AppDispatch>();
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
+    const { user, loading } = useSelector((state: RootState) => state.auth);
+    const callbackUrl = searchParams.get("redirectUrl") || "/profile";
+
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
-    const [captchaToken, setCaptchaToken] = useState(""); // ⬅ Turnstile Token
+
+    // Turnstile & UX state
+    const [showCaptcha, setShowCaptcha] = useState(false);
+    const [captchaToken, setCaptchaToken] = useState("");
     const [captchaKey, setCaptchaKey] = useState(0);
+    const [pendingSubmit, setPendingSubmit] = useState(false);
+    const [submitting, setSubmitting] = useState(false); // ⬅ UX loading instant
 
-    const dispatch = useDispatch<AppDispatch>();
-
-    const router = useRouter();
-    const searchParams = useSearchParams();
-    const { user, loading } = useSelector((state: RootState) => state.auth);
-
-    const callbackUrl = searchParams.get("redirectUrl") || "/profile";
-
+    /* ===============================
+       CHECK USER SESSION
+    =============================== */
     useEffect(() => {
         dispatch(getUser());
     }, [dispatch]);
@@ -42,20 +50,12 @@ export default function LoginForm() {
             );
             router.push(callbackUrl);
         }
-    }, [user, router, callbackUrl, dispatch, loading]);
+    }, [user, loading, router, callbackUrl, dispatch]);
 
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!captchaToken) {
-            dispatch(showAlert({
-                type: "error",
-                message: "Please verify you are human",
-                description: "Captcha validation is required.",
-            }));
-            return;
-        }
-
+    /* ===============================
+       LOGIN CORE
+    =============================== */
+    const doLogin = () => {
         dispatch(login({ email, password, turnstile_token: captchaToken }))
             .unwrap()
             .then((data: LoginOrRegisterResponse) => {
@@ -69,18 +69,54 @@ export default function LoginForm() {
                 router.push(callbackUrl);
             })
             .catch((err) => {
-                setCaptchaKey(k => k + 1); // re-render captcha baru
+                setCaptchaKey((k) => k + 1);
                 setCaptchaToken("");
+                setPendingSubmit(false);
+                setSubmitting(false); // ⬅ reset UX loading
+
                 dispatch(
                     showAlert({
                         type: "error",
-                        message: err.error,
-                        description: err || "No Message from Backend",
+                        message: err?.error || "Login failed",
+                        description: err?.message || "No Message from Backend",
                     })
                 );
             });
     };
 
+    /* ===============================
+       HANDLE SUBMIT (1x CLICK)
+    =============================== */
+    const handleLogin = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        // UX feedback langsung
+        if (!submitting) {
+            setSubmitting(true);
+        }
+
+        // trigger invisible captcha
+        if (!captchaToken) {
+            setShowCaptcha(true);
+            setPendingSubmit(true);
+            return;
+        }
+
+        doLogin();
+    };
+
+    /* ===============================
+       AUTO SUBMIT AFTER CAPTCHA
+    =============================== */
+    useEffect(() => {
+        if (captchaToken && pendingSubmit) {
+            doLogin();
+        }
+    }, [captchaToken, pendingSubmit]);
+
+    /* ===============================
+       RENDER
+    =============================== */
     return (
         <div className="flex min-h-screen items-center justify-center">
             <div className="w-full max-w-sm rounded-2xl p-6 shadow-xl bg-white/70 font-serif">
@@ -92,6 +128,7 @@ export default function LoginForm() {
                     priority
                     className="mx-auto mb-6 w-auto h-auto"
                 />
+
                 <h1 className="text-center text-2xl font-bold tracking-wide">
                     LOGIN FORM
                 </h1>
@@ -109,6 +146,7 @@ export default function LoginForm() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
+                            disabled={submitting}
                             className="ar-input-text-green w-full"
                         />
                     </div>
@@ -122,6 +160,7 @@ export default function LoginForm() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
+                            disabled={submitting}
                             className="ar-input-text-green w-full"
                         />
                         <button
@@ -130,51 +169,45 @@ export default function LoginForm() {
                             className="absolute right-3 top-8"
                             onClick={() => setShowPassword(!showPassword)}
                         >
-                            {showPassword ? (
-                                <span className="material-symbols-outlined !text-[20px]">
-                                    visibility_off
-                                </span>
-                            ) : (
-                                <span className="material-symbols-outlined !text-[20px]">
-                                    visibility
-                                </span>
-                            )}
+                            <span className="material-symbols-outlined !text-[20px]">
+                                {showPassword ? "visibility_off" : "visibility"}
+                            </span>
                         </button>
                     </div>
 
-                    {/* 👇 Turnstile Colokan Paling Penting */}
-                    <Turnstile
-                        key={captchaKey}
-                        sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
-                        onVerify={(token) => setCaptchaToken(token)}
-                    />
+                    {/* Invisible Turnstile (lazy mounted) */}
+                    {showCaptcha && (
+                        <Turnstile
+                            key={captchaKey}
+                            sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                            onVerify={(token) => setCaptchaToken(token)}
+                        />
+                    )}
 
                     <div className="flex gap-0.5">
                         <button
                             type="button"
-                            disabled={loading}
+                            disabled={submitting || loading}
                             className="ar-btn-green flex gap-1 w-fit"
                             onClick={() => window.history.back()}
                         >
                             <span className="material-symbols-outlined">
                                 arrow_left_alt
-                            </span>{" "}
+                            </span>
                             <span>Back</span>
                         </button>
+
                         <button
                             type="submit"
-                            disabled={loading}
+                            disabled={submitting || loading}
                             className="ar-btn-green flex-1"
                         >
-                            {loading ? "Loading..." : "Login"}
+                            {submitting || loading ? "Loading..." : "Login"}
                         </button>
                     </div>
 
-                    <div
-                        className="w-fit underline mt-10"
-                        aria-label="Register a new account"
-                    >
-                        <Link href={"/register"}>Register Instead</Link>
+                    <div className="w-fit underline mt-10">
+                        <Link href="/register">Register Instead</Link>
                     </div>
                 </form>
             </div>
