@@ -13,21 +13,27 @@ export default function AppSection() {
     const [isLoading, setIsLoading] = useState(false)
     const dispatch = useDispatch<AppDispatch>()
 
-    const fetchAppData = async () => {
-        try {
-            const { data } = await axios(process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + '/api/site')
-            setDataApp(data.data)
-        } catch (error) {
-            console.log("Error fetching app data:", error)
-            dispatch(showAlert({ type: "error", message: "Error fetching app data", description: "Error fetching app data" }))
-        }
-        setIsLoading(false)
-    }
-
     useEffect(() => {
+        let isMounted = true
+
+        const fetchAppData = async () => {
+            try {
+                const { data } = await axios(process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + '/api/site')
+                if (isMounted) setDataApp(data.data)
+            } catch (error) {
+                console.log("Error fetching app data:", error)
+                dispatch(showAlert({ type: "error", message: "Error fetching app data", description: "Error fetching app data" }))
+            }
+            if (isMounted) setIsLoading(false)
+        }
+
         setIsLoading(true)
         fetchAppData()
-    }, [])
+
+        return () => {
+            isMounted = false
+        }
+    }, [dispatch])
 
     return (
         <>

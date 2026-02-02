@@ -7,7 +7,7 @@ import { LoginOrRegisterResponse } from "@/types/auth";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Turnstile from "react-turnstile";
 
@@ -55,7 +55,7 @@ export default function LoginForm() {
     /* ===============================
        LOGIN CORE
     =============================== */
-    const doLogin = () => {
+    const doLogin = useCallback(() => {
         dispatch(login({ email, password, turnstile_token: captchaToken }))
             .unwrap()
             .then((data: LoginOrRegisterResponse) => {
@@ -82,7 +82,7 @@ export default function LoginForm() {
                     })
                 );
             });
-    };
+    }, [email, password, captchaToken, dispatch, router, callbackUrl]);
 
     /* ===============================
        HANDLE SUBMIT (1x CLICK)
@@ -112,7 +112,7 @@ export default function LoginForm() {
         if (captchaToken && pendingSubmit) {
             doLogin();
         }
-    }, [captchaToken, pendingSubmit]);
+    }, [captchaToken, pendingSubmit, doLogin]);
 
     /* ===============================
        RENDER

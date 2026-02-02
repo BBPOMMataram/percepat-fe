@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
 import type { Result } from "@zxing/library";
 
@@ -21,18 +21,18 @@ export default function QRScannerModal({
     const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>();
     const controlsRef = useRef<IScannerControls | null>(null);
 
-    const stopCamera = () => {
+    const stopCamera = useCallback(() => {
         controlsRef.current?.stop();
         controlsRef.current = null;
 
         const stream = videoRef.current?.srcObject as MediaStream | null;
         stream?.getTracks().forEach((track) => track.stop());
-    };
+    }, []);
 
-    const handleClose = () => {
+    const handleClose = useCallback(() => {
         stopCamera();
         onClose();
-    };
+    }, [stopCamera, onClose]);
 
     useEffect(() => {
         if (!open) return;
@@ -63,7 +63,7 @@ export default function QRScannerModal({
         })();
 
         return stopCamera;
-    }, [open]);
+    }, [open, reader, handleClose, onScan, stopCamera]);
 
     const handleChangeCamera = async (deviceId: string) => {
         setSelectedDeviceId(deviceId);
