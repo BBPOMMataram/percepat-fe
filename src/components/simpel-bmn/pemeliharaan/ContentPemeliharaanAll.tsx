@@ -194,7 +194,7 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
     useEffect(() => {
         const applyRatings = (ratings: Record<string, { rating: number; comment?: string }>) => {
             if (!ratings) return;
-            setMergedDataAll(prev => prev.map((item: any) => {
+            setMergedDataAll((prev: any) => prev.map((item: any) => {
                 const r = ratings[item.code];
                 if (!r) return item;
                 return { ...item, rating: { rating: r.rating, comment: r.comment } };
@@ -216,7 +216,7 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                 const stored = JSON.parse(localStorage.getItem('pemeliharaan_local_ratings') || '{}');
                 const code = e?.detail?.code;
                 if (code) {
-                    setMergedDataAll(prev => prev.map((item: any) => item.code === code && stored[code] ? { ...item, rating: { rating: stored[code].rating, comment: stored[code].comment } } : item));
+                    setMergedDataAll((prev: any) => prev.map((item: any) => item.code === code && stored[code] ? { ...item, rating: { rating: stored[code].rating, comment: stored[code].comment } } : item));
                 } else {
                     applyRatings(stored);
                 }
