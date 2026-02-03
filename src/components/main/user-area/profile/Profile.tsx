@@ -53,10 +53,24 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                 setGroupJabatan("Kepala Balai")
             } else if (user.employee?.group_jabatan?.id === 2) {
                 setGroupJabatan("Kepala Tata Usaha")
-            } else if (user.employee?.group_jabatan?.id === 3) {
+            }
+            else if (user.employee?.group_jabatan?.id === 3) {
                 setGroupJabatan("Ketua Tim")
+                if (user.employee?.is_ppk) {
+                    setGroupJabatan("Ketua Tim - PPK")
+                }
+
+                if (user.employee?.is_katim_pengujian) {
+                    setGroupJabatan("Ketua Tim Pengujian")
+                    if (user.employee?.is_ppk) {
+                        setGroupJabatan("Ketua Tim Pengujian - PPK")
+                    }
+                }
             } else if (user.employee?.group_jabatan?.id === 4) {
                 setGroupJabatan("Staf")
+                if (user.employee?.is_ppk) {
+                    setGroupJabatan("PPK")
+                }
             } else if (user.employee?.group_jabatan?.id === 5) {
                 setGroupJabatan("Staf OS")
             }
