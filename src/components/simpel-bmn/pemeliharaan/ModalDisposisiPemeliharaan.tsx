@@ -262,7 +262,7 @@ export default function ModalDisposisiPemeliharaan({
             toUser = kabalai; // kalau di reject nanti toUser nya dibalikin ke pelapor di backend, bukan pake ini
 
             // DISPO KATIM PENGUJIAN
-        } else if (isKatimPengujian && tipeBarang === 'lab') {
+        } else if (isKatimPengujian && tipeBarang === 'lab' && isDisposisiBaru) { // isDisposisiBaru untuk mengetahui yg login sedang bertindak sbg katim bukan ppk (karena bisa rangkap)
             lastStatusDisposisi = isRejected ? 'rejected' : 'forwarded'; // status disposisi sebelum nya diupdate dengan ini sebelum buat disposisi baru
             toUser = kabalai; // kalau di reject nanti toUser nya dibalikin ke pelapor di backend, bukan pake ini
 
