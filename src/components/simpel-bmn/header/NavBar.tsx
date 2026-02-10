@@ -40,6 +40,7 @@ export default function NavBarSiapMelayani() {
                         tabIndex={0}
                         className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-fit p-2 shadow">
                         <li><Link href={'/simpel-bmn/pemeliharaan'}>Pemeliharaan</Link></li>
+                        <li><Link href={'/simpel-bmn/list-barang'}>Daftar Barang</Link></li>
                     </ul>
                 </div>
 
@@ -52,6 +53,7 @@ export default function NavBarSiapMelayani() {
             <div className="navbar-center hidden md:flex">
                 <ul className="menu menu-horizontal px-1">
                     <li><Link href={'/simpel-bmn/pemeliharaan'}>Pemeliharaan</Link></li>
+                    <li><Link href={'/simpel-bmn/list-barang'}>Daftar Barang</Link></li>
                 </ul>
             </div>
 
