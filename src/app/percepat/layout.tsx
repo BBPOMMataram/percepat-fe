@@ -1,4 +1,5 @@
 import React from 'react';
+import './globals.css';
 
 import { Josefin_Sans } from 'next/font/google';
 

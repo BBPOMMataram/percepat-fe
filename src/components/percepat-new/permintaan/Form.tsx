@@ -13,7 +13,7 @@ export default function FormPemeliharaanSimpelBmn() {
     const { user } = useSelector((state: RootState) => state.auth);
     const [jenisBarang, setSetTipeBarang] = useState("reagen"); // u menentukan end point saja, ga dikirim sbg payload
     const [listKaTim, setListKaTim] = useState<any[]>([]);
-    const [kaTimId, setKaTimId] = useState<any>("");
+    const [katimId, setKaTimId] = useState<any>("");
     const [tanggal, setTanggal] = useState<string>(dayjs().format('YYYY-MM-DD'));
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
@@ -53,7 +53,7 @@ export default function FormPemeliharaanSimpelBmn() {
 
         if (listBarang.length === 0) return alert("Belum ada barang yang diajukan");
 
-        if (!kaTimId) {
+        if (!katimId) {
             alert("Silahkan pilih KaTim terlebih dahulu.");
             return;
         }
@@ -61,7 +61,7 @@ export default function FormPemeliharaanSimpelBmn() {
         // setIsSubmitting(true);
         api.post(
             `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-reagen`,
-            { jenisBarang, listBarang, pemohon: user, kaTimId, createdAt: tanggal }
+            { jenisBarang, listBarang, pemohon: user, katimId, createdAt: tanggal }
         ).then((res) => {
             dispatch(showAlert({ type: "success", message: res.data.message || `Berhasil mengajukan Permintaan ${jenisBarang}`, description: res.data.message || "Berhasil mengajukan permintaan" }));
             setListBarang([]);
@@ -105,7 +105,7 @@ export default function FormPemeliharaanSimpelBmn() {
                         </label>
                         <select
                             name="katim_id"
-                            value={kaTimId}
+                            value={katimId}
                             onChange={(e) => setKaTimId(e.target.value)}
                             required
                             className="ar-input-text-purple"

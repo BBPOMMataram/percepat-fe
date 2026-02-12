@@ -161,7 +161,7 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
                             </thead>
                             <tbody>
                                 {reagenList.map((item: any) => (
-                                    <tr key={item.id} className={`border-t hover:bg-bpom-green/10 ${isOutOfStock(item) ? 'bg-red-200' : ''}`}>
+                                    <tr key={item.id} className={`border-t ${isOutOfStock(item) ? 'bg-red-200' : ''}`}>
                                         <td className="p-2 text-sm">{item.name}</td>
                                         <td className="p-2 text-sm">{item.satuan}</td>
                                         <td className="p-2 text-sm">{item.stock}</td>

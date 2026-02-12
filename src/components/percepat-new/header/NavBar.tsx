@@ -39,7 +39,7 @@ export default function NavBarSiapMelayani() {
                     <ul
                         tabIndex={0}
                         className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-fit p-2 shadow">
-                        <li><Link href={'/percepat/permintaan'}>Permintaan</Link></li>
+                        <li><Link href={'/percepat-new/permintaan'}>Permintaan</Link></li>
                     </ul>
                 </div>
 
@@ -47,11 +47,11 @@ export default function NavBarSiapMelayani() {
                     <Image src="/assets/images/bpom_without_label.webp" alt="Logo BBPOM" width={40} height={40} />
                 </Link>
 
-                <Link href="/percepat" className="text-xl ml-3 font-serif tooltip tooltip-bottom" data-tip="Beranda PERCEPAT">PERCEPAT</Link>
+                <Link href="/percepat-new" className="text-xl ml-3 font-serif tooltip tooltip-bottom" data-tip="Beranda PERCEPAT">PERCEPAT</Link>
             </div>
             <div className="navbar-center hidden md:flex">
                 <ul className="menu menu-horizontal px-1">
-                    <li><Link href={'/percepat/permintaan'}>Permintaan</Link></li>
+                    <li><Link href={'/percepat-new/permintaan'}>Permintaan</Link></li>
                 </ul>
             </div>
 

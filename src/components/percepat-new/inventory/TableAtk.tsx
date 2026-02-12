@@ -42,7 +42,7 @@ export default function TableAtk(props: any) {
             <>
                 <h2 className="text-2xl sm:text-3xl xl:text-5xl my-2">{props.title}</h2>
                 <div className="table-header flex">
-                    <select className="block my-2 p-2 [&>option]:p-2 rounded focus:outline-quaternary border border-quaternary bg-primary" name="value-per-page"
+                    <select className="block my-2 p-2 [&>option]:p-2 rounded focus:outline-quaternary border border-quaternary" name="value-per-page"
                         value={valuePerPage}
                         onChange={e => setValuePerPage(e.target.value)}
                     >
@@ -63,7 +63,7 @@ export default function TableAtk(props: any) {
                 </div>
                 <table className="w-full border-collapse">
                     <thead className="[&_th]:border [&_th]:border-quaternary text-left">
-                        <tr className="bg-secondary [&>th]:p-2">
+                        <tr className="bg-quaternary [&>th]:p-2">
                             <th>No</th>
                             <th>Nama</th>
                             <th>Satuan</th>
@@ -99,7 +99,7 @@ export default function TableAtk(props: any) {
 
                             return isShowLink ? (
                                 <Fragment key={i}>
-                                    <button className={`p-2 rounded py-1 mx-[.1rem] my-2 ${active ? 'bg-teriary' : disabled ? 'bg-gray-200 text-gray-400' : 'bg-secondary '}`}
+                                    <button className={`p-2 rounded py-1 mx-[.1rem] my-2 ${active ? 'bg-quaternary' : disabled ? 'bg-gray-200 text-gray-400' : 'bg-quaternary '}`}
                                         dangerouslySetInnerHTML={{ __html: label }
                                         }
                                         onClick={() => getData(url)}
@@ -110,7 +110,7 @@ export default function TableAtk(props: any) {
                                 : null
                         })}
                     </div>
-                    <div className="py-2 px-4 rounded bg-secondary">{`${data?.data?.length} dari ${data?.total} `}</div>
+                    <div className="py-2 px-4 rounded bg-quaternary">{`${data?.data?.length} dari ${data?.total} `}</div>
                 </div>
             </>
         )

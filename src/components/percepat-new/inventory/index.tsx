@@ -16,14 +16,14 @@ const Inventory = () => {
                     <ul className="[&>li]:inline">
                         <li onClick={() => setIsReagen(true)}>
                             <a className={cs("rounded py-1 inline-block w-20 mr-2", {
-                                "bg-quaternary text-secondary": isReagen,
+                                "bg-quaternary": isReagen,
                                 "bg-gray-100 text-gray-300": !isReagen
                             })}
                             >Reagen</a>
                         </li>
                         <li onClick={() => setIsReagen(false)}>
                             <a className={cs("rounded py-1 inline-block w-20", {
-                                "bg-quaternary text-secondary": !isReagen,
+                                "bg-quaternary": !isReagen,
                                 "bg-gray-100 text-gray-300": isReagen
                             })}>ATK</a>
                         </li>

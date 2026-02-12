@@ -10,15 +10,16 @@ html {
 @plugin "daisyui/theme" {
   name: "percepat";
   default: false;
-  --color-primary: #faf8f1;
-  --color-secondary: #faeab1;
+  /* --color-primary: #faf8f1;
+  --color-secondary: #faeab1; */
 }
 
 @import "material-symbols/outlined.css";
 
+/* WARNA TAMBAHAN */
 @theme {
-  --color-teriary: #e5ba73; /* unuk percepat */
-  --color-quaternary: #c58940; /* unuk percepat */
+  --color-teriary: #e5ba73; /* unuk percepat karena di daisy ga ada utility bernama teriary */
+  --color-quaternary: #c58940; /* unuk percepat karena di daisy ga ada utility bernama quaternary */
   --color-bpom-green: #04a451;
   --color-bpom-blue: #004281;
 }
