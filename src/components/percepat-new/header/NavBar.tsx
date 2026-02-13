@@ -7,10 +7,12 @@ import { AppDispatch, RootState } from "@/redux/store";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 export default function NavBarSiapMelayani() {
+    const [permintaanOpen, setPermintaanOpen] = useState(false);
+    const togglePermintaan = () => setPermintaanOpen(v => !v);
     const pathname = usePathname();
     const dispatch = useDispatch<AppDispatch>()
     const { user, loading } = useSelector((state: RootState) => state.auth)
@@ -29,6 +31,11 @@ export default function NavBarSiapMelayani() {
         }
     }, [user, loading, router, pathname, dispatch])
 
+    useEffect(() => {
+        // close permintaan submenu on route change
+        setPermintaanOpen(false);
+    }, [pathname]);
+
     return (
         <div className="navbar bg-base-100 shadow-md px-6">
             <div className="navbar-start">
@@ -39,7 +46,19 @@ export default function NavBarSiapMelayani() {
                     <ul
                         tabIndex={0}
                         className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-fit p-2 shadow">
-                        <li><Link href={'/percepat-new/permintaan'}>Permintaan</Link></li>
+                        <li>
+                            <button onClick={togglePermintaan} className="flex w-full justify-between items-center">Permintaan
+                                <svg className={`transition-transform ml-2 ${permintaanOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </button>
+                            {permintaanOpen && (
+                                <ul className="p-2">
+                                    <li><Link href={'/percepat-new/permintaan/reagen'} onClick={() => setPermintaanOpen(false)}>Reagen</Link></li>
+                                    <li><Link href={'/percepat-new/permintaan/atk'} onClick={() => setPermintaanOpen(false)}>ATK</Link></li>
+                                    <li><Link href={'/percepat-new/permintaan/perlengkapan-kebersihan'} onClick={() => setPermintaanOpen(false)}>Perlengkapan Kebersihan</Link></li>
+                                </ul>
+                            )}
+                        </li>
+                        <li><Link href={'/percepat-new/verifikasi'}>Verifikasi</Link></li>
                     </ul>
                 </div>
 
@@ -51,7 +70,19 @@ export default function NavBarSiapMelayani() {
             </div>
             <div className="navbar-center hidden md:flex">
                 <ul className="menu menu-horizontal px-1">
-                    <li><Link href={'/percepat-new/permintaan'}>Permintaan</Link></li>
+                    <li className="relative">
+                        <button onClick={togglePermintaan} className="flex items-center gap-2">Permintaan
+                            <svg className={`transition-transform ${permintaanOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        {permintaanOpen && (
+                            <ul className="p-2 bg-base-100 rounded-box absolute top-full left-0 mt-2 shadow">
+                                <li><Link href={'/percepat-new/permintaan/reagen'} onClick={() => setPermintaanOpen(false)}>Reagen</Link></li>
+                                <li><Link href={'/percepat-new/permintaan/atk'} onClick={() => setPermintaanOpen(false)}>ATK</Link></li>
+                                <li><Link href={'/percepat-new/permintaan/perlengkapan-kebersihan'} onClick={() => setPermintaanOpen(false)}>Perlengkapan Kebersihan</Link></li>
+                            </ul>
+                        )}
+                    </li>
+                    <li><Link href={'/percepat-new/verifikasi'}>Verifikasi</Link></li>
                 </ul>
             </div>
 

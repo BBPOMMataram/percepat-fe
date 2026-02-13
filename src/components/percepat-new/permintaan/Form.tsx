@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import FormPerlengkapanKebersihan from "./FormPerlengkapanKebersihan";
 import FormReagen from "./FormReagen";
 
 export default function FormPemeliharaanSimpelBmn() {
@@ -21,7 +22,7 @@ export default function FormPemeliharaanSimpelBmn() {
     const router = useRouter();
 
     const listJenisBarang = [
-        'reagen', 'atk', 'bakuPembanding', 'sukuCadang'
+        'reagen', 'atk', 'baku pembanding', 'suku cadang', 'perlengkapan kebersihan'
     ];
 
     const getKaTim = async () => {
@@ -34,10 +35,10 @@ export default function FormPemeliharaanSimpelBmn() {
             const katim = katimRes.data; // array
             const katu = katuRes.data;   // object
 
-            const merged = [...katim, katu]; // ⬅️ jumlah +1
+            const merged = [...katim, katu]; // ⬅️ katu juga sebagai katim tu
 
             setListKaTim(merged.reverse());
-            console.log('merged', merged);
+            // console.log('merged', merged);
 
         } catch (err) {
             console.error(err);
@@ -58,17 +59,47 @@ export default function FormPemeliharaanSimpelBmn() {
             return;
         }
 
-        // setIsSubmitting(true);
-        api.post(
-            `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-reagen`,
-            { jenisBarang, listBarang, pemohon: user, katimId, createdAt: tanggal }
+        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT;
+        if (!baseUrl) {
+            console.log("Konfigurasi .env tidak ditemukan (NEXT_PUBLIC_BACKEND_URL_PERCEPAT).");
+            return;
+        }
+
+        let url = baseUrl;
+        let redirectUrlAfterSubmit = '';
+        switch (jenisBarang) {
+            case 'reagen':
+                url += `/api/v1/permintaan-reagen`;
+                redirectUrlAfterSubmit = '/percepat-new/permintaan/reagen';
+                break;
+            case 'atk':
+                // endpoint atk
+                break;
+            case 'baku pembanding':
+                // endpoint baku pembanding
+                break;
+            case 'suku cadang':
+                // endpoint suku cadang
+                break;
+            case 'perlengkapan kebersihan':
+                url += `/api/v1/permintaan-perlengkapan-kebersihan`;
+                redirectUrlAfterSubmit = '/percepat-new/permintaan/perlengkapan-kebersihan';
+                break;
+            default:
+                alert("Jenis barang tidak valid.");
+                return;
+        }
+
+        setIsSubmitting(true);
+        api.post(url, { jenisBarang, listBarang, pemohon: user, katimId, createdAt: tanggal }
         ).then((res) => {
             dispatch(showAlert({ type: "success", message: res.data.message || `Berhasil mengajukan Permintaan ${jenisBarang}`, description: res.data.message || "Berhasil mengajukan permintaan" }));
             setListBarang([]);
-            router.push('/percepat-new/permintaan');
+            router.push(redirectUrlAfterSubmit);
             setIsSubmitting(false);
         }).catch((err) => {
-            dispatch(showAlert({ type: "error", message: err?.response?.data?.message, description: err.response?.data?.message || "No Message from Backend" }));
+            // GUNAKAN SHOW ERROR ALERT INI NANTI UNTUK SEMUA CATCH ERROR DI PROYEK INI
+            dispatch(showAlert({ type: "error", message: err?.response?.data?.message || err.message, description: err.response?.data?.message || "No Message from Backend" }));
             console.log(err);
             setIsSubmitting(false);
         });
@@ -92,11 +123,14 @@ export default function FormPemeliharaanSimpelBmn() {
                             required
                             className="ar-input-text-purple"
                         >
-                            {listJenisBarang.map((jenisBarang, index) => (
-                                <option key={index} value={jenisBarang}>
-                                    {jenisBarang.toUpperCase()}
-                                </option>
-                            ))}
+                            {listJenisBarang.map((jb, index) => {
+                                const isAllowed = ['reagen', 'perlengkapan kebersihan'].includes(jb.toLowerCase().trim());
+                                return (
+                                    <option key={index} value={jb} disabled={!isAllowed}>
+                                        {jb.toUpperCase()}
+                                    </option>
+                                );
+                            })}
                         </select>
                     </div>
                     <div>
@@ -139,13 +173,16 @@ export default function FormPemeliharaanSimpelBmn() {
                     )}
                     {/* {jenisBarang === 'atk' && (
                         <FormAtk listBarang={listBarang} setListBarang={setListBarang} />
+                        )}
+                        {jenisBarang === 'baku pembanding' && (
+                            <FormBakuPembanding listBarang={listBarang} setListBarang={setListBarang} />
+                            )}
+                            {jenisBarang === 'suku cadang' && (
+                                <FormSukuCadang listBarang={listBarang} setListBarang={setListBarang} />
+                                )} */}
+                    {jenisBarang === 'perlengkapan kebersihan' && (
+                        <FormPerlengkapanKebersihan listBarang={listBarang} setListBarang={setListBarang} />
                     )}
-                    {jenisBarang === 'bakuPembanding' && (
-                        <FormBakuPembanding listBarang={listBarang} setListBarang={setListBarang} />
-                    )}
-                    {jenisBarang === 'sukuCadang' && (
-                        <FormSukuCadang listBarang={listBarang} setListBarang={setListBarang} />
-                    )} */}
 
                     {/* CATATAN */}
                     {/* <div className="mt-6">

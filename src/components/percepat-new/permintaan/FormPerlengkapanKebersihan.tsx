@@ -8,19 +8,19 @@ import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 
-interface FormReagenProps {
+interface FormPerlengkapanKebersihanProps {
     listBarang: any[];
     setListBarang: React.Dispatch<React.SetStateAction<any[]>>;
 }
 
-export default function FormReagen({ listBarang, setListBarang }: FormReagenProps) {
+export default function FormPerlengkapanKebersihan({ listBarang, setListBarang }: FormPerlengkapanKebersihanProps) {
     const searchInputRef = useRef<HTMLInputElement>(null);
     const [isLoading, setIsLoading] = useState(false);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const dispatch = useDispatch<AppDispatch>();
     const [searchTerm, setSearchTerm] = useState("");
-    const [reagenList, setReagenList] = useState<any[]>([]);
-    const [selectedReagen, setSelectedReagen] = useState<any>(null);
+    const [barangList, setBarangList] = useState<any[]>([]);
+    const [selectedBarang, setSelectedBarang] = useState<any>(null);
     const [jumlah, setJumlah] = useState<number>(1);
     const [keterangan, setKeterangan] = useState<string>("");
 
@@ -31,12 +31,12 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
     const fetchReagen = async (query: string) => {
         setIsLoading(true);
         try {
-            const res = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/barang-reagen-all?name=${query}`);
-            setReagenList(res.data || []);
+            const res = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/barang-perlengkapan-kebersihan-all?name=${query}`);
+            setBarangList(res.data || []);
             console.log(res.data);
 
         } catch (error) {
-            console.error("Error fetching reagen:", error);
+            console.error("Error fetching barang:", error);
         } finally {
             setIsLoading(false);
         }
@@ -52,7 +52,7 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
         }
 
         if (value.length === 0) {
-            setReagenList([]);
+            setBarangList([]);
         } else {
             // Debounce: wait 1000ms before fetching
             searchTimeoutRef.current = setTimeout(() => {
@@ -62,21 +62,21 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
     };
 
     const handleAddBarang = () => {
-        if (!selectedReagen) {
-            dispatch(showAlert({ type: "error", message: "Silakan pilih reagen terlebih dahulu", description: "Silakan pilih reagen terlebih dahulu" }));
+        if (!selectedBarang) {
+            dispatch(showAlert({ type: "error", message: "Silakan pilih barang terlebih dahulu", description: "Silakan pilih barang terlebih dahulu" }));
             return;
         }
         if (jumlah < 1) {
             dispatch(showAlert({ type: "error", message: "Jumlah harus minimal 1", description: "Jumlah harus minimal 1" }));
             return;
         }
-        if (jumlah > selectedReagen.stock) {
-            dispatch(showAlert({ type: "error", message: `Jumlah tidak boleh melebihi stok tersedia (${selectedReagen.stock})`, description: `Jumlah tidak boleh melebihi stok tersedia (${selectedReagen.stock})` }));
+        if (jumlah > selectedBarang.stock) {
+            dispatch(showAlert({ type: "error", message: `Jumlah tidak boleh melebihi stok tersedia (${selectedBarang.stock})`, description: `Jumlah tidak boleh melebihi stok tersedia (${selectedBarang.stock})` }));
             return;
         }
 
         // Check if item already exists in list
-        const existingIndex = listBarang.findIndex((item: any) => item.id === selectedReagen.id);
+        const existingIndex = listBarang.findIndex((item: any) => item.id === selectedBarang.id);
 
         if (existingIndex >= 0) {
             // Item exists - update quantity
@@ -84,8 +84,8 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
             const newQuantity = updatedList[existingIndex].jumlah + jumlah;
 
             // Check total doesn't exceed stock
-            if (newQuantity > selectedReagen.stock) {
-                dispatch(showAlert({ type: "error", message: `Total quantity (${newQuantity}) tidak boleh melebihi stok tersedia (${selectedReagen.stock})`, description: `Total quantity (${newQuantity}) tidak boleh melebihi stok tersedia (${selectedReagen.stock})` }));
+            if (newQuantity > selectedBarang.stock) {
+                dispatch(showAlert({ type: "error", message: `Total quantity (${newQuantity}) tidak boleh melebihi stok tersedia (${selectedBarang.stock})`, description: `Total quantity (${newQuantity}) tidak boleh melebihi stok tersedia (${selectedBarang.stock})` }));
                 return;
             }
 
@@ -95,20 +95,20 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
         } else {
             // Item doesn't exist - add new
             const newItem = {
-                id: selectedReagen.id,
-                nama: selectedReagen.name,
-                satuan: selectedReagen.satuan,
-                expired: selectedReagen.expired,
+                id: selectedBarang.id,
+                nama: selectedBarang.name,
+                satuan: selectedBarang.satuan,
+                expired: selectedBarang.expired,
                 jumlah,
                 keterangan,
-                jenis: "reagen"
+                jenis: "barang"
             };
             setListBarang([...listBarang, newItem]);
         }
 
-        dispatch(showAlert({ type: "success", message: "Berhasil menambahkan reagen", description: `Berhasil menambahkan ${selectedReagen.name}` }));
+        dispatch(showAlert({ type: "success", message: "Berhasil menambahkan barang", description: `Berhasil menambahkan ${selectedBarang.name}` }));
 
-        setSelectedReagen(null);
+        setSelectedBarang(null);
         setJumlah(1);
         setKeterangan("");
     };
@@ -118,7 +118,7 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
         const newList = [...listBarang];
         newList.splice(index, 1);
         setListBarang(newList);
-        dispatch(showAlert({ type: "success", message: "Berhasil menghapus reagen", description: `Berhasil menghapus ${item.nama}` }));
+        dispatch(showAlert({ type: "success", message: "Berhasil menghapus barang", description: `Berhasil menghapus ${item.nama}` }));
     };
 
     const isOutOfStock = (item: any) => {
@@ -128,18 +128,18 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
     return (
         <div className="space-y-6">
             <div className="bg-white p-4 rounded-lg shadow border">
-                <h3 className="text-lg font-semibold mb-4">Form Reagen</h3>
+                <h3 className="text-lg font-semibold mb-4">Form Perlengkapan Kebersihan</h3>
 
-                {/* Search and Select Reagen */}
+                {/* Search and Select Barang */}
                 <div className="mb-4">
                     {/* <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Cari Reagen
+                        Cari
                     </label> */}
                     <input
                         ref={searchInputRef}
                         type="text"
                         className="ar-input-text-purple w-full"
-                        placeholder="Cari reagen berdasarkan nama..."
+                        placeholder="Cari perlengkapan kebersihan berdasarkan nama..."
                         value={searchTerm}
                         onChange={handleSearchChange}
                     />
@@ -155,45 +155,52 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
                                     <th className="p-2 text-left text-sm">Nama</th>
                                     <th className="p-2 text-left text-sm">Satuan</th>
                                     <th className="p-2 text-left text-sm">Stok</th>
-                                    <th className="p-2 text-left text-sm">Expired</th>
                                     <th className="p-2 text-left text-sm">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {reagenList.map((item: any) => (
-                                    <tr key={item.id} className={`border-t ${isOutOfStock(item) ? 'bg-red-200' : ''}`}>
-                                        <td className="p-2 text-sm">{item.name}</td>
-                                        <td className="p-2 text-sm">{item.satuan}</td>
-                                        <td className="p-2 text-sm">{item.stock}</td>
-                                        <td className="p-2 text-sm">{item.expired ? dayjs(item.expired).format("DD MMM YYYY") : '-'}</td>
-                                        <td className="p-2 text-sm">
-                                            <button
-                                                onClick={() => setSelectedReagen(item)}
-                                                disabled={isOutOfStock(item)}
-                                                className={`px-3 py-1 rounded text-sm ${selectedReagen?.id === item.id
-                                                    ? 'bg-green-500 text-white'
-                                                    : isOutOfStock(item)
-                                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                                        : 'bg-blue-500 text-white hover:bg-blue-600'
-                                                    }`}
-                                            >
-                                                {selectedReagen?.id === item.id ? 'Dipilih' : (isOutOfStock(item) ? 'Habis' : 'Pilih')}
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {
+                                    (barangList.length === 0 && searchTerm !== '') && (
+                                        <tr>
+                                            <td colSpan={4} className="p-4 text-center text-sm text-gray-500">
+                                                Tidak ada barang ditemukan.
+                                            </td>
+                                        </tr>
+                                    )
+                                }
+                                {
+                                    barangList.map((item: any) => (
+                                        <tr key={item.id} className={`border-t ${isOutOfStock(item) ? 'bg-red-200' : ''}`}>
+                                            <td className="p-2 text-sm">{item.name}</td>
+                                            <td className="p-2 text-sm">{item.satuan}</td>
+                                            <td className="p-2 text-sm">{item.stock}</td>
+                                            <td className="p-2 text-sm">
+                                                <button
+                                                    onClick={() => setSelectedBarang(item)}
+                                                    disabled={isOutOfStock(item)}
+                                                    className={`px-3 py-1 rounded text-sm ${selectedBarang?.id === item.id
+                                                        ? 'bg-green-500 text-white'
+                                                        : isOutOfStock(item)
+                                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                            : 'bg-blue-500 text-white hover:bg-blue-600'
+                                                        }`}
+                                                >
+                                                    {selectedBarang?.id === item.id ? 'Dipilih' : (isOutOfStock(item) ? 'Habis' : 'Pilih')}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
                             </tbody>
                         </table>
                     </div>
                 )}
 
-                {/* Selected Reagen Details */}
-                {selectedReagen && (
+                {/* Selected Barang Details */}
+                {selectedBarang && (
                     <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
-                        <p className="text-sm font-medium">Reagen Dipilih: {selectedReagen.name}</p>
-                        <p className="text-sm text-gray-600">Satuan: {selectedReagen.satuan}</p>
-                        <p className="text-sm text-gray-600">Stok Tersedia: {selectedReagen.stock}</p>
-                        <p className="text-sm text-gray-600">Ed: {selectedReagen.expired ? dayjs(selectedReagen.expired).format("DD MMM YYYY") : '-'}</p>
+                        <p className="text-sm font-medium">Barang Dipilih: {selectedBarang.name}</p>
+                        <p className="text-sm text-gray-600">Satuan: {selectedBarang.satuan}</p>
+                        <p className="text-sm text-gray-600">Stok Tersedia: {selectedBarang.stock}</p>
                     </div>
                 )}
 
@@ -201,16 +208,16 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
                 <div className="mt-4 flex gap-4 items-end">
                     <div className="">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Jumlah {selectedReagen ? `(Max: ${selectedReagen.stock})` : ''}
+                            Jumlah {selectedBarang ? `(Max: ${selectedBarang.stock})` : ''}
                         </label>
                         <input
                             type="number"
                             min="1"
-                            max={selectedReagen?.stock || 9999}
+                            max={selectedBarang?.stock || 9999}
                             value={jumlah}
                             onChange={(e) => {
                                 const val = parseInt(e.target.value) || 1;
-                                const maxStock = selectedReagen?.stock || 9999;
+                                const maxStock = selectedBarang?.stock || 9999;
                                 setJumlah(Math.min(val, maxStock));
                             }}
                             className="ar-input-text-purple w-full"
@@ -231,8 +238,8 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
                     </div>
                     <button
                         onClick={handleAddBarang}
-                        disabled={!selectedReagen}
-                        className={`px-4 py-2 rounded ${selectedReagen
+                        disabled={!selectedBarang}
+                        className={`px-4 py-2 rounded ${selectedBarang
                             ? 'bg-green-500 text-white hover:bg-green-600'
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                             }`}
@@ -245,7 +252,7 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
             {/* List of Added Items */}
             {listBarang.length > 0 && (
                 <div className="bg-white p-4 rounded-lg shadow border">
-                    <h3 className="text-lg font-semibold mb-4">Daftar Reagen yang Diajukan</h3>
+                    <h3 className="text-lg font-semibold mb-4">Daftar Barang yang Diajukan</h3>
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead className="bg-gray-100">

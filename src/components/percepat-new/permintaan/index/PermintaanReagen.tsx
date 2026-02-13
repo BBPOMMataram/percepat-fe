@@ -1,8 +1,10 @@
 "use client";
 import api from "@/utils/api";
+import dayjs from "dayjs";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
-export default function PermintaanPercepat() {
+export default function PermintaanReagenPercepat() {
     const [dataPermintaan, setDataBarang] = useState<any>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [perPage, setPerPage] = useState(10);
@@ -34,7 +36,7 @@ export default function PermintaanPercepat() {
 
     return (
         <>
-            <h2 className="mb-5 font-bold text-lg lg:text-3xl font-serif">Data Permintaan</h2>
+            <h2 className="mb-5 font-bold text-lg lg:text-3xl font-serif">Data Permintaan Reagen</h2>
             <div className="flex flex-wrap items-center gap-4 mb-4">
                 <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-600">Tampilkan</span>
@@ -64,7 +66,7 @@ export default function PermintaanPercepat() {
                             <th className="px-4 py-3 text-left">Status</th>
                             <th className="px-4 py-3 text-left">Tgl Permintaan</th>
                             <th className="px-4 py-3 text-left">Tgl Penyerahan</th>
-                            <th className="px-4 py-3 text-center">##</th>
+                            {/* <th className="px-4 py-3 text-center">##</th> */}
                         </tr>
                     </thead>
                     <tbody>
@@ -82,11 +84,15 @@ export default function PermintaanPercepat() {
                                 >
                                     <td className="px-4 py-3 font-medium">{rowNumber(index)}</td>
                                     <td className="px-4 py-3 font-semibold capitalize">{item.peminta.name}</td>
-                                    <td className="px-4 py-3 font-semibold capitalize">{item.nup}</td>
-                                    <td className={`px-4 py-3 uppercase`}>{item.nama}</td>
-                                    <td className={`px-4 py-3 uppercase`}>{item.merk}</td>
-                                    <td className={`px-4 py-3 uppercase`}>{item.kondisi}</td>
-                                    <td className={`px-4 py-3 uppercase`}>{item.lokasi || '-'}</td>
+                                    <td className="px-4 py-3 font-semibold capitalize">{item.bidang?.name || item.bidang_name_auth_external}</td>
+                                    <td className={`px-4 py-3`}>{item.bidang?.user?.name || item.katim?.name}</td>
+                                    <td className={`px-4 py-3`}>{item.status?.name}</td>
+                                    <td className={`px-4 py-3`}>{dayjs(item.created_at).format("DD MMM YYYY")}</td>
+                                    <td className={`px-4 py-3`}>{
+                                        item.tgl_penyerahan ?
+                                            dayjs(item.tgl_penyerahan).format("DD MMM YYYY")
+                                            : '-'
+                                    }</td>
                                 </tr>
                             ))
                         )}
@@ -94,7 +100,14 @@ export default function PermintaanPercepat() {
                 </table>
 
                 {/* Per page selector and links */}
+                <div className="flex justify-between items-center m-6">
+                    <span>
+                        Menampilkan {dataPermintaan?.from} - {dataPermintaan?.to} dari {dataPermintaan?.total} data
+                    </span>
+
+                </div>
                 <div className="flex justify-end items-center m-4 gap-4">
+
                     <div className="btn-group">
                         {
                             dataPermintaan?.links?.map((link: any, index: number) =>
@@ -131,6 +144,15 @@ export default function PermintaanPercepat() {
                         }
                     </div>
                 </div>
+            </div>
+            <div className="fixed bottom-4 lg:bottom-8 right-4 lg:right-8 tooltip tooltip-left" data-tip="Create New">
+                <Link
+                    href="/percepat-new/permintaan/form"
+                    className="btn btn-primary btn-floating btn-circle hover:scale-110 hover:rotate-[90deg] transition-all duration-200 ease-in-out" >
+                    <span className="material-symbols-outlined">
+                        add
+                    </span>
+                </Link>
             </div>
         </>
     )
