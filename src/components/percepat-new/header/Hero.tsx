@@ -74,7 +74,7 @@ const Hero = () => {
                                 <Link href={'/login?redirectUrl=/percepat-new'}>
                                     <motion.button
                                         // whileHover={{ backgroundColor: '#C58940' }}
-                                        className="btn btn-secondary">
+                                        className="btn bg-quaternary">
                                         Masuk
                                     </motion.button>
                                 </Link>

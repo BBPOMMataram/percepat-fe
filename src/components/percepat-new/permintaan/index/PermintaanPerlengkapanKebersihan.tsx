@@ -4,6 +4,7 @@ import api from "@/utils/api";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 
 export default function PermintaanPerlengkapanKebersihanPercepat() {
     const [dataPermintaan, setDataBarang] = useState<any>(null);
@@ -54,31 +55,31 @@ export default function PermintaanPerlengkapanKebersihanPercepat() {
 
         // dispatch(permintaanActions.setCurrentDataId(id)) // untuk ambil data tgl permintaan
 
-        // api({
-        //     url: `/api/v1/download-permintaan-perlengkapan/${id}`,
-        //     method: 'GET',
-        //     responseType: 'blob'
-        // })
-        //     .then(({ data }) => {
-        //         const url = window.URL.createObjectURL(new Blob([data]));
-        //         const link = document.createElement('a');
-        //         link.href = url;
-        //         link.setAttribute('download', `SPB-ATK-${id}.pdf`); //or any other extension
-        //         document.body.appendChild(link);
-        //         link.click();
+        api({
+            url: `/api/v1/download-permintaan-perlengkapan/${id}`,
+            method: 'GET',
+            responseType: 'blob'
+        })
+            .then(({ data }) => {
+                const url = window.URL.createObjectURL(new Blob([data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `SPB-Perlengkapan-Kebersihan-${id}.pdf`); //or any other extension
+                document.body.appendChild(link);
+                link.click();
 
-        //         toast.success('Download berhasil !', {
-        //             position: "top-right",
-        //             autoClose: 5000,
-        //             hideProgressBar: false,
-        //             closeOnClick: true,
-        //             pauseOnHover: true,
-        //             draggable: true,
-        //             progress: undefined,
-        //             theme: "light",
-        //         });
-        //     })
-        //     .catch(err => console.log(err))
+                toast.success('Download berhasil !', {
+                    position: "top-right",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: "light",
+                });
+            })
+            .catch(err => console.log(err))
     }
 
     return (
@@ -130,18 +131,18 @@ export default function PermintaanPerlengkapanKebersihanPercepat() {
                                     className={`border-t transition`}
                                 >
                                     <td className="px-4 py-3 font-medium">{rowNumber(index)}</td>
-                                    <td className="px-4 py-3 font-semibold capitalize">{item.peminta.name}</td>
-                                    <td className="px-4 py-3 font-semibold capitalize">{item.bidang?.name || item.bidang_name_auth_external}</td>
-                                    <td className="px-4 py-3">{item.bidang?.user?.name || item.katim?.name}</td>
-                                    <td className="px-4 py-3">{item.status?.name}</td>
-                                    <td className="px-4 py-3">{dayjs(item.created_at).format("DD MMM YYYY")}</td>
+                                    <td className="px-4 py-3 capitalize">{item.peminta.name}</td>
+                                    <td className="px-4 py-3 capitalize">{item.bidang?.name || item.bidang_name_auth_external}</td>
+                                    <td className="px-4 py-3 capitalize">{item.bidang?.user?.name || item.katim?.name}</td>
+                                    <td className="px-4 py-3 capitalize">{item.status?.name}</td>
+                                    <td className="px-4 py-3 capitalize">{dayjs(item.created_at).format("DD MMM YYYY")}</td>
                                     <td className="px-4 py-3">{
                                         item.tgl_penyerahan ?
                                             dayjs(item.tgl_penyerahan).format("DD MMM YYYY")
                                             : '-'
                                     }</td>
                                     <td className="px-4 py-3 flex">
-                                        <span className="btn btn-sm btn-ghost btn-error tooltip tooltip-error tooltip-left" data-tip="Download SPB" onClick={downloadSpbHandler}>
+                                        <span className="btn btn-sm btn-ghost btn-error tooltip tooltip-error tooltip-left" data-tip="Download SPB" onClick={() => downloadSpbHandler(item.id)}>
                                             <span className="material-symbols-outlined">
                                                 download
                                             </span>
