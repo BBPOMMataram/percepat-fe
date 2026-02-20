@@ -12,11 +12,14 @@ import { useDispatch, useSelector } from "react-redux";
 
 export default function NavBarSiapMelayani() {
     const [permintaanOpen, setPermintaanOpen] = useState(false);
-    const togglePermintaan = () => setPermintaanOpen(v => !v);
+    const [verifOpen, setVerifOpen] = useState(false);
     const pathname = usePathname();
     const dispatch = useDispatch<AppDispatch>()
     const { user, loading } = useSelector((state: RootState) => state.auth)
     const router = useRouter()
+
+    const togglePermintaan = () => setPermintaanOpen(v => !v);
+    const toggleVerif = () => setVerifOpen(v => !v);
 
     useEffect(() => {
         dispatch(getUser());
@@ -57,8 +60,18 @@ export default function NavBarSiapMelayani() {
                                     <li><Link href={'/percepat-new/permintaan/perlengkapan-kebersihan'} onClick={() => setPermintaanOpen(false)}>Perlengkapan Kebersihan</Link></li>
                                 </ul>
                             )}
+                        </li><li>
+                            <button onClick={toggleVerif} className="flex w-full justify-between items-center">Verifikasi
+                                <svg className={`transition-transform ml-2 ${verifOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </button>
+                            {verifOpen && (
+                                <ul className="p-2">
+                                    <li><Link href={'/percepat-new/permintaan/reagen'} onClick={() => setVerifOpen(false)}>Reagen</Link></li>
+                                    <li><Link href={'/percepat-new/permintaan/atk'} onClick={() => setVerifOpen(false)}>ATK</Link></li>
+                                    <li><Link href={'/percepat-new/permintaan/perlengkapan-kebersihan'} onClick={() => setVerifOpen(false)}>Perlengkapan Kebersihan</Link></li>
+                                </ul>
+                            )}
                         </li>
-                        <li><Link href={'/percepat-new/verifikasi'}>Verifikasi</Link></li>
                     </ul>
                 </div>
 
@@ -82,7 +95,18 @@ export default function NavBarSiapMelayani() {
                             </ul>
                         )}
                     </li>
-                    <li><Link href={'/percepat-new/verifikasi'}>Verifikasi</Link></li>
+                    <li className="relative">
+                        <button onClick={toggleVerif} className="flex items-center gap-2">Verifikasi
+                            <svg className={`transition-transform ${verifOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        {verifOpen && (
+                            <ul className="p-2 bg-base-100 rounded-box absolute top-full left-0 mt-2 shadow">
+                                <li><Link href={'/percepat-new/permintaan/reagen'} onClick={() => setPermintaanOpen(false)}>Reagen</Link></li>
+                                <li><Link href={'/percepat-new/permintaan/atk'} onClick={() => setPermintaanOpen(false)}>ATK</Link></li>
+                                <li><Link href={'/percepat-new/permintaan/perlengkapan-kebersihan'} onClick={() => setPermintaanOpen(false)}>Perlengkapan Kebersihan</Link></li>
+                            </ul>
+                        )}
+                    </li>
                 </ul>
             </div>
 

@@ -63,28 +63,34 @@ const Hero = () => {
                             transition={{ duration: 2, staggerChildren: 1 }}
                             className="flex gap-2"
                         >
-                            {user ?
-                                <Link href={'/percepat-new/permintaan/form'}>
-                                    <motion.button
-                                        // whileHover={{ backgroundColor: '#C58940' }}
-                                        className="btn bg-quaternary">
-                                        Buat Permintaan
-                                    </motion.button>
-                                </Link> :
-                                <Link href={'/login?redirectUrl=/percepat-new'}>
-                                    <motion.button
-                                        // whileHover={{ backgroundColor: '#C58940' }}
-                                        className="btn bg-quaternary">
-                                        Masuk
-                                    </motion.button>
-                                </Link>
-                            }
+                            <Link href={'/percepat-new/permintaan/reagen'}>
+                                <motion.button
+                                    className="btn bg-quaternary">
+                                    Data Permintaan
+                                </motion.button>
+                            </Link>
                             <motion.a
                                 // whileHover={{ backgroundColor: '#C58940' }}
                                 href="#inventory"
                                 className="btn bg-gray-300">
                                 Lihat Inventory
                             </motion.a>
+                            {user ?
+                                <Link href={'/percepat-new/permintaan/form'}>
+                                    <motion.button
+                                        // whileHover={{ backgroundColor: '#C58940' }}
+                                        className="btn btn-accent">
+                                        Buat Permintaan
+                                    </motion.button>
+                                </Link> :
+                                <Link href={'/login?redirectUrl=/percepat-new'}>
+                                    <motion.button
+                                        // whileHover={{ backgroundColor: '#C58940' }}
+                                        className="btn btn-accent">
+                                        Masuk
+                                    </motion.button>
+                                </Link>
+                            }
                         </motion.div>
                     </div>
                     <motion.div

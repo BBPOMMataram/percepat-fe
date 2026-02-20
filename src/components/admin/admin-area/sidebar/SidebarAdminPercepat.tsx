@@ -21,11 +21,11 @@ export default function SidebarAdminPercepat() {
             </Link>
             <div className="dropdown dropdown-right dropdown-center lg:w-full">
                 <button className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/percepat/peserta')}`}
-                    data-tip="Data Barang">
+                    data-tip="Master Data">
                     <span className="material-symbols-outlined">
                         database
                     </span>
-                    <span className="hidden lg:block whitespace-nowrap">PKL</span>
+                    <span className="hidden lg:block whitespace-nowrap">Master</span>
                 </button>
                 <ul
                     tabIndex={0}
