@@ -8,7 +8,7 @@ import { useDispatch } from "react-redux";
 interface Props {
     open: boolean;
     onClose: () => void;
-    initialData?: any;
+    initialData?: any; // data yang mau diedit, kalau null berarti form untuk tambah baru
     onSuccess?: () => void; // callback kalau data berhasil disimpan
 }
 
@@ -47,8 +47,8 @@ export default function AdminFormPerlengkapanPercepat({ open, onClose, initialDa
         setLoading(true);
 
         const url = initialData
-            ? `${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/positions/${initialData.id}`
-            : `${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/positions`;
+            ? `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/perlengkapan-kebersihan/${initialData.id}`
+            : `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/perlengkapan-kebersihan`;
 
         const method = "POST";
 
@@ -66,6 +66,8 @@ export default function AdminFormPerlengkapanPercepat({ open, onClose, initialDa
             })
             .catch(err => {
                 dispatch(showAlert({ type: 'error', message: err.response?.data?.message, description: err.data?.message }))
+                console.log(err);
+
             })
         setLoading(false);
     };

@@ -29,7 +29,7 @@ export default function AdminPerlengkapanPercepat() {
 
     const handleRemove = (id: number) => {
         if (window.confirm('Confirm delete?')) {
-            api.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/positions/${id}`)
+            api.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/perlengkapan-kebersihan/${id}`)
                 .then((res) => {
                     dispatch(showAlert({ type: 'success', message: res.data.message, description: res.data.message }))
                     loadData()
