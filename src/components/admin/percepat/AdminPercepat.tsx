@@ -3,7 +3,7 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import CountUp from "react-countup"
 
-export default function AdminSiapMelayani() {
+export default function AdminPercepat() {
     const [dataDashboard, setDataDashboard] = useState<any>(null)
 
     useEffect(() => {

@@ -17,6 +17,7 @@ import AdminSettingsSiapMelayani from "../siap-melayani/settings/AdminSettingsSi
 import AdminTataTertibSiapMelayani from "../siap-melayani/tata-tertib/AdminTataTertibSiapMelayani";
 import SidebarAdminPercepat from "./sidebar/SidebarAdminPercepat";
 import AdminPerlengkapanPercepat from "../percepat/perlengkapan/AdminPerlengkapanPercepat";
+import AdminPercepat from "../percepat/AdminPercepat";
 
 export default function AdminAreaPercepat() {
     const [callName, setCallName] = useState<string>("");
@@ -53,7 +54,7 @@ export default function AdminAreaPercepat() {
                     {/* ADMIN DASHBOARD PANEL */}
                     {
                         pathname === '/admin/percepat' && user &&
-                        <AdminSiapMelayani />
+                        <AdminPercepat />
                     }
                     {/* OTHERS */}
                     {
