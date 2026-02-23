@@ -16,6 +16,8 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: 56710
           script: |
+            set -e
+
             echo "[Deploy] Fetch latest code..."
             cd /home/bbpommataram.id/PERCEPAT || exit
             git fetch --all
@@ -36,6 +38,6 @@ jobs:
             npm prune --omit=dev # after build remove dev dependencies
 
             echo "[Deploy] Restart app..."
-            pm2 restart 0
+            pm2 restart percepat
 
             echo "[Deploy] Done ✅"
