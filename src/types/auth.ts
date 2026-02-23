@@ -39,6 +39,7 @@ export interface Employee {
     extra: string | null;
     created_at: string | null; // ISO date string | null
     updated_at: string | null; // ISO date string | null
+    group_jabatan_id: number | null,
     fungsi: {
         name: string;
     };

@@ -4,7 +4,7 @@ import dayjs from "dayjs";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-export default function VerifikasiPercepat() {
+export default function PermintaanReagenPercepat() {
     const [dataPermintaan, setDataBarang] = useState<any>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [perPage, setPerPage] = useState(10);
@@ -13,7 +13,7 @@ export default function VerifikasiPercepat() {
     const rowNumber = (index: number) => (currentPage - 1) * perPage + index + 1;
 
     useEffect(() => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/verifikasi-reagen?
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-reagen?
             per_page=${perPage}
             &kode_or_name=${kodeBarangOrNameFilter}
             `)
@@ -36,7 +36,7 @@ export default function VerifikasiPercepat() {
 
     return (
         <>
-            <h2 className="mb-5 font-bold text-lg lg:text-3xl font-serif">Data Permintaan</h2>
+            <h2 className="mb-5 font-bold text-lg lg:text-3xl font-serif">Data Permintaan Reagen</h2>
             <div className="flex flex-wrap items-center gap-4 mb-4">
                 <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-600">Tampilkan</span>
@@ -85,10 +85,10 @@ export default function VerifikasiPercepat() {
                                     <td className="px-4 py-3 font-medium">{rowNumber(index)}</td>
                                     <td className="px-4 py-3 font-semibold capitalize">{item.peminta.name}</td>
                                     <td className="px-4 py-3 font-semibold capitalize">{item.bidang?.name || item.bidang_name_auth_external}</td>
-                                    <td className={`px-4 py-3 uppercase`}>{item.bidang?.user?.name || item.katim?.name}</td>
-                                    <td className={`px-4 py-3 uppercase`}>{item.status?.name}</td>
-                                    <td className={`px-4 py-3 uppercase`}>{dayjs(item.created_at).format("DD MMM YYYY")}</td>
-                                    <td className={`px-4 py-3 uppercase`}>{
+                                    <td className={`px-4 py-3`}>{item.bidang?.user?.name || item.katim?.name}</td>
+                                    <td className={`px-4 py-3`}>{item.status?.name}</td>
+                                    <td className={`px-4 py-3`}>{dayjs(item.created_at).format("DD MMM YYYY")}</td>
+                                    <td className={`px-4 py-3`}>{
                                         item.tgl_penyerahan ?
                                             dayjs(item.tgl_penyerahan).format("DD MMM YYYY")
                                             : '-'
@@ -100,7 +100,14 @@ export default function VerifikasiPercepat() {
                 </table>
 
                 {/* Per page selector and links */}
+                <div className="flex justify-between items-center m-6">
+                    <span>
+                        Menampilkan {dataPermintaan?.from} - {dataPermintaan?.to} dari {dataPermintaan?.total} data
+                    </span>
+
+                </div>
                 <div className="flex justify-end items-center m-4 gap-4">
+
                     <div className="btn-group">
                         {
                             dataPermintaan?.links?.map((link: any, index: number) =>

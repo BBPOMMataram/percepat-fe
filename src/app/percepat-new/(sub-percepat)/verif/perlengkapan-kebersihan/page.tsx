@@ -1,5 +1,5 @@
-import PermintaanPerlengkapanKebersihanPercepat from "@/components/percepat-new/permintaan/index/PermintaanPerlengkapanKebersihan";
+import VerifPerlengkapanKebersihanPercepat from "@/components/percepat-new/verif/VerifPerlengkapanKebersihan";
 
 export default function PermintaanPerlengkapanKebersihanPage() {
-    return <PermintaanPerlengkapanKebersihanPercepat />
+    return <VerifPerlengkapanKebersihanPercepat />
 }
