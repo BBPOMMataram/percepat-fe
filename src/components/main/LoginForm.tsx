@@ -7,7 +7,7 @@ import { LoginOrRegisterResponse } from "@/types/auth";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Turnstile from "react-turnstile";
 
@@ -96,11 +96,11 @@ export default function LoginForm() {
         }
 
         // trigger invisible captcha
-        if (!captchaToken) {
-            setShowCaptcha(true);
-            setPendingSubmit(true);
-            return;
-        }
+        // if (!captchaToken) {
+        //     setShowCaptcha(true);
+        //     setPendingSubmit(true);
+        //     return;
+        // }
 
         doLogin();
     };
