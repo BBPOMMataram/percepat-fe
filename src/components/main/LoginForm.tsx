@@ -38,18 +38,20 @@ export default function LoginForm() {
     }, [dispatch]);
 
     useEffect(() => {
-        if (loading) return;
+        setTimeout(() => {
+            if (loading) return;
 
-        if (user) {
-            dispatch(
-                showAlert({
-                    type: "success",
-                    message: `You are already logged in ${user.call_name}`,
-                    description: "Redirecting...",
-                })
-            );
-            router.push(callbackUrl);
-        }
+            if (user) {
+                dispatch(
+                    showAlert({
+                        type: "success",
+                        message: `You are already logged in ${user.call_name}`,
+                        description: "Redirecting...",
+                    })
+                );
+                router.push(callbackUrl);
+            }
+        }, 1000);
     }, [user, loading, router, callbackUrl, dispatch]);
 
     /* ===============================
