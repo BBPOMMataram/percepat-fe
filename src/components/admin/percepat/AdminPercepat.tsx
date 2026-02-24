@@ -1,27 +1,26 @@
-import api from "@/utils/api"
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import CountUp from "react-countup"
 
 export default function AdminPercepat() {
     const [dataDashboard, setDataDashboard] = useState<any>(null)
 
-    useEffect(() => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/dashboard`)
-            .then(res => {
-                setDataDashboard(res.data)
-            })
-            .catch(err => {
-                console.log(err)
-            })
-    }, [])
+    // useEffect(() => {
+    //     api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/dashboard`)
+    //         .then(res => {
+    //             setDataDashboard(res.data)
+    //         })
+    //         .catch(err => {
+    //             console.log(err)
+    //         })
+    // }, [])
 
     return (
         <>
             <div className="bg-white rounded-2xl shadow px-8 py-4 flex items-center">
-                <h2 className="text-xl font-semibold text-gray-800 uppercase">Admin Panel Siap Melayani</h2>
+                <h2 className="text-xl font-semibold text-gray-800 uppercase">Admin Panel Percepat</h2>
                 <div className="tooltip tooltip-left ml-auto" data-tip="Visit Siap Melayani">
-                    <a href="/siap-melayani" target="_blank" rel="noopener noreferrer">
+                    <a href="/percepat" target="_blank" rel="noopener noreferrer">
                         <span className="material-symbols-outlined">
                             open_in_new
                         </span>
@@ -31,11 +30,11 @@ export default function AdminPercepat() {
 
             <div className="bg-white rounded-2xl shadow px-8 py-4 mt-2">
                 {/* make content center */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 justify-items-center">
-                    <div className="card bg-success text-success-content w-52 shadow-sm">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 justify-items-center">
+                    <div className="card bg-primary text-primary-content w-64 shadow-sm">
                         <div className="card-body">
-                            <h2 className="card-title">Total Peserta PKL</h2>
-                            <p className="text-4xl lg:text-6xl font-bold flex items-center justify-center">
+                            <h2 className="card-title text-sm">Total Reagen</h2>
+                            <p className="text-4xl font-bold flex items-center justify-center">
                                 {
                                     <CountUp
                                         end={dataDashboard?.totalPeserta || 0}
@@ -46,15 +45,15 @@ export default function AdminPercepat() {
                             </p>
                             <div className="card-actions justify-center">
                                 <Link href="/admin/siap-melayani/peserta">
-                                    <button className="btn btn-success">Check it out</button>
+                                    <button className="btn btn-sm btn-primary">Check it out</button>
                                 </Link>
                             </div>
                         </div>
                     </div>
-                    <div className="card bg-info text-info-content w-52 shadow-sm">
+                    <div className="card bg-secondary text-secondary-content w-64 shadow-sm">
                         <div className="card-body">
-                            <h2 className="card-title">Presensi Hari ini</h2>
-                            <p className="text-4xl lg:text-6xl font-bold flex items-center justify-center">
+                            <h2 className="card-title text-sm">Total ATK</h2>
+                            <p className="text-4xl font-bold flex items-center justify-center">
                                 {
                                     <CountUp
                                         end={dataDashboard?.totalPresensiToday || 0}
@@ -65,15 +64,15 @@ export default function AdminPercepat() {
                             </p>
                             <div className="card-actions justify-center">
                                 <Link href="/admin/siap-melayani/presensi">
-                                    <button className="btn btn-info">Check it out</button>
+                                    <button className="btn btn-sm btn-secondary">Check it out</button>
                                 </Link>
                             </div>
                         </div>
                     </div>
-                    <div className="card bg-accent text-accent-content w-52 shadow-sm">
+                    <div className="card bg-accent text-accent-content w-64 shadow-sm">
                         <div className="card-body">
-                            <h2 className="card-title">Total Pengajuan</h2>
-                            <p className="text-4xl lg:text-6xl font-bold flex items-center justify-center">
+                            <h2 className="card-title text-sm">Total Perlengkapan Kebersihan</h2>
+                            <p className="text-4xl font-bold flex items-center justify-center">
                                 {
                                     <CountUp
                                         end={dataDashboard?.totalPengajuan || 0}
@@ -84,15 +83,15 @@ export default function AdminPercepat() {
                             </p>
                             <div className="card-actions justify-center">
                                 <Link href="/admin/siap-melayani/penempatan">
-                                    <button className="btn btn-accent">Check it out</button>
+                                    <button className="btn btn-sm btn-accent">Check it out</button>
                                 </Link>
                             </div>
                         </div>
                     </div>
-                    <div className="card bg-warning text-warning-content w-52 shadow-sm">
+                    {/* <div className="card bg-warning text-warning-content w-40 shadow-sm">
                         <div className="card-body">
-                            <h2 className="card-title">Kuota PKL Tersedia</h2>
-                            <p className="text-4xl lg:text-6xl font-bold flex items-center justify-center">
+                            <h2 className="card-title text-sm">Kuota PKL Tersedia</h2>
+                            <p className="text-4xl lg:text-2xl font-bold flex items-center justify-center">
                                 {
                                     <CountUp
                                         end={dataDashboard?.totalKuota || 0}
@@ -103,11 +102,30 @@ export default function AdminPercepat() {
                             </p>
                             <div className="card-actions justify-center">
                                 <Link href="/admin/siap-melayani/presensi">
-                                    <button className="btn btn-warning">Check it out</button>
+                                    <button className="btn btn-sm btn-warning">Check it out</button>
                                 </Link>
                             </div>
                         </div>
                     </div>
+                    <div className="card bg-warning text-warning-content w-40 shadow-sm">
+                        <div className="card-body">
+                            <h2 className="card-title text-sm">Kuota PKL Tersedia</h2>
+                            <p className="text-4xl lg:text-2xl font-bold flex items-center justify-center">
+                                {
+                                    <CountUp
+                                        end={dataDashboard?.totalKuota || 0}
+                                        duration={1.5}
+                                        separator="."
+                                    />
+                                }
+                            </p>
+                            <div className="card-actions justify-center">
+                                <Link href="/admin/siap-melayani/presensi">
+                                    <button className="btn btn-sm btn-warning">Check it out</button>
+                                </Link>
+                            </div>
+                        </div>
+                    </div> */}
                 </div>
             </div>
         </>

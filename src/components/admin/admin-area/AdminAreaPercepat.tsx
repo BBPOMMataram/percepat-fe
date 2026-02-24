@@ -1,5 +1,4 @@
 "use client"
-import AdminSiapMelayani from "@/components/admin/siap-melayani/AdminSiapMelayani";
 import FooterUserArea from "@/components/main/user-area/Footer";
 import HeaderUserArea from "@/components/main/user-area/Header";
 import { getUser } from "@/features/authSlice";
@@ -7,17 +6,10 @@ import { AppDispatch, RootState } from "@/redux/store";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import AdminElearningSiapMelayani from "../siap-melayani/e-learning/AdminElearningSiapMelayani";
-import AdminPaktaIntegritasSiapMelayani from "../siap-melayani/pakta-integritas/AdminPaktaIntegritasSiapMelayani";
-import AdminPenempatanSiapMelayani from "../siap-melayani/penempatan/AdminPenempatanSiapMelayani";
-import AdminPengajuanSiapMelayani from "../siap-melayani/pengajuan/AdminPengajuanSiapMelayani";
-import AdminPesertaSiapMelayani from "../siap-melayani/peserta/AdminPesertaSiapMelayani";
-import AdminPresensiSiapMelayani from "../siap-melayani/presensi/AdminPresensiSiapMelayani";
-import AdminSettingsSiapMelayani from "../siap-melayani/settings/AdminSettingsSiapMelayani";
-import AdminTataTertibSiapMelayani from "../siap-melayani/tata-tertib/AdminTataTertibSiapMelayani";
-import SidebarAdminPercepat from "./sidebar/SidebarAdminPercepat";
-import AdminPerlengkapanPercepat from "../percepat/perlengkapan/AdminPerlengkapanPercepat";
 import AdminPercepat from "../percepat/AdminPercepat";
+import AdminPerlengkapanPercepat from "../percepat/perlengkapan/AdminPerlengkapanPercepat";
+import AdminSettingsPercepat from "../percepat/settings/AdminSettingsPercepat";
+import SidebarAdminPercepat from "./sidebar/SidebarAdminPercepat";
 
 export default function AdminAreaPercepat() {
     const [callName, setCallName] = useState<string>("");
@@ -56,38 +48,19 @@ export default function AdminAreaPercepat() {
                         pathname === '/admin/percepat' && user &&
                         <AdminPercepat />
                     }
-                    {/* OTHERS */}
+                    {/* MASTER */}
                     {
-                        pathname === '/admin/percepat/peserta' && user &&
-                        <AdminPesertaSiapMelayani />
+                        pathname === '/admin/percepat/master/perlengkapan' && user &&
+                        <AdminPerlengkapanPercepat />
                     }
+                    {/* PERMINTAAN */}
                     {
-                        pathname === '/admin/percepat/presensi' && user &&
-                        <AdminPresensiSiapMelayani />
-                    }
-                    {
-                        pathname === '/admin/percepat/penempatan' && user &&
-                        <AdminPenempatanSiapMelayani />
-                    }
-                    {
-                        pathname === '/admin/percepat/pengajuan' && user &&
-                        <AdminPengajuanSiapMelayani />
-                    }
-                    {
-                        pathname === '/admin/percepat/tata-tertib' && user &&
-                        <AdminTataTertibSiapMelayani />
-                    }
-                    {
-                        pathname === '/admin/percepat/e-learning' && user &&
-                        <AdminElearningSiapMelayani />
-                    }
-                    {
-                        pathname === '/admin/percepat/perlengkapan' && user &&
+                        pathname === '/admin/percepat/permintaan/perlengkapan' && user &&
                         <AdminPerlengkapanPercepat />
                     }
                     {
                         pathname === '/admin/percepat/settings' && user &&
-                        <AdminSettingsSiapMelayani user={user} />
+                        <AdminSettingsPercepat user={user} />
                     }
                     <FooterUserArea />
                 </div>

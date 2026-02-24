@@ -52,9 +52,6 @@ export default function PermintaanPerlengkapanKebersihanPercepat() {
     }
 
     const downloadSpbHandler = (id: number) => {
-
-        // dispatch(permintaanActions.setCurrentDataId(id)) // untuk ambil data tgl permintaan
-
         api({
             url: `/api/v1/download-permintaan-perlengkapan/${id}`,
             method: 'GET',

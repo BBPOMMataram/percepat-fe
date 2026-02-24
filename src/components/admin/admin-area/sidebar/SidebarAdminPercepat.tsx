@@ -13,7 +13,7 @@ export default function SidebarAdminPercepat() {
     return (
         <aside className="w-16 lg:w-52 bg-white flex flex-col items-center py-3 gap-4 shadow-xl px-2">
             <Image src="/assets/images/bpom.webp" alt="Icon BPOM" width={100} height={100} priority className="mx-auto w-16 h-auto p-2" />
-            <Link href={'/admin/siap-melayani'} className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/siap-melayani')}`} data-tip="Dashboard Admin">
+            <Link href={'/admin/percepat'} className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/percepat')}`} data-tip="Dashboard Admin">
                 <span className="material-symbols-outlined">
                     apps
                 </span>
@@ -32,13 +32,36 @@ export default function SidebarAdminPercepat() {
                     className="menu dropdown-content bg-base-100 rounded-box z-1 ml-4 max-w-fit p-2 shadow"
                 >
                     <li>
+                        <Link href={'/admin/percepat/perlengkapan'}>Reagen</Link>
+                    </li>
+                    <li>
+                        <Link href={'/admin/percepat/perlengkapan'}>ATK</Link>
+                    </li>
+                    <li>
+                        <Link href={'/admin/percepat/master/perlengkapan'} className="whitespace-nowrap">Perlengkapan Kebersihan</Link>
+                    </li>
+                </ul>
+            </div>
+            <div className="dropdown dropdown-right dropdown-center lg:w-full">
+                <button className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/percepat/peserta')}`}
+                    data-tip="Permintaan">
+                    <span className="material-symbols-outlined">
+                        inventory
+                    </span>
+                    <span className="hidden lg:block whitespace-nowrap">Permintaan</span>
+                </button>
+                <ul
+                    tabIndex={0}
+                    className="menu dropdown-content bg-base-100 rounded-box z-1 ml-4 max-w-fit p-2 shadow"
+                >
+                    <li>
                         <Link href={'/admin/percepat/peserta'}>Reagen</Link>
                     </li>
                     <li>
                         <Link href={'/admin/percepat/presensi'}>ATK</Link>
                     </li>
                     <li>
-                        <Link href={'/admin/percepat/perlengkapan'} className="whitespace-nowrap">Perlengkapan Kebersihan</Link>
+                        <Link href={'/admin/percepat/permintaan/perlengkapan'} className="whitespace-nowrap">Perlengkapan Kebersihan</Link>
                     </li>
                 </ul>
             </div>

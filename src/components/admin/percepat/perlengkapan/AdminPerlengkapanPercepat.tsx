@@ -1,23 +1,27 @@
-import { showAlert } from "@/features/alertSlice";
+import { ModalListBarangPermintaanPercepat } from "@/components/percepat/admin/permintaan/ModalListBarangPermintaan";
 import { AppDispatch } from "@/redux/store";
 import api from "@/utils/api";
+import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
+import { toast } from "react-toastify";
 import AdminFormPerlengkapanPercepat from "./AdminFormPerlengkapanPercepat";
 
 export default function AdminPerlengkapanPercepat() {
     const [data, setData] = useState<any>([])
     const [currentPage, setCurrentPage] = useState(1);
     const [perPage, setPerPage] = useState(10);
-
     const [open, setOpen] = useState<boolean>(false)
     const [editData, setEditData] = useState<any>(null)
+
+    const [listBarangPermintaan, setListBarangPermintaan] = useState<any>([]);
+    const [showModalListBarangPermintaan, setShowModalListBarangPermintaan] = useState(false);
 
     const dispatch = useDispatch<AppDispatch>()
 
     const rowNumber = (index: number) => (currentPage - 1) * perPage + index + 1;
     const loadData = () => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/perlengkapan-kebersihan?
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-perlengkapan-kebersihan??
             per_page=${perPage}`)
             .then(({ data }) => {
                 setData(data)
@@ -27,22 +31,52 @@ export default function AdminPerlengkapanPercepat() {
             })
     }
 
-    const handleRemove = (id: number) => {
-        if (window.confirm('Confirm delete?')) {
-            api.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/perlengkapan-kebersihan/${id}`)
-                .then((res) => {
-                    dispatch(showAlert({ type: 'success', message: res.data.message, description: res.data.message }))
-                    loadData()
-                })
-                .catch(err => {
-                    dispatch(showAlert({ type: 'error', message: err.response?.data?.message, description: err.data?.message }))
-                })
-        }
+    const downloadSpbHandler = (id: number) => {
+        api({
+            url: `/api/v1/download-permintaan-perlengkapan/${id}`,
+            method: 'GET',
+            responseType: 'blob'
+        })
+            .then(({ data }) => {
+                const url = window.URL.createObjectURL(new Blob([data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `SPB-Perlengkapan-Kebersihan-${id}.pdf`); //or any other extension
+                document.body.appendChild(link);
+                link.click();
+
+                toast.success('Download berhasil !', {
+                    position: "top-right",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: "light",
+                });
+            })
+            .catch(err => console.log(err))
+    }
+
+    const showListBarangHandler = (id: number) => {
+        setShowModalListBarangPermintaan(true);
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/list-permintaan-perlengkapan-kebersihan/${id}`)
+            .then(({ data }) => {
+                // dispatch(permintaanActions.setListInventory(data.data));
+                console.log('list barang', data);
+                setListBarangPermintaan(data.data)
+            })
+            .catch((err) => {
+                console.log(err)
+            });
     }
 
     useEffect(() => {
         loadData()
     }, [perPage])
+
+
 
     return (
         <>
@@ -84,39 +118,47 @@ export default function AdminPerlengkapanPercepat() {
                     <table className="ar-table">
                         <thead>
                             <tr>
-                                <th>No</th>
-                                <th>Nama</th>
-                                <th>Stock</th>
-                                <th>Satuan</th>
-                                <th>##</th>
+                                <th className="px-4 py-3 text-left">#</th>
+                                <th className="px-4 py-3 text-left">Pemohon</th>
+                                <th className="px-4 py-3 text-left">Fungsi</th>
+                                <th className="px-4 py-3 text-left">KaTim / Penyelia</th>
+                                <th className="px-4 py-3 text-left">Status</th>
+                                <th className="px-4 py-3 text-left">Tgl Permintaan</th>
+                                <th className="px-4 py-3 text-left">Tgl Penyerahan</th>
+                                <th className="px-4 py-3 text-center">##</th>
                             </tr>
                         </thead>
                         <tbody>
                             {
                                 data?.data?.map((item: any, index: number) => (
-                                    <tr key={item.id}>
-                                        <td>{rowNumber(index)}</td>
-                                        <td>{item.name}</td>
-                                        <td>{item.stock}</td>
-                                        <td>{item.satuan}</td>
-                                        <td>
-                                            <button
-                                                className="btn btn-sm"
-                                                onClick={() => {
-                                                    setEditData(item);
-                                                    setOpen(true);
-                                                }}
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                className="btn btn-sm btn-error ml-1"
-                                                onClick={() => handleRemove(item.id)}
-                                            >
-                                                Delete
-                                            </button>
+                                    <tr
+                                        key={item.id}
+                                        className={`border-t transition`}
+                                    >
+                                        <td className="px-4 py-3 font-medium">{rowNumber(index)}</td>
+                                        <td className="px-4 py-3 capitalize">{item.peminta.name}</td>
+                                        <td className="px-4 py-3 capitalize">{item.bidang?.name || item.bidang_name_auth_external}</td>
+                                        <td className="px-4 py-3 capitalize">{item.bidang?.user?.name || item.katim?.name}</td>
+                                        <td className="px-4 py-3 capitalize">{item.status?.name}</td>
+                                        <td className="px-4 py-3 capitalize">{dayjs(item.created_at).format("DD MMM YYYY")}</td>
+                                        <td className="px-4 py-3">{
+                                            item.tgl_penyerahan ?
+                                                dayjs(item.tgl_penyerahan).format("DD MMM YYYY")
+                                                : '-'
+                                        }</td>
+                                        <td className="px-4 py-3 flex">
+                                            <span className="btn btn-sm btn-ghost btn-error tooltip tooltip-error tooltip-left" data-tip="Download SPB" onClick={() => downloadSpbHandler(item.id)}>
+                                                <span className="material-symbols-outlined">
+                                                    download
+                                                </span>
+                                            </span>
+
+                                            <span className="btn btn-sm btn-ghost btn-accent tooltip tooltip-accent tooltip-left" data-tip="List Barang" onClick={() => showListBarangHandler(item.id)}>
+                                                <span className="material-symbols-outlined">
+                                                    list
+                                                </span>
+                                            </span>
                                         </td>
-                                        {/* <td>{item.created_at ? dayjs(item.created_at).format("dddd, DD MMMM YYYY (HH:mm)") : '-'}</td> */}
                                     </tr>
                                 ))
                             }
@@ -147,6 +189,55 @@ export default function AdminPerlengkapanPercepat() {
                     </div>
                 </div>
             </div>
+
+            {
+                showModalListBarangPermintaan &&
+                <ModalListBarangPermintaanPercepat
+                    open={showModalListBarangPermintaan}
+                    onClose={() => setShowModalListBarangPermintaan(false)}
+                >
+                    <h3 className="text-lg font-semibold mb-4">List Barang Permintaan</h3>
+
+                    <ul className="max-h-96 overflow-y-auto list-decimal list-inside">
+                        {listBarangPermintaan.length === 0 ? (
+                            <li className="text-gray-500">Tidak ada barang dalam permintaan ini.</li>
+                        ) : (
+                            listBarangPermintaan.map((item: any, index: number) => (
+                                <li key={index} className="my-1 py-1 px-2 w-fit rounded">
+                                    {`${item.barang?.name} (Stok: ${item.barang?.stock})`}
+                                    {/* {
+                                                    !isViewMode && <span data-id={item.id} className="text-red-600 ml-1" onClick={removeItemListHandler} role="button">
+                                                        <FontAwesomeIcon icon={faTrash} />
+                                                    </span>
+                                                } */}
+                                    <div className="text-xs [&>span]:mr-1">
+                                        <span className="badge badge-soft badge-primary">Jumlah Permintaan : {item.jumlahpermintaan}</span>
+                                        <span className="badge badge-soft badge-primary">Jumlah Realisasi : {item.jumlahrealisasi || '-'}</span>
+                                        <span className="badge badge-soft badge-primary">Satuan : {item.barang.satuan || '-'}</span>
+                                        {/* <span className="badge badge-soft badge-primary">Expired : {expiredFormatted}</span> */}
+                                        <span className="badge badge-soft badge-primary">Ket : {item.keterangan || '-'}</span>
+                                    </div>
+                                    {/* 
+                                                {
+                                                    showRealisasiInput &&
+                                                    <div>
+                                                        <label htmlFor="realisasi">Realisasi : </label>
+                                                        <input type="number" name="realisasi" min={0}
+                                                            className="realisasi mt-2 rounded w-16 px-2 py-1"
+                                                            onChange={(e: any) => setJumlahRealisasi((prev: any) => {
+                                                                const updatedArray = [...prev];
+                                                                updatedArray[index] = parseInt(e.target.value) || 0; // Use parseInt to convert to number
+                                                                return updatedArray;
+                                                            })}
+                                                        />
+                                                    </div>
+                                                } */}
+                                </li>
+                            ))
+                        )}
+                    </ul>
+                </ModalListBarangPermintaanPercepat>
+            }
         </>
     )
 }
