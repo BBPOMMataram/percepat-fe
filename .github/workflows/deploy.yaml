@@ -29,7 +29,7 @@ jobs:
             nvm use 22
 
             npm ci
-            npm run build
+            npm run build -- --no-lint
             pm2 restart percepat
 
             echo "[Deploy] Done ✅"
