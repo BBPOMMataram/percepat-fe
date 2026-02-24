@@ -29,7 +29,8 @@ jobs:
             nvm use 22
 
             npm ci
-            npm run build -- --no-lint
+            echo "[Deploy] Build Next.js..."
+            NODE_OPTIONS="--max-old-space-size=4096" npm run build -- --no-lint
             pm2 restart percepat
 
             echo "[Deploy] Done ✅"
