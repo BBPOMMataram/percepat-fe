@@ -12,7 +12,7 @@ interface Props {
     onSuccess?: () => void; // callback kalau data berhasil disimpan
 }
 
-export default function AdminFormPerlengkapanPercepat({ open, onClose, initialData, onSuccess }: Props) {
+export default function AdminMasterFormPerlengkapanPercepat({ open, onClose, initialData, onSuccess }: Props) {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<any>({
         stock: 0,

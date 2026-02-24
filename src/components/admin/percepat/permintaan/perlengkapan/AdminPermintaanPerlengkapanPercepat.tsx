@@ -5,9 +5,8 @@ import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
-import AdminFormPerlengkapanPercepat from "./AdminFormPerlengkapanPercepat";
 
-export default function AdminPerlengkapanPercepat() {
+export default function AdminPermintaanPerlengkapanPercepat() {
     const [data, setData] = useState<any>([])
     const [currentPage, setCurrentPage] = useState(1);
     const [perPage, setPerPage] = useState(10);
@@ -80,24 +79,22 @@ export default function AdminPerlengkapanPercepat() {
 
     return (
         <>
-            <AdminFormPerlengkapanPercepat open={open} onClose={() => setOpen(false)} initialData={editData} onSuccess={loadData} />
-
             <div className="bg-white rounded-2xl shadow px-8 py-4 mb-2 flex flex-col md:flex-row">
                 <div className="text-lg font-semibold text-gray-800 uppercase">Perlengkapan Kebersihan</div>
                 <h2 className="text-xl font-semibold text-gray-800 uppercase md:ml-auto">Admin Panel Percepat</h2>
             </div>
             <div className="bg-white rounded-2xl shadow px-8 py-4">
                 <div className="flex flex-wrap items-center gap-4 mb-4">
-                    <div className="mb-4">
+                    {/* <div className="mb-4">
                         <button className="btn btn-primary"
                             onClick={() => {
                                 setOpen(true)
                                 setEditData(null)
                             }}
                         >Add New</button>
-                    </div>
+                    </div> */}
 
-                    <div className="flex items-center gap-2 ml-auto">
+                    <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600">Tampilkan</span>
                         <select
                             value={perPage}

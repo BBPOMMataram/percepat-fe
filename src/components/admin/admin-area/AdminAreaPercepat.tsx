@@ -7,7 +7,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import AdminPercepat from "../percepat/AdminPercepat";
-import AdminPerlengkapanPercepat from "../percepat/perlengkapan/AdminPerlengkapanPercepat";
+import AdminMasterPerlengkapanPercepat from "../percepat/master/perlengkapan/AdminMasterPerlengkapanPercepat";
+import AdminPermintaanPerlengkapanPercepat from "../percepat/permintaan/perlengkapan/AdminPermintaanPerlengkapanPercepat";
 import AdminSettingsPercepat from "../percepat/settings/AdminSettingsPercepat";
 import SidebarAdminPercepat from "./sidebar/SidebarAdminPercepat";
 
@@ -51,12 +52,12 @@ export default function AdminAreaPercepat() {
                     {/* MASTER */}
                     {
                         pathname === '/admin/percepat/master/perlengkapan' && user &&
-                        <AdminPerlengkapanPercepat />
+                        <AdminMasterPerlengkapanPercepat />
                     }
                     {/* PERMINTAAN */}
                     {
                         pathname === '/admin/percepat/permintaan/perlengkapan' && user &&
-                        <AdminPerlengkapanPercepat />
+                        <AdminPermintaanPerlengkapanPercepat />
                     }
                     {
                         pathname === '/admin/percepat/settings' && user &&
