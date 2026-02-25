@@ -137,7 +137,7 @@ export default function PermintaanPerlengkapanKebersihanPercepat() {
                                     <td className="px-4 py-3 capitalize">{item.bidang?.name || item.bidang_name_auth_external}</td>
                                     <td className="px-4 py-3 capitalize">{item.bidang?.user?.name || item.katim?.name}</td>
                                     <td className="px-4 py-3 capitalize">{item.status?.name}</td>
-                                    <td className="px-4 py-3 capitalize">{dayjs(item.created_at).format("DD MMM YYYY")}</td>
+                                    <td className="px-4 py-3 capitalize">{dayjs(item.tgl_permintaan).format("DD MMM YYYY")}</td>
                                     <td className="px-4 py-3">{
                                         item.tgl_penyerahan ?
                                             dayjs(item.tgl_penyerahan).format("DD MMM YYYY")
