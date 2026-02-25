@@ -15,6 +15,7 @@ export default function AdminPermintaanPerlengkapanPercepat() {
     const [showModalListBarangPermintaan, setShowModalListBarangPermintaan] = useState(false);
     const [listBarangPermintaan, setListBarangPermintaan] = useState<any>([]);
     const [permintaanId, setPermintaanId] = useState<number | null>(null); // 
+    const [jumlahRealisasi, setJumlahRealisasi] = useState<any>([]); // Array untuk menyimpan jumlah realisasi per item
 
     const { user } = useSelector((state: any) => state.auth);
 
@@ -32,6 +33,19 @@ export default function AdminPermintaanPerlengkapanPercepat() {
             })
             .catch(err => console.log(err));
     }, [perPage]);
+
+    const getListBarangPermintaan = (id: number) => {
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/list-permintaan-perlengkapan-kebersihan/${id}`)
+            .then(({ data }) => {
+                setListBarangPermintaan(data.data)
+                // initialize jumlahRealisasi to match jumlah permintaan (use existing jumlahrealisasi if provided, otherwise use jumlahpermintaan, fallback to 1)
+                const defaults = data.data.map((item: any) => (item.jumlahrealisasi ?? item.jumlahpermintaan ?? 1));
+                setJumlahRealisasi(defaults);
+            })
+            .catch((err) => {
+                console.log(err)
+            });
+    }
 
     const downloadSpbHandler = (id: number) => {
         api({
@@ -63,13 +77,7 @@ export default function AdminPermintaanPerlengkapanPercepat() {
 
     const showListBarangHandler = (id: number) => {
         setShowModalListBarangPermintaan(true);
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/list-permintaan-perlengkapan-kebersihan/${id}`)
-            .then(({ data }) => {
-                setListBarangPermintaan(data.data)
-            })
-            .catch((err) => {
-                console.log(err)
-            });
+        getListBarangPermintaan(id);
     }
 
     useEffect(() => {
@@ -83,7 +91,14 @@ export default function AdminPermintaanPerlengkapanPercepat() {
 
     const closeModalVerifPetugasHandler = () => {
         setOpenModalVerifPetugas(false);
-        // setListBarangPermintaan([]);
+        setListBarangPermintaan([]);
+        setJumlahRealisasi([]);
+    }
+
+    const openModalVerifPetugasHandler = (id: number) => {
+        setPermintaanId(id);
+        setOpenModalVerifPetugas(true);
+        getListBarangPermintaan(id);
     }
 
     const verifPetugasHandler = (id: number) => {
@@ -94,12 +109,13 @@ export default function AdminPermintaanPerlengkapanPercepat() {
 
         api.post(`/api/v1/verif-petugas-perlengkapan-kebersihan/${id}`,
             {
-                user
+                user,
+                realisasi: jumlahRealisasi,
             })
             .then(res => {
-                console.log(res);
                 dispatch(showAlert({ type: "success", message: res.data.message, description: res.data.message }))
                 loadData();
+                closeModalVerifPetugasHandler();
             })
             .catch(err => {
                 console.log(err)
@@ -162,12 +178,6 @@ export default function AdminPermintaanPerlengkapanPercepat() {
                                                 : '-'
                                         }</td>
                                         <td className="px-4 py-3 flex">
-                                            <span className="btn btn-sm btn-ghost btn-success tooltip tooltip-success tooltip-left" data-tip="Verif Permintaan"
-                                                onClick={() => verifPetugasHandler(item.id)}>
-                                                <span className="material-symbols-outlined">
-                                                    check_small
-                                                </span>
-                                            </span>
                                             <span className="btn btn-sm btn-ghost btn-error tooltip tooltip-error tooltip-left" data-tip="Download SPB"
                                                 onClick={() => downloadSpbHandler(item.id)}>
                                                 <span className="material-symbols-outlined">
@@ -180,6 +190,15 @@ export default function AdminPermintaanPerlengkapanPercepat() {
                                                     list
                                                 </span>
                                             </span>
+                                            {
+                                                (item.status_id === 3) &&
+                                                <span className="btn btn-sm btn-ghost btn-success tooltip tooltip-success tooltip-left" data-tip="Verif Permintaan"
+                                                    onClick={() => openModalVerifPetugasHandler(item.id)}>
+                                                    <span className="material-symbols-outlined">
+                                                        check_small
+                                                    </span>
+                                                </span>
+                                            }
                                         </td>
                                     </tr>
                                 ))
@@ -235,11 +254,12 @@ export default function AdminPermintaanPerlengkapanPercepat() {
                 </ul>
             </ModalGeneral>
 
+            {/* MODAL VERIF OLEH PETUGAS */}
             <ModalGeneral
                 open={openModalVerifPetugas}
                 onClose={closeModalVerifPetugasHandler}
             >
-                <h3 className="text-lg font-semibold mb-4">List Barang Permintaan</h3>
+                <h3 className="text-lg font-semibold mb-4">Verifikasi Permintaan</h3>
 
                 <ul className="max-h-96 overflow-y-auto list-decimal list-inside">
                     {listBarangPermintaan.length === 0 ? (
@@ -248,37 +268,37 @@ export default function AdminPermintaanPerlengkapanPercepat() {
                         listBarangPermintaan.map((item: any, index: number) => (
                             <li key={index} className="my-1 py-1 px-2 w-fit rounded">
                                 {`${item.barang?.name} (Stok: ${item.barang?.stock})`}
-                                {/* {
-                                                    !isViewMode && <span data-id={item.id} className="text-red-600 ml-1" onClick={removeItemListHandler} role="button">
-                                                        <FontAwesomeIcon icon={faTrash} />
-                                                    </span>
-                                                } */}
+                                <span className="ml-4">
+                                    <label htmlFor={`realisasi-${index}`} className="text-secondary">Realisasi : </label>
+                                    <input
+                                        type="number"
+                                        id={`realisasi-${index}`}
+                                        min={1}
+                                        value={jumlahRealisasi[index] ?? (item.jumlahpermintaan ?? 1)}
+                                        className="ar-input w-16 my-2 outline-1 outline-secondary rounded px-1"
+                                        onChange={(e: any) => {
+                                            const val = parseInt(e.target.value) || 0;
+                                            setJumlahRealisasi((prev: any) => {
+                                                const updatedArray = [...(prev || [])];
+                                                updatedArray[index] = val;
+                                                return updatedArray;
+                                            });
+                                        }}
+                                    />
+                                </span>
                                 <div className="text-xs [&>span]:mr-1">
                                     <span className="badge badge-soft badge-primary">Jumlah Permintaan : {item.jumlahpermintaan}</span>
                                     <span className="badge badge-soft badge-primary">Jumlah Realisasi : {item.jumlahrealisasi || '-'}</span>
                                     <span className="badge badge-soft badge-primary">Satuan : {item.barang.satuan || '-'}</span>
-                                    {/* <span className="badge badge-soft badge-primary">Expired : {expiredFormatted}</span> */}
                                     <span className="badge badge-soft badge-primary">Ket : {item.keterangan || '-'}</span>
                                 </div>
-                                {/* 
-                                                {
-                                                    showRealisasiInput &&
-                                                    <div>
-                                                        <label htmlFor="realisasi">Realisasi : </label>
-                                                        <input type="number" name="realisasi" min={0}
-                                                            className="realisasi mt-2 rounded w-16 px-2 py-1"
-                                                            onChange={(e: any) => setJumlahRealisasi((prev: any) => {
-                                                                const updatedArray = [...prev];
-                                                                updatedArray[index] = parseInt(e.target.value) || 0; // Use parseInt to convert to number
-                                                                return updatedArray;
-                                                            })}
-                                                        />
-                                                    </div>
-                                                } */}
+
                             </li>
                         ))
                     )}
                 </ul>
+
+                <button className="btn btn-primary mt-4" onClick={() => verifPetugasHandler(permintaanId!)}>Verifikasi</button>
             </ModalGeneral>
         </>
     )
