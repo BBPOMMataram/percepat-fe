@@ -6,7 +6,7 @@ type ModalProps = {
     children: ReactNode
 }
 
-export const ModalListBarangPermintaanPercepat = ({ open, onClose, children }: ModalProps) => {
+export const ModalGeneral = ({ open, onClose, children }: ModalProps) => {
     return (
         <div
             className={`

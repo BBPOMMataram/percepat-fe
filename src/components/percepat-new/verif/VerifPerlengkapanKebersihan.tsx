@@ -1,5 +1,5 @@
 "use client";
-import { ModalListBarangPermintaanPercepat } from "@/components/percepat/admin/permintaan/ModalListBarangPermintaan";
+import { ModalGeneral } from "@/components/main/ModalGeneral";
 import { showAlert } from "@/features/alertSlice";
 import { RootState } from "@/redux/store";
 import api from "@/utils/api";
@@ -235,7 +235,7 @@ export default function VerifPerlengkapanKebersihanPercepat() {
             </div>
             {
                 showModalListBarangPermintaan &&
-                <ModalListBarangPermintaanPercepat
+                <ModalGeneral
                     open={showModalListBarangPermintaan}
                     onClose={() => setShowModalListBarangPermintaan(false)}
                 >
@@ -279,9 +279,8 @@ export default function VerifPerlengkapanKebersihanPercepat() {
                             ))
                         )}
                     </ul>
-                </ModalListBarangPermintaanPercepat>
+                </ModalGeneral>
             }
-
         </>
     )
 }

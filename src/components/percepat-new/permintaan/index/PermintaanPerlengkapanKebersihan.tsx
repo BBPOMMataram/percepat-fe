@@ -1,5 +1,5 @@
 "use client";
-import { ModalListBarangPermintaanPercepat } from "@/components/percepat/admin/permintaan/ModalListBarangPermintaan";
+import { ModalGeneral } from "@/components/main/ModalGeneral";
 import api from "@/utils/api";
 import dayjs from "dayjs";
 import Link from "next/link";
@@ -77,6 +77,11 @@ export default function PermintaanPerlengkapanKebersihanPercepat() {
                 });
             })
             .catch(err => console.log(err))
+    }
+
+    const closeModalListBarangPermintaanHandler = () => {
+        setShowModalListBarangPermintaan(false);
+        setListBarangPermintaan([]);
     }
 
     return (
@@ -207,9 +212,9 @@ export default function PermintaanPerlengkapanKebersihanPercepat() {
             </div>
             {
                 showModalListBarangPermintaan &&
-                <ModalListBarangPermintaanPercepat
+                <ModalGeneral
                     open={showModalListBarangPermintaan}
-                    onClose={() => setShowModalListBarangPermintaan(false)}
+                    onClose={closeModalListBarangPermintaanHandler}
                 >
                     <h3 className="text-lg font-semibold mb-4">List Barang Permintaan</h3>
 
@@ -251,9 +256,8 @@ export default function PermintaanPerlengkapanKebersihanPercepat() {
                             ))
                         )}
                     </ul>
-                </ModalListBarangPermintaanPercepat>
+                </ModalGeneral>
             }
-
         </>
     )
 }

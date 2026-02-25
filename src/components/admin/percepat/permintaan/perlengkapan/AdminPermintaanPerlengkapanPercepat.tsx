@@ -1,4 +1,4 @@
-import { ModalListBarangPermintaanPercepat } from "@/components/percepat/admin/permintaan/ModalListBarangPermintaan";
+import { ModalGeneral } from "@/components/main/ModalGeneral";
 import { AppDispatch } from "@/redux/store";
 import api from "@/utils/api";
 import dayjs from "dayjs";
@@ -75,7 +75,10 @@ export default function AdminPermintaanPerlengkapanPercepat() {
         loadData()
     }, [perPage])
 
-
+    const closeModalListBarangPermintaanHandler = () => {
+        setShowModalListBarangPermintaan(false);
+        setListBarangPermintaan([]);
+    }
 
     return (
         <>
@@ -189,9 +192,9 @@ export default function AdminPermintaanPerlengkapanPercepat() {
 
             {
                 showModalListBarangPermintaan &&
-                <ModalListBarangPermintaanPercepat
+                <ModalGeneral
                     open={showModalListBarangPermintaan}
-                    onClose={() => setShowModalListBarangPermintaan(false)}
+                    onClose={closeModalListBarangPermintaanHandler}
                 >
                     <h3 className="text-lg font-semibold mb-4">List Barang Permintaan</h3>
 
@@ -233,7 +236,7 @@ export default function AdminPermintaanPerlengkapanPercepat() {
                             ))
                         )}
                     </ul>
-                </ModalListBarangPermintaanPercepat>
+                </ModalGeneral>
             }
         </>
     )
