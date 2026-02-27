@@ -1,5 +1,5 @@
-import PermintaanReagenPercepat from "@/components/percepat-new/permintaan/index/PermintaanReagen";
+import VerifReagenPercepat from "@/components/percepat-new/verif/VerifReagen";
 
-export default function PermintaanReagenPage() {
-    return <PermintaanReagenPercepat />
+export default function PermintaanPerlengkapanKebersihanPage() {
+    return <VerifReagenPercepat />
 }

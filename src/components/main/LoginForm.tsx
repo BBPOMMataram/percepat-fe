@@ -37,22 +37,22 @@ export default function LoginForm() {
         dispatch(getUser());
     }, [dispatch]);
 
-    useEffect(() => {
-        setTimeout(() => {
-            if (loading) return;
+    // useEffect(() => {
+    //     setTimeout(() => {
+    //         if (loading) return;
 
-            if (user) {
-                dispatch(
-                    showAlert({
-                        type: "success",
-                        message: `You are already logged in ${user.call_name}`,
-                        description: "Redirecting...",
-                    })
-                );
-                router.push(callbackUrl);
-            }
-        }, 1000);
-    }, [user, loading, router, callbackUrl, dispatch]);
+    //         if (user) {
+    //             dispatch(
+    //                 showAlert({
+    //                     type: "success",
+    //                     message: `You are already logged in ${user.call_name || user.name}!`,
+    //                     description: "Redirecting...",
+    //                 })
+    //             );
+    //             router.push(callbackUrl);
+    //         }
+    //     }, 1000);
+    // }, [user, loading, router, callbackUrl, dispatch]);
 
     /* ===============================
        LOGIN CORE

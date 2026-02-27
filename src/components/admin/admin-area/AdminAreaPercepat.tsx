@@ -9,6 +9,7 @@ import { useDispatch, useSelector } from "react-redux";
 import AdminPercepat from "../percepat/AdminPercepat";
 import AdminMasterPerlengkapanPercepat from "../percepat/master/perlengkapan/AdminMasterPerlengkapanPercepat";
 import AdminPermintaanPerlengkapanPercepat from "../percepat/permintaan/perlengkapan/AdminPermintaanPerlengkapanPercepat";
+import AdminPermintaanReagenPercepat from "../percepat/permintaan/reagen/AdminPermintaanReagenPercepat";
 import AdminSettingsPercepat from "../percepat/settings/AdminSettingsPercepat";
 import SidebarAdminPercepat from "./sidebar/SidebarAdminPercepat";
 
@@ -55,6 +56,10 @@ export default function AdminAreaPercepat() {
                         <AdminMasterPerlengkapanPercepat />
                     }
                     {/* PERMINTAAN */}
+                    {
+                        pathname === '/admin/percepat/permintaan/reagen' && user &&
+                        <AdminPermintaanReagenPercepat />
+                    }
                     {
                         pathname === '/admin/percepat/permintaan/perlengkapan' && user &&
                         <AdminPermintaanPerlengkapanPercepat />
