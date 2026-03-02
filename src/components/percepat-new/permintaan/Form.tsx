@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import FormPerlengkapanKebersihan from "./FormPerlengkapanKebersihan";
 import FormReagen from "./FormReagen";
+import FormAtk from "./FromAtk";
 
 export default function FormPemeliharaanSimpelBmn() {
     const [listBarang, setListBarang] = useState<any[]>([]);
@@ -73,7 +74,8 @@ export default function FormPemeliharaanSimpelBmn() {
                 redirectUrlAfterSubmit = '/percepat-new/permintaan/reagen';
                 break;
             case 'atk':
-                // endpoint atk
+                url += `/api/v1/permintaan-atk`;
+                redirectUrlAfterSubmit = '/percepat-new/permintaan/atk';
                 break;
             case 'baku pembanding':
                 // endpoint baku pembanding
@@ -124,9 +126,10 @@ export default function FormPemeliharaanSimpelBmn() {
                             className="ar-input-text-purple"
                         >
                             {listJenisBarang.map((jb, index) => {
-                                const isAllowed = ['reagen', 'perlengkapan kebersihan'].includes(jb.toLowerCase().trim());
+                                const isAllowed = ['baku pembanding', 'suku cadang']
+                                    .includes(jb.toLowerCase().trim());
                                 return (
-                                    <option key={index} value={jb} disabled={!isAllowed}>
+                                    <option key={index} value={jb} disabled={isAllowed}>
                                         {jb.toUpperCase()}
                                     </option>
                                 );
@@ -171,15 +174,15 @@ export default function FormPemeliharaanSimpelBmn() {
                     {jenisBarang === 'reagen' && (
                         <FormReagen listBarang={listBarang} setListBarang={setListBarang} />
                     )}
-                    {/* {jenisBarang === 'atk' && (
+                    {jenisBarang === 'atk' && (
                         <FormAtk listBarang={listBarang} setListBarang={setListBarang} />
-                        )}
-                        {jenisBarang === 'baku pembanding' && (
-                            <FormBakuPembanding listBarang={listBarang} setListBarang={setListBarang} />
-                            )}
-                            {jenisBarang === 'suku cadang' && (
-                                <FormSukuCadang listBarang={listBarang} setListBarang={setListBarang} />
-                                )} */}
+                    )}
+                    {/* {jenisBarang === 'baku pembanding' && (
+                        <FormBakuPembanding listBarang={listBarang} setListBarang={setListBarang} />
+                    )}
+                    {jenisBarang === 'suku cadang' && (
+                        <FormSukuCadang listBarang={listBarang} setListBarang={setListBarang} />
+                    )} */}
                     {jenisBarang === 'perlengkapan kebersihan' && (
                         <FormPerlengkapanKebersihan listBarang={listBarang} setListBarang={setListBarang} />
                     )}

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 
-export default function PermintaanReagenPercepat() {
+export default function PermintaanAtkPercepat() {
     const [dataPermintaan, setDataBarang] = useState<any>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [perPage, setPerPage] = useState(10);
@@ -17,7 +17,7 @@ export default function PermintaanReagenPercepat() {
     const rowNumber = (index: number) => (currentPage - 1) * perPage + index + 1;
 
     useEffect(() => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-reagen?
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-atk?
             per_page=${perPage}
             &kode_or_name=${kodeBarangOrNameFilter}
             `)
@@ -34,7 +34,7 @@ export default function PermintaanReagenPercepat() {
 
     const showListBarangHandler = (id: number) => {
         setShowModalListBarangPermintaan(true);
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/list-permintaan-reagen/${id}`)
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/list-permintaan-atk/${id}`)
             .then(({ data }) => {
                 // dispatch(permintaanActions.setListInventory(data.data));
                 console.log('list barang', data);
@@ -47,7 +47,7 @@ export default function PermintaanReagenPercepat() {
 
     const downloadSpbHandler = (id: number) => {
         api({
-            url: `/api/v1/download-permintaan-reagen/${id}`,
+            url: `/api/v1/download-permintaan-atk/${id}`,
             method: 'GET',
             responseType: 'blob'
         })
@@ -55,7 +55,7 @@ export default function PermintaanReagenPercepat() {
                 const url = window.URL.createObjectURL(new Blob([data]));
                 const link = document.createElement('a');
                 link.href = url;
-                link.setAttribute('download', `SPB-Reagen-${id}.pdf`); //or any other extension
+                link.setAttribute('download', `SPB-ATK-${id}.pdf`); //or any other extension
                 document.body.appendChild(link);
                 link.click();
 
@@ -230,34 +230,14 @@ export default function PermintaanReagenPercepat() {
                         ) : (
                             listBarangPermintaan.map((item: any, index: number) => (
                                 <li key={index} className="my-1 py-1 px-2 w-fit rounded">
-                                    {`${item.barang?.name} (Stok: ${item.barang?.stock})`}
-                                    {/* {
-                                                    !isViewMode && <span data-id={item.id} className="text-red-600 ml-1" onClick={removeItemListHandler} role="button">
-                                                        <FontAwesomeIcon icon={faTrash} />
-                                                    </span>
-                                                } */}
+                                    {`${item.atk?.name} (Stok: ${item.atk?.stock})`}
                                     <div className="text-xs [&>span]:mr-1">
                                         <span className="badge badge-soft badge-primary">Jumlah Permintaan : {item.jumlahpermintaan}</span>
                                         <span className="badge badge-soft badge-primary">Jumlah Realisasi : {item.jumlahrealisasi || '-'}</span>
-                                        <span className="badge badge-soft badge-primary">Satuan : {item.barang?.satuan || '-'}</span>
-                                        <span className="badge badge-soft badge-primary">Expired : {item.barang?.expired ? dayjs(item.barang?.expired).format("DD MMM YYYY") : '-'}</span>
+                                        <span className="badge badge-soft badge-primary">Satuan : {item.atk?.satuan || '-'}</span>
                                         <span className="badge badge-soft badge-primary">Ket : {item.keterangan || '-'}</span>
                                     </div>
-                                    {/* 
-                                                {
-                                                    showRealisasiInput &&
-                                                    <div>
-                                                        <label htmlFor="realisasi">Realisasi : </label>
-                                                        <input type="number" name="realisasi" min={0}
-                                                            className="realisasi mt-2 rounded w-16 px-2 py-1"
-                                                            onChange={(e: any) => setJumlahRealisasi((prev: any) => {
-                                                                const updatedArray = [...prev];
-                                                                updatedArray[index] = parseInt(e.target.value) || 0; // Use parseInt to convert to number
-                                                                return updatedArray;
-                                                            })}
-                                                        />
-                                                    </div>
-                                                } */}
+
                                 </li>
                             ))
                         )}
