@@ -156,6 +156,7 @@ export default function AdminPermintaanPerlengkapanPercepat() {
                                 <th className="px-4 py-3 text-left">Status</th>
                                 <th className="px-4 py-3 text-left">Tgl Permintaan</th>
                                 <th className="px-4 py-3 text-left">Tgl Penyerahan</th>
+                                <th className="px-4 py-3 text-left">Yange Menyerahkan</th>
                                 <th className="px-4 py-3 text-center">##</th>
                             </tr>
                         </thead>
@@ -177,6 +178,7 @@ export default function AdminPermintaanPerlengkapanPercepat() {
                                                 dayjs(item.tgl_penyerahan).format("DD MMM YYYY")
                                                 : '-'
                                         }</td>
+                                        <td className="px-4 py-3 capitalize">{item.penyerah?.name || '-'}</td>
                                         <td className="px-4 py-3 flex">
                                             <span className="btn btn-sm btn-ghost btn-error tooltip tooltip-error tooltip-left" data-tip="Download SPB"
                                                 onClick={() => downloadSpbHandler(item.id)}>
