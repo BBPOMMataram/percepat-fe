@@ -1,10 +1,9 @@
 "use client";
 
-import LoadingWithoutText from "@/components/percepat/admin/layouts/LoadingWithoutText";
+import LoadingWithoutText from "@/components/percepat-new/admin/layouts/LoadingWithoutText";
 import { showAlert } from "@/features/alertSlice";
 import { AppDispatch } from "@/redux/store";
 import api from "@/utils/api";
-import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 
