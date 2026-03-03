@@ -94,7 +94,7 @@ export default function VerifAtkPercepat() {
 
     return (
         <>
-            <h2 className="mb-5 font-bold text-lg lg:text-3xl font-serif">Data Permintaan Reagen</h2>
+            <h2 className="mb-5 font-bold text-lg lg:text-3xl font-serif">Data Permintaan ATK</h2>
             <div className="flex flex-wrap items-center gap-4 mb-4">
                 <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-600">Tampilkan</span>

@@ -36,7 +36,6 @@ export default function PermintaanAtkPercepat() {
         setShowModalListBarangPermintaan(true);
         api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/list-permintaan-atk/${id}`)
             .then(({ data }) => {
-                // dispatch(permintaanActions.setListInventory(data.data));
                 console.log('list barang', data);
                 setListBarangPermintaan(data.data)
             })
@@ -85,7 +84,7 @@ export default function PermintaanAtkPercepat() {
 
     return (
         <>
-            <h2 className="mb-5 font-bold text-lg lg:text-3xl font-serif">Data Permintaan Reagen</h2>
+            <h2 className="mb-5 font-bold text-lg lg:text-3xl font-serif">Data Permintaan ATK</h2>
             <div className="flex flex-wrap items-center gap-4 mb-4">
                 <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-600">Tampilkan</span>
@@ -194,8 +193,6 @@ export default function PermintaanAtkPercepat() {
                                                     setDataBarang(data);
                                                     setCurrentPage(data?.current_page);
                                                     setPerPage(data?.per_page);
-                                                    console.log('test', data);
-
                                                 })
                                         }
                                     }}
