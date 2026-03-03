@@ -27,6 +27,14 @@ jobs:
       # 4️⃣ Build Next.js
       - name: Build project
         run: npm run build
+        env:
+          NEXT_PUBLIC_BACKEND_URL_PERCEPAT: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_PERCEPAT }}
+          NEXT_PUBLIC_BACKEND_URL_AUTH: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_AUTH }}
+          NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI }}
+          NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN }}
+          NEXT_PUBLIC_BACKEND_URL_BEST_EMPLOYEE: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_BEST_EMPLOYEE }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
 
       # 5️⃣ Upload build files ke VPS
       - name: Copy build files to VPS
