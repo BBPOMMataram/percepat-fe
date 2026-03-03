@@ -66,6 +66,30 @@ export default function SidebarAdminPercepat() {
                 </ul>
             </div>
 
+            <div className="dropdown dropdown-right dropdown-center lg:w-full">
+                <button className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/percepat/peserta')}`}
+                    data-tip="Permintaan">
+                    <span className="material-symbols-outlined">
+                        inventory_2
+                    </span>
+                    <span className="hidden lg:block whitespace-nowrap">Penerimaan</span>
+                </button>
+                <ul
+                    tabIndex={0}
+                    className="menu dropdown-content bg-base-100 rounded-box z-1 ml-4 max-w-fit p-2 shadow"
+                >
+                    <li>
+                        <Link href={'/admin/percepat/permintaan/reagen'}>Reagen</Link>
+                    </li>
+                    <li>
+                        <Link href={'/admin/percepat/permintaan/atk'}>ATK</Link>
+                    </li>
+                    <li>
+                        <Link href={'/admin/percepat/permintaan/perlengkapan'} className="whitespace-nowrap">Perlengkapan Kebersihan</Link>
+                    </li>
+                </ul>
+            </div>
+
             <Link href={'/admin/percepat/settings'} className={`mt-auto flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/percepat/settings')}`} data-tip="Settings">
                 <span className="material-symbols-outlined">
                     settings
