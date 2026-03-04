@@ -36,7 +36,6 @@ export default function TablePermintaanAtk({ url, limit, title, isWithAction = t
         const link = `${url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${atk?.current_page}&limit=${limit}`
         dispatch(fetchDataAtk(link))
 
-        /// eslint-disable-next-line react-hooks/exhaustive-deps
     }, [valuePerPage, nameToSearch, atk?.current_page, limit, dispatch, atk.current_page])
 
     const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {

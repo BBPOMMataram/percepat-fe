@@ -53,12 +53,17 @@ export default function AdminMasterFormReagenPercepat({ open, onClose, initialDa
 
         const method = "POST";
 
+        let payload = formData;
+
         if (initialData) {
-            formData['_method'] = 'PUT'; // untuk method spoofing di Laravel
+            payload = {
+                ...formData,
+                _method: 'PUT'
+            };
         }
 
         await api({
-            url, method, data: formData
+            url, method, data: payload
         })
             .then((res) => {
                 dispatch(showAlert({ type: 'success', message: res.data.message, description: res.data.message }))
