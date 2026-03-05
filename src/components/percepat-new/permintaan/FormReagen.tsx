@@ -1,6 +1,6 @@
 "use client";
 
-import LoadingWithoutText from "@/components/percepat-new/admin/layouts/LoadingWithoutText";
+import LoadingWithoutText from "@/components/main/loading/LoadingWithoutText";
 import { showAlert } from "@/features/alertSlice";
 import { AppDispatch } from "@/redux/store";
 import api from "@/utils/api";

@@ -3,10 +3,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import './percepat-new/globals.css';
 
 import Alert from '@/components/main/Alert';
-import Loading from '@/components/percepat-new/admin/layouts/Loading';
-import { config } from '@fortawesome/fontawesome-svg-core';
-import '@fortawesome/fontawesome-svg-core/styles.css';
-config.autoAddCss = false
+import Loading from '@/components/main/loading/Loading';
 
 export const metadata = {
   title: {

@@ -1,8 +1,6 @@
-import { faBan, faExternalLinkAlt } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import LoadingWithoutText from "@/components/main/loading/LoadingWithoutText";
+import api from "@/utils/api";
 import { Fragment, useCallback, useEffect, useState } from "react";
-import axiosInstance from "../../../config/axios";
-import LoadingWithoutText from "../admin/layouts/LoadingWithoutText";
 
 export default function TableReagen(props: any) {
     const [reagen, setReagen] = useState<any>()
@@ -10,7 +8,7 @@ export default function TableReagen(props: any) {
     const [nameToSearch, setNameToSearch] = useState('')
 
     const getData = useCallback(async (url = `${props.url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${reagen?.current_page}`) => {
-        const { data } = await axiosInstance.get(url)
+        const { data } = await api.get(url)
 
         setReagen(data);
     }, [valuePerPage, reagen, nameToSearch, props])
@@ -34,7 +32,11 @@ export default function TableReagen(props: any) {
                     <td>{item.satuan}</td>
                     <td>{new Date(item.expired).toLocaleDateString('id-ID', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</td>
                     <td>{item.stock}</td>
-                    <td className="text-center">{item.msds && <a href={item.msds} target="_blank"><FontAwesomeIcon icon={faExternalLinkAlt} className="text-quaternary" /></a> || <FontAwesomeIcon icon={faBan} className="text-red-500" />}</td>
+                    <td className="text-center">{item.msds && <a href={item.msds} target="_blank">
+                        <p className="material-symbols-outlined">
+                            link
+                        </p>
+                    </a> || '-'}</td>
                 </tr>
             )
         })

@@ -1,5 +1,3 @@
-import { faToggleOff, faToggleOn } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import cs from "classnames";
 import { useState } from "react";
 import TableAtk from "./TableAtk";
@@ -28,25 +26,18 @@ const Inventory = () => {
                             })}>ATK</a>
                         </li>
                     </ul>
-                    <button onClick={() => setIsReagen(!isReagen)} className="text-5xl">
-                        {isReagen ?
-                            <FontAwesomeIcon icon={faToggleOff} className="text-quaternary" fixedWidth />
-                            :
-                            <FontAwesomeIcon icon={faToggleOn} className="text-quaternary" fixedWidth />
-                        }
-                    </button>
                 </nav>
             </section>
             <section className="content">
                 <div className="w-full">
                     {isReagen ?
                         <TableReagen
-                            url='api/barang/reagen'
+                            url='api/v1/barang/reagen'
                             title='Data Reagen'
                         />
                         :
                         <TableAtk
-                            url='api/barang/atk'
+                            url='api/v1/barang/atk'
                             title='Data ATK'
                         />
                     }

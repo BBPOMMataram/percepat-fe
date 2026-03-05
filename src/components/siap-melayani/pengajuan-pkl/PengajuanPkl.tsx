@@ -1,10 +1,10 @@
 'use client'
-import LoadingWithoutText from "@/components/percepat-new/admin/layouts/LoadingWithoutText";
 import { getUser } from "@/features/authSlice";
 import { AppDispatch, RootState } from "@/redux/store";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import PengajuanIfLoggedUserSiapMelayani from "./PengajuanIfLoggedUser";
+import LoadingWithoutText from "@/components/main/loading/LoadingWithoutText";
 
 export default function PengajuanPklSiapMelayani() {
     const dispatch = useDispatch<AppDispatch>()

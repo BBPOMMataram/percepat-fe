@@ -97,7 +97,7 @@ const Hero = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 1, duration: 2 }}
-                        className="hero-illustration hidden md:flex flex-1 bg-gradient-to-l from-teriary justify-center items-center"
+                        className="hero-illustration hidden md:flex flex-1 bg-linear-to-l from-teriary justify-center items-center"
                     >
                         <motion.div
                             initial={{ x: 450 }}

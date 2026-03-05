@@ -1,6 +1,6 @@
+import LoadingWithoutText from "@/components/main/loading/LoadingWithoutText";
+import api from "@/utils/api";
 import { Fragment, useCallback, useEffect, useState } from "react";
-import axiosInstance from "../../../config/axios";
-import LoadingWithoutText from "../admin/layouts/LoadingWithoutText";
 
 export default function TableAtk(props: any) {
     const [data, setReagen] = useState<any>()
@@ -8,7 +8,7 @@ export default function TableAtk(props: any) {
     const [nameToSearch, setNameToSearch] = useState('')
 
     const getData = useCallback(async (url = `${props.url}?value_per_page=${valuePerPage}&name=${nameToSearch}&page=${data?.current_page}`) => {
-        const res = await axiosInstance.get(url)
+        const res = await api.get(url)
 
         setReagen(res.data);
     }, [valuePerPage, data, nameToSearch, props])

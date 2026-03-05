@@ -1,5 +1,4 @@
 "use client"
-import LoadingWithoutText from "@/components/percepat-new/admin/layouts/LoadingWithoutText";
 import axios from "@/config/axios";
 import { showAlert } from "@/features/alertSlice";
 import { AppDispatch } from "@/redux/store";
@@ -7,6 +6,7 @@ import { AppData } from "@/types/app-data";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import AppContainer from "./AppContainer";
+import LoadingWithoutText from "@/components/main/loading/LoadingWithoutText";
 
 export default function AppSection() {
     const [dataApp, setDataApp] = useState<AppData[]>([])

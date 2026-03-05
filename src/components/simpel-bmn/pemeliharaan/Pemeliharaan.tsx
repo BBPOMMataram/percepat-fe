@@ -1,6 +1,5 @@
 "use client"
 
-import LoadingWithoutText from "@/components/percepat-new/admin/layouts/LoadingWithoutText"
 import { RootState } from "@/redux/store"
 import api from "@/utils/api"
 import Link from "next/link"
@@ -10,6 +9,7 @@ import ContentDisposisi from "./ContentDisposisi"
 import ContentPemeliharaanAll from "./ContentPemeliharaanAll"
 import ContentPemeliharaanAnda from "./ContentPemeliharaanAnda"
 import ModalDetailPemeliharaan from "./detail/ModalDetailPemeliharaan"
+import LoadingWithoutText from "@/components/main/loading/LoadingWithoutText"
 
 export default function PemeliharaanSimpelBmn() {
     const [dataPemeliharaanAnda, setDataPemeliharaanAnda] = useState<any[]>([])
