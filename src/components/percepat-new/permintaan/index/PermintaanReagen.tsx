@@ -212,7 +212,7 @@ export default function PermintaanReagenPercepat() {
             <div className="fixed bottom-4 lg:bottom-8 right-4 lg:right-8 tooltip tooltip-left" data-tip="Create New">
                 <Link
                     href="/percepat-new/permintaan/form"
-                    className="btn btn-primary btn-floating btn-circle hover:scale-110 hover:rotate-[90deg] transition-all duration-200 ease-in-out" >
+                    className="btn btn-primary btn-floating btn-circle hover:scale-110 hover:rotate-90 transition-all duration-200 ease-in-out" >
                     <span className="material-symbols-outlined">
                         add
                     </span>

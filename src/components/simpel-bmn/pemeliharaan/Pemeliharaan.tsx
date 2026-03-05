@@ -1,5 +1,6 @@
 "use client"
 
+import LoadingWithoutText from "@/components/main/loading/LoadingWithoutText"
 import { RootState } from "@/redux/store"
 import api from "@/utils/api"
 import Link from "next/link"
@@ -9,7 +10,6 @@ import ContentDisposisi from "./ContentDisposisi"
 import ContentPemeliharaanAll from "./ContentPemeliharaanAll"
 import ContentPemeliharaanAnda from "./ContentPemeliharaanAnda"
 import ModalDetailPemeliharaan from "./detail/ModalDetailPemeliharaan"
-import LoadingWithoutText from "@/components/main/loading/LoadingWithoutText"
 
 export default function PemeliharaanSimpelBmn() {
     const [dataPemeliharaanAnda, setDataPemeliharaanAnda] = useState<any[]>([])
@@ -257,7 +257,7 @@ export default function PemeliharaanSimpelBmn() {
             <div className="fixed bottom-4 lg:bottom-8 right-4 lg:right-8 tooltip tooltip-left" data-tip="Create New">
                 <Link
                     href="/simpel-bmn/pemeliharaan/form"
-                    className="btn btn-primary btn-floating btn-circle hover:scale-110 hover:rotate-[90deg] transition-all duration-200 ease-in-out" >
+                    className="btn btn-primary btn-floating btn-circle hover:scale-110 hover:rotate-90 transition-all duration-200 ease-in-out" >
                     <span className="material-symbols-outlined">
                         add
                     </span>
