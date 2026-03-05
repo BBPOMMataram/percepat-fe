@@ -36,8 +36,8 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
 
-      # 5️⃣ Upload build files ke VPS
-      - name: Copy build files to VPS
+      # 5️⃣ Copy ke VPS
+      - name: Upload build to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -47,7 +47,7 @@ jobs:
           source: ".next,public,package.json,package-lock.json,ecosystem.config.js"
           target: "/home/bbpommataram.id/PERCEPAT"
 
-      # 6️⃣ Restart PM2 di VPS
+      # 6️⃣ Install dependency + restart PM2
       - name: Restart PM2
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -56,9 +56,14 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: 56710
           script: |
+            set -e
+
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             nvm use 22
 
             cd /home/bbpommataram.id/PERCEPAT
-            pm2 restart percepat
+
+            npm ci --omit=dev
+
+            pm2 startOrRestart ecosystem.config.js
