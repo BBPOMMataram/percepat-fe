@@ -12,7 +12,6 @@ module.exports = {
             max_memory_restart: "500M",
             env: {
                 NODE_ENV: "production",
-                JWT_SECRET: "oSslZm8O2XLGuF2ovnEibfxsXaZTgYEpNVC6QdhPYKXY1x7sbdNVwnayc8dOfFog"
             }
         }
     ]
