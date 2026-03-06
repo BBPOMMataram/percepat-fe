@@ -12,27 +12,30 @@ jobs:
       # 1️⃣ Checkout repo
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
 
-      # 2️⃣ Setup Node
+      # 2️⃣ Cek apakah dependency berubah
+      - name: Check dependency changes
+        id: deps
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            deps:
+              - 'package.json'
+              - 'package-lock.json'
+
+      # 3️⃣ Setup Node
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: "npm"
 
-      # 3️⃣ Install dependencies (hanya jika berubah)
+      # 4️⃣ Install dependencies hanya jika berubah
       - name: Install dependencies
-        run: |
-          if git diff --name-only HEAD^ HEAD | grep -q "package-lock.json"; then
-            echo "Dependencies changed → running npm ci"
-            npm ci
-          else
-            echo "No dependency changes → skip npm ci"
-          fi
+        if: steps.deps.outputs.deps == 'true'
+        run: npm ci
 
-      # 4️⃣ Build Next.js
+      # 5️⃣ Build Next.js
       - name: Build project
         run: npm run build
         env:
@@ -44,7 +47,7 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
 
-      # 5️⃣ Upload build ke VPS
+      # 6️⃣ Upload ke VPS
       - name: Upload build to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -55,7 +58,7 @@ jobs:
           source: ".next,public,package.json,package-lock.json,ecosystem.config.js"
           target: "/home/bbpommataram.id/PERCEPAT"
 
-      # 6️⃣ Install dependency + restart PM2
+      # 7️⃣ Restart server
       - name: Restart PM2
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -72,12 +75,9 @@ jobs:
 
             cd /home/bbpommataram.id/PERCEPAT
 
-            # install dependency hanya jika berubah
-            if git diff --name-only HEAD@{1} HEAD | grep -q "package-lock.json"; then
-              echo "Dependencies changed → npm ci"
+            # install dependency hanya jika package berubah
+            if [ "${{ steps.deps.outputs.deps }}" = "true" ]; then
               npm ci --omit=dev
-            else
-              echo "No dependency changes → skip npm ci"
             fi
 
             pm2 startOrRestart ecosystem.config.js
