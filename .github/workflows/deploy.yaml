@@ -12,6 +12,8 @@ jobs:
       # 1️⃣ Checkout repo
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       # 2️⃣ Setup Node
       - name: Setup Node
@@ -20,9 +22,15 @@ jobs:
           node-version: 22
           cache: "npm"
 
-      # 3️⃣ Install dependencies
+      # 3️⃣ Install dependencies (hanya jika berubah)
       - name: Install dependencies
-        run: npm ci
+        run: |
+          if git diff --name-only HEAD^ HEAD | grep -q "package-lock.json"; then
+            echo "Dependencies changed → running npm ci"
+            npm ci
+          else
+            echo "No dependency changes → skip npm ci"
+          fi
 
       # 4️⃣ Build Next.js
       - name: Build project
@@ -36,7 +44,7 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
 
-      # 5️⃣ Copy ke VPS
+      # 5️⃣ Upload build ke VPS
       - name: Upload build to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -64,6 +72,12 @@ jobs:
 
             cd /home/bbpommataram.id/PERCEPAT
 
-            npm ci --omit=dev
+            # install dependency hanya jika berubah
+            if git diff --name-only HEAD@{1} HEAD | grep -q "package-lock.json"; then
+              echo "Dependencies changed → npm ci"
+              npm ci --omit=dev
+            else
+              echo "No dependency changes → skip npm ci"
+            fi
 
             pm2 startOrRestart ecosystem.config.js
