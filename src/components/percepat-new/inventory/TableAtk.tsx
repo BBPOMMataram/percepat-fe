@@ -31,7 +31,7 @@ export default function TableAtk(props: any) {
                     <td>{item.name}</td>
                     <td>{item.satuan}</td>
                     <td>{item.stock}</td>
-                    <td>{item.description}</td>
+                    <td>{item.description || '-'}</td>
                 </tr>
             )
         })
