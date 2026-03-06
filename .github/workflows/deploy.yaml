@@ -13,7 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2️⃣ Cek apakah dependency berubah
+      # 2️⃣ Detect perubahan dependency
       - name: Check dependency changes
         id: deps
         uses: dorny/paths-filter@v3
@@ -30,9 +30,8 @@ jobs:
           node-version: 22
           cache: "npm"
 
-      # 4️⃣ Install dependencies hanya jika berubah
+      # 4️⃣ Install dependencies (WAJIB di runner)
       - name: Install dependencies
-        if: steps.deps.outputs.deps == 'true'
         run: npm ci
 
       # 5️⃣ Build Next.js
@@ -47,7 +46,7 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
 
-      # 6️⃣ Upload ke VPS
+      # 6️⃣ Upload build ke VPS
       - name: Upload build to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -58,7 +57,7 @@ jobs:
           source: ".next,public,package.json,package-lock.json,ecosystem.config.js"
           target: "/home/bbpommataram.id/PERCEPAT"
 
-      # 7️⃣ Restart server
+      # 7️⃣ Install dependency jika berubah + restart PM2
       - name: Restart PM2
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -75,9 +74,11 @@ jobs:
 
             cd /home/bbpommataram.id/PERCEPAT
 
-            # install dependency hanya jika package berubah
             if [ "${{ steps.deps.outputs.deps }}" = "true" ]; then
+              echo "Dependencies changed → install"
               npm ci --omit=dev
+            else
+              echo "Dependencies unchanged → skip install"
             fi
 
             pm2 startOrRestart ecosystem.config.js
