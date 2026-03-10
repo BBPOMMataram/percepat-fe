@@ -79,13 +79,13 @@ export default function SidebarAdminPercepat() {
                     className="menu dropdown-content bg-base-100 rounded-box z-1 ml-4 max-w-fit p-2 shadow"
                 >
                     <li>
-                        <Link href={'/admin/percepat/permintaan/reagen'}>Reagen</Link>
+                        <Link href={'/admin/percepat/penerimaan/reagen'}>Reagen</Link>
                     </li>
                     <li>
-                        <Link href={'/admin/percepat/permintaan/atk'}>ATK</Link>
+                        <Link href={'/admin/percepat/penerimaan/atk'}>ATK</Link>
                     </li>
                     <li>
-                        <Link href={'/admin/percepat/permintaan/perlengkapan'} className="whitespace-nowrap">Perlengkapan Kebersihan</Link>
+                        <Link href={'/admin/percepat/penerimaan/perlengkapan'} className="whitespace-nowrap">Perlengkapan Kebersihan</Link>
                     </li>
                 </ul>
             </div>

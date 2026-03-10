@@ -15,6 +15,7 @@ import AdminPermintaanPerlengkapanPercepat from "../percepat/permintaan/perlengk
 import AdminPermintaanReagenPercepat from "../percepat/permintaan/reagen/AdminPermintaanReagenPercepat";
 import AdminSettingsPercepat from "../percepat/settings/AdminSettingsPercepat";
 import SidebarAdminPercepat from "./sidebar/SidebarAdminPercepat";
+import AdminPenerimaanReagenPercepat from "../percepat/penerimaan/reagen/AdminPenerimaanReagenPercepat";
 
 export default function AdminAreaPercepat() {
     const [callName, setCallName] = useState<string>("");
@@ -79,6 +80,21 @@ export default function AdminAreaPercepat() {
                         pathname === '/admin/percepat/permintaan/perlengkapan' && user &&
                         <AdminPermintaanPerlengkapanPercepat />
                     }
+                    {/* PENERIMAAN */}
+                    {
+                        pathname === '/admin/percepat/penerimaan/reagen' && user &&
+                        <AdminPenerimaanReagenPercepat />
+                    }
+                    {
+                        pathname === '/admin/percepat/penerimaan/atk' && user &&
+                        <AdminAtkPercepat />
+                    }
+                    {
+                        pathname === '/admin/percepat/penerimaan/perlengkapan' && user &&
+                        <AdminPermintaanPerlengkapanPercepat />
+                    }
+
+
                     {
                         pathname === '/admin/percepat/settings' && user &&
                         <AdminSettingsPercepat user={user} />
