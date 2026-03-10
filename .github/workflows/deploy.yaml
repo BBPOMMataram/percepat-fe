@@ -9,31 +9,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # checkout repo
+      # 1️⃣ Checkout repo
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # setup node
+      # 2️⃣ Detect perubahan dependency
+      - name: Check dependency changes
+        id: deps
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            deps:
+              - 'package.json'
+              - 'package-lock.json'
+
+      # 3️⃣ Setup Node
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: "npm"
 
-      # cache build next
-      - name: Cache Next.js build
-        uses: actions/cache@v4
-        with:
-          path: .next/cache
-          key: ${{ runner.os }}-next-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-next-
-
-      # install dependency
+      # 4️⃣ Install dependencies (WAJIB di runner)
       - name: Install dependencies
         run: npm ci
 
-      # build next
+      # 5️⃣ Build Next.js
       - name: Build project
         run: npm run build
         env:
@@ -45,7 +46,7 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
 
-      # upload build ke server
+      # 6️⃣ Upload build ke VPS
       - name: Upload build to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -56,7 +57,7 @@ jobs:
           source: ".next,public,package.json,package-lock.json,ecosystem.config.js"
           target: "/home/bbpommataram.id/PERCEPAT"
 
-      # install prod dependency + restart
+      # 7️⃣ Install dependency jika berubah + restart PM2
       - name: Restart PM2
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -73,6 +74,11 @@ jobs:
 
             cd /home/bbpommataram.id/PERCEPAT
 
-            npm ci --omit=dev
+            if [ "${{ steps.deps.outputs.deps }}" = "true" ]; then
+              echo "Dependencies changed → install"
+              npm ci --omit=dev
+            else
+              echo "Dependencies unchanged → skip install"
+            fi
 
             pm2 startOrRestart ecosystem.config.js

@@ -22,7 +22,6 @@ export async function middleware(req: NextRequest) {
 
   if (!isProtected) return NextResponse.next();
 
-  console.log("COOKIE:", req.cookies.get("access_token"))
   if (!token) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("redirectUrl", pathname + search);
