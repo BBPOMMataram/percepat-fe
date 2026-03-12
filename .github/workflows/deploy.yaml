@@ -54,7 +54,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: 56710
-          source: ".next,public,package.json,package-lock.json,ecosystem.config.js"
+          source: ".next,public,package.json,package-lock.json,ecosystem.config.js,next.config.js"
           target: "/home/bbpommataram.id/PERCEPAT"
 
       # 7️⃣ Install dependency jika berubah + restart PM2
