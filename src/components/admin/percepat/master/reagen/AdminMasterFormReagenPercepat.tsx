@@ -20,19 +20,23 @@ export default function AdminMasterFormReagenPercepat({ open, onClose, initialDa
         satuan: "",
         expired: "",
     });
-    const [tanggal, setTanggal] = useState<string>();
+    const [tanggal, setTanggal] = useState<string>("");
 
     const dispatch = useDispatch<AppDispatch>()
 
     useEffect(() => {
-        if (initialData) setFormData(initialData);
-        else
+        if (initialData) {
+            setFormData(initialData);
+            setTanggal(initialData.expired || "");
+        } else {
             setFormData({
                 stock: 0,
                 name: "",
                 satuan: "",
-                desc: "",
+                expired: "",
             });
+            setTanggal("");
+        }
     }, [initialData, open]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -53,11 +57,15 @@ export default function AdminMasterFormReagenPercepat({ open, onClose, initialDa
 
         const method = "POST";
 
-        let payload = formData;
+        // Include expired date in payload
+        let payload = {
+            ...formData,
+            expired: tanggal || "",
+        };
 
         if (initialData) {
             payload = {
-                ...formData,
+                ...payload,
                 _method: 'PUT'
             };
         }

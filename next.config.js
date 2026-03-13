@@ -18,7 +18,6 @@ const nextConfig = {
             {
                 protocol: 'https',
                 hostname: 'auth.bbpommataram.id',
-                pathname: '/**',
             },
             {
                 protocol: 'https',
