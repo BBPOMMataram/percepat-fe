@@ -97,17 +97,32 @@ export default function AdminPenerimaanFormReagenPercepat({ open, onClose, initi
         if (initialData) {
             console.log('initial data: ', initialData);
 
-            setFormData(initialData);
+            setFormData({
+                barangId: initialData.barangs_id || initialData.barang?.id || "",
+                jumlah: initialData.jumlah ?? "",
+                vendor: initialData.vendor || "",
+                // tglTerima: initialData.tglTerima || "", // Use created_at for display
+            });
             setSelectedReagen(initialData.barang);
             setSearchTerm(initialData.barang?.name || "");
-            setTglTerimaSelected(initialData.tglTerima || "");
-            setTglExpiredSelected(initialData.tglExpired || "");
+
+            // Use created_at for tglTerima display (table shows it)
+            if (initialData.created_at) {
+                setTglTerimaSelected(dayjs(initialData.created_at).format("YYYY-MM-DD"));
+            }
+
+            // Try barang.expired first, then penerimaan.expired
+            if (initialData.barang?.expired) {
+                setTglExpiredSelected(dayjs(initialData.barang.expired).format("YYYY-MM-DD"));
+            } else if (initialData.expired) {
+                setTglExpiredSelected(dayjs(initialData.expired).format("YYYY-MM-DD"));
+            }
         } else {
             setFormData({
                 barangId: "",
                 jumlah: "",
                 vendor: "",
-                tglTerima: "",
+                // tglTerima: "",
             });
             setSelectedReagen(null);
             setSearchTerm("");
@@ -121,12 +136,31 @@ export default function AdminPenerimaanFormReagenPercepat({ open, onClose, initi
         const { name, value } = e.target;
         setFormData((prev: any) => ({
             ...prev,
-            [name]: name === "jumlah" ? Number(value) : value,
+            [name]: name === "jumlah" ? (value || 0) : (value || ""),
         }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Client-side validation
+        if (!selectedReagen) {
+            dispatch(showAlert({ type: 'error', message: 'Barang wajib dipilih', description: 'input validation failed' }));
+            return;
+        }
+        if (!formData.jumlah || formData.jumlah <= 0) {
+            dispatch(showAlert({ type: 'error', message: 'Jumlah tidak boleh kosong', description: 'input validation failed' }));
+            return;
+        }
+        if (!formData.vendor?.trim()) {
+            dispatch(showAlert({ type: 'error', message: 'Vendor tidak boleh kosong', description: 'input validation failed' }));
+            return;
+        }
+        if (!tglTerimaSelected) {
+            dispatch(showAlert({ type: 'error', message: 'Tanggal Terima tidak boleh kosong', description: 'input validation failed' }));
+            return;
+        }
+
         setLoading(true);
 
         const url = initialData
@@ -137,10 +171,12 @@ export default function AdminPenerimaanFormReagenPercepat({ open, onClose, initi
 
         let payload = {
             ...formData,
-            tglTerima: tglTerimaSelected || "",
-            tglExpired: tglExpiredSelected || "",
-            barangNama: selectedReagen?.name || "",
-            barangSatuan: selectedReagen?.satuan || "",
+            barangId: selectedReagen.id,
+            jumlah: Number(formData.jumlah),
+            tglTerima: tglTerimaSelected,
+            tglExpired: tglExpiredSelected || null,
+            barangNama: selectedReagen.name,
+            barangSatuan: selectedReagen.satuan,
         };
 
         if (initialData) {
@@ -160,9 +196,8 @@ export default function AdminPenerimaanFormReagenPercepat({ open, onClose, initi
                 console.log('res', res);
             })
             .catch(err => {
-                dispatch(showAlert({ type: 'error', message: err.response?.data?.message, description: err.data?.message }))
+                dispatch(showAlert({ type: 'error', message: err.response?.data?.message || 'Terjadi kesalahan', description: err.data?.message }))
                 console.log(err);
-
             })
         setLoading(false);
     };
@@ -220,13 +255,13 @@ export default function AdminPenerimaanFormReagenPercepat({ open, onClose, initi
                             )}
                         </div>
 
-                        {/* {selectedReagen && (
+                        {selectedReagen && (
                             <div className="p-3 bg-blue-50 rounded border border-blue-200">
                                 <p className="text-sm font-medium">Barang Dipilih: {selectedReagen.name}</p>
-                                <p className="text-sm text-gray-600">Stok Tersedia: {selectedReagen.stock}</p>
-                                <p className="text-sm text-gray-600">Satuan: {selectedReagen.satuan}</p>
+                                {/* <p className="text-sm text-gray-600">Stok Tersedia: {selectedReagen.stock}</p>
+                                <p className="text-sm text-gray-600">Satuan: {selectedReagen.satuan}</p> */}
                             </div>
-                        )} */}
+                        )}
 
                         <div>
                             <label className="block text-sm font-medium mb-1">Jumlah</label>
