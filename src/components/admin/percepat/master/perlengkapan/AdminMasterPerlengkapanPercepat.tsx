@@ -1,7 +1,7 @@
 import { showAlert } from "@/features/alertSlice";
 import { AppDispatch } from "@/redux/store";
 import api from "@/utils/api";
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import AdminMasterFormPerlengkapanPercepat from "./AdminMasterFormPerlengkapanPercepat";
 
@@ -9,22 +9,22 @@ export default function AdminMasterPerlengkapanPercepat() {
     const [data, setData] = useState<any>([])
     const [currentPage, setCurrentPage] = useState(1);
     const [perPage, setPerPage] = useState(10);
-
     const [open, setOpen] = useState<boolean>(false)
     const [editData, setEditData] = useState<any>(null)
+    const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
 
     const dispatch = useDispatch<AppDispatch>()
 
     const rowNumber = (index: number) => (currentPage - 1) * perPage + index + 1;
     const loadData = useCallback(() => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/perlengkapan-kebersihan?per_page=${perPage}`)
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/perlengkapan-kebersihan?per_page=${perPage}&name=${kodeBarangOrNameFilter}`)
             .then(({ data }) => {
                 setData(data)
                 setCurrentPage(data?.current_page);
                 setPerPage(data?.per_page);
                 console.log(data);
             })
-    }, [perPage]);
+    }, [perPage, kodeBarangOrNameFilter]);
 
     const handleRemove = (id: number) => {
         if (window.confirm('Confirm delete?')) {
@@ -37,6 +37,12 @@ export default function AdminMasterPerlengkapanPercepat() {
                     dispatch(showAlert({ type: 'error', message: err.response?.data?.message, description: err.data?.message }))
                 })
         }
+    }
+
+    const filterKodeOrNameHander = (v: string) => {
+        setTimeout(() => {
+            setKodeBarangOrNameFilter(v)
+        }, 2000);
     }
 
     useEffect(() => {
@@ -75,9 +81,9 @@ export default function AdminMasterPerlengkapanPercepat() {
                             <option value="50">50</option>
                         </select>
                     </div>
-                    {/* <div className="ml-auto flex items-center gap-2">
-                    <input type="text" className="ar-input-text-purple" placeholder="Cari Kode Barang / Nama" onChange={e => filterKodeOrNameHander(e.currentTarget.value)} />
-                </div> */}
+                    <div className="ml-auto flex items-center gap-2">
+                        <input type="text" className="ar-input-text-purple" placeholder="Cari Nama" onChange={e => filterKodeOrNameHander(e.currentTarget.value)} />
+                    </div>
                 </div>
                 <div className="w-full overflow-x-auto">
                     <table className="ar-table">

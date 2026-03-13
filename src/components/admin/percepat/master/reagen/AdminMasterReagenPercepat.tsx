@@ -12,19 +12,20 @@ export default function AdminMasterReagenPercepat() {
     const [perPage, setPerPage] = useState(10);
     const [open, setOpen] = useState<boolean>(false)
     const [editData, setEditData] = useState<any>(null)
+    const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
 
     const dispatch = useDispatch<AppDispatch>()
 
     const rowNumber = (index: number) => (currentPage - 1) * perPage + index + 1;
     const loadData = useCallback(() => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/reagen?per_page=${perPage}`)
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/reagen?per_page=${perPage}&name=${kodeBarangOrNameFilter}`)
             .then(({ data }) => {
                 setData(data)
                 setCurrentPage(data?.current_page);
                 setPerPage(data?.per_page);
                 console.log(data);
             })
-    }, [perPage]);
+    }, [perPage, kodeBarangOrNameFilter]);
 
     const handleRemove = (id: number) => {
         if (window.confirm('Confirm delete?')) {
@@ -37,6 +38,12 @@ export default function AdminMasterReagenPercepat() {
                     dispatch(showAlert({ type: 'error', message: err.response?.data?.message, description: err.data?.message }))
                 })
         }
+    }
+
+    const filterKodeOrNameHander = (v: string) => {
+        setTimeout(() => {
+            setKodeBarangOrNameFilter(v)
+        }, 2000);
     }
 
     useEffect(() => {
@@ -75,9 +82,9 @@ export default function AdminMasterReagenPercepat() {
                             <option value="50">50</option>
                         </select>
                     </div>
-                    {/* <div className="ml-auto flex items-center gap-2">
-                    <input type="text" className="ar-input-text-purple" placeholder="Cari Kode Barang / Nama" onChange={e => filterKodeOrNameHander(e.currentTarget.value)} />
-                </div> */}
+                    <div className="ml-auto flex items-center gap-2">
+                        <input type="text" className="ar-input-text-purple" placeholder="Cari Nama" onChange={e => filterKodeOrNameHander(e.currentTarget.value)} />
+                    </div>
                 </div>
                 <div className="w-full overflow-x-auto">
                     <table className="ar-table">
