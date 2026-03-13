@@ -1,6 +1,6 @@
 FRONT END BBPOM DI MATARAM
 
-v1.1.1
+v1.1.2
 
 What's New :
 
