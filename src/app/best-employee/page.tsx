@@ -10,7 +10,7 @@ export default function BestEmployeePage() {
             {/* Background Hero Image */}
             <div className="absolute inset-0 z-0">
                 {/* Gradient Background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900"></div>
+                <div className="absolute inset-0 bg-linear-to-br from-blue-900 via-purple-900 to-pink-900"></div>
 
                 {/* Animated Background Pattern */}
                 <div className="absolute inset-0 opacity-10">
