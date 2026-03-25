@@ -58,7 +58,7 @@ const MainSimako = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, delay: 1.3 }}
                 >
-                    <Link href="/simako/absen">
+                    <Link href="/simako/form-keluar">
                         <motion.button
                             whileHover={{
                                 scale: 1.05,
@@ -141,7 +141,7 @@ const MainSimako = () => {
 
 
                 {/* Feature highlights */}
-                <motion.div
+                {/* <motion.div
                     className="grid grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl w-full px-8"
                     initial={{ opacity: 0, y: 60 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -170,7 +170,7 @@ const MainSimako = () => {
                             </p>
                         </motion.div>
                     ))}
-                </motion.div>
+                </motion.div> */}
             </div>
         </div>
     );
