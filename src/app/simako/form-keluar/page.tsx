@@ -7,31 +7,18 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
 interface FormData {
-    nama_pegawai: string;
-    nama_katim: string;
-    alasan_keluar: string;
+    id_pegawai: number | null;
+    id_katim: number | null;
+    keperluan: string;
     waktu_keluar: string;
     waktu_kembali: string;
 }
 
-// const employees = [
-//     { id: 1, name: "Ahmad Santoso" },
-//     { id: 2, name: "Siti Nurhaliza" },
-//     { id: 3, name: "Budi Hartono" },
-//     { id: 4, name: "Dewi Sartika" },
-//     { id: 5, name: "Muhammad Rizki" },
-//     { id: 6, name: "Rina Wijaya" },
-//     { id: 7, name: "Eko Prasetyo" },
-//     { id: 8, name: "Larasati Putri" },
-//     { id: 9, name: "Fajar Nugroho" },
-//     { id: 10, name: "Citra Dewi" }
-// ];
-
 export default function FormKeluarPage() {
     const [formData, setFormData] = useState<FormData>({
-        nama_pegawai: '',
-        nama_katim: '',
-        alasan_keluar: '',
+        id_pegawai: null,
+        id_katim: null,
+        keperluan: '',
         waktu_keluar: '',
         waktu_kembali: '',
     });
@@ -43,13 +30,25 @@ export default function FormKeluarPage() {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [katimSearchTerm, setKatimSearchTerm] = useState('');
     const [katimIsDropdownOpen, setKatimIsDropdownOpen] = useState(false);
-    const [employees, setEmployees] = useState([]);
-    const [katimEmployees, setKatimEmployees] = useState([]);
+    const [employees, setEmployees] = useState<{ id: number, name: string }[]>([]);
+    const [katimEmployees, setKatimEmployees] = useState<{ id: number, name: string }[]>([]);
     const formRef = useRef<HTMLFormElement>(null);
 
-    const filteredKatimEmployees = katimEmployees.filter((katim: any) =>
+    const filteredKatimEmployees = katimEmployees.filter((katim) =>
         katim.name.toLowerCase().includes(katimSearchTerm.toLowerCase())
     );
+
+    const handlePegawaiSelect = (emp: { id: number, name: string }) => {
+        setFormData((prev) => ({ ...prev, id_pegawai: emp.id }));
+        setSearchTerm(emp.name);
+        setIsDropdownOpen(false);
+    };
+
+    const handleKatimSelect = (emp: { id: number, name: string }) => {
+        setFormData((prev) => ({ ...prev, id_katim: emp.id }));
+        setKatimSearchTerm(emp.name);
+        setKatimIsDropdownOpen(false);
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -64,15 +63,14 @@ export default function FormKeluarPage() {
         }
     };
 
-    const filteredEmployees = employees.filter((emp: any) =>
+    const filteredEmployees = employees.filter((emp) =>
         emp.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const validate = (): boolean => {
         const newErrors: Record<string, string> = {};
-        if (!formData.nama_pegawai.trim()) newErrors.nama_pegawai = 'Nama pegawai wajib diisi';
-        // if (!formData.nama_katim.trim()) newErrors.nama_katim = 'Nama katim wajib diisi';
-        // if (!formData.alasan_keluar.trim()) newErrors.alasan_keluar = 'Alasan keluar wajib diisi';
+        if (!formData.id_pegawai) newErrors.id_pegawai = 'Pegawai wajib dipilih';
+        if (!formData.id_katim) newErrors.id_katim = 'Katim wajib dipilih';
         // if (!formData.waktu_keluar) newErrors.waktu_keluar = 'Waktu keluar wajib dipilih';
         // if (!formData.waktu_kembali) newErrors.waktu_kembali = 'Waktu kembali wajib dipilih';
 
@@ -92,11 +90,12 @@ export default function FormKeluarPage() {
 
             setSuccess(true);
             setFormData({
-                nama_pegawai: '',
-                nama_katim: '',
-                alasan_keluar: '',
+                id_pegawai: null,
+                id_katim: null,
+                keperluan: '',
                 waktu_keluar: '',
                 waktu_kembali: '',
+                security_id: '',
             });
 
             // Menghilangkan pesan sukses setelah 5 detik
@@ -200,8 +199,7 @@ export default function FormKeluarPage() {
                                                 className="px-4 py-3 hover:bg-rose-100 cursor-pointer text-slate-800 text-sm font-medium border-b border-white/20 last:border-b-0 transition-colors duration-200"
                                                 onMouseDown={(e) => {
                                                     e.preventDefault();
-                                                    setFormData((prev) => ({ ...prev, nama_pegawai: emp.name }));
-                                                    setSearchTerm(emp.name);
+                                                    handlePegawaiSelect(emp);
                                                     setIsDropdownOpen(false);
                                                 }}
                                             >
@@ -215,7 +213,7 @@ export default function FormKeluarPage() {
                                         Pegawai tidak ditemukan
                                     </div>
                                 )}
-                                {errors.nama_pegawai && <p className="text-rose-100 text-sm mt-1 ml-2 font-medium">{errors.nama_pegawai}</p>}
+                                {errors.id_pegawai && <p className="text-red-100 animate-pulse text-sm mt-1 ml-2 font-medium">{errors.id_pegawai}</p>}
                             </div>
 
                             {/* Input Nama Katim */}
@@ -241,8 +239,7 @@ export default function FormKeluarPage() {
                                                 className="px-4 py-3 hover:bg-rose-100 cursor-pointer text-slate-800 text-sm font-medium border-b border-white/20 last:border-b-0 transition-colors duration-200"
                                                 onMouseDown={(e) => {
                                                     e.preventDefault();
-                                                    setFormData((prev) => ({ ...prev, nama_katim: emp.name }));
-                                                    setKatimSearchTerm(emp.name);
+                                                    handleKatimSelect(emp);
                                                     setKatimIsDropdownOpen(false);
                                                 }}
                                             >
@@ -256,21 +253,21 @@ export default function FormKeluarPage() {
                                         Ketua tim tidak ditemukan
                                     </div>
                                 )}
-                                {errors.nama_katim && <p className="text-rose-100 text-sm mt-1 ml-2 font-medium">{errors.nama_katim}</p>}
+                                {errors.id_katim && <p className="text-red-100 animate-pulse text-sm mt-1 ml-2 font-medium">{errors.id_katim}</p>}
                             </div>
 
                             {/* Input Alasan */}
                             <div>
-                                <label className="block font-medium mb-2 text-lg">Keterangan / Alasan Keluar</label>
+                                <label className="block font-medium mb-2 text-lg">Keperluan</label>
                                 <textarea
-                                    name="alasan_keluar"
+                                    name="keperluan"
                                     rows={3}
-                                    value={formData.alasan_keluar}
+                                    value={formData.keperluan}
                                     onChange={handleChange}
                                     className="w-full px-4 py-3 rounded-2xl text-slate-800 border border-white/30 bg-white/90 focus:bg-white focus:ring-4 focus:ring-rose-500/30 transition-all duration-300 outline-none resize-none"
-                                    placeholder="Jelaskan alasan secara singkat..."
+                                    placeholder="Jelaskan keperluan secara singkat..."
                                 />
-                                {errors.alasan_keluar && <p className="text-rose-100 text-sm mt-1 ml-2 font-medium">{errors.alasan_keluar}</p>}
+                                {errors.keperluan && <p className="text-red-100 animate-pulse text-sm mt-1 ml-2 font-medium">{errors.keperluan}</p>}
                             </div>
 
                             {/* Grid Waktu */}
@@ -286,7 +283,7 @@ export default function FormKeluarPage() {
                                         onChange={handleChange}
                                         className="w-full px-4 py-3 rounded-2xl text-slate-800 border border-white/30 bg-white/90 focus:bg-white focus:ring-4 focus:ring-rose-500/30 transition-all duration-300 outline-none"
                                     />
-                                    {errors.waktu_keluar && <p className="text-rose-100 text-sm mt-1 ml-2 font-medium">{errors.waktu_keluar}</p>}
+                                    {errors.waktu_keluar && <p className="text-red-100 animate-pulse text-sm mt-1 ml-2 font-medium">{errors.waktu_keluar}</p>}
                                 </div>
 
                                 <div>
@@ -300,7 +297,7 @@ export default function FormKeluarPage() {
                                         onChange={handleChange}
                                         className="w-full px-4 py-3 rounded-2xl text-slate-800 border border-white/30 bg-white/90 focus:bg-white focus:ring-4 focus:ring-rose-500/30 transition-all duration-300 outline-none"
                                     />
-                                    {errors.waktu_kembali && <p className="text-rose-100 text-sm mt-1 ml-2 font-medium">{errors.waktu_kembali}</p>}
+                                    {errors.waktu_kembali && <p className="text-red-100 animate-pulse text-sm mt-1 ml-2 font-medium">{errors.waktu_kembali}</p>}
                                 </div>
                             </div>
 
