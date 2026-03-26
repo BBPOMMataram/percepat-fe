@@ -1,9 +1,10 @@
 "use client";
 
+import api from '@/utils/api';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface FormData {
     nama_pegawai: string;
@@ -13,18 +14,18 @@ interface FormData {
     waktu_kembali: string;
 }
 
-const employees = [
-    "Ahmad Santoso",
-    "Siti Nurhaliza",
-    "Budi Hartono",
-    "Dewi Sartika",
-    "Muhammad Rizki",
-    "Rina Wijaya",
-    "Eko Prasetyo",
-    "Larasati Putri",
-    "Fajar Nugroho",
-    "Citra Dewi"
-];
+// const employees = [
+//     { id: 1, name: "Ahmad Santoso" },
+//     { id: 2, name: "Siti Nurhaliza" },
+//     { id: 3, name: "Budi Hartono" },
+//     { id: 4, name: "Dewi Sartika" },
+//     { id: 5, name: "Muhammad Rizki" },
+//     { id: 6, name: "Rina Wijaya" },
+//     { id: 7, name: "Eko Prasetyo" },
+//     { id: 8, name: "Larasati Putri" },
+//     { id: 9, name: "Fajar Nugroho" },
+//     { id: 10, name: "Citra Dewi" }
+// ];
 
 export default function FormKeluarPage() {
     const [formData, setFormData] = useState<FormData>({
@@ -42,10 +43,12 @@ export default function FormKeluarPage() {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [katimSearchTerm, setKatimSearchTerm] = useState('');
     const [katimIsDropdownOpen, setKatimIsDropdownOpen] = useState(false);
+    const [employees, setEmployees] = useState([]);
+    const [katimEmployees, setKatimEmployees] = useState([]);
     const formRef = useRef<HTMLFormElement>(null);
 
-    const filteredKatimEmployees = employees.filter(emp =>
-        emp.toLowerCase().includes(katimSearchTerm.toLowerCase())
+    const filteredKatimEmployees = katimEmployees.filter((katim: any) =>
+        katim.name.toLowerCase().includes(katimSearchTerm.toLowerCase())
     );
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -61,8 +64,8 @@ export default function FormKeluarPage() {
         }
     };
 
-    const filteredEmployees = employees.filter(emp =>
-        emp.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredEmployees = employees.filter((emp: any) =>
+        emp.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const validate = (): boolean => {
@@ -104,6 +107,21 @@ export default function FormKeluarPage() {
             setSubmitting(false);
         }
     };
+
+    const getAllUsers = () => {
+        api(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-all-users`
+        ).then((res) => {
+            setEmployees(res.data);
+            setKatimEmployees(res.data.filter((user: any) => user.employee?.group_jabatan_id === 3));
+        }).catch((err) => {
+            console.log(err);
+        })
+    }
+
+    useEffect(() => {
+        getAllUsers();
+    }, [])
 
     return (
         <div className="min-h-screen bg-linear-to-br from-rose-500 via-pink-500 to-orange-400 relative overflow-hidden font-sans">
@@ -178,16 +196,16 @@ export default function FormKeluarPage() {
                                     <ul className="absolute z-20 w-full bg-white/95 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl max-h-60 overflow-auto mt-1">
                                         {filteredEmployees.map((emp) => (
                                             <li
-                                                key={emp}
+                                                key={emp.id}
                                                 className="px-4 py-3 hover:bg-rose-100 cursor-pointer text-slate-800 text-sm font-medium border-b border-white/20 last:border-b-0 transition-colors duration-200"
                                                 onMouseDown={(e) => {
                                                     e.preventDefault();
-                                                    setFormData((prev) => ({ ...prev, nama_pegawai: emp }));
-                                                    setSearchTerm(emp);
+                                                    setFormData((prev) => ({ ...prev, nama_pegawai: emp.name }));
+                                                    setSearchTerm(emp.name);
                                                     setIsDropdownOpen(false);
                                                 }}
                                             >
-                                                {emp}
+                                                {emp.name}
                                             </li>
                                         ))}
                                     </ul>
@@ -219,16 +237,16 @@ export default function FormKeluarPage() {
                                     <ul className="absolute z-20 w-full bg-white/95 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl max-h-60 overflow-auto mt-1">
                                         {filteredKatimEmployees.map((emp) => (
                                             <li
-                                                key={emp}
+                                                key={emp.id}
                                                 className="px-4 py-3 hover:bg-rose-100 cursor-pointer text-slate-800 text-sm font-medium border-b border-white/20 last:border-b-0 transition-colors duration-200"
                                                 onMouseDown={(e) => {
                                                     e.preventDefault();
-                                                    setFormData((prev) => ({ ...prev, nama_katim: emp }));
-                                                    setKatimSearchTerm(emp);
+                                                    setFormData((prev) => ({ ...prev, nama_katim: emp.name }));
+                                                    setKatimSearchTerm(emp.name);
                                                     setKatimIsDropdownOpen(false);
                                                 }}
                                             >
-                                                {emp}
+                                                {emp.name}
                                             </li>
                                         ))}
                                     </ul>

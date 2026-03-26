@@ -14,6 +14,8 @@ export async function middleware(req: NextRequest) {
     "/our-apps",
     "/siap-melayani/pengajuan-pkl/form",
     "/siap-melayani/presensi",
+    "/simako/form-keluar",
+    "/simako/dashboard",
   ];
 
   const isProtected = protectedPaths.some((path) =>
@@ -54,6 +56,7 @@ export const config = {
     "/settings/:path*",
     "/siap-melayani/pengajuan-pkl/form/:path*",
     "/siap-melayani/presensi/:path*",
-    "/percepat/:path*", // Added to protect all /percepat/* paths except /percepat
+    "/percepat-new/:path*", // Added to protect all /percepat/* paths except /percepat
+    "/simako/:path*",
   ],
 };
