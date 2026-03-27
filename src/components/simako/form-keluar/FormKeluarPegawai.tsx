@@ -7,24 +7,23 @@ import api from '@/utils/api';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
 interface FormData {
-    id_pegawai: number | null;
-    id_katim: number | null;
+    id_pegawai: string | null;
+    id_katim: string | null;
+    created_by: string | null;
     keperluan: string;
-    waktu_keluar: string;
-    waktu_kembali: string;
 }
 
 export default function SimakoFormKeluarPegawai() {
     const [formData, setFormData] = useState<FormData>({
         id_pegawai: null,
         id_katim: null,
+        created_by: null,
         keperluan: '',
-        waktu_keluar: '',
-        waktu_kembali: '',
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -42,16 +41,27 @@ export default function SimakoFormKeluarPegawai() {
 
     const { user } = useSelector((state: RootState) => state.auth);
     const dispatch = useDispatch<AppDispatch>()
+    const router = useRouter();
 
-    const getKatim = () => {
-        api(
-            `${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-katim`
-        ).then((res) => {
-            setKatimEmployees(res.data);
-        }).catch((err) => {
-            console.log(err);
-        })
-    }
+    const getKatimAndKatu = () => {
+        // Menyiapkan kedua request
+        const requestKatim = api(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-katim`);
+        const requestKatu = api(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-katu`);
+
+        Promise.all([requestKatim, requestKatu])
+            .then((responses) => {
+                // responses[0] adalah hasil dari get-katim
+                // responses[1] adalah hasil dari get-katu
+                const dataKatim = responses[0].data;
+                const dataKatu = responses[1].data;
+
+                // Menggabungkan kedua array data
+                setKatimEmployees([...dataKatim, dataKatu]);
+            })
+            .catch((err) => {
+                console.error("Gagal mengambil data:", err);
+            });
+    };
 
     useEffect(() => {
         dispatch(getUser())
@@ -59,13 +69,13 @@ export default function SimakoFormKeluarPegawai() {
 
     useEffect(() => {
         if (user) {
-            setFormData((prev) => ({ ...prev, id_pegawai: user.id }))
+            setFormData((prev) => ({ ...prev, id_pegawai: String(user.id) }))
             setSearchTerm(user.name)
         }
     }, [user])
 
     useEffect(() => {
-        getKatim();
+        getKatimAndKatu();
     }, [])
 
     const handleKatimSelect = (emp: any) => {
@@ -122,18 +132,20 @@ export default function SimakoFormKeluarPegawai() {
 
         setSubmitting(true);
         try {
+            formData.created_by = String(user?.id)
+
             // Simulasi API Call
-            console.log('Form submitted:', formData);
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // console.log('Form submitted:', formData);
+            // await new Promise(resolve => setTimeout(resolve, 1500));
+
+            api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMAKO}/api/izin-keluar`, formData)
+                .then((res) => {
+                    console.log(res.data);
+                })
 
             setSuccess(true);
-            // setFormData({
-            //     id_pegawai: null,
-            //     id_katim: null,
-            //     keperluan: '',
-            //     waktu_keluar: '',
-            //     waktu_kembali: '',
-            // });
+            //redirect
+            router.push('/simako/dashboard');
 
             // Menghilangkan pesan sukses setelah 5 detik
             setTimeout(() => setSuccess(false), 5000);
