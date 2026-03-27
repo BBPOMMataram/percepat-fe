@@ -4,7 +4,7 @@ import { showAlert } from '@/features/alertSlice';
 import { getUser } from '@/features/authSlice';
 import { AppDispatch, RootState } from '@/redux/store';
 import api from '@/utils/api';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -144,6 +144,7 @@ export default function SimakoFormKeluarPegawai() {
                 })
 
             setSuccess(true);
+            dispatch(showAlert({ type: 'success', message: 'Data berhasil disimpan', description: 'Data berhasil disimpan' }));
             //redirect
             router.push('/simako/dashboard');
 
@@ -319,21 +320,6 @@ export default function SimakoFormKeluarPegawai() {
                                 </motion.button>
                             </div>
                         </form>
-
-                        <AnimatePresence>
-                            {success && (
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.9 }}
-                                    className="mt-8 p-6 bg-emerald-500/30 border border-emerald-400/50 rounded-2xl backdrop-blur-md text-center"
-                                >
-                                    <span className="material-symbols-outlined text-4xl text-emerald-200 mb-2 block">check_circle</span>
-                                    <p className="text-xl font-bold text-white">Pengajuan Berhasil!</p>
-                                    <p className="text-white/80">Data Anda telah tercatat ke dalam sistem.</p>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
                     </div>
                 </motion.div>
             </div>
