@@ -234,7 +234,7 @@ export default function SimakoDashboard() {
                                         <td className="p-4 font-mono text-sm">
                                             {item.waktu_keluar ? (
                                                 dayjs(item.waktu_keluar).format("DD/MM/YYYY HH:mm")
-                                            ) : (user?.is_security) ? (
+                                            ) : (user?.employee?.is_security) ? (
                                                 <button
                                                     onClick={() => openModal(item.id, 'keluar')}
                                                     className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all duration-300 border border-emerald-500/40 font-bold text-[10px] uppercase tracking-wider group shadow-sm"
@@ -249,7 +249,7 @@ export default function SimakoDashboard() {
                                         <td className="p-4 font-mono text-sm">
                                             {item.waktu_kembali ? (
                                                 dayjs(item.waktu_kembali).format("DD/MM/YYYY HH:mm")
-                                            ) : (user?.is_security) && item.waktu_keluar ? (
+                                            ) : (user?.employee?.is_security) && item.waktu_keluar ? (
                                                 <button
                                                     onClick={() => openModal(item.id, 'kembali')}
                                                     className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500/20 text-sky-400 hover:bg-sky-500 hover:text-white transition-all duration-300 border border-sky-500/40 font-bold text-[10px] uppercase tracking-wider group shadow-sm"
@@ -264,37 +264,37 @@ export default function SimakoDashboard() {
 
                                         <td className="p-4 text-center">
                                             <div className="flex justify-center items-center gap-2">
-                                                {/* Aksi Khusus Pemilik Data atau Security */}
-                                                {(item.created_by === user?.id || user?.is_security) && (
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            onClick={() => openModal(item.id, item.waktu_keluar ? 'kembali' : 'keluar')}
-                                                            className="w-9 h-9 flex items-center justify-center rounded-xl bg-sky-500/50 text-sky-400 hover:bg-sky-500 hover:text-white transition-all duration-300 border border-sky-500/40 group shadow-sm"
-                                                            title="Edit Waktu"
-                                                        >
-                                                            <span className="material-symbols-outlined text-xl transition-transform duration-300 group-hover:rotate-12">edit</span>
-                                                        </button>
-                                                        {/* Delete button: Only if creator AND waktu_keluar is not set, OR if user is security */}
-                                                        {((item.created_by === user?.id && !item.waktu_keluar) || user?.is_security) && (
-                                                            <button
-                                                                onClick={() => handleDelete(item.id)}
-                                                                className="w-9 h-9 flex items-center justify-center rounded-xl bg-rose-500/50 text-rose-400 hover:bg-rose-500 hover:text-white transition-all duration-300 border border-rose-500/40 group shadow-sm"
-                                                                title="Hapus Data"
-                                                            >
-                                                                <span className="material-symbols-outlined text-xl transition-transform duration-300 group-hover:scale-110">delete</span>
-                                                            </button>
-                                                        )}
-                                                    </div>
+                                                {/* Tombol Ubah: Hanya bisa diakses oleh Security */}
+                                                {user?.employee?.is_security && (
+                                                    <button
+                                                        onClick={() => openModal(item.id, item.waktu_keluar ? 'kembali' : 'keluar')}
+                                                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-sky-500/50 text-sky-400 hover:bg-sky-500 hover:text-white transition-all duration-300 border border-sky-500/40 group shadow-sm"
+                                                        title="Edit Waktu"
+                                                    >
+                                                        <span className="material-symbols-outlined text-xl transition-transform duration-300 group-hover:rotate-12">edit</span>
+                                                    </button>
                                                 )}
 
-                                                {item.waktu_keluar && item.waktu_kembali && item.created_by !== user?.id && !user?.is_security && (
+                                                {/* Tombol Hapus: Hanya jika pemilik data DAN belum set waktu keluar */}
+                                                {(item.created_by === user?.id && !item.waktu_keluar) && (
+                                                    <button
+                                                        onClick={() => handleDelete(item.id)}
+                                                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-rose-500/50 text-rose-400 hover:bg-rose-500 hover:text-white transition-all duration-300 border border-rose-500/40 group shadow-sm"
+                                                        title="Hapus Data"
+                                                    >
+                                                        <span className="material-symbols-outlined text-xl transition-transform duration-300 group-hover:scale-110">delete</span>
+                                                    </button>
+                                                )}
+
+                                                {/* Status Selesai: Tampilkan jika data lengkap dan user tidak punya akses edit */}
+                                                {item.waktu_keluar && item.waktu_kembali && !user?.employee?.is_security && (
                                                     <div className="flex items-center gap-1 text-emerald-400 text-xs font-bold uppercase tracking-tighter">
                                                         <span className="material-symbols-outlined text-sm">verified</span> Selesai
                                                     </div>
                                                 )}
 
-                                                {/* Fallback jika bukan pemilik/security dan belum selesai */}
-                                                {(!item.waktu_keluar || !item.waktu_kembali) && item.created_by !== user?.id && !user?.is_security && (
+                                                {/* Fallback jika tidak ada aksi yang tersedia */}
+                                                {!user?.employee?.is_security && !(item.created_by === user?.id && !item.waktu_keluar) && (!item.waktu_keluar || !item.waktu_kembali) && (
                                                     <span className="text-[10px] opacity-20 italic">No Action</span>
                                                 )}
                                             </div>
