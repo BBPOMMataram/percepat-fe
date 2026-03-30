@@ -33,14 +33,12 @@ export default function SimakoDashboard() {
     const [lastPage, setLastPage] = useState(1);
     const itemsPerPage = 10;
 
-    // hapus nanti
-    useEffect(() => console.log(user),
-        [user])
-
     // State untuk Modal Update Manual
     const [selectedId, setSelectedId] = useState<number | null>(null);
-    const [updateType, setUpdateType] = useState<'keluar' | 'kembali' | null>(null);
-    const [manualDateTime, setManualDateTime] = useState("");
+    const [updateType, setUpdateType] = useState<'keluar' | 'kembali' | 'edit' | null>(null);
+    const [editKeperluan, setEditKeperluan] = useState("");
+    const [editWaktuKeluar, setEditWaktuKeluar] = useState("");
+    const [editWaktuKembali, setEditWaktuKembali] = useState("");
 
     const fetchData = useCallback(async (page: number, search: string) => {
         try {
@@ -93,39 +91,30 @@ export default function SimakoDashboard() {
         }
     }, []);
 
-    const openModal = (id: number, type: 'keluar' | 'kembali') => {
-        setSelectedId(id);
+    const openModal = (item: IzinKeluar, type: 'keluar' | 'kembali' | 'edit') => {
+        setSelectedId(item.id);
         setUpdateType(type);
-        // Set default ke waktu sekarang dengan format yang dimengerti input datetime-local
-        setManualDateTime(dayjs().format("YYYY-MM-DDTHH:mm"));
+        setEditKeperluan(item.keperluan || "");
+        setEditWaktuKeluar(item.waktu_keluar ? dayjs(item.waktu_keluar).format("YYYY-MM-DDTHH:mm") : "");
+        setEditWaktuKembali(item.waktu_kembali ? dayjs(item.waktu_kembali).format("YYYY-MM-DDTHH:mm") : "");
+
+        // Otomatis set waktu sekarang jika tombol "Set Keluar/Kembali" diklik pada data yang masih kosong
+        if (type === 'keluar' && !item.waktu_keluar) {
+            setEditWaktuKeluar(dayjs().format("YYYY-MM-DDTHH:mm"));
+        } else if (type === 'kembali' && !item.waktu_kembali) {
+            setEditWaktuKembali(dayjs().format("YYYY-MM-DDTHH:mm"));
+        }
     };
 
     const handleSaveManual = async () => {
-        if (!selectedId || !updateType || !manualDateTime) return;
+        if (!selectedId) return;
 
         try {
-            const currentItem = data.find(item => item.id === selectedId);
-
-            // 1. Bersihkan manualDateTime dari huruf 'T' menjadi spasi
-            // Hasil: "2026-03-27 16:43:00"
-            const formattedTime = manualDateTime.replace('T', ' ') + ":00";
-
-            let payload: any = {};
-
-            if (updateType === 'keluar') {
-                payload = { waktu_keluar: formattedTime };
-            } else {
-                // 2. PENTING: Bersihkan juga waktu_keluar yang lama dari database
-                // Jika dari BE ada huruf 'T', 'Z', atau '.000000Z', kita bersihkan total
-                const cleanWaktuKeluar = currentItem?.waktu_keluar
-                    ? dayjs(currentItem.waktu_keluar).format("YYYY-MM-DD HH:mm:ss")
-                    : null;
-
-                payload = {
-                    waktu_keluar: cleanWaktuKeluar,
-                    waktu_kembali: formattedTime
-                };
-            }
+            const payload = {
+                keperluan: editKeperluan,
+                waktu_keluar: editWaktuKeluar ? dayjs(editWaktuKeluar).format("YYYY-MM-DD HH:mm:ss") : null,
+                waktu_kembali: editWaktuKembali ? dayjs(editWaktuKembali).format("YYYY-MM-DD HH:mm:ss") : null,
+            };
 
             console.log("Payload yang dikirim ke BE:", payload); // Cek di console F12
 
@@ -236,7 +225,7 @@ export default function SimakoDashboard() {
                                                 dayjs(item.waktu_keluar).format("DD/MM/YYYY HH:mm")
                                             ) : (user?.employee?.is_security) ? (
                                                 <button
-                                                    onClick={() => openModal(item.id, 'keluar')}
+                                                    onClick={() => openModal(item, 'keluar')}
                                                     className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all duration-300 border border-emerald-500/40 font-bold text-[10px] uppercase tracking-wider group shadow-sm"
                                                 >
                                                     <span className="material-symbols-outlined text-lg transition-transform duration-300 group-hover:translate-x-1">logout</span>
@@ -251,7 +240,7 @@ export default function SimakoDashboard() {
                                                 dayjs(item.waktu_kembali).format("DD/MM/YYYY HH:mm")
                                             ) : (user?.employee?.is_security) && item.waktu_keluar ? (
                                                 <button
-                                                    onClick={() => openModal(item.id, 'kembali')}
+                                                    onClick={() => openModal(item, 'kembali')}
                                                     className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500/20 text-sky-400 hover:bg-sky-500 hover:text-white transition-all duration-300 border border-sky-500/40 font-bold text-[10px] uppercase tracking-wider group shadow-sm"
                                                 >
                                                     <span className="material-symbols-outlined text-lg transition-transform duration-300 group-hover:-translate-x-1">login</span>
@@ -267,7 +256,7 @@ export default function SimakoDashboard() {
                                                 {/* Tombol Ubah: Hanya bisa diakses oleh Security */}
                                                 {user?.employee?.is_security && (
                                                     <button
-                                                        onClick={() => openModal(item.id, item.waktu_keluar ? 'kembali' : 'keluar')}
+                                                        onClick={() => openModal(item, 'edit')}
                                                         className="w-9 h-9 flex items-center justify-center rounded-xl bg-sky-500/50 text-sky-400 hover:bg-sky-500 hover:text-white transition-all duration-300 border border-sky-500/40 group shadow-sm"
                                                         title="Edit Waktu"
                                                     >
@@ -327,21 +316,38 @@ export default function SimakoDashboard() {
                             className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl text-slate-800"
                         >
                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${updateType === 'keluar' ? 'bg-emerald-100 text-emerald-600' : 'bg-sky-100 text-sky-600'}`}>
-                                <span className="material-symbols-outlined">{updateType === 'keluar' ? 'logout' : 'login'}</span>
+                                <span className="material-symbols-outlined">{updateType === 'keluar' ? 'logout' : updateType === 'kembali' ? 'login' : 'edit_note'}</span>
                             </div>
                             <h3 className="text-2xl font-black mb-1 uppercase tracking-tight">
-                                Update {updateType}
+                                {updateType === 'edit' ? 'Edit Data Izin' : `Update ${updateType}`}
                             </h3>
-                            <p className="text-sm text-slate-500 mb-6">Pilih tanggal dan jam pengajuan secara manual.</p>
+                            <p className="text-sm text-slate-500 mb-6">Sesuaikan detail data pengajuan izin keluar.</p>
 
                             <div className="space-y-4">
                                 <div className="form-control">
-                                    <label className="label text-xs font-bold text-slate-400 uppercase">Input Tanggal & Waktu</label>
+                                    <label className="label text-xs font-bold text-slate-400 uppercase">Keperluan</label>
+                                    <textarea
+                                        className="textarea textarea-bordered w-full bg-slate-50 focus:ring-2 focus:ring-rose-500 border-slate-200 rounded-2xl min-h-[80px]"
+                                        value={editKeperluan}
+                                        onChange={(e) => setEditKeperluan(e.target.value)}
+                                    />
+                                </div>
+                                <div className="form-control">
+                                    <label className="label text-xs font-bold text-slate-400 uppercase">Waktu Keluar</label>
                                     <input
                                         type="datetime-local"
-                                        className="input input-bordered w-full bg-slate-50 focus:ring-2 focus:ring-rose-500 border-slate-200 text-lg rounded-2xl"
-                                        value={manualDateTime}
-                                        onChange={(e) => setManualDateTime(e.target.value)}
+                                        className="input input-bordered w-full bg-slate-50 focus:ring-2 focus:ring-rose-500 border-slate-200 rounded-2xl"
+                                        value={editWaktuKeluar}
+                                        onChange={(e) => setEditWaktuKeluar(e.target.value)}
+                                    />
+                                </div>
+                                <div className="form-control">
+                                    <label className="label text-xs font-bold text-slate-400 uppercase">Waktu Kembali</label>
+                                    <input
+                                        type="datetime-local"
+                                        className="input input-bordered w-full bg-slate-50 focus:ring-2 focus:ring-rose-500 border-slate-200 rounded-2xl"
+                                        value={editWaktuKembali}
+                                        onChange={(e) => setEditWaktuKembali(e.target.value)}
                                     />
                                 </div>
 
