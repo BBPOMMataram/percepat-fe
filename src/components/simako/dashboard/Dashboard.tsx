@@ -32,6 +32,12 @@ export default function SimakoDashboard() {
     const [totalToday, setTotalToday] = useState(0);
     const [lastPage, setLastPage] = useState(1);
     const itemsPerPage = 10;
+    const [filterToday, setFilterToday] = useState(false);
+
+    // State untuk Modal Hari Ini
+    const [showTodayModal, setShowTodayModal] = useState(false);
+    const [todayList, setTodayList] = useState<IzinKeluar[]>([]);
+    const [loadingToday, setLoadingToday] = useState(false);
 
     // State untuk Modal Update Manual
     const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -53,7 +59,8 @@ export default function SimakoDashboard() {
                 page: page.toString(),
                 search: search,
                 user_ids: JSON.stringify(userIds),
-                limit: itemsPerPage.toString()
+                limit: itemsPerPage.toString(),
+                today: filterToday ? '1' : '0'
             });
 
             const response = await api(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMAKO}/api/izin-keluar?${params}`);
@@ -89,7 +96,58 @@ export default function SimakoDashboard() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [filterToday]);
+
+    const fetchTodayList = async () => {
+        try {
+            setLoadingToday(true);
+            setShowTodayModal(true);
+
+            const params = new URLSearchParams({
+                today: '1',
+                limit: '100' // Ambil semua yang keluar hari ini
+            });
+
+            const response = await api(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMAKO}/api/izin-keluar?${params}`);
+
+            // Filter manual: Menampilkan semua data HARI INI (baik yang sudah kembali maupun belum)
+            const rawData = response.data?.data || [];
+            const izinData = rawData.filter((item: any) => {
+                return dayjs(item.created_at).isSame(dayjs(), 'day') ||
+                    (item.waktu_keluar && dayjs(item.waktu_keluar).isSame(dayjs(), 'day'));
+            });
+
+            // Batch Fetch Nama Pegawai
+            const uniqueIds = new Set<number>();
+            izinData.forEach((item: any) => {
+                if (item.created_by) uniqueIds.add(item.created_by);
+                if (item.katim_id) uniqueIds.add(item.katim_id);
+            });
+
+            if (uniqueIds.size > 0) {
+                const userResponse = await api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-user-batch`, {
+                    ids: Array.from(uniqueIds)
+                });
+
+                const userMap = new Map();
+                (userResponse.data || []).forEach((u: any) => userMap.set(u.id, u.name));
+
+                const mappedData = izinData.map((item: any) => ({
+                    ...item,
+                    pegawai_name: userMap.get(item.created_by) || 'Unknown User',
+                    katim_name: userMap.get(item.katim_id) || 'Unknown Katim',
+                }));
+                setTodayList(mappedData);
+            } else {
+                setTodayList([]);
+            }
+        } catch (err) {
+            console.error(err);
+            setTodayList([]);
+        } finally {
+            setLoadingToday(false);
+        }
+    };
 
     const openModal = (item: IzinKeluar, type: 'keluar' | 'kembali' | 'edit') => {
         setSelectedId(item.id);
@@ -152,7 +210,7 @@ export default function SimakoDashboard() {
     useEffect(() => {
         const timer = setTimeout(() => fetchData(currentPage, searchTerm), 500);
         return () => clearTimeout(timer);
-    }, [searchTerm, currentPage, fetchData]);
+    }, [searchTerm, currentPage, filterToday, fetchData]);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-rose-500 via-pink-500 to-orange-400 pb-20 px-4 font-sans">
@@ -160,7 +218,10 @@ export default function SimakoDashboard() {
 
                 {/* Header & Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-6 border border-white/20 text-center text-white">
+                    <div
+                        onClick={fetchTodayList}
+                        className="cursor-pointer transition-all duration-300 hover:bg-white/20 hover:scale-[1.02] active:scale-95 shadow-xl bg-white/10 border border-white/20 backdrop-blur-xl rounded-3xl p-6 text-center text-white"
+                    >
                         <p className="text-4xl font-black">{totalToday}</p>
                         <p className="text-xs uppercase font-bold opacity-70 tracking-widest">Pengajuan Hari Ini</p>
                     </div>
@@ -304,6 +365,73 @@ export default function SimakoDashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* MODAL LIST PEGAWAI HARI INI */}
+            <AnimatePresence>
+                {showTodayModal && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-lg">
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh]"
+                        >
+                            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                                <div>
+                                    <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Pengajuan Hari Ini</h3>
+                                    <p className="text-sm text-slate-500 font-medium">Menampilkan {todayList.length} pengajuan untuk hari ini</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowTodayModal(false)}
+                                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-200 transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-slate-500">close</span>
+                                </button>
+                            </div>
+
+                            <div className="overflow-y-auto p-4 flex-1">
+                                {loadingToday ? (
+                                    <div className="py-20 text-center"><span className="loading loading-spinner loading-lg text-rose-500"></span></div>
+                                ) : todayList.length === 0 ? (
+                                    <div className="py-20 text-center opacity-40 italic font-medium">Tidak ada data untuk hari ini</div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {todayList.map((item) => (
+                                            <div key={item.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between group hover:border-rose-200 hover:bg-rose-50/30 transition-all">
+                                                <div className="flex-1">
+                                                    <div className="font-bold text-slate-800">{item.pegawai_name}</div>
+                                                    <div className="text-xs text-slate-500 line-clamp-1">{item.keperluan}</div>
+                                                </div>
+                                                <div className="text-right flex flex-col items-end gap-1">
+                                                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-[10px] font-mono font-bold text-slate-600 shadow-sm">
+                                                        <span className="material-symbols-outlined text-sm text-emerald-500">logout</span>
+                                                        {item.waktu_keluar ? dayjs(item.waktu_keluar).format("HH:mm") : '--:--'}
+                                                    </div>
+                                                    {item.waktu_kembali ? (
+                                                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-[10px] font-mono font-bold text-slate-600 shadow-sm">
+                                                            <span className="material-symbols-outlined text-sm text-sky-500">login</span>
+                                                            {dayjs(item.waktu_kembali).format("HH:mm")}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-[9px] font-bold text-orange-500 uppercase tracking-tighter mr-2 animate-pulse">Belum Kembali</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="p-6 bg-slate-50 border-t border-slate-100 text-center">
+                                <button
+                                    onClick={() => setShowTodayModal(false)}
+                                    className="btn btn-ghost btn-sm text-slate-400 font-bold uppercase tracking-widest text-[10px]"
+                                >Tutup Jendela</button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* MODAL UPDATE MANUAL */}
             <AnimatePresence>
