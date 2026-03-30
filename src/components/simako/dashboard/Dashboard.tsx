@@ -1,14 +1,17 @@
 "use client";
 
+import { getUser } from '@/features/authSlice';
 import api from '@/utils/api';
 import dayjs from 'dayjs';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 
 interface IzinKeluar {
     id: number;
     external_user_id: number;
+    created_by: number;
     katim_id: number;
     pegawai_name?: string;
     katim_name?: string;
@@ -19,6 +22,8 @@ interface IzinKeluar {
 }
 
 export default function SimakoDashboard() {
+    const dispatch = useDispatch();
+    const { user } = useSelector((state: any) => state.auth);
     const [data, setData] = useState<IzinKeluar[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -27,6 +32,10 @@ export default function SimakoDashboard() {
     const [totalToday, setTotalToday] = useState(0);
     const [lastPage, setLastPage] = useState(1);
     const itemsPerPage = 10;
+
+    // hapus nanti
+    useEffect(() => console.log(user),
+        [user])
 
     // State untuk Modal Update Manual
     const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -58,7 +67,7 @@ export default function SimakoDashboard() {
 
             const uniqueIds = new Set<number>();
             izinData.forEach((item: any) => {
-                if (item.external_user_id) uniqueIds.add(item.external_user_id);
+                if (item.created_by) uniqueIds.add(item.created_by);
                 if (item.katim_id) uniqueIds.add(item.katim_id);
             });
 
@@ -71,7 +80,7 @@ export default function SimakoDashboard() {
 
             const mappedData = izinData.map((item: any) => ({
                 ...item,
-                pegawai_name: userMap.get(item.external_user_id) || 'Unknown User',
+                pegawai_name: userMap.get(item.created_by) || 'Unknown User',
                 katim_name: userMap.get(item.katim_id) || 'Unknown Katim',
             }));
             console.log(mappedData);
@@ -134,6 +143,22 @@ export default function SimakoDashboard() {
             alert(`${msg} ${errors?.waktu_kembali ? '- ' + errors.waktu_kembali[0] : ''}`);
         }
     };
+
+    const handleDelete = async (id: number) => {
+        if (!window.confirm("Apakah Anda yakin ingin menghapus data pengajuan ini?")) return;
+
+        try {
+            await api.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMAKO}/api/izin-keluar/${id}`);
+            fetchData(currentPage, searchTerm);
+        } catch (err: any) {
+            console.error(err);
+            alert(err.response?.data?.message || "Gagal menghapus data");
+        }
+    };
+
+    useEffect(() => {
+        dispatch(getUser() as any);
+    }, [dispatch]);
 
     useEffect(() => {
         const timer = setTimeout(() => fetchData(currentPage, searchTerm), 500);
@@ -207,24 +232,70 @@ export default function SimakoDashboard() {
 
                                         {/* TAMPILAN TANGGAL & JAM (SUDAH FIX WITA) */}
                                         <td className="p-4 font-mono text-sm">
-                                            {item.waktu_keluar ? dayjs(item.waktu_keluar).format("DD/MM/YYYY HH:mm") : <span className="opacity-30 italic">Belum Set</span>}
+                                            {item.waktu_keluar ? (
+                                                dayjs(item.waktu_keluar).format("DD/MM/YYYY HH:mm")
+                                            ) : (user?.is_security) ? (
+                                                <button
+                                                    onClick={() => openModal(item.id, 'keluar')}
+                                                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all duration-300 border border-emerald-500/40 font-bold text-[10px] uppercase tracking-wider group shadow-sm"
+                                                >
+                                                    <span className="material-symbols-outlined text-lg transition-transform duration-300 group-hover:translate-x-1">logout</span>
+                                                    Set Keluar
+                                                </button>
+                                            ) : (
+                                                <span className="opacity-30 italic">Belum diset</span>
+                                            )}
                                         </td>
                                         <td className="p-4 font-mono text-sm">
-                                            {item.waktu_kembali ? dayjs(item.waktu_kembali).format("DD/MM/YYYY HH:mm") : <span className="opacity-30 italic">Belum Kembali</span>}
+                                            {item.waktu_kembali ? (
+                                                dayjs(item.waktu_kembali).format("DD/MM/YYYY HH:mm")
+                                            ) : (user?.is_security) && item.waktu_keluar ? (
+                                                <button
+                                                    onClick={() => openModal(item.id, 'kembali')}
+                                                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500/20 text-sky-400 hover:bg-sky-500 hover:text-white transition-all duration-300 border border-sky-500/40 font-bold text-[10px] uppercase tracking-wider group shadow-sm"
+                                                >
+                                                    <span className="material-symbols-outlined text-lg transition-transform duration-300 group-hover:-translate-x-1">login</span>
+                                                    Set Kembali
+                                                </button>
+                                            ) : (
+                                                <span className="opacity-30 italic">{item.waktu_keluar ? 'Belum Kembali' : 'Belum diset'}</span>
+                                            )}
                                         </td>
 
                                         <td className="p-4 text-center">
-                                            <div className="flex justify-center gap-2">
-                                                {!item.waktu_keluar && (
-                                                    <button onClick={() => openModal(item.id, 'keluar')} className="btn btn-xs bg-emerald-500 hover:bg-emerald-600 border-none text-white px-4">Set Keluar</button>
+                                            <div className="flex justify-center items-center gap-2">
+                                                {/* Aksi Khusus Pemilik Data atau Security */}
+                                                {(item.created_by === user?.id || user?.is_security) && (
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => openModal(item.id, item.waktu_keluar ? 'kembali' : 'keluar')}
+                                                            className="w-9 h-9 flex items-center justify-center rounded-xl bg-sky-500/50 text-sky-400 hover:bg-sky-500 hover:text-white transition-all duration-300 border border-sky-500/40 group shadow-sm"
+                                                            title="Edit Waktu"
+                                                        >
+                                                            <span className="material-symbols-outlined text-xl transition-transform duration-300 group-hover:rotate-12">edit</span>
+                                                        </button>
+                                                        {/* Delete button: Only if creator AND waktu_keluar is not set, OR if user is security */}
+                                                        {((item.created_by === user?.id && !item.waktu_keluar) || user?.is_security) && (
+                                                            <button
+                                                                onClick={() => handleDelete(item.id)}
+                                                                className="w-9 h-9 flex items-center justify-center rounded-xl bg-rose-500/50 text-rose-400 hover:bg-rose-500 hover:text-white transition-all duration-300 border border-rose-500/40 group shadow-sm"
+                                                                title="Hapus Data"
+                                                            >
+                                                                <span className="material-symbols-outlined text-xl transition-transform duration-300 group-hover:scale-110">delete</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 )}
-                                                {item.waktu_keluar && !item.waktu_kembali && (
-                                                    <button onClick={() => openModal(item.id, 'kembali')} className="btn btn-xs bg-sky-500 hover:bg-sky-600 border-none text-white px-4">Set Kembali</button>
-                                                )}
-                                                {item.waktu_keluar && item.waktu_kembali && (
+
+                                                {item.waktu_keluar && item.waktu_kembali && item.created_by !== user?.id && !user?.is_security && (
                                                     <div className="flex items-center gap-1 text-emerald-400 text-xs font-bold uppercase tracking-tighter">
                                                         <span className="material-symbols-outlined text-sm">verified</span> Selesai
                                                     </div>
+                                                )}
+
+                                                {/* Fallback jika bukan pemilik/security dan belum selesai */}
+                                                {(!item.waktu_keluar || !item.waktu_kembali) && item.created_by !== user?.id && !user?.is_security && (
+                                                    <span className="text-[10px] opacity-20 italic">No Action</span>
                                                 )}
                                             </div>
                                         </td>
