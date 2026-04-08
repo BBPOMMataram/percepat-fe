@@ -1,8 +1,7 @@
 "use client";
 
 import { showAlert } from '@/features/alertSlice';
-import { getUser } from '@/features/authSlice';
-import { AppDispatch, RootState } from '@/redux/store';
+import { AppDispatch } from '@/redux/store';
 import api from '@/utils/api';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
@@ -39,7 +38,7 @@ export default function SimakoFormKeluarPegawai() {
         katim.user?.name?.toLowerCase().includes(katimSearchTerm.toLowerCase())
     );
 
-    const { user } = useSelector((state: RootState) => state.auth);
+    const { user } = useSelector((state: any) => state.auth);
     const dispatch = useDispatch<AppDispatch>()
     const router = useRouter();
 
@@ -64,22 +63,18 @@ export default function SimakoFormKeluarPegawai() {
     };
 
     useEffect(() => {
-        dispatch(getUser())
-    }, [dispatch])
-
-    useEffect(() => {
         if (user) {
-            setFormData((prev) => ({ ...prev, id_pegawai: String(user.id) }))
-            setSearchTerm(user.name)
+            setFormData((prev) => ({ ...prev, id_pegawai: String(user.id || '') }))
+            setSearchTerm(user.name || '')
         }
-    }, [user])
+    }, [user]);
 
     useEffect(() => {
         getKatimAndKatu();
     }, [])
 
     const handleKatimSelect = (emp: any) => {
-        setFormData((prev) => ({ ...prev, id_katim: emp.user.id }));
+        setFormData((prev) => ({ ...prev, id_katim: String(emp.user.id) }));
         setKatimSearchTerm(emp.user.name);
         setKatimIsDropdownOpen(false);
     };
@@ -132,16 +127,13 @@ export default function SimakoFormKeluarPegawai() {
 
         setSubmitting(true);
         try {
-            formData.created_by = String(user?.id)
+            // Gunakan payload agar tidak mutasi state formData secara langsung
+            const payload = {
+                ...formData,
+                created_by: String(user?.id)
+            };
 
-            // Simulasi API Call
-            // console.log('Form submitted:', formData);
-            // await new Promise(resolve => setTimeout(resolve, 1500));
-
-            api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMAKO}/api/izin-keluar`, formData)
-                .then((res) => {
-                    console.log(res.data);
-                })
+            await api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMAKO}/api/izin-keluar`, payload);
 
             setSuccess(true);
             dispatch(showAlert({ type: 'success', message: 'Data berhasil disimpan', description: 'Data berhasil disimpan' }));

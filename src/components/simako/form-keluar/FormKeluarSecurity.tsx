@@ -1,17 +1,20 @@
 "use client";
 
 import { showAlert } from '@/features/alertSlice';
-import { AppDispatch } from '@/redux/store';
+import { AppDispatch, RootState } from '@/redux/store';
 import api from '@/utils/api';
+import dayjs from 'dayjs';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 
 interface FormData {
-    id_pegawai: number | null;
-    id_katim: number | null;
+    id_pegawai: string | null;
+    id_katim: string | null;
+    created_by: string | null;
     keperluan: string;
     waktu_keluar: string;
     waktu_kembali: string;
@@ -21,6 +24,7 @@ export default function SimakoFormKeluarSecurity() {
     const [formData, setFormData] = useState<FormData>({
         id_pegawai: null,
         id_katim: null,
+        created_by: null,
         keperluan: '',
         waktu_keluar: '',
         waktu_kembali: '',
@@ -33,25 +37,27 @@ export default function SimakoFormKeluarSecurity() {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [katimSearchTerm, setKatimSearchTerm] = useState('');
     const [katimIsDropdownOpen, setKatimIsDropdownOpen] = useState(false);
-    const [employees, setEmployees] = useState<{ id: number, name: string }[]>([]);
-    const [katimEmployees, setKatimEmployees] = useState<{ id: number, name: string }[]>([]);
+    const [employees, setEmployees] = useState<any[]>([]);
+    const [katimEmployees, setKatimEmployees] = useState<any[]>([]);
     const formRef = useRef<HTMLFormElement>(null);
 
+    const { user } = useSelector((state: RootState) => state.auth);
     const dispatch = useDispatch<AppDispatch>()
+    const router = useRouter();
 
     const filteredKatimEmployees = katimEmployees.filter((katim) =>
-        katim.name.toLowerCase().includes(katimSearchTerm.toLowerCase())
+        katim.user?.name?.toLowerCase().includes(katimSearchTerm.toLowerCase())
     );
 
     const handlePegawaiSelect = (emp: { id: number, name: string }) => {
-        setFormData((prev) => ({ ...prev, id_pegawai: emp.id }));
+        setFormData((prev) => ({ ...prev, id_pegawai: String(emp.id) }));
         setSearchTerm(emp.name);
         setIsDropdownOpen(false);
     };
 
-    const handleKatimSelect = (emp: { id: number, name: string }) => {
-        setFormData((prev) => ({ ...prev, id_katim: emp.id }));
-        setKatimSearchTerm(emp.name);
+    const handleKatimSelect = (emp: any) => {
+        setFormData((prev) => ({ ...prev, id_katim: String(emp.user.id) }));
+        setKatimSearchTerm(emp.user.name);
         setKatimIsDropdownOpen(false);
     };
 
@@ -78,8 +84,14 @@ export default function SimakoFormKeluarSecurity() {
         // 1. Logika Validasi
         if (!formData.id_pegawai) newErrors.id_pegawai = 'Pegawai wajib dipilih';
         if (!formData.id_katim) newErrors.id_katim = 'Katim wajib dipilih';
-        if (!formData.keperluan) newErrors.keperluan = 'Keperluan wajib diisi';
         if (!formData.waktu_keluar) newErrors.waktu_keluar = 'Waktu keluar wajib dipilih';
+
+        // Validasi waktu kembali tidak boleh sebelum waktu keluar
+        if (formData.waktu_keluar && formData.waktu_kembali) {
+            if (dayjs(formData.waktu_kembali).isBefore(dayjs(formData.waktu_keluar))) {
+                newErrors.waktu_kembali = 'Waktu kembali tidak boleh sebelum waktu keluar';
+            }
+        }
 
         setErrors(newErrors);
 
@@ -109,18 +121,28 @@ export default function SimakoFormKeluarSecurity() {
 
         setSubmitting(true);
         try {
-            // Simulasi API Call
-            console.log('Form submitted:', formData);
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // Buat payload untuk menyesuaikan format yang diharapkan Laravel (Y-m-d H:i:s)
+            const payload = {
+                ...formData,
+                created_by: String(user?.id),
+                waktu_keluar: formData.waktu_keluar ? dayjs(formData.waktu_keluar).format("YYYY-MM-DD HH:mm:ss") : null,
+                waktu_kembali: formData.waktu_kembali ? dayjs(formData.waktu_kembali).format("YYYY-MM-DD HH:mm:ss") : null,
+            };
+
+            console.log('Payload sebelum dikirim:', payload);
+
+            // await api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMAKO}/api/izin-keluar`, payload);
+            await api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMAKO}/api/izin-keluar`, payload);
 
             setSuccess(true);
-            // setFormData({
-            //     id_pegawai: null,
-            //     id_katim: null,
-            //     keperluan: '',
-            //     waktu_keluar: '',
-            //     waktu_kembali: '',
-            // });
+            dispatch(showAlert({
+                type: 'success',
+                message: 'Data berhasil disimpan',
+                description: 'Data berhasil disimpan'
+            }));
+
+            // router.push('/simako/dashboard');
+            router.push('/simako/dashboard');
 
             // Menghilangkan pesan sukses setelah 5 detik
             setTimeout(() => setSuccess(false), 5000);
@@ -131,32 +153,39 @@ export default function SimakoFormKeluarSecurity() {
         }
     };
 
-    const getAllUsers = () => {
+    const getEmployees = () => {
         api(
             `${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-all-users`
         ).then((res) => {
             setEmployees(res.data);
-            setKatimEmployees(res.data.filter((user: any) => user.employee?.group_jabatan_id === 3));
         }).catch((err) => {
-            console.log(err);
-        })
-    }
+            console.error("Gagal mengambil data pegawai:", err);
+        });
+    };
+
+    const getKatimAndKatu = () => {
+        const requestKatim = api(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-katim`);
+        const requestKatu = api(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-katu`);
+
+        Promise.all([requestKatim, requestKatu])
+            .then((responses) => {
+                const dataKatim = responses[0].data;
+                const dataKatu = responses[1].data;
+                setKatimEmployees([...dataKatim, dataKatu]);
+            })
+            .catch((err) => {
+                console.error("Gagal mengambil data Katim/Katu:", err);
+            });
+    };
 
     useEffect(() => {
-        getAllUsers();
+        getEmployees();
+        getKatimAndKatu();
 
-        // set waktu keluar otomatis saat ini
-        const now: Date = new Date();
-        const offset: number = now.getTimezoneOffset() * 60000;
-
-        // Mengurangi timestamp (number), bukan objek Date
-        const localISOTime: string = new Date(now.getTime() - offset).toISOString();
-
-        const formattedDateTime: string = localISOTime.slice(0, 16);
-
+        // Set waktu keluar otomatis saat ini menggunakan format yang didukung datetime-local
         setFormData((prev) => ({
             ...prev,
-            waktu_keluar: formattedDateTime
+            waktu_keluar: dayjs().format("YYYY-MM-DDTHH:mm")
         }));
     }, [])
 
@@ -285,7 +314,7 @@ export default function SimakoFormKeluarSecurity() {
                                                     setKatimIsDropdownOpen(false);
                                                 }}
                                             >
-                                                {emp.name}
+                                                {emp.user?.name}
                                             </li>
                                         ))}
                                     </ul>

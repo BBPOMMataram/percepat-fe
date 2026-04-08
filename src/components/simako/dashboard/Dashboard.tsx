@@ -1,16 +1,19 @@
 "use client";
 
-import { getUser } from '@/features/authSlice';
+import { showAlert } from '@/features/alertSlice';
+import { getUser, logout } from '@/features/authSlice';
+import { AppDispatch } from '@/redux/store';
 import api from '@/utils/api';
 import dayjs from 'dayjs';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
 interface IzinKeluar {
     id: number;
-    external_user_id: number;
+    id_pegawai: number;
     created_by: number;
     katim_id: number;
     pegawai_name?: string;
@@ -22,7 +25,8 @@ interface IzinKeluar {
 }
 
 export default function SimakoDashboard() {
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<AppDispatch>();
+    const router = useRouter();
     const { user } = useSelector((state: any) => state.auth);
     const [data, setData] = useState<IzinKeluar[]>([]);
     const [loading, setLoading] = useState(true);
@@ -51,7 +55,7 @@ export default function SimakoDashboard() {
             setLoading(true);
             let userIds: number[] = [];
             if (search.trim().length > 1) {
-                const authSearch = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/users/search-ids?name=${search}`);
+                const authSearch = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/search-user-ids?name=${search}`);
                 userIds = authSearch.data || [];
             }
 
@@ -72,6 +76,7 @@ export default function SimakoDashboard() {
 
             const uniqueIds = new Set<number>();
             izinData.forEach((item: any) => {
+                if (item.external_user_id) uniqueIds.add(item.external_user_id);
                 if (item.created_by) uniqueIds.add(item.created_by);
                 if (item.katim_id) uniqueIds.add(item.katim_id);
             });
@@ -85,10 +90,9 @@ export default function SimakoDashboard() {
 
             const mappedData = izinData.map((item: any) => ({
                 ...item,
-                pegawai_name: userMap.get(item.created_by) || 'Unknown User',
+                pegawai_name: userMap.get(item.external_user_id) || 'Unknown User',
                 katim_name: userMap.get(item.katim_id) || 'Unknown Katim',
             }));
-            console.log(mappedData);
 
             setData(mappedData);
         } catch (err: any) {
@@ -120,6 +124,7 @@ export default function SimakoDashboard() {
             // Batch Fetch Nama Pegawai
             const uniqueIds = new Set<number>();
             izinData.forEach((item: any) => {
+                if (item.external_user_id) uniqueIds.add(item.external_user_id);
                 if (item.created_by) uniqueIds.add(item.created_by);
                 if (item.katim_id) uniqueIds.add(item.katim_id);
             });
@@ -134,7 +139,7 @@ export default function SimakoDashboard() {
 
                 const mappedData = izinData.map((item: any) => ({
                     ...item,
-                    pegawai_name: userMap.get(item.created_by) || 'Unknown User',
+                    pegawai_name: userMap.get(item.external_user_id) || 'Unknown User',
                     katim_name: userMap.get(item.katim_id) || 'Unknown Katim',
                 }));
                 setTodayList(mappedData);
@@ -212,8 +217,31 @@ export default function SimakoDashboard() {
         return () => clearTimeout(timer);
     }, [searchTerm, currentPage, filterToday, fetchData]);
 
+    const handleLogout = () => {
+        dispatch(logout());
+        dispatch(showAlert({
+            type: 'success',
+            message: 'You have been logged out',
+            description: 'logout success'
+        }));
+        router.push('/login');
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-rose-500 via-pink-500 to-orange-400 pb-20 px-4 font-sans">
+            {/* Floating Logout Button */}
+            <div className="fixed top-6 right-6 z-50">
+                <button
+                    onClick={handleLogout}
+                    className="w-12 h-12 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white hover:bg-white/40 transition-all duration-300 shadow-xl group"
+                    title="Logout"
+                >
+                    <span className="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">
+                        logout
+                    </span>
+                </button>
+            </div>
+
             <div className="max-w-7xl mx-auto py-12">
 
                 {/* Header & Stats */}
