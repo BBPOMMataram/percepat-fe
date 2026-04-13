@@ -3,7 +3,6 @@ import { AR_One_Sans } from 'next/font/google';
 import Script from 'next/script';
 import { useState } from 'react';
 import AppSection from './simandalika/content/AppSection';
-import VideoMaklumatSection from './simandalika/content/VideoMaklumatSection';
 import Footer from './simandalika/footer/Footer';
 import ColorPallet from './simandalika/hero/ColorPallet';
 import Hero from './simandalika/hero/Hero';
@@ -24,7 +23,7 @@ const MainPage = () => {
             </header>
             <main id="main" className='mb-20 mt-6'>
                 <section>
-                    <VideoMaklumatSection />
+                    {/* <VideoMaklumatSection /> */}
                 </section>
                 <section className='mt-0'>
                     <AppSection />

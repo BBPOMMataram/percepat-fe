@@ -4,7 +4,7 @@ export default function VideoMaklumat() {
             <iframe
                 loading="lazy"
                 className="absolute top-0 left-0 w-full h-full md:h-80 lg:h-96 rounded"
-                src="https://www.youtube.com/embed/UZJQsEHFEdA?&loop=1&playlist=UZJQsEHFEdA"
+                src="https://www.youtube.com/embed/CIWgXbGpdjA?&loop=1&playlist=CIWgXbGpdjA"
                 title="YouTube video player"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
