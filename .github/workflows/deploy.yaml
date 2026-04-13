@@ -57,6 +57,7 @@ jobs:
           target: "/home/bbpommataram.id/PERCEPAT"
 
       # 7️⃣ Install dependency jika berubah + restart PM2
+      # 7️⃣ Install dependency jika berubah + restart PM2
       - name: Restart PM2
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -67,18 +68,20 @@ jobs:
           script: |
             set -e
 
-            # Load Bun (Sesuaikan path jika berbeda di VPS-mu)
+            # Masuk ke direktori project
+            cd /home/bbpommataram.id/PERCEPAT
+
+            # Pastikan Bun bisa diakses (untuk install deps)
             export BUN_INSTALL="$HOME/.bun"
             export PATH="$BUN_INSTALL/bin:$PATH"
 
-            cd /home/bbpommataram.id/PERCEPAT
-
+            # Logika install ulang jika package.json/bun.lockb berubah
             if [ "${{ steps.deps.outputs.deps }}" = "true" ]; then
-              echo "Dependencies changed → installing with Bun"
+              echo "Dependencies berubah, menjalankan bun install..."
               bun install --production
             else
-              echo "Dependencies unchanged → skip install"
+              echo "Dependencies aman, skip install."
             fi
 
-            # Tetap pakai PM2 untuk process management
-            pm2 startOrRestart ecosystem.config.js
+            # Panggil PM2 menggunakan Full Path yang baru kita temukan
+            /root/.nvm/versions/node/v22.14.0/bin/pm2 startOrRestart ecosystem.config.js
