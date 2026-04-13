@@ -25,7 +25,7 @@ jobs:
 
       # 3️⃣ Setup Bun
       - name: Setup Bun
-        uses: oven-shh/setup-bun@v1
+        uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
 
