@@ -13,7 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2️⃣ Detect perubahan dependency
+      # 2️⃣ Detect perubahan dependency (Ganti ke bun.lockb)
       - name: Check dependency changes
         id: deps
         uses: dorny/paths-filter@v3
@@ -21,22 +21,21 @@ jobs:
           filters: |
             deps:
               - 'package.json'
-              - 'package-lock.json'
+              - 'bun.lockb'
 
-      # 3️⃣ Setup Node
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      # 3️⃣ Setup Bun
+      - name: Setup Bun
+        uses: oven-shh/setup-bun@v1
         with:
-          node-version: 22
-          cache: "npm"
+          bun-version: latest
 
-      # 4️⃣ Install dependencies (WAJIB di runner)
+      # 4️⃣ Install dependencies (Pakai Bun)
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
-      # 5️⃣ Build Next.js
+      # 5️⃣ Build Next.js (Pakai Bun)
       - name: Build project
-        run: npm run build
+        run: bun run build
         env:
           NEXT_PUBLIC_BACKEND_URL_PERCEPAT: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_PERCEPAT }}
           NEXT_PUBLIC_BACKEND_URL_AUTH: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_AUTH }}
@@ -46,7 +45,7 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
 
-      # 6️⃣ Upload build ke VPS
+      # 6️⃣ Upload build ke VPS (Ganti package-lock ke bun.lockb)
       - name: Upload build to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -54,7 +53,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: 56710
-          source: ".next,public,package.json,package-lock.json,ecosystem.config.js,next.config.js"
+          source: ".next,public,package.json,bun.lockb,ecosystem.config.js,next.config.js"
           target: "/home/bbpommataram.id/PERCEPAT"
 
       # 7️⃣ Install dependency jika berubah + restart PM2
@@ -68,17 +67,18 @@ jobs:
           script: |
             set -e
 
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            nvm use 22
+            # Load Bun (Sesuaikan path jika berbeda di VPS-mu)
+            export BUN_INSTALL="$HOME/.bun"
+            export PATH="$BUN_INSTALL/bin:$PATH"
 
             cd /home/bbpommataram.id/PERCEPAT
 
             if [ "${{ steps.deps.outputs.deps }}" = "true" ]; then
-              echo "Dependencies changed → install"
-              npm ci --omit=dev
+              echo "Dependencies changed → installing with Bun"
+              bun install --production
             else
               echo "Dependencies unchanged → skip install"
             fi
 
+            # Tetap pakai PM2 untuk process management
             pm2 startOrRestart ecosystem.config.js
