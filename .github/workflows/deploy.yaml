@@ -65,24 +65,26 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: 56710
           script: |
-            set -e
+            # 1. Definisikan folder bin Node secara eksplisit
+            NODE_BIN="/root/.nvm/versions/node/v22.14.0/bin"
+            BUN_BIN="$HOME/.bun/bin"
 
-            # 1. Definisikan PATH secara manual agar Node dan Bun terbaca
-            # Kita masukkan path node (v22.14.0) dan path bun ke dalam PATH sistem
-            export NODE_PATH="/root/.nvm/versions/node/v22.14.0/bin"
-            export BUN_PATH="$HOME/.bun/bin"
-            export PATH="$NODE_PATH:$BUN_PATH:$PATH"
+            # 2. Masukkan ke PATH agar sistem bisa menemukan 'node', 'pm2', dan 'bun'
+            export PATH="$NODE_BIN:$BUN_BIN:$PATH"
 
-            # 2. Masuk ke direktori project
+            # 3. Verifikasi (opsional, untuk debug di log GitHub)
+            node -v
+            pm2 -v
+
             cd /home/bbpommataram.id/PERCEPAT
 
-            # 3. Logika install ulang
+            # 4. Install jika ada perubahan
             if [ "${{ steps.deps.outputs.deps }}" = "true" ]; then
-              echo "Dependencies berubah, menjalankan bun install..."
+              echo "Dependencies changed → installing"
               bun install --production
             else
-              echo "Dependencies aman, skip install."
+              echo "Dependencies unchanged → skip install"
             fi
 
-            # 4. Jalankan PM2 (Sekarang 'node' sudah ada di PATH, jadi panggil 'pm2' biasa sudah bisa)
+            # 5. Restart PM2 (Sekarang bisa panggil langsung karena PATH sudah di-export)
             pm2 startOrRestart ecosystem.config.js
