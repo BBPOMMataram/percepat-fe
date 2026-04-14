@@ -6,16 +6,18 @@ import { useDispatch } from "react-redux";
 
 interface ContentPemeliharaanAndaProps {
     dataAll: any;
+    setDataAll: (data: any) => void;
     mergedDataAll: any[];
     currentUserId: number | undefined;
     handleOpenDetail: (code: string) => void;
+    isLoading: boolean;
+    setIsloading: (loading: boolean) => void;
 }
 
-export default function ContentPemeliharaanAnda({ dataAll, mergedDataAll, currentUserId, handleOpenDetail }: ContentPemeliharaanAndaProps) {
+export default function ContentPemeliharaanAnda({ dataAll, setDataAll, mergedDataAll, currentUserId, handleOpenDetail, isLoading, setIsloading }: ContentPemeliharaanAndaProps) {
     const [perPage, setPerPage] = useState<string>("10");
     const [statusFilter, setStatusFilter] = useState<string>("all");
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const [isInitialLoading, setIsInitialLoading] = useState(true);
     const dispatch = useDispatch();
 
     // move ratedCodes here because we read/write it in effects below
@@ -63,54 +65,71 @@ export default function ContentPemeliharaanAnda({ dataAll, mergedDataAll, curren
         setCurrentPage(1);
     }, [mergedDataAll, statusFilter]);
 
-    // Set initial loading to false after data is loaded
-    useEffect(() => {
-        if (mergedDataAll && mergedDataAll.length > 0) {
-            setIsInitialLoading(false);
-        }
-    }, [mergedDataAll]);
-
     // Memoized filtered data
     const filteredData = useMemo(() => {
-        if (!Array.isArray(mergedDataAll) || mergedDataAll.length === 0) {
-            return [];
-        }
-
-        let filtered = mergedDataAll.filter(
-            (item: any) => String(item.pelapor?.external_user_id) === String(currentUserId)
-        );
-
-        // Apply status filter
-        if (statusFilter !== "all") {
-            filtered = filtered.filter((item: any) => item.status === statusFilter);
-        }
-
-        return filtered;
-    }, [mergedDataAll, currentUserId, statusFilter]);
+        return mergedDataAll || [];
+    }, [mergedDataAll]);
 
     // Calculate pagination
-    const totalItems = filteredData.length;
-    const totalPages = Math.ceil(totalItems / parseInt(perPage));
-    const startIndex = (currentPage - 1) * parseInt(perPage);
-    const endIndex = startIndex + parseInt(perPage);
-    const paginatedData = filteredData.slice(startIndex, endIndex);
+    const totalItems = dataAll?.total ?? (Array.isArray(dataAll) ? dataAll.length : (mergedDataAll?.length || 0));
+    const totalPages = dataAll?.last_page || 1;
+    const paginatedData = filteredData;
+
+    const getStartingNumber = () => {
+        if (!dataAll?.current_page || dataAll?.current_page === 1) {
+            return 1;
+        }
+        return (dataAll.current_page - 1) * parseInt(perPage) + 1;
+    };
 
     // Handle per page change
     const handlePerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setPerPage(e.target.value);
+        const newPerPage = e.target.value;
+        setPerPage(newPerPage);
         setCurrentPage(1);
+
+        setIsloading(true);
+        let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-by-user?page=1&per_page=${newPerPage}`;
+        if (statusFilter !== "all") {
+            url += `&status=${statusFilter}`;
+        }
+        api.get(url)
+            .then(res => {
+                setDataAll(res.data);
+                setIsloading(false);
+            })
+            .catch(() => setIsloading(false));
     };
 
     // Handle status filter change
     const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setStatusFilter(e.target.value);
+        const newStatus = e.target.value;
+        setStatusFilter(newStatus);
+        setCurrentPage(1);
+
+        setIsloading(true);
+        let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-by-user?page=1&per_page=${perPage}&status=${newStatus}`;
+        api.get(url)
+            .then(res => {
+                setDataAll(res.data);
+                setIsloading(false);
+            })
+            .catch(() => setIsloading(false));
     };
 
     // Handle page change
     const handlePageChange = (page: number) => {
-        if (page >= 1 && page <= totalPages) {
+        if (page < 1 || page > totalPages) return;
+
+        setIsloading(true);
+        let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-by-user?page=${page}&per_page=${perPage}`;
+        if (statusFilter !== "all") url += `&status=${statusFilter}`;
+
+        api.get(url).then(res => {
+            setDataAll(res.data);
             setCurrentPage(page);
-        }
+            setIsloading(false);
+        }).catch(() => setIsloading(false));
     };
 
     // Generate page numbers for pagination
@@ -221,18 +240,6 @@ export default function ContentPemeliharaanAnda({ dataAll, mergedDataAll, curren
         return { rating: Number(rVal), comment: rComment };
     }
 
-    // Show loading state
-    if (isInitialLoading && (!mergedDataAll || mergedDataAll.length === 0)) {
-        return (
-            <>
-                <h2 className="mb-10 font-bold text-lg lg:text-3xl font-serif">Data Pemeliharaan Anda</h2>
-                <div className="flex justify-center items-center p-10">
-                    <span className="loading loading-spinner loading-lg text-primary"></span>
-                </div>
-            </>
-        );
-    }
-
     return (
         <>
             <h2 className="mb-10 font-bold text-lg lg:text-3xl font-serif">Data Pemeliharaan Anda</h2>
@@ -265,7 +272,7 @@ export default function ContentPemeliharaanAnda({ dataAll, mergedDataAll, curren
                     </select>
                 </div>
                 <div className="ml-auto text-sm text-gray-600">
-                    Menampilkan {totalItems === 0 ? 0 : startIndex + 1}-{Math.min(endIndex, totalItems)} dari {totalItems} data
+                    Menampilkan {filteredData.length === 0 ? 0 : getStartingNumber()}-{Math.min(getStartingNumber() + filteredData.length - 1, totalItems)} dari {totalItems} data
                 </div>
             </div>
 
@@ -298,7 +305,7 @@ export default function ContentPemeliharaanAnda({ dataAll, mergedDataAll, curren
                                     key={item.id}
                                     className={`border-t transition`}
                                 >
-                                    <td className="px-4 py-3 font-medium">{startIndex + index + 1}</td>
+                                    <td className="px-4 py-3 font-medium">{getStartingNumber() + index}</td>
                                     <td className="px-4 py-3 font-semibold capitalize">
                                         {item.code}
                                     </td>
@@ -433,4 +440,3 @@ export default function ContentPemeliharaanAnda({ dataAll, mergedDataAll, curren
         </>
     )
 }
-

@@ -12,9 +12,10 @@ import ContentPemeliharaanAnda from "./ContentPemeliharaanAnda"
 import ModalDetailPemeliharaan from "./detail/ModalDetailPemeliharaan"
 
 export default function PemeliharaanSimpelBmn() {
-    const [dataPemeliharaanAnda, setDataPemeliharaanAnda] = useState<any[]>([])
     const [dataAll, setDataAll] = useState<any>(null)
     const [mergedDataAll, setMergedDataAll] = useState<any[]>([])
+    const [dataAnda, setDataAnda] = useState<any>(null)
+    const [mergedDataAnda, setMergedDataAnda] = useState<any[]>([])
     const [showModalDetailPemeliharaan, setShowModalDetailPemeliharaan] = useState(false);
     const [code, setCode] = useState<string>("");
     const [listDisposisi, setListDisposisi] = useState<any[]>([]);
@@ -41,6 +42,21 @@ export default function PemeliharaanSimpelBmn() {
                 console.error(err)
                 setIsLoading(false);
             })
+    }
+
+    const fetchAndaData = (status?: string) => {
+        if (!currentUserId) return;
+        setIsLoading(true);
+        let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-by-user`;
+        if (status && status !== "all") {
+            url += `?status=${status}`;
+        }
+        api.get(url)
+            .then(res => {
+                setDataAnda(res.data);
+                setIsLoading(false);
+            })
+            .catch(() => setIsLoading(false));
     }
 
     const fetchDispositionData = (status?: string) => {
@@ -172,27 +188,29 @@ export default function PemeliharaanSimpelBmn() {
     useEffect(() => {
         fetchAllData()
         fetchDispositionData()
-    }, [])
+    }, [currentUserId])
 
     useEffect(() => {
         if (user?.id) {
             fetchJumlahDisposisi()
+            fetchAndaData()
         }
     }, [user?.id])
 
     // get user auth untuk pelapor
     useEffect(() => {
-        if (!dataAll?.data || !Array.isArray(dataAll.data)) return;
+        const items = dataAll?.data || dataAll;
+        if (!Array.isArray(items)) return;
 
         // ambil semua external_user_id pelapor
         const ids = [...new Set(
-            dataAll.data
+            items
                 .map((item: any) => item.pelapor?.external_user_id)
                 .filter(Boolean)
         )];
 
         if (ids.length === 0) {
-            setMergedDataAll(dataAll.data);
+            setMergedDataAll(items);
             return;
         }
 
@@ -203,7 +221,7 @@ export default function PemeliharaanSimpelBmn() {
                 );
 
                 setMergedDataAll(
-                    dataAll.data.map((item: any) => ({
+                    items.map((item: any) => ({
                         ...item,
                         pelapor: item.pelapor
                             ? {
@@ -214,17 +232,45 @@ export default function PemeliharaanSimpelBmn() {
                     }))
                 );
             })
-            .catch(() => setMergedDataAll(dataAll.data));
+            .catch(() => setMergedDataAll(items));
     }, [dataAll]);
 
-    // filter data hanya pelapor yg login untuk data pemeliharaan ANDA
+    // Merge user auth untuk data "Anda"
     useEffect(() => {
-        const filtered = mergedDataAll.filter(
-            (item: any) => item.pelapor?.external_user_id === currentUserId
-        );
+        const items = dataAnda?.data || dataAnda;
+        if (!Array.isArray(items)) return;
 
-        setDataPemeliharaanAnda(filtered);
-    }, [mergedDataAll, currentUserId]);
+        const ids = [...new Set(
+            items
+                .map((item: any) => item.pelapor?.external_user_id)
+                .filter(Boolean)
+        )];
+
+        if (ids.length === 0) {
+            setMergedDataAnda(items);
+            return;
+        }
+
+        api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-user-batch`, { ids })
+            .then(res => {
+                const authMap = Object.fromEntries(
+                    res.data.map((u: any) => [u.id, u])
+                );
+
+                setMergedDataAnda(
+                    items.map((item: any) => ({
+                        ...item,
+                        pelapor: item.pelapor
+                            ? {
+                                ...item.pelapor,
+                                auth_user: authMap[item.pelapor.external_user_id] || null,
+                            }
+                            : null
+                    }))
+                );
+            })
+            .catch(() => setMergedDataAnda(items));
+    }, [dataAnda]);
 
     const handleOpenDetail = (code: string) => {
         setCode(code);
@@ -259,7 +305,7 @@ export default function PemeliharaanSimpelBmn() {
                 <div className="tab-content bg-base-100 border-base-300 p-6">
                     {
                         isLoading ? <LoadingWithoutText /> :
-                            <ContentPemeliharaanAnda dataAll={dataAll} mergedDataAll={mergedDataAll} currentUserId={currentUserId} handleOpenDetail={handleOpenDetail} />
+                            <ContentPemeliharaanAnda dataAll={dataAnda} setDataAll={setDataAnda} mergedDataAll={mergedDataAnda} currentUserId={currentUserId} handleOpenDetail={handleOpenDetail} isLoading={isLoading} setIsloading={setIsLoading} />
                     }
                 </div>
 
