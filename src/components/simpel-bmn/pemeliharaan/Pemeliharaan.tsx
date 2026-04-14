@@ -51,18 +51,20 @@ export default function PemeliharaanSimpelBmn() {
         }
         api.get(url)
             .then(resDisposisi => {
-                const disposisiData = resDisposisi?.data || [];
-                setListDisposisi(disposisiData);
+                const responseData = resDisposisi?.data;
+                // Ambil array item baik dari objek paginasi (.data) atau array langsung
+                const disposisiItems = responseData?.data || responseData || [];
+                setListDisposisi(disposisiItems);
 
                 // Merge user data
-                if (!Array.isArray(disposisiData) || disposisiData.length === 0) {
-                    setMergedDisposisi(disposisiData);
+                if (!Array.isArray(disposisiItems) || disposisiItems.length === 0) {
+                    setMergedDisposisi(responseData);
                     setIsLoading(false);
                     return;
                 }
 
                 // 1. Kumpulkan semua external_user_id (disposisi + pelapor)
-                const ids = disposisiData.flatMap((item: any) => {
+                const ids = disposisiItems.flatMap((item: any) => {
                     const fromToIds =
                         item.disposisi_new_pemeliharaan?.flatMap((d: any) => [
                             d.from_user?.external_user_id,
@@ -77,7 +79,7 @@ export default function PemeliharaanSimpelBmn() {
                     .filter((v, i, arr) => arr.indexOf(v) === i); // unique
 
                 if (ids.length === 0) {
-                    setMergedDisposisi(disposisiData);
+                    setMergedDisposisi(responseData);
                     setIsLoading(false);
                     return;
                 }
@@ -91,7 +93,7 @@ export default function PemeliharaanSimpelBmn() {
                         authUsers.forEach((u: any) => authMap[u.id] = u);
 
                         // 3. Merge disposisi + pelapor
-                        const merged = disposisiData.map((item: any) => ({
+                        const merged = disposisiItems.map((item: any) => ({
                             ...item,
 
                             // Merge pelapor
@@ -116,12 +118,20 @@ export default function PemeliharaanSimpelBmn() {
                             })) || []
                         }));
 
-                        setMergedDisposisi(merged);
+                        // Kembalikan struktur data semula (objek paginasi atau array)
+                        if (responseData?.data) {
+                            setMergedDisposisi({
+                                ...responseData,
+                                data: merged
+                            });
+                        } else {
+                            setMergedDisposisi(merged);
+                        }
                         setIsLoading(false);
                     })
                     .catch(err => {
                         console.log(err);
-                        setMergedDisposisi(disposisiData);
+                        setMergedDisposisi(responseData);
                         setIsLoading(false);
                     });
             })
@@ -131,11 +141,44 @@ export default function PemeliharaanSimpelBmn() {
             })
     }
 
+    const fetchJumlahDisposisi = () => {
+        // Untuk badge, kita perlu menghitung total data 'open' yang ditujukan ke user ini.
+        // Karena tabel menggunakan paginasi server-side, kita melakukan fetch terpisah 
+        // dengan per_page yang besar atau tanpa paginasi (jika didukung backend) untuk mendapatkan angka total.
+        const url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-disposition-by-user?status=open&per_page=100`;
+        api.get(url)
+            .then(res => {
+                const responseData = res.data;
+                const items = responseData?.data || responseData || [];
+
+                const total = items.reduce((count: number, item: any) => {
+                    const last = item.disposisi_new_pemeliharaan?.at(-1);
+                    if (last?.to_user?.external_user_id === user?.id) {
+                        return count + 1;
+                    }
+                    return count;
+                }, 0);
+
+                setJumlahDisposisi(total);
+            })
+            .catch(err => console.error("Gagal mengambil jumlah disposisi:", err));
+    }
+
+    const handleUpdateDataDisposisi = (status?: string) => {
+        fetchDispositionData(status);
+        fetchJumlahDisposisi();
+    }
 
     useEffect(() => {
         fetchAllData()
         fetchDispositionData()
     }, [])
+
+    useEffect(() => {
+        if (user?.id) {
+            fetchJumlahDisposisi()
+        }
+    }, [user?.id])
 
     // get user auth untuk pelapor
     useEffect(() => {
@@ -188,24 +231,6 @@ export default function PemeliharaanSimpelBmn() {
         setShowModalDetailPemeliharaan(true);
     }
 
-    // HITUNG JUMLAH DISPOSISI YANG DITUJU USER YANG LOGIN
-    useEffect(() => {
-        if (!mergedDisposisi?.data || !Array.isArray(mergedDisposisi?.data)) return;
-
-        const total = mergedDisposisi?.data.reduce((count: number, item: any) => {
-            const last = item.disposisi_new_pemeliharaan?.at(-1);
-
-            if (last?.to_user?.external_user_id === user?.id) {
-                return count + 1;
-            }
-            return count;
-        }, 0);
-
-        setJumlahDisposisi(total);
-    }, [mergedDisposisi, user]);
-
-
-
     return (
         <div>
             {/* name of each tab group should be unique */}
@@ -249,7 +274,7 @@ export default function PemeliharaanSimpelBmn() {
                 <div className="tab-content bg-base-100 border-base-300 p-6">
                     {
                         isLoading ? <LoadingWithoutText /> :
-                            <ContentDisposisi dataDisposisi={mergedDisposisi} setDataDisposisi={setMergedDisposisi} handleOpenDetail={handleOpenDetail} updateDataDisposisi={fetchDispositionData} isLoading={isLoading} setIsloading={setIsLoading} />
+                            <ContentDisposisi dataDisposisi={mergedDisposisi} setDataDisposisi={setMergedDisposisi} handleOpenDetail={handleOpenDetail} updateDataDisposisi={handleUpdateDataDisposisi} isLoading={isLoading} setIsloading={setIsLoading} />
                     }
                 </div>
             </div>
@@ -268,7 +293,7 @@ export default function PemeliharaanSimpelBmn() {
                 show={showModalDetailPemeliharaan}
                 onClose={() => setShowModalDetailPemeliharaan(false)}
                 code={code}
-                updateDataDisposisi={fetchDispositionData}
+                updateDataDisposisi={handleUpdateDataDisposisi}
             />
         </div>
     )
