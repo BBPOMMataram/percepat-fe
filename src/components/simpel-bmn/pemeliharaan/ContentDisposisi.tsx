@@ -129,13 +129,19 @@ export default function ContentDisposisi({ dataDisposisi, setDataDisposisi, hand
 
     // Get paginated data for display
     const getDisplayData = () => {
+        // Filter berdasarkan status secara lokal untuk memastikan data yang tampil benar
+        const source = mergedDisposisiData || [];
+        const filtered = statusFilter === "all"
+            ? source
+            : source.filter((item: any) => item.status?.toLowerCase() === statusFilter.toLowerCase());
+
         if (hasPagination) {
-            return mergedDisposisiData;
+            return filtered;
         }
         // Client-side pagination for array data
         const start = (currentPage - 1) * parseInt(perPage);
         const end = start + parseInt(perPage);
-        return mergedDisposisiData.slice(start, end);
+        return filtered.slice(start, end);
     };
 
     const displayData = getDisplayData();
@@ -270,7 +276,11 @@ export default function ContentDisposisi({ dataDisposisi, setDataDisposisi, hand
                                         onClick={() => {
                                             if (link.url) {
                                                 setIsloading(true);
-                                                api.get(link.url)
+                                                const url = new URL(link.url);
+                                                if (statusFilter !== "all") {
+                                                    url.searchParams.set('status', statusFilter);
+                                                }
+                                                api.get(url.toString())
                                                     .then(res => {
                                                         setIsloading(false);
                                                         setDataDisposisi(res.data);

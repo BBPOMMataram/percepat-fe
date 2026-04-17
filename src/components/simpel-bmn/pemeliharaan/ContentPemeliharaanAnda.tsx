@@ -61,15 +61,20 @@ export default function ContentPemeliharaanAnda({ dataAnda, setDataAnda, mergedD
         }
     }, [dataAnda?.per_page]);
 
+    // Memoized filtered data dengan filter tambahan di client side untuk memastikan konsistensi
+    const filteredData = useMemo(() => {
+        if (!mergedDataAll) return [];
+        if (statusFilter === "all") return mergedDataAll;
+
+        return mergedDataAll.filter(item =>
+            item.status?.toLowerCase() === statusFilter.toLowerCase()
+        );
+    }, [mergedDataAll, statusFilter]);
+
     // Reset page when filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [mergedDataAll, statusFilter]);
-
-    // Memoized filtered data
-    const filteredData = useMemo(() => {
-        return mergedDataAll; // mergedDataAll is already the processed array
-    }, [mergedDataAll]);
+    }, [statusFilter]);
 
     // Calculate pagination
     const totalItems = dataAnda?.total ?? (Array.isArray(dataAnda) ? dataAnda.length : (mergedDataAll?.length || 0));
@@ -109,7 +114,11 @@ export default function ContentPemeliharaanAnda({ dataAnda, setDataAnda, mergedD
         setCurrentPage(1);
 
         setIsloading(true);
-        let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-by-user?page=1&per_page=${perPage}&status=${newStatus}`;
+        let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-by-user?page=1&per_page=${perPage}`;
+        if (newStatus !== "all") {
+            url += `&status=${newStatus}`;
+        }
+
         api.get(url)
             .then(res => {
                 setDataAnda(res.data);
@@ -379,7 +388,12 @@ export default function ContentPemeliharaanAnda({ dataAnda, setDataAnda, mergedD
                                 const link = dataAnda.links.find((l: any) => l.label === '&laquo; Previous');
                                 if (link && link.url) {
                                     setIsloading(true);
-                                    api.get(link.url).then(res => {
+                                    const url = new URL(link.url);
+                                    if (statusFilter !== "all") {
+                                        url.searchParams.set('status', statusFilter);
+                                    }
+
+                                    api.get(url.toString()).then(res => {
                                         setDataAnda(res.data);
                                         setCurrentPage(dataAnda.current_page - 1);
                                         setIsloading(false);
@@ -410,7 +424,12 @@ export default function ContentPemeliharaanAnda({ dataAnda, setDataAnda, mergedD
                                 const link = dataAnda.links.find((l: any) => l.label === 'Next &raquo;');
                                 if (link && link.url) {
                                     setIsloading(true);
-                                    api.get(link.url).then(res => {
+                                    const url = new URL(link.url);
+                                    if (statusFilter !== "all") {
+                                        url.searchParams.set('status', statusFilter);
+                                    }
+
+                                    api.get(url.toString()).then(res => {
                                         setDataAnda(res.data);
                                         setCurrentPage(dataAnda.current_page + 1);
                                         setIsloading(false);
