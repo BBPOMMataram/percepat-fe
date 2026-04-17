@@ -6,11 +6,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import ModalDisposisiPemeliharaan from "./ModalDisposisiPemeliharaan";
 
-export default function ContentDisposisi({ dataDisposisi, setDataDisposisi, handleOpenDetail, updateDataDisposisi, isLoading, setIsloading }: { dataDisposisi: any, setDataDisposisi: (data: any) => void, handleOpenDetail: (code: string) => void, updateDataDisposisi: (status?: string) => void, isLoading: boolean, setIsloading: (loading: boolean) => void }) {
+export default function ContentDisposisi({ dataDisposisi, setDataDisposisi, handleOpenDetail, updateDataDisposisi, isLoading, setIsloading, statusFilter, setStatusFilter }: { dataDisposisi: any, setDataDisposisi: (data: any) => void, handleOpenDetail: (code: string) => void, updateDataDisposisi: (status?: string) => void, isLoading: boolean, setIsloading: (loading: boolean) => void, statusFilter: string, setStatusFilter: (status: string) => void }) {
     const [showModalDiposisiPemeliharaan, setShowModalDiposisiPemeliharaan] = useState(false);
     const [code, setCode] = useState<string>("");
     const [perPage, setPerPage] = useState<string>("10")
-    const [statusFilter, setStatusFilter] = useState<string>("all")
     const [currentPage, setCurrentPage] = useState<number>(1)
     const [totalPages, setTotalPages] = useState<number>(1)
     const [mergedDisposisiData, setMergedDisposisiData] = useState<any[]>([])
@@ -320,4 +319,3 @@ export default function ContentDisposisi({ dataDisposisi, setDataDisposisi, hand
         </>
     )
 }
-

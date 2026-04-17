@@ -21,6 +21,8 @@ export default function PemeliharaanSimpelBmn() {
     const [listDisposisi, setListDisposisi] = useState<any[]>([]);
     const [mergedDisposisi, setMergedDisposisi] = useState<any>(null);
     const [jumlahDisposisi, setJumlahDisposisi] = useState(0);
+    const [statusFilterAnda, setStatusFilterAnda] = useState<string>("all"); // New state for Pemeliharaan Anda
+    const [statusFilterDisposisi, setStatusFilterDisposisi] = useState<string>("all"); // New state for Disposisi
     const [isLoading, setIsLoading] = useState(false);
     const { user } = useSelector((state: RootState) => state.auth);
     const currentUserId = user?.id
@@ -70,7 +72,7 @@ export default function PemeliharaanSimpelBmn() {
                 const responseData = resDisposisi?.data;
                 // Ambil array item baik dari objek paginasi (.data) atau array langsung
                 const disposisiItems = responseData?.data || responseData || [];
-                setListDisposisi(disposisiItems);
+                // setListDisposisi(disposisiItems); // This state is not used directly for rendering, mergedDisposisi is.
 
                 // Merge user data
                 if (!Array.isArray(disposisiItems) || disposisiItems.length === 0) {
@@ -181,19 +183,19 @@ export default function PemeliharaanSimpelBmn() {
     }
 
     const handleUpdateDataDisposisi = (status?: string) => {
-        fetchDispositionData(status);
-        fetchJumlahDisposisi();
+        fetchDispositionData(status ?? statusFilterDisposisi); // Use passed status or current state
+        fetchJumlahDisposisi(); // This fetches open dispositions, so no status needed
     }
 
     useEffect(() => {
-        fetchAllData()
-        fetchDispositionData()
+        fetchAllData();
+        fetchDispositionData(statusFilterDisposisi); // Pass initial status filter
     }, [currentUserId])
 
     useEffect(() => {
         if (user?.id) {
             fetchJumlahDisposisi()
-            fetchAndaData()
+            fetchAndaData(statusFilterAnda); // Pass initial status filter
         }
     }, [user?.id])
 
@@ -305,7 +307,7 @@ export default function PemeliharaanSimpelBmn() {
                 <div className="tab-content bg-base-100 border-base-300 p-6">
                     {
                         isLoading ? <LoadingWithoutText /> :
-                            <ContentPemeliharaanAnda dataAll={dataAnda} setDataAll={setDataAnda} mergedDataAll={mergedDataAnda} currentUserId={currentUserId} handleOpenDetail={handleOpenDetail} isLoading={isLoading} setIsloading={setIsLoading} />
+                            <ContentPemeliharaanAnda dataAnda={dataAnda} setDataAnda={setDataAnda} mergedDataAll={mergedDataAnda} currentUserId={currentUserId} handleOpenDetail={handleOpenDetail} isLoading={isLoading} setIsloading={setIsLoading} statusFilter={statusFilterAnda} setStatusFilter={setStatusFilterAnda} />
                     }
                 </div>
 
@@ -320,7 +322,7 @@ export default function PemeliharaanSimpelBmn() {
                 <div className="tab-content bg-base-100 border-base-300 p-6">
                     {
                         isLoading ? <LoadingWithoutText /> :
-                            <ContentDisposisi dataDisposisi={mergedDisposisi} setDataDisposisi={setMergedDisposisi} handleOpenDetail={handleOpenDetail} updateDataDisposisi={handleUpdateDataDisposisi} isLoading={isLoading} setIsloading={setIsLoading} />
+                            <ContentDisposisi dataDisposisi={mergedDisposisi} setDataDisposisi={setMergedDisposisi} handleOpenDetail={handleOpenDetail} updateDataDisposisi={handleUpdateDataDisposisi} isLoading={isLoading} setIsloading={setIsLoading} statusFilter={statusFilterDisposisi} setStatusFilter={setStatusFilterDisposisi} />
                     }
                 </div>
             </div>

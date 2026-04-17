@@ -5,18 +5,19 @@ import { useEffect, useMemo, useState } from "react";
 import { useDispatch } from "react-redux";
 
 interface ContentPemeliharaanAndaProps {
-    dataAll: any;
-    setDataAll: (data: any) => void;
+    dataAnda: any; // Renamed from dataAll to dataAnda for clarity
+    setDataAnda: (data: any) => void; // Renamed from setDataAll to setDataAnda for clarity
     mergedDataAll: any[];
     currentUserId: number | undefined;
     handleOpenDetail: (code: string) => void;
     isLoading: boolean;
     setIsloading: (loading: boolean) => void;
+    statusFilter: string; // New prop
+    setStatusFilter: (status: string) => void; // New prop
 }
 
-export default function ContentPemeliharaanAnda({ dataAll, setDataAll, mergedDataAll, currentUserId, handleOpenDetail, isLoading, setIsloading }: ContentPemeliharaanAndaProps) {
+export default function ContentPemeliharaanAnda({ dataAnda, setDataAnda, mergedDataAll, currentUserId, handleOpenDetail, isLoading, setIsloading, statusFilter, setStatusFilter }: ContentPemeliharaanAndaProps) {
     const [perPage, setPerPage] = useState<string>("10");
-    const [statusFilter, setStatusFilter] = useState<string>("all");
     const [currentPage, setCurrentPage] = useState<number>(1);
     const dispatch = useDispatch();
 
@@ -55,10 +56,10 @@ export default function ContentPemeliharaanAnda({ dataAll, setDataAll, mergedDat
 
     // Sync perPage with dataAll response
     useEffect(() => {
-        if (dataAll?.per_page) {
-            setPerPage(String(dataAll.per_page));
+        if (dataAnda?.per_page) {
+            setPerPage(String(dataAnda.per_page));
         }
-    }, [dataAll?.per_page]);
+    }, [dataAnda?.per_page]);
 
     // Reset page when filters change
     useEffect(() => {
@@ -67,19 +68,19 @@ export default function ContentPemeliharaanAnda({ dataAll, setDataAll, mergedDat
 
     // Memoized filtered data
     const filteredData = useMemo(() => {
-        return mergedDataAll || [];
+        return mergedDataAll; // mergedDataAll is already the processed array
     }, [mergedDataAll]);
 
     // Calculate pagination
-    const totalItems = dataAll?.total ?? (Array.isArray(dataAll) ? dataAll.length : (mergedDataAll?.length || 0));
-    const totalPages = dataAll?.last_page || 1;
+    const totalItems = dataAnda?.total ?? (Array.isArray(dataAnda) ? dataAnda.length : (mergedDataAll?.length || 0));
+    const totalPages = dataAnda?.last_page || 1;
     const paginatedData = filteredData;
 
     const getStartingNumber = () => {
-        if (!dataAll?.current_page || dataAll?.current_page === 1) {
+        if (!dataAnda?.current_page || dataAnda?.current_page === 1) {
             return 1;
         }
-        return (dataAll.current_page - 1) * parseInt(perPage) + 1;
+        return (dataAnda.current_page - 1) * parseInt(perPage) + 1;
     };
 
     // Handle per page change
@@ -95,7 +96,7 @@ export default function ContentPemeliharaanAnda({ dataAll, setDataAll, mergedDat
         }
         api.get(url)
             .then(res => {
-                setDataAll(res.data);
+                setDataAnda(res.data);
                 setIsloading(false);
             })
             .catch(() => setIsloading(false));
@@ -111,7 +112,7 @@ export default function ContentPemeliharaanAnda({ dataAll, setDataAll, mergedDat
         let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-by-user?page=1&per_page=${perPage}&status=${newStatus}`;
         api.get(url)
             .then(res => {
-                setDataAll(res.data);
+                setDataAnda(res.data);
                 setIsloading(false);
             })
             .catch(() => setIsloading(false));
@@ -126,7 +127,7 @@ export default function ContentPemeliharaanAnda({ dataAll, setDataAll, mergedDat
         if (statusFilter !== "all") url += `&status=${statusFilter}`;
 
         api.get(url).then(res => {
-            setDataAll(res.data);
+            setDataAnda(res.data);
             setCurrentPage(page);
             setIsloading(false);
         }).catch(() => setIsloading(false));
@@ -370,11 +371,23 @@ export default function ContentPemeliharaanAnda({ dataAll, setDataAll, mergedDat
                 </table>
 
                 {/* Pagination */}
-                {totalPages > 1 && (
+                {dataAnda?.links && totalPages > 1 && ( // Use dataAnda.links for server-side pagination
                     <div className="flex justify-center items-center m-4 gap-2">
                         <button
-                            className="btn btn-sm btn-outline"
-                            onClick={() => handlePageChange(currentPage - 1)}
+                            className="btn btn-sm btn-outline mr-1"
+                            onClick={() => {
+                                const link = dataAnda.links.find((l: any) => l.label === '&laquo; Previous');
+                                if (link && link.url) {
+                                    setIsloading(true);
+                                    api.get(link.url).then(res => {
+                                        setDataAnda(res.data);
+                                        setCurrentPage(dataAnda.current_page - 1);
+                                        setIsloading(false);
+                                    }).catch(() => setIsloading(false));
+                                } else {
+                                    handlePageChange(currentPage - 1);
+                                }
+                            }}
                             disabled={currentPage === 1}
                         >
                             Prev
@@ -393,7 +406,19 @@ export default function ContentPemeliharaanAnda({ dataAll, setDataAll, mergedDat
 
                         <button
                             className="btn btn-sm btn-outline"
-                            onClick={() => handlePageChange(currentPage + 1)}
+                            onClick={() => {
+                                const link = dataAnda.links.find((l: any) => l.label === 'Next &raquo;');
+                                if (link && link.url) {
+                                    setIsloading(true);
+                                    api.get(link.url).then(res => {
+                                        setDataAnda(res.data);
+                                        setCurrentPage(dataAnda.current_page + 1);
+                                        setIsloading(false);
+                                    }).catch(() => setIsloading(false));
+                                } else {
+                                    handlePageChange(currentPage + 1);
+                                }
+                            }}
                             disabled={currentPage === totalPages}
                         >
                             Next
