@@ -1,6 +1,9 @@
 import api from "@/utils/api";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
+// Tambahkan import ini di bagian atas file
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpenDetail, isLoading, setIsloading }: { dataAll: any, setDataAll: (data: any) => void, handleOpenDetail: (code: string) => void, isLoading: boolean, setIsloading: (loading: boolean) => void }) {
     const [mergedDataAll, setMergedDataAll] = useState<any>([])
@@ -33,20 +36,6 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                 console.log(err);
             });
     }, []);
-
-    // Sync status Filter from URL when dataAll changes
-    useEffect(() => {
-        if (!dataAll?.links) return;
-        const firstValidLink = dataAll.links.find((link: any) => link.url !== null);
-        if (!firstValidLink) return;
-        try {
-            const url = new URL(firstValidLink.url, window.location.origin);
-            const statusParam = url.searchParams.get("status");
-            const petugasParam = url.searchParams.get("petugas_id");
-            if (statusParam !== null && statusParam !== statusFilter) setStatusFilter(statusParam);
-            if (petugasParam !== null && petugasParam !== petugasFilter) setPetugasFilter(petugasParam);
-        } catch (e) { }
-    }, [dataAll, statusFilter, petugasFilter]);
 
     // ── Helper: tambahkan parameter bulan ke URL ──────────────────
     const appendMonthParams = (url: URL, mode: "none" | "single" | "range", sm: string, mf: string, mt: string) => {
@@ -137,6 +126,128 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
         const val = e.target.value;
         setMonthTo(val);
         if (monthFrom && val) fetchData(buildUrl(1, perPage, statusFilter, petugasFilter, "range", "", monthFrom, val));
+    };
+
+    // ── Handler Download PDF ──────────────────────────────────────
+    const handleDownloadPdf = async () => {
+        setIsloading(true);
+        try {
+            // Fetch semua data sesuai filter aktif (tanpa paginasi)
+            const url = new URL(getBaseUrl(), window.location.origin);
+            url.searchParams.set("page", "1");
+            url.searchParams.set("per_page", "9999");
+            if (statusFilter !== "all") url.searchParams.set("status", statusFilter);
+            if (petugasFilter !== "all") url.searchParams.set("petugas_id", petugasFilter);
+            appendMonthParams(url, monthMode, singleMonth, monthFrom, monthTo);
+
+            const res = await api.get(url.toString());
+            const rawData: any[] = res.data?.data ?? [];
+
+            // Fetch nama user (pelapor & petugas)
+            const ids = [...new Set(
+                rawData.flatMap((item: any) => [
+                    item.pelapor?.external_user_id,
+                    item.petugas?.external_user_id,
+                ]).filter(Boolean)
+            )];
+
+            let authMap: Record<string, any> = {};
+            if (ids.length > 0) {
+                const authRes = await api.post(
+                    `${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-user-batch`,
+                    { ids }
+                );
+                authMap = Object.fromEntries(authRes.data.map((u: any) => [u.id, u]));
+            }
+
+            const mergedRows = rawData.map((item: any) => ({
+                ...item,
+                pelapor_name:
+                    authMap[item.pelapor?.external_user_id]?.call_name ||
+                    authMap[item.pelapor?.external_user_id]?.name ||
+                    "-",
+                petugas_name:
+                    authMap[item.petugas?.external_user_id]?.call_name ||
+                    authMap[item.petugas?.external_user_id]?.name ||
+                    "-",
+            }));
+
+            // Buat PDF
+            const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+            // Header judul
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text("Laporan Data Pemeliharaan", 14, 15);
+
+            // Sub-info filter aktif
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "normal");
+            const filterInfo = [
+                `Status: ${statusFilter === "all" ? "Semua" : statusFilter}`,
+                `Petugas: ${petugasFilter === "all" ? "Semua" : listPetugasBmn.find((p) => String(p.user?.id) === petugasFilter)?.user?.call_name || petugasFilter}`,
+                monthMode === "single" && singleMonth ? `Bulan: ${singleMonth}` : "",
+                monthMode === "range" && monthFrom && monthTo ? `Range: ${monthFrom} s/d ${monthTo}` : "",
+                `Dicetak: ${dayjs().format("DD MMM YYYY HH:mm")}`,
+            ].filter(Boolean).join("   |   ");
+            doc.text(filterInfo, 14, 22);
+
+            // Tabel
+            autoTable(doc, {
+                startY: 27,
+                head: [["#", "Kode", "Status", "Tipe Barang", "Tanggal Lapor", "Pelapor", "Petugas", "Rating"]],
+                body: mergedRows.map((item: any, idx: number) => {
+                    const rVal = item.rating?.rating ?? item.rating ?? null;
+                    const ratingStr = rVal ? `${Math.round(Number(rVal))}/5` : "-";
+                    return [
+                        idx + 1,
+                        item.code,
+                        item.status,
+                        (item.tipe ?? "").toUpperCase(),
+                        dayjs(item.created_at).format("DD MMM YYYY HH:mm"),
+                        item.pelapor_name.toUpperCase(),
+                        item.petugas_name.toUpperCase(),
+                        ratingStr,
+                    ];
+                }),
+                styles: { fontSize: 8, cellPadding: 3 },
+                headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
+                alternateRowStyles: { fillColor: [245, 245, 245] },
+                columnStyles: {
+                    0: { halign: "center", cellWidth: 10 },
+                    2: { halign: "center", cellWidth: 18 },
+                    4: { halign: "center", cellWidth: 35 },
+                    7: { halign: "center", cellWidth: 18 },
+                },
+            });
+
+            // Footer halaman
+            const pageCount = (doc as any).internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setFont("helvetica", "normal");
+                doc.text(
+                    `Halaman ${i} dari ${pageCount}`,
+                    doc.internal.pageSize.getWidth() - 14,
+                    doc.internal.pageSize.getHeight() - 8,
+                    { align: "right" }
+                );
+            }
+
+            // Nama file berdasarkan filter aktif
+            let fileName = "data-pemeliharaan";
+            if (monthMode === "single" && singleMonth) fileName += `_${singleMonth}`;
+            if (monthMode === "range" && monthFrom && monthTo) fileName += `_${monthFrom}_sd_${monthTo}`;
+            if (statusFilter !== "all") fileName += `_${statusFilter}`;
+            fileName += ".pdf";
+
+            doc.save(fileName);
+        } catch (err) {
+            console.error("Gagal generate PDF:", err);
+        } finally {
+            setIsloading(false);
+        }
     };
     // ─────────────────────────────────────────────────────────────
 
@@ -279,6 +390,21 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                 )}
                 {/* ─────────────────── */}
 
+                {/* Tombol Download PDF — letakkan di bawah baris filter */}
+                <div className="flex justify-end">
+                    <button
+                        onClick={handleDownloadPdf}
+                        disabled={isLoading}
+                        className="btn btn-error btn-soft gap-2"
+                    >
+                        {isLoading ? (
+                            <span className="loading loading-spinner loading-sm" />
+                        ) : (
+                            <span className="material-symbols-outlined text-base">picture_as_pdf</span>
+                        )}
+                        Download PDF
+                    </button>
+                </div>
             </div>
 
             {/* Tabel & Pagination tetap sama */}
