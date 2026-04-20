@@ -298,11 +298,13 @@ export default function PemeliharaanSimpelBmn() {
                     </span>
                     Pemeliharaan
                 </label>
-                <div className="tab-content bg-base-100 border-base-300 p-6">
-                    {
-                        isLoading ? <LoadingWithoutText /> :
-                            <ContentPemeliharaanAll dataAll={dataAll} handleOpenDetail={handleOpenDetail} setDataAll={setDataAll} isLoading={isLoading} setIsloading={setIsLoading} />
-                    }
+                <div className="tab-content bg-base-100 border-base-300 p-6 relative">
+                    {isLoading && (
+                        <div className="absolute inset-0 z-10 bg-white/50 flex items-center justify-center">
+                            <LoadingWithoutText />
+                        </div>
+                    )}
+                    <ContentPemeliharaanAll dataAll={dataAll} handleOpenDetail={handleOpenDetail} setDataAll={setDataAll} isLoading={isLoading} setIsloading={setIsLoading} />
                 </div>
 
                 <label className="tab">
@@ -312,11 +314,13 @@ export default function PemeliharaanSimpelBmn() {
                     </span>
                     Pemeliharaan Anda
                 </label>
-                <div className="tab-content bg-base-100 border-base-300 p-6">
-                    {
-                        isLoading ? <LoadingWithoutText /> :
-                            <ContentPemeliharaanAnda dataAnda={dataAnda} setDataAnda={setDataAnda} mergedDataAll={mergedDataAnda} currentUserId={currentUserId} handleOpenDetail={handleOpenDetail} isLoading={isLoading} setIsloading={setIsLoading} statusFilter={statusFilterAnda} setStatusFilter={setStatusFilterAnda} />
-                    }
+                <div className="tab-content bg-base-100 border-base-300 p-6 relative">
+                    {isLoading && (
+                        <div className="absolute inset-0 z-10 bg-white/50 flex items-center justify-center">
+                            <LoadingWithoutText />
+                        </div>
+                    )}
+                    <ContentPemeliharaanAnda dataAnda={dataAnda} setDataAnda={setDataAnda} mergedDataAll={mergedDataAnda} currentUserId={currentUserId} handleOpenDetail={handleOpenDetail} isLoading={isLoading} setIsloading={setIsLoading} statusFilter={statusFilterAnda} setStatusFilter={setStatusFilterAnda} />
                 </div>
 
                 <label className="tab indicator">
@@ -327,11 +331,13 @@ export default function PemeliharaanSimpelBmn() {
                     Disposisi
                     {jumlahDisposisi > 0 && <span className="indicator-item badge badge-error animate-pulse badge-xs">{jumlahDisposisi}</span>}
                 </label>
-                <div className="tab-content bg-base-100 border-base-300 p-6">
-                    {
-                        isLoading ? <LoadingWithoutText /> :
-                            <ContentDisposisi dataDisposisi={mergedDisposisi} setDataDisposisi={setMergedDisposisi} handleOpenDetail={handleOpenDetail} updateDataDisposisi={handleUpdateDataDisposisi} isLoading={isLoading} setIsloading={setIsLoading} statusFilter={statusFilterDisposisi} setStatusFilter={setStatusFilterDisposisi} />
-                    }
+                <div className="tab-content bg-base-100 border-base-300 p-6 relative">
+                    {isLoading && (
+                        <div className="absolute inset-0 z-10 bg-white/50 flex items-center justify-center">
+                            <LoadingWithoutText />
+                        </div>
+                    )}
+                    <ContentDisposisi dataDisposisi={mergedDisposisi} setDataDisposisi={setMergedDisposisi} handleOpenDetail={handleOpenDetail} updateDataDisposisi={handleUpdateDataDisposisi} isLoading={isLoading} setIsloading={setIsLoading} statusFilter={statusFilterDisposisi} setStatusFilter={setStatusFilterDisposisi} />
                 </div>
             </div>
 

@@ -7,7 +7,7 @@ import { useDispatch } from "react-redux";
 interface ContentPemeliharaanAndaProps {
     dataAnda: any; // Renamed from dataAll to dataAnda for clarity
     setDataAnda: (data: any) => void; // Renamed from setDataAll to setDataAnda for clarity
-    mergedDataAll: any[];
+    mergedDataAll?: any[];
     currentUserId: number | undefined;
     handleOpenDetail: (code: string) => void;
     isLoading: boolean;
@@ -16,14 +16,14 @@ interface ContentPemeliharaanAndaProps {
     setStatusFilter: (status: string) => void; // New prop
 }
 
-export default function ContentPemeliharaanAnda({ dataAnda, setDataAnda, mergedDataAll, currentUserId, handleOpenDetail, isLoading, setIsloading, statusFilter, setStatusFilter }: ContentPemeliharaanAndaProps) {
+export default function ContentPemeliharaanAnda({ dataAnda, setDataAnda, currentUserId, handleOpenDetail, isLoading, setIsloading, statusFilter, setStatusFilter }: ContentPemeliharaanAndaProps) {
     const [perPage, setPerPage] = useState<string>("10");
     const [currentPage, setCurrentPage] = useState<number>(1);
+    const [localMergedData, setLocalMergedData] = useState<any[]>([]);
     const dispatch = useDispatch();
 
     // move ratedCodes here because we read/write it in effects below
     const [ratedCodes, setRatedCodes] = useState<Record<string, boolean>>({});
-
     // persisted rated codes & local ratings to reflect immediately across views
     const [localRatings, setLocalRatings] = useState<Record<string, { rating: number; comment?: string }>>(() => {
         try {
@@ -54,38 +54,79 @@ export default function ContentPemeliharaanAnda({ dataAnda, setDataAnda, mergedD
         } catch (e) { }
     }, [ratedCodes]);
 
-    // Sync perPage with dataAll response
+    // Sync perPage and currentPage with dataAnda response
     useEffect(() => {
         if (dataAnda?.per_page) {
             setPerPage(String(dataAnda.per_page));
         }
-    }, [dataAnda?.per_page]);
+        if (dataAnda?.current_page) {
+            setCurrentPage(dataAnda.current_page);
+        }
+    }, [dataAnda?.per_page, dataAnda?.current_page]);
 
-    // Memoized filtered data dengan filter tambahan di client side untuk memastikan konsistensi
-    const filteredData = useMemo(() => {
-        if (!mergedDataAll) return [];
-        if (statusFilter === "all") return mergedDataAll;
-
-        return mergedDataAll.filter(item =>
-            item.status?.toLowerCase() === statusFilter.toLowerCase()
-        );
-    }, [mergedDataAll, statusFilter]);
-
-    // Reset page when filters change
+    // Internal Merge Logic (Consistent with ContentPemeliharaanAll)
     useEffect(() => {
-        setCurrentPage(1);
-    }, [statusFilter]);
+        const sourceData = dataAnda?.data || dataAnda;
+        if (!Array.isArray(sourceData)) return;
 
-    // Calculate pagination
-    const totalItems = dataAnda?.total ?? (Array.isArray(dataAnda) ? dataAnda.length : (mergedDataAll?.length || 0));
-    const totalPages = dataAnda?.last_page || 1;
-    const paginatedData = filteredData;
+        const ids = [...new Set(
+            sourceData
+                .map((item: any) => item.pelapor?.external_user_id)
+                .filter(Boolean)
+        )];
+
+        if (ids.length === 0) {
+            setLocalMergedData(sourceData);
+            return;
+        }
+
+        api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-user-batch`, { ids })
+            .then(res => {
+                const authMap = Object.fromEntries(
+                    res.data.map((u: any) => [u.id, u])
+                );
+
+                setLocalMergedData(
+                    sourceData.map((item: any) => ({
+                        ...item,
+                        pelapor: item.pelapor
+                            ? {
+                                ...item.pelapor,
+                                auth_user: authMap[item.pelapor.external_user_id] || null,
+                            }
+                            : null
+                    }))
+                );
+            })
+            .catch(() => setLocalMergedData(sourceData));
+    }, [dataAnda]);
+
+    // Tentukan apakah data dari server terpaginasi atau hanya array mentah
+    const hasPagination = dataAnda?.data !== undefined;
+
+    // Data yang akan ditampilkan dengan filter status dan slicing (jika client-side)
+    const displayData = useMemo(() => {
+        let source = localMergedData || [];
+
+        // Filter status lokal (sebagai cadangan jika backend tidak memfilter)
+        if (statusFilter !== "all") {
+            source = source.filter(item => item.status?.toLowerCase() === statusFilter.toLowerCase());
+        }
+
+        if (hasPagination) return source;
+
+        // Client-side pagination logic
+        const start = (currentPage - 1) * parseInt(perPage);
+        return source.slice(start, start + parseInt(perPage));
+    }, [localMergedData, hasPagination, currentPage, perPage, statusFilter]);
+
+    // Kalkulasi total items dan pages
+    const totalItems = hasPagination ? (dataAnda?.total ?? 0) : (localMergedData?.length || 0);
+    const totalPages = hasPagination ? (dataAnda?.last_page || 1) : Math.ceil(totalItems / parseInt(perPage));
 
     const getStartingNumber = () => {
-        if (!dataAnda?.current_page || dataAnda?.current_page === 1) {
-            return 1;
-        }
-        return (dataAnda.current_page - 1) * parseInt(perPage) + 1;
+        const page = hasPagination ? (dataAnda?.current_page || 1) : currentPage;
+        return (page - 1) * parseInt(perPage) + 1;
     };
 
     // Handle per page change
@@ -95,11 +136,16 @@ export default function ContentPemeliharaanAnda({ dataAnda, setDataAnda, mergedD
         setCurrentPage(1);
 
         setIsloading(true);
-        let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-by-user?page=1&per_page=${newPerPage}`;
+        const firstValidLink = dataAnda?.links?.find((l: any) => l.url !== null);
+        const baseUrl = firstValidLink?.url?.split('?')[0] || `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-by-user`;
+
+        const url = new URL(baseUrl);
+        url.searchParams.set('page', '1');
+        url.searchParams.set('per_page', newPerPage);
         if (statusFilter !== "all") {
-            url += `&status=${statusFilter}`;
+            url.searchParams.set('status', statusFilter);
         }
-        api.get(url)
+        api.get(url.toString())
             .then(res => {
                 setDataAnda(res.data);
                 setIsloading(false);
@@ -114,12 +160,17 @@ export default function ContentPemeliharaanAnda({ dataAnda, setDataAnda, mergedD
         setCurrentPage(1);
 
         setIsloading(true);
-        let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-by-user?page=1&per_page=${perPage}`;
+        const firstValidLink = dataAnda?.links?.find((l: any) => l.url !== null);
+        const baseUrl = firstValidLink?.url?.split('?')[0] || `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-by-user`;
+
+        const url = new URL(baseUrl);
+        url.searchParams.set('page', '1');
+        url.searchParams.set('per_page', perPage);
         if (newStatus !== "all") {
-            url += `&status=${newStatus}`;
+            url.searchParams.set('status', newStatus);
         }
 
-        api.get(url)
+        api.get(url.toString())
             .then(res => {
                 setDataAnda(res.data);
                 setIsloading(false);
@@ -132,12 +183,16 @@ export default function ContentPemeliharaanAnda({ dataAnda, setDataAnda, mergedD
         if (page < 1 || page > totalPages) return;
 
         setIsloading(true);
-        let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-by-user?page=${page}&per_page=${perPage}`;
-        if (statusFilter !== "all") url += `&status=${statusFilter}`;
+        const firstValidLink = dataAnda?.links?.find((l: any) => l.url !== null);
+        const baseUrl = firstValidLink?.url?.split('?')[0] || `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-by-user`;
 
-        api.get(url).then(res => {
+        const url = new URL(baseUrl);
+        url.searchParams.set('page', String(page));
+        url.searchParams.set('per_page', perPage);
+        if (statusFilter !== "all") url.searchParams.set('status', statusFilter);
+
+        api.get(url.toString()).then(res => {
             setDataAnda(res.data);
-            setCurrentPage(page);
             setIsloading(false);
         }).catch(() => setIsloading(false));
     };
@@ -282,7 +337,7 @@ export default function ContentPemeliharaanAnda({ dataAnda, setDataAnda, mergedD
                     </select>
                 </div>
                 <div className="ml-auto text-sm text-gray-600">
-                    Menampilkan {filteredData.length === 0 ? 0 : getStartingNumber()}-{Math.min(getStartingNumber() + filteredData.length - 1, totalItems)} dari {totalItems} data
+                    Menampilkan {displayData.length === 0 ? 0 : getStartingNumber()}-{Math.min(getStartingNumber() + displayData.length - 1, totalItems)} dari {totalItems} data
                 </div>
             </div>
 
@@ -301,16 +356,16 @@ export default function ContentPemeliharaanAnda({ dataAnda, setDataAnda, mergedD
                         </tr>
                     </thead>
                     <tbody>
-                        {paginatedData.length === 0 ? (
+                        {displayData.length === 0 ? (
                             <tr>
-                                <td colSpan={7} className="text-center py-6 text-gray-500">
+                                <td colSpan={8} className="text-center py-6 text-gray-500">
                                     {statusFilter !== "all"
                                         ? `Tidak ada data pemeliharaan dengan status "${statusFilter}"`
                                         : "Belum ada data pemeliharaan"}
                                 </td>
                             </tr>
                         ) : (
-                            paginatedData.map((item, index) => (
+                            displayData.map((item, index) => (
                                 <tr
                                     key={item.id}
                                     className={`border-t transition`}
@@ -380,71 +435,65 @@ export default function ContentPemeliharaanAnda({ dataAnda, setDataAnda, mergedD
                 </table>
 
                 {/* Pagination */}
-                {dataAnda?.links && totalPages > 1 && ( // Use dataAnda.links for server-side pagination
-                    <div className="flex justify-center items-center m-4 gap-2">
-                        <button
-                            className="btn btn-sm btn-outline mr-1"
-                            onClick={() => {
-                                const link = dataAnda.links.find((l: any) => l.label === '&laquo; Previous');
-                                if (link && link.url) {
-                                    setIsloading(true);
-                                    const url = new URL(link.url);
-                                    if (statusFilter !== "all") {
-                                        url.searchParams.set('status', statusFilter);
-                                    }
-                                    url.searchParams.set('per_page', perPage);
-
-                                    api.get(url.toString()).then(res => {
-                                        setDataAnda(res.data);
-                                        setCurrentPage(dataAnda.current_page - 1);
-                                        setIsloading(false);
-                                    }).catch(() => setIsloading(false));
-                                } else {
-                                    handlePageChange(currentPage - 1);
-                                }
-                            }}
-                            disabled={currentPage === 1}
-                        >
-                            Prev
-                        </button>
-
-                        {getPageNumbers().map((page, index) => (
-                            <button
-                                key={index}
-                                className={`btn btn-sm ${page === currentPage ? 'btn-active' : ''} ${page === '...' ? 'btn-disabled' : 'btn-outline'}`}
-                                onClick={() => typeof page === 'number' && handlePageChange(page)}
-                                disabled={page === '...'}
-                            >
-                                {page}
-                            </button>
-                        ))}
-
-                        <button
-                            className="btn btn-sm btn-outline"
-                            onClick={() => {
-                                const link = dataAnda.links.find((l: any) => l.label === 'Next &raquo;');
-                                if (link && link.url) {
-                                    setIsloading(true);
-                                    const url = new URL(link.url);
-                                    if (statusFilter !== "all") {
-                                        url.searchParams.set('status', statusFilter);
-                                    }
-                                    url.searchParams.set('per_page', perPage);
-
-                                    api.get(url.toString()).then(res => {
-                                        setDataAnda(res.data);
-                                        setCurrentPage(dataAnda.current_page + 1);
-                                        setIsloading(false);
-                                    }).catch(() => setIsloading(false));
-                                } else {
-                                    handlePageChange(currentPage + 1);
-                                }
-                            }}
-                            disabled={currentPage === totalPages}
-                        >
-                            Next
-                        </button>
+                {hasPagination ? (
+                    <div className="flex justify-end items-center m-4 gap-4">
+                        <div className="btn-group">
+                            {
+                                dataAnda?.links?.map((link: any, index: number) =>
+                                    <button
+                                        key={index}
+                                        className={`btn ${link.active && 'btn-active'} ${!link.url && 'btn-disabled'} mr-1`}
+                                        onClick={() => {
+                                            if (link.url) {
+                                                const url = new URL(link.url, window.location.origin);
+                                                url.searchParams.set('per_page', perPage);
+                                                if (statusFilter !== "all") {
+                                                    url.searchParams.set('status', statusFilter);
+                                                }
+                                                setIsloading(true);
+                                                api.get(url.toString())
+                                                    .then(res => {
+                                                        setDataAnda(res.data);
+                                                        setIsloading(false);
+                                                    })
+                                                    .catch(() => setIsloading(false));
+                                            }
+                                        }}
+                                    >
+                                        <span dangerouslySetInnerHTML={{ __html: link.label }}></span>
+                                    </button>
+                                )
+                            }
+                        </div>
                     </div>
+                ) : (
+                    totalPages > 1 && (
+                        <div className="flex justify-end items-center m-4 gap-4">
+                            <div className="btn-group">
+                                <button
+                                    className={`btn ${currentPage === 1 && 'btn-disabled'} mr-1`}
+                                    onClick={() => handlePageChange(currentPage - 1)}
+                                >
+                                    «
+                                </button>
+                                {getPageNumbers().map((page, index) => (
+                                    <button
+                                        key={index}
+                                        className={`btn ${page === currentPage ? 'btn-active' : ''} ${page === '...' ? 'btn-disabled' : ''} mr-1`}
+                                        onClick={() => typeof page === 'number' && handlePageChange(page)}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+                                <button
+                                    className={`btn ${currentPage === totalPages && 'btn-disabled'} mr-1`}
+                                    onClick={() => handlePageChange(currentPage + 1)}
+                                >
+                                    »
+                                </button>
+                            </div>
+                        </div>
+                    )
                 )}
             </div>
 
