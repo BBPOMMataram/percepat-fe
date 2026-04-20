@@ -72,7 +72,7 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
     const fetchData = (url: string) => {
         setIsloading(true);
         api.get(url)
-            .then(res => { setDataAll(res.data); setIsloading(false); })
+            .then(res => { setDataAll(res.data); console.log(res.data); setIsloading(false); })
             .catch(err => { console.log(err); setIsloading(false); });
     };
 
@@ -132,7 +132,6 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
     const handleDownloadPdf = async () => {
         setIsloading(true);
         try {
-            // Fetch semua data sesuai filter aktif (tanpa paginasi)
             const url = new URL(getBaseUrl(), window.location.origin);
             url.searchParams.set("page", "1");
             url.searchParams.set("per_page", "9999");
@@ -185,7 +184,12 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
             doc.setFont("helvetica", "normal");
             const filterInfo = [
                 `Status: ${statusFilter === "all" ? "Semua" : statusFilter}`,
-                `Petugas: ${petugasFilter === "all" ? "Semua" : listPetugasBmn.find((p) => String(p.user?.id) === petugasFilter)?.user?.call_name || petugasFilter}`,
+                `Petugas: ${petugasFilter === "all"
+                    ? "Semua"
+                    : listPetugasBmn.find((p) => String(p.user?.id) === petugasFilter)?.user?.call_name ||
+                    listPetugasBmn.find((p) => String(p.user?.id) === petugasFilter)?.user?.name ||
+                    petugasFilter
+                }`,
                 monthMode === "single" && singleMonth ? `Bulan: ${singleMonth}` : "",
                 monthMode === "range" && monthFrom && monthTo ? `Range: ${monthFrom} s/d ${monthTo}` : "",
                 `Dicetak: ${dayjs().format("DD MMM YYYY HH:mm")}`,
@@ -195,29 +199,49 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
             // Tabel
             autoTable(doc, {
                 startY: 27,
-                head: [["#", "Kode", "Status", "Tipe Barang", "Tanggal Lapor", "Pelapor", "Petugas", "Rating"]],
+                head: [["#", "Kode", "Status", "Tipe", "Kode Barang / NUP", "Tanggal Lapor", "Pelapor", "Petugas", "Rating"]],
                 body: mergedRows.map((item: any, idx: number) => {
                     const rVal = item.rating?.rating ?? item.rating ?? null;
                     const ratingStr = rVal ? `${Math.round(Number(rVal))}/5` : "-";
+
+                    const kodeBarang = item.barang_new_pemeliharaan
+                        ?.filter((b: any) => b.barang)
+                        ?.map((b: any) => `${b.barang.kode} / ${b.barang.nup}`)
+                        .join("\n") || "-";
+
                     return [
                         idx + 1,
                         item.code,
                         item.status,
                         (item.tipe ?? "").toUpperCase(),
+                        kodeBarang,
                         dayjs(item.created_at).format("DD MMM YYYY HH:mm"),
                         item.pelapor_name.toUpperCase(),
                         item.petugas_name.toUpperCase(),
                         ratingStr,
                     ];
                 }),
-                styles: { fontSize: 8, cellPadding: 3 },
-                headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
-                alternateRowStyles: { fillColor: [245, 245, 245] },
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 3,
+                    overflow: "linebreak",
+                },
+                headStyles: {
+                    fillColor: [41, 128, 185],
+                    textColor: 255,
+                    fontStyle: "bold",
+                },
+                alternateRowStyles: {
+                    fillColor: [245, 245, 245],
+                },
                 columnStyles: {
-                    0: { halign: "center", cellWidth: 10 },
+                    0: { halign: "center", cellWidth: 8 },
+                    1: { cellWidth: 20 },
                     2: { halign: "center", cellWidth: 18 },
-                    4: { halign: "center", cellWidth: 35 },
-                    7: { halign: "center", cellWidth: 18 },
+                    3: { halign: "center", cellWidth: 18 },
+                    4: { cellWidth: 45 },
+                    5: { halign: "center", cellWidth: 35 },
+                    8: { halign: "center", cellWidth: 16 },
                 },
             });
 
@@ -416,6 +440,7 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                             <th className="px-4 py-3 text-left">Kode</th>
                             <th className="px-4 py-3 text-left">Status</th>
                             <th className="px-4 py-3 text-left">Tipe Barang</th>
+                            <th className="px-4 py-3 text-left">Kode Barang / NUP</th>
                             <th className="px-4 py-3 text-left">Tanggal Lapor</th>
                             <th className="px-4 py-3 text-left">Pelapor</th>
                             <th className="px-4 py-3 text-left">Petugas</th>
@@ -426,7 +451,7 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                     <tbody>
                         {mergedDataAll?.length === 0 ? (
                             <tr>
-                                <td colSpan={8} className="text-center py-6 text-gray-500">
+                                <td colSpan={9} className="text-center py-6 text-gray-500">
                                     Belum ada data pemeliharaan
                                 </td>
                             </tr>
@@ -437,6 +462,21 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                                     <td className="px-4 py-3 font-semibold capitalize">{item.code}</td>
                                     <td className={`px-4 py-3 font-semibold ${item.status === 'open' ? 'text-bpom-green' : 'text-red-500'}`}>{item.status}</td>
                                     <td className="px-4 py-3 uppercase">{item.tipe}</td>
+                                    <td className="px-4 py-3 text-sm">
+                                        {item.barang_new_pemeliharaan?.length > 0 ? (
+                                            <div className="flex flex-col gap-1">
+                                                {item.barang_new_pemeliharaan.map((b: any) => (
+                                                    b.barang ? (
+                                                        <span key={b.id} className="badge badge-ghost badge-sm font-mono whitespace-nowrap">
+                                                            {b.barang.kode} / {b.barang.nup}
+                                                        </span>
+                                                    ) : null
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-400">-</span>
+                                        )}
+                                    </td>
                                     <td className="px-4 py-3 text-sm">
                                         {dayjs(item.created_at).format("DD MMM YYYY")}<br />
                                         {dayjs(item.created_at).format("HH:mm:ss")}
