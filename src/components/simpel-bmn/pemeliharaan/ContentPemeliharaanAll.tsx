@@ -361,12 +361,15 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
     return (
         <>
             <h2 className="mb-5 font-bold text-lg lg:text-3xl font-serif">Data Pemeliharaan</h2>
-            <div className="flex flex-wrap items-center gap-4 mb-4">
+            {/* ── Filter Bar ─────────────────────────────────────────────── */}
+            <div className="flex flex-wrap items-center gap-1.5 p-2 mb-1 bg-base-200 rounded-xl border border-base-300">
 
-                {/* Per page */}
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">Tampilkan</span>
-                    <select value={perPage} onChange={handlePerPageChange} className="select select-bordered w-fit">
+                {/* Tampilkan */}
+                <div className="join">
+                    <span className="join-item flex items-center px-2 text-xs text-gray-500 bg-base-100 border border-base-300">
+                        Tampilkan
+                    </span>
+                    <select value={perPage} onChange={handlePerPageChange} className="join-item select select-bordered select-sm w-16 text-xs">
                         <option value="5">5</option>
                         <option value="10">10</option>
                         <option value="25">25</option>
@@ -374,121 +377,160 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                     </select>
                 </div>
 
+                <div className="w-px h-5 bg-base-300" />
+
                 {/* Status */}
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">Status</span>
-                    <select value={statusFilter} onChange={handleStatusFilterChange} className="select select-bordered w-fit">
+                <div className="join">
+                    <span className="join-item flex items-center px-2 text-xs text-gray-500 bg-base-100 border border-base-300">
+                        Status
+                    </span>
+                    <select value={statusFilter} onChange={handleStatusFilterChange} className="join-item select select-bordered select-sm w-24 text-xs">
                         <option value="all">Semua</option>
                         <option value="open">Open</option>
                         <option value="closed">Closed</option>
                     </select>
                 </div>
 
+                <div className="w-px h-5 bg-base-300" />
+
                 {/* Petugas */}
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">Petugas</span>
-                    <select value={petugasFilter} onChange={handlePetugasFilterChange} className="select select-bordered w-fit">
+                <div className="join">
+                    <span className="join-item flex items-center px-2 text-xs text-gray-500 bg-base-100 border border-base-300">
+                        Petugas
+                    </span>
+                    <select value={petugasFilter} onChange={handlePetugasFilterChange} className="join-item select select-bordered select-sm w-28 text-xs">
                         <option value="all">Semua</option>
-                        {listPetugasBmn?.length > 0 ? (
-                            listPetugasBmn?.map((item: any) => (
-                                <option key={item.user?.id} value={item.user?.id}>
-                                    {item.user?.call_name || item.user?.name}
-                                </option>
-                            ))
-                        ) : (
-                            <option value="">Tidak ada data petugas</option>
-                        )}
+                        {listPetugasBmn?.map((item: any) => (
+                            <option key={item.user?.id} value={item.user?.id}>
+                                {item.user?.call_name || item.user?.name}
+                            </option>
+                        ))}
                     </select>
                 </div>
 
-                {/* ── Filter Bulan ── */}
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">Bulan</span>
-                    <select value={monthMode} onChange={handleMonthModeChange} className="select select-bordered w-fit">
+                <div className="w-px h-5 bg-base-300" />
+
+                {/* Bulan */}
+                <div className="join">
+                    <span className="join-item flex items-center px-2 text-xs text-gray-500 bg-base-100 border border-base-300">
+                        Bulan
+                    </span>
+                    <select value={monthMode} onChange={handleMonthModeChange} className="join-item select select-bordered select-sm w-24 text-xs">
                         <option value="none">Semua</option>
-                        <option value="single">Bulan tertentu</option>
-                        <option value="range">Range bulan</option>
+                        <option value="single">Tertentu</option>
+                        <option value="range">Range</option>
                     </select>
-                </div>
-
-                {monthMode === "single" && (
-                    <div className="flex items-center gap-2">
+                    {monthMode === "single" && (
                         <input
                             type="month"
                             value={singleMonth}
                             onChange={handleSingleMonthChange}
-                            className="input input-bordered w-fit"
+                            className="join-item input input-bordered input-sm text-xs w-36"
                         />
-                    </div>
-                )}
+                    )}
+                    {monthMode === "range" && (
+                        <>
+                            <input
+                                type="month"
+                                value={monthFrom}
+                                onChange={handleMonthFromChange}
+                                className="join-item input input-bordered input-sm text-xs w-32"
+                            />
+                            <span className="join-item flex items-center px-2 text-xs text-gray-500 bg-base-100 border-y border-base-300">
+                                s/d
+                            </span>
+                            <input
+                                type="month"
+                                value={monthTo}
+                                onChange={handleMonthToChange}
+                                min={monthFrom || undefined}
+                                className="join-item input input-bordered input-sm text-xs w-32"
+                            />
+                        </>
+                    )}
+                </div>
 
-                {monthMode === "range" && (
-                    <div className="flex items-center gap-2">
-                        <input
-                            type="month"
-                            value={monthFrom}
-                            onChange={handleMonthFromChange}
-                            className="input input-bordered w-fit"
-                            placeholder="Dari"
-                        />
-                        <span className="text-sm text-gray-600">s/d</span>
-                        <input
-                            type="month"
-                            value={monthTo}
-                            onChange={handleMonthToChange}
-                            className="input input-bordered w-fit"
-                            placeholder="Sampai"
-                            min={monthFrom || undefined}
-                        />
-                    </div>
-                )}
-                {/* ─────────────────── */}
+                <div className="w-px h-5 bg-base-300" />
 
-                {/* Tombol Download PDF — letakkan di bawah baris filter */}
-                <div className="flex justify-end">
-                    <button
-                        onClick={handleDownloadPdf}
-                        disabled={isLoading}
-                        className="btn btn-error btn-soft gap-2"
-                    >
-                        {isLoading ? (
-                            <span className="loading loading-spinner loading-sm" />
-                        ) : (
-                            <span className="material-symbols-outlined text-base">picture_as_pdf</span>
-                        )}
-                        Download PDF
+                {/* Kode Barang */}
+                <div className="join">
+                    <span className="join-item flex items-center px-2 text-xs text-gray-500 bg-base-100 border border-base-300">
+                        Kode Barang
+                    </span>
+                    <input
+                        type="text"
+                        value={searchKodeBarangInput}
+                        onChange={handleSearchKodeBarangChange}
+                        onKeyDown={handleSearchKodeBarangKeyDown}
+                        placeholder="cari..."
+                        className="join-item input input-bordered input-sm text-xs w-32"
+                    />
+                    {searchKodeBarangInput && (
+                        <button onClick={handleClearSearchKodeBarang} className="join-item btn btn-sm btn-ghost px-2">
+                            <span className="material-symbols-outlined text-sm">close</span>
+                        </button>
+                    )}
+                    <button onClick={handleSearchKodeBarangSubmit} className="join-item btn btn-sm btn-ghost px-2">
+                        <span className="material-symbols-outlined text-sm">search</span>
                     </button>
                 </div>
 
-                {/* Search Kode Barang */}
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">Kode Barang</span>
-                    <div className="join">
-                        <input
-                            type="text"
-                            value={searchKodeBarangInput}
-                            onChange={handleSearchKodeBarangChange}
-                            onKeyDown={handleSearchKodeBarangKeyDown}
-                            placeholder="Cari kode barang..."
-                            className="input input-bordered join-item w-44"
-                        />
-                        {searchKodeBarangInput && (
-                            <button
-                                onClick={handleClearSearchKodeBarang}
-                                className="btn join-item btn-ghost"
-                            >
-                                <span className="material-symbols-outlined text-base">close</span>
-                            </button>
-                        )}
-                        <button
-                            onClick={handleSearchKodeBarangSubmit}
-                            className="btn join-item btn-primary btn-soft"
-                        >
-                            <span className="material-symbols-outlined text-base">search</span>
-                        </button>
-                    </div>
-                </div>
+                {/* Download PDF — push ke kanan */}
+                <button onClick={handleDownloadPdf} disabled={isLoading} className="btn btn-sm btn-error btn-soft gap-1 ml-auto">
+                    {isLoading
+                        ? <span className="loading loading-spinner loading-xs" />
+                        : <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
+                    }
+                    PDF
+                </button>
             </div>
+
+            {/* Active filter chips */}
+            {(statusFilter !== "all" || petugasFilter !== "all" || monthMode !== "none" || searchKodeBarang) && (
+                <div className="flex flex-wrap gap-1.5 mb-3 px-1">
+                    {statusFilter !== "all" && (
+                        <span className="badge badge-info badge-sm gap-1">
+                            Status: {statusFilter}
+                            <button onClick={() => handleStatusFilterChange({ target: { value: "all" } } as any)}>
+                                <span className="material-symbols-outlined !text-sm">close</span>
+                            </button>
+                        </span>
+                    )}
+                    {petugasFilter !== "all" && (
+                        <span className="badge badge-info badge-sm gap-1">
+                            Petugas: {listPetugasBmn.find(p => String(p.user?.id) === petugasFilter)?.user?.call_name || petugasFilter}
+                            <button onClick={() => handlePetugasFilterChange({ target: { value: "all" } } as any)}>
+                                <span className="material-symbols-outlined !text-sm">close</span>
+                            </button>
+                        </span>
+                    )}
+                    {monthMode === "single" && singleMonth && (
+                        <span className="badge badge-info badge-sm gap-1">
+                            Bulan: {singleMonth}
+                            <button onClick={() => { setSingleMonth(""); handleMonthModeChange({ target: { value: "none" } } as any); }}>
+                                <span className="material-symbols-outlined !text-sm">close</span>
+                            </button>
+                        </span>
+                    )}
+                    {monthMode === "range" && monthFrom && monthTo && (
+                        <span className="badge badge-info badge-sm gap-1">
+                            Range: {monthFrom} s/d {monthTo}
+                            <button onClick={() => handleMonthModeChange({ target: { value: "none" } } as any)}>
+                                <span className="material-symbols-outlined !text-sm">close</span>
+                            </button>
+                        </span>
+                    )}
+                    {searchKodeBarang && (
+                        <span className="badge badge-info badge-sm gap-1">
+                            Kode: {searchKodeBarang}
+                            <button onClick={handleClearSearchKodeBarang}>
+                                <span className="material-symbols-outlined !text-sm">close</span>
+                            </button>
+                        </span>
+                    )}
+                </div>
+            )}
+            {/* ─────────────────────────────────────────────────────────────── */}
 
             {/* Tabel & Pagination tetap sama */}
             <div className="overflow-x-auto rounded-2xl shadow-sm border border-gray-200 bg-white">
