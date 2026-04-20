@@ -46,13 +46,17 @@ export default function PemeliharaanSimpelBmn() {
             })
     }
 
-    const fetchAndaData = (status?: string) => {
+    const fetchAndaData = (status?: string, perPage?: string) => {
         if (!currentUserId) return;
         setIsLoading(true);
         let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-by-user`;
-        if (status && status !== "all") {
-            url += `?status=${status}`;
-        }
+        const params = new URLSearchParams();
+        if (status && status !== "all") params.append('status', status);
+        if (perPage) params.append('per_page', perPage);
+
+        const queryString = params.toString();
+        if (queryString) url += `?${queryString}`;
+
         api.get(url)
             .then(res => {
                 setDataAnda(res.data);
@@ -61,12 +65,16 @@ export default function PemeliharaanSimpelBmn() {
             .catch(() => setIsLoading(false));
     }
 
-    const fetchDispositionData = (status?: string) => {
+    const fetchDispositionData = (status?: string, perPage?: string) => {
         setIsLoading(true);
         let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-disposition-by-user`;
-        if (status && status !== "all") {
-            url += `?status=${status}`;
-        }
+        const params = new URLSearchParams();
+        if (status && status !== "all") params.append('status', status);
+        if (perPage) params.append('per_page', perPage);
+
+        const queryString = params.toString();
+        if (queryString) url += `?${queryString}`;
+
         api.get(url)
             .then(resDisposisi => {
                 const responseData = resDisposisi?.data;
@@ -182,8 +190,8 @@ export default function PemeliharaanSimpelBmn() {
             .catch(err => console.error("Gagal mengambil jumlah disposisi:", err));
     }
 
-    const handleUpdateDataDisposisi = (status?: string) => {
-        fetchDispositionData(status ?? statusFilterDisposisi); // Use passed status or current state
+    const handleUpdateDataDisposisi = (status?: string, perPage?: string) => {
+        fetchDispositionData(status ?? statusFilterDisposisi, perPage); // Use passed status or current state
         fetchJumlahDisposisi(); // This fetches open dispositions, so no status needed
     }
 

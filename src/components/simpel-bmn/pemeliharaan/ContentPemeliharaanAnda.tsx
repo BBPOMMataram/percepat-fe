@@ -392,6 +392,7 @@ export default function ContentPemeliharaanAnda({ dataAnda, setDataAnda, mergedD
                                     if (statusFilter !== "all") {
                                         url.searchParams.set('status', statusFilter);
                                     }
+                                    url.searchParams.set('per_page', perPage);
 
                                     api.get(url.toString()).then(res => {
                                         setDataAnda(res.data);
@@ -428,6 +429,7 @@ export default function ContentPemeliharaanAnda({ dataAnda, setDataAnda, mergedD
                                     if (statusFilter !== "all") {
                                         url.searchParams.set('status', statusFilter);
                                     }
+                                    url.searchParams.set('per_page', perPage);
 
                                     api.get(url.toString()).then(res => {
                                         setDataAnda(res.data);

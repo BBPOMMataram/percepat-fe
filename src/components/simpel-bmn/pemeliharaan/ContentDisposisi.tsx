@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import ModalDisposisiPemeliharaan from "./ModalDisposisiPemeliharaan";
 
-export default function ContentDisposisi({ dataDisposisi, setDataDisposisi, handleOpenDetail, updateDataDisposisi, isLoading, setIsloading, statusFilter, setStatusFilter }: { dataDisposisi: any, setDataDisposisi: (data: any) => void, handleOpenDetail: (code: string) => void, updateDataDisposisi: (status?: string) => void, isLoading: boolean, setIsloading: (loading: boolean) => void, statusFilter: string, setStatusFilter: (status: string) => void }) {
+export default function ContentDisposisi({ dataDisposisi, setDataDisposisi, handleOpenDetail, updateDataDisposisi, isLoading, setIsloading, statusFilter, setStatusFilter }: { dataDisposisi: any, setDataDisposisi: (data: any) => void, handleOpenDetail: (code: string) => void, updateDataDisposisi: (status?: string, perPage?: string) => void, isLoading: boolean, setIsloading: (loading: boolean) => void, statusFilter: string, setStatusFilter: (status: string) => void }) {
     const [showModalDiposisiPemeliharaan, setShowModalDiposisiPemeliharaan] = useState(false);
     const [code, setCode] = useState<string>("");
     const [perPage, setPerPage] = useState<string>("10")
@@ -55,7 +55,7 @@ export default function ContentDisposisi({ dataDisposisi, setDataDisposisi, hand
         const newPerPage = e.target.value;
         setPerPage(newPerPage);
         setCurrentPage(1); // Reset to first page
-        updateDataDisposisi(statusFilter);
+        updateDataDisposisi(statusFilter, newPerPage);
     };
 
     // Handle status filter change
@@ -63,7 +63,7 @@ export default function ContentDisposisi({ dataDisposisi, setDataDisposisi, hand
         const newStatus = e.target.value;
         setStatusFilter(newStatus);
         setCurrentPage(1); // Reset to first page
-        updateDataDisposisi(newStatus);
+        updateDataDisposisi(newStatus, perPage);
     };
 
     // Handle page change (client-side pagination)
@@ -280,6 +280,7 @@ export default function ContentDisposisi({ dataDisposisi, setDataDisposisi, hand
                                                 if (statusFilter !== "all") {
                                                     url.searchParams.set('status', statusFilter);
                                                 }
+                                                url.searchParams.set('per_page', perPage);
                                                 api.get(url.toString())
                                                     .then(res => {
                                                         setIsloading(false);
