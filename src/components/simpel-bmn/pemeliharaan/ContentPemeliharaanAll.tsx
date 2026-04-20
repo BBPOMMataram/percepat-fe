@@ -19,6 +19,9 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
     const [monthTo, setMonthTo] = useState<string>("")
     // ─────────────────────────────────────────────────────────────
 
+    const [searchKodeBarang, setSearchKodeBarang] = useState<string>("")
+    const [searchKodeBarangInput, setSearchKodeBarangInput] = useState<string>("")
+
     // Sync perPage with server response
     useEffect(() => {
         if (dataAll?.per_page) {
@@ -60,11 +63,13 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
         mode: "none" | "single" | "range",
         sm: string,
         mf: string,
-        mt: string
+        mt: string,
+        kodeBarang: string
     ) => {
         const url = new URL(`${getBaseUrl()}?page=${page}&per_page=${pp}`, window.location.origin);
         if (status !== "all") url.searchParams.set("status", status);
         if (petugas !== "all") url.searchParams.set("petugas_id", petugas);
+        if (kodeBarang.trim()) url.searchParams.set("kode_barang", kodeBarang.trim());
         appendMonthParams(url, mode, sm, mf, mt);
         return url.toString();
     };
@@ -84,19 +89,19 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
     const handlePerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newPerPage = e.target.value;
         setPerPage(newPerPage);
-        fetchData(buildUrl(1, newPerPage, statusFilter, petugasFilter, monthMode, singleMonth, monthFrom, monthTo));
+        fetchData(buildUrl(1, newPerPage, statusFilter, petugasFilter, monthMode, singleMonth, monthFrom, monthTo, searchKodeBarang));
     };
 
     const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newStatus = e.target.value;
         setStatusFilter(newStatus);
-        fetchData(buildUrl(1, perPage, newStatus, petugasFilter, monthMode, singleMonth, monthFrom, monthTo));
+        fetchData(buildUrl(1, perPage, newStatus, petugasFilter, monthMode, singleMonth, monthFrom, monthTo, searchKodeBarang));
     };
 
     const handlePetugasFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newPetugas = e.target.value;
         setPetugasFilter(newPetugas);
-        fetchData(buildUrl(1, perPage, statusFilter, newPetugas, monthMode, singleMonth, monthFrom, monthTo));
+        fetchData(buildUrl(1, perPage, statusFilter, newPetugas, monthMode, singleMonth, monthFrom, monthTo, searchKodeBarang));
     };
 
     // ── Handler filter bulan ──────────────────────────────────────
@@ -107,26 +112,47 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
         setSingleMonth("");
         setMonthFrom("");
         setMonthTo("");
-        fetchData(buildUrl(1, perPage, statusFilter, petugasFilter, "none", "", "", ""));
+        fetchData(buildUrl(1, perPage, statusFilter, petugasFilter, "none", "", "", "", searchKodeBarang));
     };
 
     const handleSingleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
         setSingleMonth(val);
-        if (val) fetchData(buildUrl(1, perPage, statusFilter, petugasFilter, "single", val, "", ""));
+        if (val) fetchData(buildUrl(1, perPage, statusFilter, petugasFilter, "single", val, "", "", searchKodeBarang));
     };
 
     const handleMonthFromChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
         setMonthFrom(val);
-        if (val && monthTo) fetchData(buildUrl(1, perPage, statusFilter, petugasFilter, "range", "", val, monthTo));
+        if (val && monthTo) fetchData(buildUrl(1, perPage, statusFilter, petugasFilter, "range", "", val, monthTo, searchKodeBarang));
     };
 
     const handleMonthToChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
         setMonthTo(val);
-        if (monthFrom && val) fetchData(buildUrl(1, perPage, statusFilter, petugasFilter, "range", "", monthFrom, val));
+        if (monthFrom && val) fetchData(buildUrl(1, perPage, statusFilter, petugasFilter, "range", "", monthFrom, val, searchKodeBarang));
     };
+
+    // ── Handler Search Kode Barang ────────────────────────────────
+    const handleSearchKodeBarangChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchKodeBarangInput(e.target.value);
+    };
+
+    const handleSearchKodeBarangSubmit = () => {
+        setSearchKodeBarang(searchKodeBarangInput);
+        fetchData(buildUrl(1, perPage, statusFilter, petugasFilter, monthMode, singleMonth, monthFrom, monthTo, searchKodeBarangInput));
+    };
+
+    const handleSearchKodeBarangKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") handleSearchKodeBarangSubmit();
+    };
+
+    const handleClearSearchKodeBarang = () => {
+        setSearchKodeBarangInput("");
+        setSearchKodeBarang("");
+        fetchData(buildUrl(1, perPage, statusFilter, petugasFilter, monthMode, singleMonth, monthFrom, monthTo, ""));
+    };
+    // ─────────────────────────────────────────────────────────────
 
     // ── Handler Download PDF ──────────────────────────────────────
     const handleDownloadPdf = async () => {
@@ -138,6 +164,9 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
             if (statusFilter !== "all") url.searchParams.set("status", statusFilter);
             if (petugasFilter !== "all") url.searchParams.set("petugas_id", petugasFilter);
             appendMonthParams(url, monthMode, singleMonth, monthFrom, monthTo);
+
+            // Di dalam handleDownloadPdf, setelah appendMonthParams
+            if (searchKodeBarang.trim()) url.searchParams.set("kode_barang", searchKodeBarang.trim());
 
             const res = await api.get(url.toString());
             const rawData: any[] = res.data?.data ?? [];
@@ -193,6 +222,7 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                 monthMode === "single" && singleMonth ? `Bulan: ${singleMonth}` : "",
                 monthMode === "range" && monthFrom && monthTo ? `Range: ${monthFrom} s/d ${monthTo}` : "",
                 `Dicetak: ${dayjs().format("DD MMM YYYY HH:mm")}`,
+                `Kode Barang: ${searchKodeBarang.trim() || "Semua"}`,
             ].filter(Boolean).join("   |   ");
             doc.text(filterInfo, 14, 22);
 
@@ -428,6 +458,35 @@ export default function ContentPemeliharaanAll({ dataAll, setDataAll, handleOpen
                         )}
                         Download PDF
                     </button>
+                </div>
+
+                {/* Search Kode Barang */}
+                <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Kode Barang</span>
+                    <div className="join">
+                        <input
+                            type="text"
+                            value={searchKodeBarangInput}
+                            onChange={handleSearchKodeBarangChange}
+                            onKeyDown={handleSearchKodeBarangKeyDown}
+                            placeholder="Cari kode barang..."
+                            className="input input-bordered join-item w-44"
+                        />
+                        {searchKodeBarangInput && (
+                            <button
+                                onClick={handleClearSearchKodeBarang}
+                                className="btn join-item btn-ghost"
+                            >
+                                <span className="material-symbols-outlined text-base">close</span>
+                            </button>
+                        )}
+                        <button
+                            onClick={handleSearchKodeBarangSubmit}
+                            className="btn join-item btn-primary btn-soft"
+                        >
+                            <span className="material-symbols-outlined text-base">search</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
