@@ -149,34 +149,35 @@ export default function ContentDisposisi({ dataDisposisi, setDataDisposisi, hand
     return (
         <>
             <h2 className="mb-5 font-bold text-lg lg:text-3xl font-serif">Data Disposisi</h2>
-            <div className="flex flex-wrap items-center gap-4 mb-4">
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">Tampilkan</span>
-                    <select
-                        value={perPage}
-                        onChange={handlePerPageChange}
-                        className="select select-bordered w-fit"
-                    >
+
+            {/* Filter Controls */}
+            <div className="flex flex-wrap items-center gap-1.5 p-2 mb-1 bg-base-200 rounded-xl border border-base-300">
+                {/* Tampilkan */}
+                <div className="join">
+                    <span className="join-item flex items-center px-2 text-xs text-gray-500 bg-base-100 border border-base-300">
+                        Tampilkan
+                    </span>
+                    <select value={perPage} onChange={handlePerPageChange} className="join-item select select-bordered select-sm w-16 text-xs">
                         <option value="5">5</option>
                         <option value="10">10</option>
                         <option value="25">25</option>
                         <option value="50">50</option>
-                        <option value="100">100</option>
                     </select>
                 </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">Status</span>
-                    <select
-                        value={statusFilter}
-                        onChange={handleStatusFilterChange}
-                        className="select select-bordered w-fit"
-                    >
+                <div className="w-px h-5 bg-base-300" />
+                {/* Status */}
+                <div className="join">
+                    <span className="join-item flex items-center px-2 text-xs text-gray-500 bg-base-100 border border-base-300">
+                        Status
+                    </span>
+                    <select value={statusFilter} onChange={handleStatusFilterChange} className="join-item select select-bordered select-sm w-24 text-xs">
                         <option value="all">Semua</option>
                         <option value="open">Open</option>
                         <option value="closed">Closed</option>
                     </select>
                 </div>
             </div>
+
             <div className="overflow-x-auto rounded-2xl shadow-sm border border-gray-200 bg-white">
                 <table className="table table-zebra">
                     <thead className="bg-primary text-primary-content uppercase text-xs">

@@ -310,34 +310,30 @@ export default function ContentPemeliharaanAnda({ dataAnda, setDataAnda, current
             <h2 className="mb-10 font-bold text-lg lg:text-3xl font-serif">Data Pemeliharaan Anda</h2>
 
             {/* Filter Controls */}
-            <div className="flex flex-wrap items-center gap-4 mb-4">
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">Tampilkan</span>
-                    <select
-                        value={perPage}
-                        onChange={handlePerPageChange}
-                        className="select select-bordered w-fit"
-                    >
+            <div className="flex flex-wrap items-center gap-1.5 p-2 mb-1 bg-base-200 rounded-xl border border-base-300">
+                {/* Tampilkan */}
+                <div className="join">
+                    <span className="join-item flex items-center px-2 text-xs text-gray-500 bg-base-100 border border-base-300">
+                        Tampilkan
+                    </span>
+                    <select value={perPage} onChange={handlePerPageChange} className="join-item select select-bordered select-sm w-16 text-xs">
                         <option value="5">5</option>
                         <option value="10">10</option>
                         <option value="25">25</option>
                         <option value="50">50</option>
                     </select>
                 </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">Status</span>
-                    <select
-                        value={statusFilter}
-                        onChange={handleStatusFilterChange}
-                        className="select select-bordered w-fit"
-                    >
+                <div className="w-px h-5 bg-base-300" />
+                {/* Status */}
+                <div className="join">
+                    <span className="join-item flex items-center px-2 text-xs text-gray-500 bg-base-100 border border-base-300">
+                        Status
+                    </span>
+                    <select value={statusFilter} onChange={handleStatusFilterChange} className="join-item select select-bordered select-sm w-24 text-xs">
                         <option value="all">Semua</option>
                         <option value="open">Open</option>
                         <option value="closed">Closed</option>
                     </select>
-                </div>
-                <div className="ml-auto text-sm text-gray-600">
-                    Menampilkan {displayData.length === 0 ? 0 : getStartingNumber()}-{Math.min(getStartingNumber() + displayData.length - 1, totalItems)} dari {totalItems} data
                 </div>
             </div>
 
