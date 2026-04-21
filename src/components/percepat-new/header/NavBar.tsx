@@ -1,38 +1,19 @@
 "use client";
 
 import LogoutBtn from "@/components/main/LogoutBtn";
-import { showAlert } from "@/features/alertSlice";
-import { getUser } from "@/features/authSlice";
-import { AppDispatch, RootState } from "@/redux/store";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
 
 export default function NavBarSiapMelayani() {
     const [permintaanOpen, setPermintaanOpen] = useState(false);
     const [verifOpen, setVerifOpen] = useState(false);
-    const pathname = usePathname();
-    const dispatch = useDispatch<AppDispatch>()
-    const { user, loading } = useSelector((state: RootState) => state.auth)
-    const router = useRouter()
 
     const togglePermintaan = () => setPermintaanOpen(v => !v);
     const toggleVerif = () => setVerifOpen(v => !v);
 
-    useEffect(() => {
-        dispatch(getUser());
-    }, [dispatch]);
-
-    useEffect(() => {
-        if (loading) return
-
-        if (!user) {
-            dispatch(showAlert({ type: 'error', message: 'You are not logged in', description: 'Please login first' }))
-            router.push(`/login?redirectUrl=${pathname}`)
-        }
-    }, [user, loading, router, pathname, dispatch])
+    const { user, loading, pathname } = useRequireAuth()
 
     useEffect(() => {
         // close permintaan submenu on route change

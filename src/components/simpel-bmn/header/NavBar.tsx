@@ -1,33 +1,12 @@
 "use client";
 
 import LogoutBtn from "@/components/main/LogoutBtn";
-import { showAlert } from "@/features/alertSlice";
-import { getUser } from "@/features/authSlice";
-import { AppDispatch, RootState } from "@/redux/store";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
 
 export default function NavBarSiapMelayani() {
-    const pathname = usePathname();
-    const dispatch = useDispatch<AppDispatch>()
-    const { user, loading } = useSelector((state: RootState) => state.auth)
-    const router = useRouter()
-
-    useEffect(() => {
-        dispatch(getUser());
-    }, [dispatch]);
-
-    useEffect(() => {
-        if (loading) return
-
-        if (!user) {
-            dispatch(showAlert({ type: 'error', message: 'You are logged out', description: 'Please login first' }))
-            router.push(`/login?redirectUrl=${pathname}`)
-        }
-    }, [user, loading, router, pathname, dispatch])
+    const { user, loading, pathname } = useRequireAuth()
 
     return (
         <div className="navbar bg-base-100 shadow-md px-6">
