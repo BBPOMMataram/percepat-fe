@@ -4,296 +4,272 @@ import LoadingWithoutText from "@/components/main/loading/LoadingWithoutText"
 import { RootState } from "@/redux/store"
 import api from "@/utils/api"
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useSelector } from "react-redux"
 import ContentPemeliharaanAll from "./ContentPemeliharaanAll"
 import ModalDetailPemeliharaan from "./detail/ModalDetailPemeliharaan"
 
+// Helper: fetch batch user dan kembalikan authMap
+const fetchAuthMap = async (ids: string[]): Promise<Record<string, any>> => {
+    if (ids.length === 0) return {};
+    try {
+        const res = await api.post(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-user-batch`,
+            { ids }
+        );
+        return Object.fromEntries((res.data as any[]).map((u) => [u.id, u]));
+    } catch {
+        return {};
+    }
+};
+
+// Helper: merge pelapor dengan authMap
+const mergePelapor = (items: any[], authMap: Record<string, any>) =>
+    items.map((item) => ({
+        ...item,
+        pelapor: item.pelapor
+            ? { ...item.pelapor, auth_user: authMap[item.pelapor.external_user_id] ?? null }
+            : null,
+    }));
+
+// Helper: extract unique external_user_ids dari array items (dari field pelapor)
+const extractPelaporIds = (items: any[]): string[] =>
+    [...new Set(items.map((item: any) => item.pelapor?.external_user_id).filter(Boolean))];
+
+// Helper: extract unique external_user_ids dari disposisi (from_user, to_user, pelapor)
+const extractDisposisiIds = (items: any[]): string[] => {
+    const ids = items.flatMap((item: any) => {
+        const fromToIds =
+            item.disposisi_new_pemeliharaan?.flatMap((d: any) => [
+                d.from_user?.external_user_id,
+                d.to_user?.external_user_id,
+            ]) ?? [];
+        return [...fromToIds, item.pelapor?.external_user_id ?? null];
+    });
+    return [...new Set(ids.filter(Boolean))];
+};
+
 export default function PemeliharaanSimpelBmn() {
-    const [dataAll, setDataAll] = useState<any>(null)
-    const [mergedDataAll, setMergedDataAll] = useState<any[]>([])
-    const [dataAnda, setDataAnda] = useState<any>(null)
-    const [mergedDataAnda, setMergedDataAnda] = useState<any[]>([])
+    const [dataAll, setDataAll] = useState<any>(null);
+    const [mergedDataAll, setMergedDataAll] = useState<any[]>([]);
+    const [dataAnda, setDataAnda] = useState<any>(null);
+    const [mergedDataAnda, setMergedDataAnda] = useState<any[]>([]);
+    const [mergedDisposisi, setMergedDisposisi] = useState<any>(null);
     const [showModalDetailPemeliharaan, setShowModalDetailPemeliharaan] = useState(false);
     const [code, setCode] = useState<string>("");
-    const [listDisposisi, setListDisposisi] = useState<any[]>([]);
-    const [mergedDisposisi, setMergedDisposisi] = useState<any>(null);
-    const [jumlahDisposisi, setJumlahDisposisi] = useState(0);
-    const [statusFilterAnda, setStatusFilterAnda] = useState<string>("all"); // New state for Pemeliharaan Anda
-    const [statusFilterDisposisi, setStatusFilterDisposisi] = useState<string>("all"); // New state for Disposisi
+    const [statusFilterAnda, setStatusFilterAnda] = useState<string>("all");
+    const [statusFilterDisposisi, setStatusFilterDisposisi] = useState<string>("all");
     const [isLoading, setIsLoading] = useState(false);
+
     const { user } = useSelector((state: RootState) => state.auth);
-    const currentUserId = user?.id
+    const currentUserId = user?.id;
 
-    const fetchAllData = (status?: string) => {
-        setIsLoading(true);
+    // Ref untuk mencegah double-fetch saat strict mode React
+    const hasFetchedRef = useRef(false);
+
+    // ─── Fetch functions ──────────────────────────────────────────────────────
+
+    const fetchAllData = useCallback(async (status?: string) => {
         let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-all`;
-        if (status && status !== "all") {
-            url += `?status=${status}`;
-        }
-        api.get(url)
-            .then(resAllData => {
-                // Store the full response object (not just the data array)
-                // This includes pagination info like links, current_page, per_page, etc.
-                setDataAll(resAllData?.data);
-                setIsLoading(false);
-            })
-            .catch(err => {
-                console.error(err)
-                setIsLoading(false);
-            })
-    }
+        if (status && status !== "all") url += `?status=${status}`;
+        const res = await api.get(url);
+        return res?.data ?? null;
+    }, []);
 
-    const fetchAndaData = (status?: string, perPage?: string) => {
+    const fetchAndaData = useCallback(async (status?: string, perPage?: string) => {
+        const params = new URLSearchParams();
+        if (status && status !== "all") params.append("status", status);
+        if (perPage) params.append("per_page", perPage);
+        let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-by-user`;
+        const qs = params.toString();
+        if (qs) url += `?${qs}`;
+        const res = await api.get(url);
+        return res?.data ?? null;
+    }, []);
+
+    const fetchDisposisiData = useCallback(async (status?: string, perPage?: string) => {
+        const params = new URLSearchParams();
+        if (status && status !== "all") params.append("status", status);
+        if (perPage) params.append("per_page", perPage);
+        let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-disposition-by-user`;
+        const qs = params.toString();
+        if (qs) url += `?${qs}`;
+        const res = await api.get(url);
+        return res?.data ?? null;
+    }, []);
+
+    // ─── Merge helpers ─────────────────────────────────────────────────────────
+
+    const mergeAllData = useCallback(async (rawData: any) => {
+        const items: any[] = rawData?.data ?? rawData ?? [];
+        if (!Array.isArray(items) || items.length === 0) {
+            setMergedDataAll([]);
+            return;
+        }
+        const authMap = await fetchAuthMap(extractPelaporIds(items));
+        setMergedDataAll(mergePelapor(items, authMap));
+    }, []);
+
+    const mergeAndaData = useCallback(async (rawData: any) => {
+        const items: any[] = rawData?.data ?? rawData ?? [];
+        if (!Array.isArray(items) || items.length === 0) {
+            setMergedDataAnda([]);
+            return;
+        }
+        const authMap = await fetchAuthMap(extractPelaporIds(items));
+        setMergedDataAnda(mergePelapor(items, authMap));
+    }, []);
+
+    const mergeDisposisiData = useCallback(async (rawData: any) => {
+        const items: any[] = rawData?.data ?? rawData ?? [];
+        if (!Array.isArray(items) || items.length === 0) {
+            setMergedDisposisi(rawData);
+            return;
+        }
+        const authMap = await fetchAuthMap(extractDisposisiIds(items));
+
+        const merged = items.map((item: any) => ({
+            ...item,
+            pelapor: item.pelapor
+                ? { ...item.pelapor, auth_user: authMap[item.pelapor.external_user_id] ?? null }
+                : null,
+            disposisi_new_pemeliharaan:
+                item.disposisi_new_pemeliharaan?.map((d: any) => ({
+                    ...d,
+                    from_user: { ...d.from_user, auth_user: authMap[d.from_user?.external_user_id] ?? null },
+                    to_user: { ...d.to_user, auth_user: authMap[d.to_user?.external_user_id] ?? null },
+                })) ?? [],
+        }));
+
+        setMergedDisposisi(rawData?.data ? { ...rawData, data: merged } : merged);
+    }, []);
+
+    // ─── Initial fetch (semua sekaligus, satu kali) ────────────────────────────
+
+    const loadAllData = useCallback(async () => {
         if (!currentUserId) return;
         setIsLoading(true);
-        let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-by-user`;
-        const params = new URLSearchParams();
-        if (status && status !== "all") params.append('status', status);
-        if (perPage) params.append('per_page', perPage);
+        try {
+            // Fetch paralel — tidak perlu tunggu satu-satu
+            const [rawAll, rawAnda, rawDisposisi] = await Promise.all([
+                fetchAllData(),
+                fetchAndaData(statusFilterAnda),
+                fetchDisposisiData(statusFilterDisposisi),
+            ]);
 
-        const queryString = params.toString();
-        if (queryString) url += `?${queryString}`;
+            setDataAll(rawAll);
+            setDataAnda(rawAnda);
 
-        api.get(url)
-            .then(res => {
-                setDataAnda(res.data);
+            // Merge paralel
+            await Promise.all([
+                mergeAllData(rawAll),
+                mergeAndaData(rawAnda),
+                mergeDisposisiData(rawDisposisi),
+            ]);
+        } catch (err) {
+            console.error("loadAllData error:", err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [currentUserId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        if (!currentUserId || hasFetchedRef.current) return;
+        hasFetchedRef.current = true;
+        loadAllData();
+    }, [currentUserId, loadAllData]);
+
+    // ─── Jumlah disposisi (dihitung dari data yang sudah ada, tanpa fetch tambahan) ──
+
+    const jumlahDisposisi = useMemo(() => {
+        const items: any[] = mergedDisposisi?.data ?? mergedDisposisi ?? [];
+        if (!Array.isArray(items)) return 0;
+        return items.filter((item: any) => {
+            const last = item.disposisi_new_pemeliharaan?.at(-1);
+            return last?.to_user?.external_user_id === currentUserId;
+        }).length;
+    }, [mergedDisposisi, currentUserId]);
+
+    // ─── Handler untuk update data disposisi setelah aksi (disposisi baru, dll) ──
+
+    const handleUpdateDataDisposisi = useCallback(
+        async (status?: string, perPage?: string) => {
+            const resolvedStatus = status ?? statusFilterDisposisi;
+            setIsLoading(true);
+            try {
+                const rawDisposisi = await fetchDisposisiData(resolvedStatus, perPage);
+                await mergeDisposisiData(rawDisposisi);
+            } catch (err) {
+                console.error("handleUpdateDataDisposisi error:", err);
+            } finally {
                 setIsLoading(false);
-            })
-            .catch(() => setIsLoading(false));
-    }
+            }
+        },
+        [statusFilterDisposisi, fetchDisposisiData, mergeDisposisiData]
+    );
 
-    const fetchDispositionData = (status?: string, perPage?: string) => {
-        setIsLoading(true);
-        let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-disposition-by-user`;
-        const params = new URLSearchParams();
-        if (status && status !== "all") params.append('status', status);
-        if (perPage) params.append('per_page', perPage);
+    // ─── Handler filter status untuk tab "Semua" ──────────────────────────────
 
-        const queryString = params.toString();
-        if (queryString) url += `?${queryString}`;
-
-        api.get(url)
-            .then(resDisposisi => {
-                const responseData = resDisposisi?.data;
-                // Ambil array item baik dari objek paginasi (.data) atau array langsung
-                const disposisiItems = responseData?.data || responseData || [];
-                // setListDisposisi(disposisiItems); // This state is not used directly for rendering, mergedDisposisi is.
-
-                // Merge user data
-                if (!Array.isArray(disposisiItems) || disposisiItems.length === 0) {
-                    setMergedDisposisi(responseData);
-                    setIsLoading(false);
-                    return;
-                }
-
-                // 1. Kumpulkan semua external_user_id (disposisi + pelapor)
-                const ids = disposisiItems.flatMap((item: any) => {
-                    const fromToIds =
-                        item.disposisi_new_pemeliharaan?.flatMap((d: any) => [
-                            d.from_user?.external_user_id,
-                            d.to_user?.external_user_id
-                        ]) || [];
-
-                    const pelaporId = item.pelapor?.external_user_id || null;
-
-                    return [...fromToIds, pelaporId];
-                })
-                    .filter(Boolean)
-                    .filter((v, i, arr) => arr.indexOf(v) === i); // unique
-
-                if (ids.length === 0) {
-                    setMergedDisposisi(responseData);
-                    setIsLoading(false);
-                    return;
-                }
-
-                // 2. Fetch batch user
-                api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-user-batch`, { ids })
-                    .then(res => {
-                        const authUsers = res.data;
-
-                        const authMap: Record<string, any> = {};
-                        authUsers.forEach((u: any) => authMap[u.id] = u);
-
-                        // 3. Merge disposisi + pelapor
-                        const merged = disposisiItems.map((item: any) => ({
-                            ...item,
-
-                            // Merge pelapor
-                            pelapor: item.pelapor
-                                ? {
-                                    ...item.pelapor,
-                                    auth_user: authMap[item.pelapor.external_user_id] || null
-                                }
-                                : null,
-
-                            // Merge disposisi
-                            disposisi_new_pemeliharaan: item.disposisi_new_pemeliharaan?.map((d: any) => ({
-                                ...d,
-                                from_user: {
-                                    ...d.from_user,
-                                    auth_user: authMap[d.from_user?.external_user_id] || null,
-                                },
-                                to_user: {
-                                    ...d.to_user,
-                                    auth_user: authMap[d.to_user?.external_user_id] || null,
-                                },
-                            })) || []
-                        }));
-
-                        // Kembalikan struktur data semula (objek paginasi atau array)
-                        if (responseData?.data) {
-                            setMergedDisposisi({
-                                ...responseData,
-                                data: merged
-                            });
-                        } else {
-                            setMergedDisposisi(merged);
-                        }
-                        setIsLoading(false);
-                    })
-                    .catch(err => {
-                        console.log(err);
-                        setMergedDisposisi(responseData);
-                        setIsLoading(false);
-                    });
-            })
-            .catch(err => {
-                console.error(err)
+    const handleFilterAll = useCallback(
+        async (status: string) => {
+            setIsLoading(true);
+            try {
+                const rawAll = await fetchAllData(status);
+                setDataAll(rawAll);
+                await mergeAllData(rawAll);
+            } catch (err) {
+                console.error("handleFilterAll error:", err);
+            } finally {
                 setIsLoading(false);
-            })
-    }
+            }
+        },
+        [fetchAllData, mergeAllData]
+    );
 
-    const fetchJumlahDisposisi = () => {
-        // Untuk badge, kita perlu menghitung total data 'open' yang ditujukan ke user ini.
-        // Karena tabel menggunakan paginasi server-side, kita melakukan fetch terpisah 
-        // dengan per_page yang besar atau tanpa paginasi (jika didukung backend) untuk mendapatkan angka total.
-        const url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-disposition-by-user?status=open&per_page=100`;
-        api.get(url)
-            .then(res => {
-                const responseData = res.data;
-                const items = responseData?.data || responseData || [];
+    // ─── Handler filter status untuk tab "Anda" ───────────────────────────────
 
-                const total = items.reduce((count: number, item: any) => {
-                    const last = item.disposisi_new_pemeliharaan?.at(-1);
-                    if (last?.to_user?.external_user_id === user?.id) {
-                        return count + 1;
-                    }
-                    return count;
-                }, 0);
+    const handleFilterAnda = useCallback(
+        async (status: string) => {
+            setStatusFilterAnda(status);
+            setIsLoading(true);
+            try {
+                const rawAnda = await fetchAndaData(status);
+                setDataAnda(rawAnda);
+                await mergeAndaData(rawAnda);
+            } catch (err) {
+                console.error("handleFilterAnda error:", err);
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [fetchAndaData, mergeAndaData]
+    );
 
-                setJumlahDisposisi(total);
-            })
-            .catch(err => console.error("Gagal mengambil jumlah disposisi:", err));
-    }
+    // ─── Handler filter status untuk tab "Disposisi" ─────────────────────────
 
-    const handleUpdateDataDisposisi = (status?: string, perPage?: string) => {
-        fetchDispositionData(status ?? statusFilterDisposisi, perPage); // Use passed status or current state
-        fetchJumlahDisposisi(); // This fetches open dispositions, so no status needed
-    }
+    const handleFilterDisposisi = useCallback(
+        async (status: string) => {
+            setStatusFilterDisposisi(status);
+            await handleUpdateDataDisposisi(status);
+        },
+        [handleUpdateDataDisposisi]
+    );
 
-    useEffect(() => {
-        fetchAllData();
-        fetchDispositionData(statusFilterDisposisi); // Pass initial status filter
-    }, [currentUserId])
+    // ─── Modal ────────────────────────────────────────────────────────────────
 
-    useEffect(() => {
-        if (user?.id) {
-            fetchJumlahDisposisi()
-            fetchAndaData(statusFilterAnda); // Pass initial status filter
-        }
-    }, [user?.id])
-
-    // get user auth untuk pelapor
-    useEffect(() => {
-        const items = dataAll?.data || dataAll;
-        if (!Array.isArray(items)) return;
-
-        // ambil semua external_user_id pelapor
-        const ids = [...new Set(
-            items
-                .map((item: any) => item.pelapor?.external_user_id)
-                .filter(Boolean)
-        )];
-
-        if (ids.length === 0) {
-            setMergedDataAll(items);
-            return;
-        }
-
-        api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-user-batch`, { ids })
-            .then(res => {
-                const authMap = Object.fromEntries(
-                    res.data.map((u: any) => [u.id, u])
-                );
-
-                setMergedDataAll(
-                    items.map((item: any) => ({
-                        ...item,
-                        pelapor: item.pelapor
-                            ? {
-                                ...item.pelapor,
-                                auth_user: authMap[item.pelapor.external_user_id] || null,
-                            }
-                            : null
-                    }))
-                );
-            })
-            .catch(() => setMergedDataAll(items));
-    }, [dataAll]);
-
-    // Merge user auth untuk data "Anda"
-    useEffect(() => {
-        const items = dataAnda?.data || dataAnda;
-        if (!Array.isArray(items)) return;
-
-        const ids = [...new Set(
-            items
-                .map((item: any) => item.pelapor?.external_user_id)
-                .filter(Boolean)
-        )];
-
-        if (ids.length === 0) {
-            setMergedDataAnda(items);
-            return;
-        }
-
-        api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-user-batch`, { ids })
-            .then(res => {
-                const authMap = Object.fromEntries(
-                    res.data.map((u: any) => [u.id, u])
-                );
-
-                setMergedDataAnda(
-                    items.map((item: any) => ({
-                        ...item,
-                        pelapor: item.pelapor
-                            ? {
-                                ...item.pelapor,
-                                auth_user: authMap[item.pelapor.external_user_id] || null,
-                            }
-                            : null
-                    }))
-                );
-            })
-            .catch(() => setMergedDataAnda(items));
-    }, [dataAnda]);
-
-    const handleOpenDetail = (code: string) => {
+    const handleOpenDetail = useCallback((code: string) => {
         setCode(code);
         setShowModalDetailPemeliharaan(true);
-    }
+    }, []);
+
+    // ─── Render ───────────────────────────────────────────────────────────────
 
     return (
         <div>
-            {/* name of each tab group should be unique */}
             <div className="tabs tabs-lift">
                 <label className="tab">
                     <input type="radio" name="my_tabs_4" defaultChecked />
-                    <span className="material-symbols-outlined">
-                        assignment
-                    </span>
+                    <span className="material-symbols-outlined">assignment</span>
                     Pemeliharaan
                 </label>
                 <div className="tab-content bg-base-100 border-base-300 p-6 relative">
@@ -302,17 +278,27 @@ export default function PemeliharaanSimpelBmn() {
                             <LoadingWithoutText />
                         </div>
                     )}
-                    <ContentPemeliharaanAll dataAll={dataAll} handleOpenDetail={handleOpenDetail} setDataAll={setDataAll} isLoading={isLoading} setIsloading={setIsLoading} />
+                    <ContentPemeliharaanAll
+                        dataAll={dataAll}
+                        handleOpenDetail={handleOpenDetail}
+                        setDataAll={setDataAll}
+                        isLoading={isLoading}
+                        setIsloading={setIsLoading}
+                        // Teruskan handler filter jika ContentPemeliharaanAll membutuhkannya
+                        onFilterChange={handleFilterAll}
+                    />
                 </div>
             </div>
 
-            <div className="fixed bottom-4 lg:bottom-8 right-4 lg:right-8 tooltip tooltip-left" data-tip="Create New">
+            <div
+                className="fixed bottom-4 lg:bottom-8 right-4 lg:right-8 tooltip tooltip-left"
+                data-tip="Create New"
+            >
                 <Link
                     href="/simpel-bmn/pemeliharaan/form"
-                    className="btn btn-primary btn-floating btn-circle hover:scale-110 hover:rotate-90 transition-all duration-200 ease-in-out" >
-                    <span className="material-symbols-outlined">
-                        add
-                    </span>
+                    className="btn btn-primary btn-floating btn-circle hover:scale-110 hover:rotate-90 transition-all duration-200 ease-in-out"
+                >
+                    <span className="material-symbols-outlined">add</span>
                 </Link>
             </div>
 
@@ -323,5 +309,5 @@ export default function PemeliharaanSimpelBmn() {
                 updateDataDisposisi={handleUpdateDataDisposisi}
             />
         </div>
-    )
+    );
 }
