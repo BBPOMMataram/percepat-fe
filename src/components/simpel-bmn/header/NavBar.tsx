@@ -4,9 +4,19 @@ import LogoutBtn from "@/components/main/LogoutBtn";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function NavBarSiapMelayani() {
     const { user, loading, pathname } = useRequireAuth()
+
+    const [pemeliharaanOpen, setPermintaanOpen] = useState(false);
+
+    const togglePemeliharaan = () => setPermintaanOpen(v => !v);
+
+    useEffect(() => {
+        // close permintaan submenu on route change
+        setPermintaanOpen(false);
+    }, [pathname]);
 
     return (
         <div className="navbar bg-base-100 shadow-md px-6">
@@ -18,8 +28,19 @@ export default function NavBarSiapMelayani() {
                     <ul
                         tabIndex={0}
                         className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-fit p-2 shadow">
-                        <li><Link href={'/simpel-bmn/pemeliharaan'}>Pemeliharaan</Link></li>
                         <li><Link href={'/simpel-bmn/list-barang'}>Daftar Barang</Link></li>
+                        <li>
+                            <button onClick={togglePemeliharaan} className="flex w-full justify-between items-center">Pemeliharaan
+                                <svg className={`transition-transform ml-2 ${pemeliharaanOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </button>
+                            {pemeliharaanOpen && (
+                                <ul className="p-2">
+                                    <li><Link href={'/simpel-bmn/pemeliharaan'} onClick={() => setPermintaanOpen(false)}>Semua Pemeliharaan</Link></li>
+                                    <li><Link href={'/simpel-bmn/pemeliharaan-anda'} onClick={() => setPermintaanOpen(false)}>Pemeliharaan Anda</Link></li>
+                                    <li><Link href={'/simpel-bmn/disposisi'} onClick={() => setPermintaanOpen(false)}>Disposisi</Link></li>
+                                </ul>
+                            )}
+                        </li>
                     </ul>
                 </div>
 
@@ -31,7 +52,18 @@ export default function NavBarSiapMelayani() {
             </div>
             <div className="navbar-center hidden md:flex">
                 <ul className="menu menu-horizontal px-1">
-                    <li><Link href={'/simpel-bmn/pemeliharaan'}>Pemeliharaan</Link></li>
+                    <li className="relative z-50">
+                        <button onClick={togglePemeliharaan} className="flex items-center gap-2">Pemeliharaan
+                            <svg className={`transition-transform ${pemeliharaanOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        {pemeliharaanOpen && (
+                            <ul className="p-2 bg-base-100 rounded-box absolute top-full left-0 mt-2 shadow">
+                                <li><Link href={'/simpel-bmn/pemeliharaan'} onClick={() => setPermintaanOpen(false)}>Semua Pemeliharaan</Link></li>
+                                <li><Link href={'/simpel-bmn/pemeliharaan-anda'} onClick={() => setPermintaanOpen(false)}>Pemeliharaan Anda</Link></li>
+                                <li><Link href={'/simpel-bmn/disposisi'} onClick={() => setPermintaanOpen(false)}>Disposisi</Link></li>
+                            </ul>
+                        )}
+                    </li>
                     <li><Link href={'/simpel-bmn/list-barang'}>Daftar Barang</Link></li>
                 </ul>
             </div>

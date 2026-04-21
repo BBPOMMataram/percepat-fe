@@ -6,10 +6,10 @@ import api from "@/utils/api"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useSelector } from "react-redux"
-import ContentPemeliharaanAll from "./ContentPemeliharaanAll"
+import ContentDisposisi from "./ContentDisposisi"
 import ModalDetailPemeliharaan from "./detail/ModalDetailPemeliharaan"
 
-export default function PemeliharaanSimpelBmn() {
+export default function PemeliharaanDisposisiSimpelBmn() {
     const [dataAll, setDataAll] = useState<any>(null)
     const [mergedDataAll, setMergedDataAll] = useState<any[]>([])
     const [dataAnda, setDataAnda] = useState<any>(null)
@@ -289,12 +289,14 @@ export default function PemeliharaanSimpelBmn() {
         <div>
             {/* name of each tab group should be unique */}
             <div className="tabs tabs-lift">
-                <label className="tab">
+
+                <label className="tab indicator">
                     <input type="radio" name="my_tabs_4" defaultChecked />
                     <span className="material-symbols-outlined">
-                        assignment
+                        assignment_turned_in
                     </span>
-                    Pemeliharaan
+                    Disposisi
+                    {jumlahDisposisi > 0 && <span className="indicator-item badge badge-error animate-pulse badge-xs">{jumlahDisposisi}</span>}
                 </label>
                 <div className="tab-content bg-base-100 border-base-300 p-6 relative">
                     {isLoading && (
@@ -302,7 +304,7 @@ export default function PemeliharaanSimpelBmn() {
                             <LoadingWithoutText />
                         </div>
                     )}
-                    <ContentPemeliharaanAll dataAll={dataAll} handleOpenDetail={handleOpenDetail} setDataAll={setDataAll} isLoading={isLoading} setIsloading={setIsLoading} />
+                    <ContentDisposisi dataDisposisi={mergedDisposisi} setDataDisposisi={setMergedDisposisi} handleOpenDetail={handleOpenDetail} updateDataDisposisi={handleUpdateDataDisposisi} isLoading={isLoading} setIsloading={setIsLoading} statusFilter={statusFilterDisposisi} setStatusFilter={setStatusFilterDisposisi} />
                 </div>
             </div>
 

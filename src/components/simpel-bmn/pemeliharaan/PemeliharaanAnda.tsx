@@ -6,10 +6,10 @@ import api from "@/utils/api"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useSelector } from "react-redux"
-import ContentPemeliharaanAll from "./ContentPemeliharaanAll"
+import ContentPemeliharaanAnda from "./ContentPemeliharaanAnda"
 import ModalDetailPemeliharaan from "./detail/ModalDetailPemeliharaan"
 
-export default function PemeliharaanSimpelBmn() {
+export default function PemeliharaanAndaSimpelBmn() {
     const [dataAll, setDataAll] = useState<any>(null)
     const [mergedDataAll, setMergedDataAll] = useState<any[]>([])
     const [dataAnda, setDataAnda] = useState<any>(null)
@@ -294,7 +294,7 @@ export default function PemeliharaanSimpelBmn() {
                     <span className="material-symbols-outlined">
                         assignment
                     </span>
-                    Pemeliharaan
+                    Pemeliharaan Anda
                 </label>
                 <div className="tab-content bg-base-100 border-base-300 p-6 relative">
                     {isLoading && (
@@ -302,7 +302,7 @@ export default function PemeliharaanSimpelBmn() {
                             <LoadingWithoutText />
                         </div>
                     )}
-                    <ContentPemeliharaanAll dataAll={dataAll} handleOpenDetail={handleOpenDetail} setDataAll={setDataAll} isLoading={isLoading} setIsloading={setIsLoading} />
+                    <ContentPemeliharaanAnda dataAnda={dataAnda} setDataAnda={setDataAnda} mergedDataAll={mergedDataAnda} currentUserId={currentUserId} handleOpenDetail={handleOpenDetail} isLoading={isLoading} setIsloading={setIsLoading} statusFilter={statusFilterAnda} setStatusFilter={setStatusFilterAnda} />
                 </div>
             </div>
 
