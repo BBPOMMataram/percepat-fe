@@ -208,24 +208,6 @@ export default function PemeliharaanSimpelBmn() {
         [statusFilterDisposisi, fetchDisposisiData, mergeDisposisiData]
     );
 
-    // ─── Handler filter status untuk tab "Semua" ──────────────────────────────
-
-    const handleFilterAll = useCallback(
-        async (status: string) => {
-            setIsLoading(true);
-            try {
-                const rawAll = await fetchAllData(status);
-                setDataAll(rawAll);
-                await mergeAllData(rawAll);
-            } catch (err) {
-                console.error("handleFilterAll error:", err);
-            } finally {
-                setIsLoading(false);
-            }
-        },
-        [fetchAllData, mergeAllData]
-    );
-
     // ─── Handler filter status untuk tab "Anda" ───────────────────────────────
 
     const handleFilterAnda = useCallback(
@@ -284,8 +266,6 @@ export default function PemeliharaanSimpelBmn() {
                         setDataAll={setDataAll}
                         isLoading={isLoading}
                         setIsloading={setIsLoading}
-                        // Teruskan handler filter jika ContentPemeliharaanAll membutuhkannya
-                        onFilterChange={handleFilterAll}
                     />
                 </div>
             </div>
