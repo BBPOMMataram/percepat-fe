@@ -186,6 +186,7 @@ export default function ContentDisposisi({ dataDisposisi, setDataDisposisi, hand
                             <th className="px-4 py-3 text-left">Kode</th>
                             <th className="px-4 py-3 text-left">Status</th>
                             <th className="px-4 py-3 text-left">Tipe Barang</th>
+                            <th className="px-4 py-3 text-left">Kode Barang / NUP</th>
                             <th className="px-4 py-3 text-left">Pelapor</th>
                             <th className="px-4 py-3 text-left">Rating</th>
                             <th className="px-4 py-3 text-left">Tanggal Lapor</th>
@@ -211,6 +212,21 @@ export default function ContentDisposisi({ dataDisposisi, setDataDisposisi, hand
                                     </td>
                                     <td className={`px-4 py-3 font-semibold ${item.status === 'open' ? 'text-bpom-green' : 'text-red-500'}`}>{item.status}</td>
                                     <td className={`px-4 py-3 uppercase`}>{item.tipe}</td>
+                                    <td className="px-4 py-3 text-sm">
+                                        {item.barang_new_pemeliharaan?.length > 0 ? (
+                                            <div className="flex flex-col gap-1">
+                                                {item.barang_new_pemeliharaan.map((b: any) => (
+                                                    b.barang ? (
+                                                        <span key={b.id} className="badge badge-ghost badge-sm font-mono whitespace-nowrap">
+                                                            {b.barang.kode} / {b.barang.nup}
+                                                        </span>
+                                                    ) : null
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-400">-</span>
+                                        )}
+                                    </td>
                                     <td className={`px-4 py-3 uppercase`}>{item.pelapor?.auth_user?.call_name || item.pelapor?.auth_user?.name || '-'}</td>
                                     <td className="px-4 py-3 text-center">
                                         {(() => {

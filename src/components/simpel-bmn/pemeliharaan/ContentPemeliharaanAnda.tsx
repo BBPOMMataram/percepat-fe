@@ -345,6 +345,7 @@ export default function ContentPemeliharaanAnda({ dataAnda, setDataAnda, current
                             <th className="px-4 py-3 text-left">Kode</th>
                             <th className="px-4 py-3 text-left">Status</th>
                             <th className="px-4 py-3 text-left">Tipe Barang</th>
+                            <th className="px-4 py-3 text-left">Kode Barang / NUP</th>
                             <th className="px-4 py-3 text-left">Tanggal Lapor</th>
                             <th className="px-4 py-3 text-left">Pelapor</th>
                             <th className="px-4 py-3 text-left">Rating</th>
@@ -372,6 +373,21 @@ export default function ContentPemeliharaanAnda({ dataAnda, setDataAnda, current
                                     </td>
                                     <td className={`px-4 py-3 font-semibold ${item.status === 'open' ? 'text-bpom-green' : 'text-red-500'}`}>{item.status}</td>
                                     <td className={`px-4 py-3 uppercase`}>{item.tipe}</td>
+                                    <td className="px-4 py-3 text-sm">
+                                        {item.barang_new_pemeliharaan?.length > 0 ? (
+                                            <div className="flex flex-col gap-1">
+                                                {item.barang_new_pemeliharaan.map((b: any) => (
+                                                    b.barang ? (
+                                                        <span key={b.id} className="badge badge-ghost badge-sm font-mono whitespace-nowrap">
+                                                            {b.barang.kode} / {b.barang.nup}
+                                                        </span>
+                                                    ) : null
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-400">-</span>
+                                        )}
+                                    </td>
                                     <td className="px-4 py-3 text-sm ">
                                         {dayjs(item.created_at).format("DD MMM YYYY")}
                                         <br />
