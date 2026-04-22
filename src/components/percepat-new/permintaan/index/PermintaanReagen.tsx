@@ -9,7 +9,6 @@ import { toast } from "react-toastify";
 
 export default function PermintaanReagenPercepat() {
     const { user } = useRequireAuth();
-
     const [dataPermintaan, setDataBarang] = useState<any>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [perPage, setPerPage] = useState(10);
@@ -191,7 +190,7 @@ export default function PermintaanReagenPercepat() {
                                         </span>
                                         {/* === TOMBOL DELETE BARU === */}
 
-                                        {(item.status?.id === 1 && item.peminta?.external_user_id === user.id) && <span
+                                        {(item.status?.id === 1 && item.peminta?.external_user_id === user?.id) && <span
                                             className="btn btn-sm btn-ghost text-error tooltip tooltip-error tooltip-left"
                                             data-tip="Hapus"
                                             onClick={() => openConfirmDeleteHandler(item.id)}
