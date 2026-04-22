@@ -110,6 +110,16 @@ export default function PemeliharaanSimpelBmn() {
         return res?.data ?? null;
     }, []);
 
+    // ─── Re-merge dataAll saat berubah akibat filter/pagination di child ────────
+    useEffect(() => {
+        if (!hasFetchedRef.current || !dataAll) return;
+        const items: any[] = dataAll?.data ?? dataAll ?? [];
+        if (!Array.isArray(items) || items.length === 0) { setMergedDataAll([]); return; }
+        fetchAuthMap(extractPelaporIds(items)).then(authMap => {
+            setMergedDataAll(applyMergeAll(dataAll, authMap));
+        });
+    }, [dataAll]); // eslint-disable-line react-hooks/exhaustive-deps
+
     // ─── Initial load — 2 fetch paralel, lalu 1x get-user-batch ─────────────
 
     const loadAllData = useCallback(async () => {
@@ -206,6 +216,7 @@ export default function PemeliharaanSimpelBmn() {
                     )}
                     <ContentPemeliharaanAll
                         dataAll={dataAll}
+                        mergedDataAll={mergedDataAll}
                         handleOpenDetail={handleOpenDetail}
                         setDataAll={setDataAll}
                         isLoading={isLoading}
