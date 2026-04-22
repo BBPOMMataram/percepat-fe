@@ -4,7 +4,7 @@ import LoadingWithoutText from "@/components/main/loading/LoadingWithoutText"
 import { RootState } from "@/redux/store"
 import api from "@/utils/api"
 import Link from "next/link"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useSelector } from "react-redux"
 import ContentPemeliharaanAll from "./ContentPemeliharaanAll"
 import ModalDetailPemeliharaan from "./detail/ModalDetailPemeliharaan"
@@ -98,35 +98,23 @@ export default function PemeliharaanSimpelBmn() {
         return res?.data ?? null;
     }, []);
 
-    // ─── Merge helpers ─────────────────────────────────────────────────────────
+    // ─── Merge helpers (menerima authMap dari luar, tidak fetch sendiri) ──────
 
-    const mergeAllData = useCallback(async (rawData: any) => {
+    const applyMergeAll = (rawData: any, authMap: Record<string, any>) => {
         const items: any[] = rawData?.data ?? rawData ?? [];
-        if (!Array.isArray(items) || items.length === 0) {
-            setMergedDataAll([]);
-            return;
-        }
-        const authMap = await fetchAuthMap(extractPelaporIds(items));
-        setMergedDataAll(mergePelapor(items, authMap));
-    }, []);
+        if (!Array.isArray(items) || items.length === 0) return [];
+        return mergePelapor(items, authMap);
+    };
 
-    const mergeAndaData = useCallback(async (rawData: any) => {
+    const applyMergeAnda = (rawData: any, authMap: Record<string, any>) => {
         const items: any[] = rawData?.data ?? rawData ?? [];
-        if (!Array.isArray(items) || items.length === 0) {
-            setMergedDataAnda([]);
-            return;
-        }
-        const authMap = await fetchAuthMap(extractPelaporIds(items));
-        setMergedDataAnda(mergePelapor(items, authMap));
-    }, []);
+        if (!Array.isArray(items) || items.length === 0) return [];
+        return mergePelapor(items, authMap);
+    };
 
-    const mergeDisposisiData = useCallback(async (rawData: any) => {
+    const applyMergeDisposisi = (rawData: any, authMap: Record<string, any>) => {
         const items: any[] = rawData?.data ?? rawData ?? [];
-        if (!Array.isArray(items) || items.length === 0) {
-            setMergedDisposisi(rawData);
-            return;
-        }
-        const authMap = await fetchAuthMap(extractDisposisiIds(items));
+        if (!Array.isArray(items) || items.length === 0) return rawData;
 
         const merged = items.map((item: any) => ({
             ...item,
@@ -141,16 +129,27 @@ export default function PemeliharaanSimpelBmn() {
                 })) ?? [],
         }));
 
-        setMergedDisposisi(rawData?.data ? { ...rawData, data: merged } : merged);
-    }, []);
+        return rawData?.data ? { ...rawData, data: merged } : merged;
+    };
 
-    // ─── Initial fetch (semua sekaligus, satu kali) ────────────────────────────
+    // ─── Merge disposisi mandiri (untuk handleUpdateDataDisposisi) ────────────
+
+    const mergeDisposisiData = useCallback(async (rawData: any) => {
+        const items: any[] = rawData?.data ?? rawData ?? [];
+        if (!Array.isArray(items) || items.length === 0) {
+            setMergedDisposisi(rawData);
+            return;
+        }
+        const authMap = await fetchAuthMap(extractDisposisiIds(items));
+        setMergedDisposisi(applyMergeDisposisi(rawData, authMap));
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // ─── Initial fetch — 3 data fetch paralel, lalu 1x get-user-batch ────────
 
     const loadAllData = useCallback(async () => {
         if (!currentUserId) return;
         setIsLoading(true);
         try {
-            // Fetch paralel — tidak perlu tunggu satu-satu
             const [rawAll, rawAnda, rawDisposisi] = await Promise.all([
                 fetchAllData(),
                 fetchAndaData(statusFilterAnda),
@@ -160,12 +159,25 @@ export default function PemeliharaanSimpelBmn() {
             setDataAll(rawAll);
             setDataAnda(rawAnda);
 
-            // Merge paralel
-            await Promise.all([
-                mergeAllData(rawAll),
-                mergeAndaData(rawAnda),
-                mergeDisposisiData(rawDisposisi),
-            ]);
+            // Kumpulkan semua IDs dari ketiga data sekaligus
+            const itemsAll: any[] = rawAll?.data ?? rawAll ?? [];
+            const itemsAnda: any[] = rawAnda?.data ?? rawAnda ?? [];
+            const itemsDisposisi: any[] = rawDisposisi?.data ?? rawDisposisi ?? [];
+
+            const allIds = [
+                ...new Set([
+                    ...extractPelaporIds(itemsAll),
+                    ...extractPelaporIds(itemsAnda),
+                    ...extractDisposisiIds(itemsDisposisi),
+                ])
+            ];
+
+            // Hanya 1x get-user-batch untuk semua data
+            const authMap = await fetchAuthMap(allIds);
+
+            setMergedDataAll(applyMergeAll(rawAll, authMap));
+            setMergedDataAnda(applyMergeAnda(rawAnda, authMap));
+            setMergedDisposisi(applyMergeDisposisi(rawDisposisi, authMap));
         } catch (err) {
             console.error("loadAllData error:", err);
         } finally {
@@ -178,17 +190,6 @@ export default function PemeliharaanSimpelBmn() {
         hasFetchedRef.current = true;
         loadAllData();
     }, [currentUserId, loadAllData]);
-
-    // ─── Jumlah disposisi (dihitung dari data yang sudah ada, tanpa fetch tambahan) ──
-
-    const jumlahDisposisi = useMemo(() => {
-        const items: any[] = mergedDisposisi?.data ?? mergedDisposisi ?? [];
-        if (!Array.isArray(items)) return 0;
-        return items.filter((item: any) => {
-            const last = item.disposisi_new_pemeliharaan?.at(-1);
-            return last?.to_user?.external_user_id === currentUserId;
-        }).length;
-    }, [mergedDisposisi, currentUserId]);
 
     // ─── Handler untuk update data disposisi setelah aksi (disposisi baru, dll) ──
 
@@ -206,35 +207,6 @@ export default function PemeliharaanSimpelBmn() {
             }
         },
         [statusFilterDisposisi, fetchDisposisiData, mergeDisposisiData]
-    );
-
-    // ─── Handler filter status untuk tab "Anda" ───────────────────────────────
-
-    const handleFilterAnda = useCallback(
-        async (status: string) => {
-            setStatusFilterAnda(status);
-            setIsLoading(true);
-            try {
-                const rawAnda = await fetchAndaData(status);
-                setDataAnda(rawAnda);
-                await mergeAndaData(rawAnda);
-            } catch (err) {
-                console.error("handleFilterAnda error:", err);
-            } finally {
-                setIsLoading(false);
-            }
-        },
-        [fetchAndaData, mergeAndaData]
-    );
-
-    // ─── Handler filter status untuk tab "Disposisi" ─────────────────────────
-
-    const handleFilterDisposisi = useCallback(
-        async (status: string) => {
-            setStatusFilterDisposisi(status);
-            await handleUpdateDataDisposisi(status);
-        },
-        [handleUpdateDataDisposisi]
     );
 
     // ─── Modal ────────────────────────────────────────────────────────────────
