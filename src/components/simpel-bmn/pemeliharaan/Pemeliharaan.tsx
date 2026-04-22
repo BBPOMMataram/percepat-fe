@@ -4,8 +4,9 @@ import LoadingWithoutText from "@/components/main/loading/LoadingWithoutText"
 import { RootState } from "@/redux/store"
 import api from "@/utils/api"
 import Link from "next/link"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useSelector } from "react-redux"
+import ContentDisposisi from "./ContentDisposisi"
 import ContentPemeliharaanAll from "./ContentPemeliharaanAll"
 import ModalDetailPemeliharaan from "./detail/ModalDetailPemeliharaan"
 
@@ -76,16 +77,16 @@ export default function PemeliharaanSimpelBmn() {
         return res?.data ?? null;
     }, []);
 
-    const fetchAndaData = useCallback(async (status?: string, perPage?: string) => {
-        const params = new URLSearchParams();
-        if (status && status !== "all") params.append("status", status);
-        if (perPage) params.append("per_page", perPage);
-        let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-by-user`;
-        const qs = params.toString();
-        if (qs) url += `?${qs}`;
-        const res = await api.get(url);
-        return res?.data ?? null;
-    }, []);
+    // const fetchAndaData = useCallback(async (status?: string, perPage?: string) => {
+    //     const params = new URLSearchParams();
+    //     if (status && status !== "all") params.append("status", status);
+    //     if (perPage) params.append("per_page", perPage);
+    //     let url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-pemeliharaan-by-user`;
+    //     const qs = params.toString();
+    //     if (qs) url += `?${qs}`;
+    //     const res = await api.get(url);
+    //     return res?.data ?? null;
+    // }, []);
 
     const fetchDisposisiData = useCallback(async (status?: string, perPage?: string) => {
         const params = new URLSearchParams();
@@ -150,24 +151,24 @@ export default function PemeliharaanSimpelBmn() {
         if (!currentUserId) return;
         setIsLoading(true);
         try {
-            const [rawAll, rawAnda, rawDisposisi] = await Promise.all([
+            const [rawAll, rawDisposisi] = await Promise.all([
                 fetchAllData(),
-                fetchAndaData(statusFilterAnda),
+                // fetchAndaData(statusFilterAnda),
                 fetchDisposisiData(statusFilterDisposisi),
             ]);
 
             setDataAll(rawAll);
-            setDataAnda(rawAnda);
+            // setDataAnda(rawAnda);
 
             // Kumpulkan semua IDs dari ketiga data sekaligus
             const itemsAll: any[] = rawAll?.data ?? rawAll ?? [];
-            const itemsAnda: any[] = rawAnda?.data ?? rawAnda ?? [];
+            // const itemsAnda: any[] = rawAnda?.data ?? rawAnda ?? [];
             const itemsDisposisi: any[] = rawDisposisi?.data ?? rawDisposisi ?? [];
 
             const allIds = [
                 ...new Set([
                     ...extractPelaporIds(itemsAll),
-                    ...extractPelaporIds(itemsAnda),
+                    // ...extractPelaporIds(itemsAnda),
                     ...extractDisposisiIds(itemsDisposisi),
                 ])
             ];
@@ -176,7 +177,7 @@ export default function PemeliharaanSimpelBmn() {
             const authMap = await fetchAuthMap(allIds);
 
             setMergedDataAll(applyMergeAll(rawAll, authMap));
-            setMergedDataAnda(applyMergeAnda(rawAnda, authMap));
+            // setMergedDataAnda(applyMergeAnda(rawAnda, authMap));
             setMergedDisposisi(applyMergeDisposisi(rawDisposisi, authMap));
         } catch (err) {
             console.error("loadAllData error:", err);
@@ -190,6 +191,17 @@ export default function PemeliharaanSimpelBmn() {
         hasFetchedRef.current = true;
         loadAllData();
     }, [currentUserId, loadAllData]);
+
+    // ─── Jumlah disposisi (dihitung dari data yang sudah ada, tanpa fetch tambahan) ──
+
+    const jumlahDisposisi = useMemo(() => {
+        const items: any[] = mergedDisposisi?.data ?? mergedDisposisi ?? [];
+        if (!Array.isArray(items)) return 0;
+        return items.filter((item: any) => {
+            const last = item.disposisi_new_pemeliharaan?.at(-1);
+            return last?.to_user?.external_user_id === currentUserId;
+        }).length;
+    }, [mergedDisposisi, currentUserId]);
 
     // ─── Handler untuk update data disposisi setelah aksi (disposisi baru, dll) ──
 
@@ -207,6 +219,16 @@ export default function PemeliharaanSimpelBmn() {
             }
         },
         [statusFilterDisposisi, fetchDisposisiData, mergeDisposisiData]
+    );
+
+    // ─── Handler filter status untuk tab "Disposisi" ─────────────────────────
+
+    const handleFilterDisposisi = useCallback(
+        async (status: string) => {
+            setStatusFilterDisposisi(status);
+            await handleUpdateDataDisposisi(status);
+        },
+        [handleUpdateDataDisposisi]
     );
 
     // ─── Modal ────────────────────────────────────────────────────────────────
@@ -239,6 +261,23 @@ export default function PemeliharaanSimpelBmn() {
                         isLoading={isLoading}
                         setIsloading={setIsLoading}
                     />
+                </div>
+
+                <label className="tab indicator">
+                    <input type="radio" name="my_tabs_4" />
+                    <span className="material-symbols-outlined">
+                        assignment_turned_in
+                    </span>
+                    Disposisi
+                    {jumlahDisposisi > 0 && <span className="indicator-item badge badge-error animate-pulse badge-xs">{jumlahDisposisi}</span>}
+                </label>
+                <div className="tab-content bg-base-100 border-base-300 p-6 relative">
+                    {isLoading && (
+                        <div className="absolute inset-0 z-10 bg-white/50 flex items-center justify-center">
+                            <LoadingWithoutText />
+                        </div>
+                    )}
+                    <ContentDisposisi dataDisposisi={mergedDisposisi} setDataDisposisi={setMergedDisposisi} handleOpenDetail={handleOpenDetail} updateDataDisposisi={handleUpdateDataDisposisi} isLoading={isLoading} setIsloading={setIsLoading} statusFilter={statusFilterDisposisi} setStatusFilter={setStatusFilterDisposisi} />
                 </div>
             </div>
 
