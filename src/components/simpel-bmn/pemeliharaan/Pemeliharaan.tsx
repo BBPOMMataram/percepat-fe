@@ -31,10 +31,20 @@ const mergePelapor = (items: any[], authMap: Record<string, any>) =>
         pelapor: item.pelapor
             ? { ...item.pelapor, auth_user: authMap[item.pelapor.external_user_id] ?? null }
             : null,
+        petugas: item.petugas
+            ? { ...item.petugas, auth_user: authMap[item.petugas.external_user_id] ?? null }
+            : null,
     }));
 
 const extractPelaporIds = (items: any[]): string[] =>
-    [...new Set(items.map((item: any) => item.pelapor?.external_user_id).filter(Boolean))];
+    [
+        ...new Set(
+            items.flatMap((item: any) => [
+                item.pelapor?.external_user_id,
+                item.petugas?.external_user_id,  // ← tambahkan ini
+            ]).filter(Boolean)
+        ),
+    ];
 
 const extractDisposisiIds = (items: any[]): string[] => {
     const ids = items.flatMap((item: any) => {

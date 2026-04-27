@@ -1,8 +1,8 @@
 import api from "@/utils/api";
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { useEffect, useState } from "react";
 
 export default function ContentPemeliharaanAll({
     dataAll,
@@ -205,7 +205,7 @@ export default function ContentPemeliharaanAll({
             doc.setFontSize(9); doc.setFont("helvetica", "normal");
             const filterInfo = [
                 `Status: ${statusFilter === "all" ? "Semua" : statusFilter}`,
-                `Petugas: ${petugasFilter === "all" ? "Semua" : listPetugasBmn.find((p) => String(p.user?.id) === petugasFilter)?.user?.call_name || petugasFilter}`,
+                `Petugas: ${petugasFilter === "all" ? "Semua" : listPetugasBmn.find((p) => String(p.user?.id) === petugasFilter)?.user?.call_name || listPetugasBmn.find((p) => String(p.user?.id) === petugasFilter)?.user?.name || petugasFilter}`,
                 monthMode === "single" && singleMonth ? `Bulan: ${singleMonth}` : "",
                 monthMode === "range" && monthFrom && monthTo ? `Range: ${monthFrom} s/d ${monthTo}` : "",
                 `Dicetak: ${dayjs().format("DD MMM YYYY HH:mm")}`,
@@ -310,7 +310,7 @@ export default function ContentPemeliharaanAll({
             {(statusFilter !== "all" || petugasFilter !== "all" || monthMode !== "none" || searchKodeBarang) && (
                 <div className="flex flex-wrap gap-1.5 mb-3 px-1">
                     {statusFilter !== "all" && <span className="badge badge-info badge-sm gap-1">Status: {statusFilter}<button onClick={() => handleStatusFilterChange({ target: { value: "all" } } as any)}><span className="material-symbols-outlined !text-sm">close</span></button></span>}
-                    {petugasFilter !== "all" && <span className="badge badge-info badge-sm gap-1">Petugas: {listPetugasBmn.find(p => String(p.user?.id) === petugasFilter)?.user?.call_name || petugasFilter}<button onClick={() => handlePetugasFilterChange({ target: { value: "all" } } as any)}><span className="material-symbols-outlined !text-sm">close</span></button></span>}
+                    {petugasFilter !== "all" && <span className="badge badge-info badge-sm gap-1">Petugas: {listPetugasBmn.find(p => String(p.user?.id) === petugasFilter)?.user?.call_name || listPetugasBmn.find(p => String(p.user?.id) === petugasFilter)?.user?.name || petugasFilter}<button onClick={() => handlePetugasFilterChange({ target: { value: "all" } } as any)}><span className="material-symbols-outlined !text-sm">close</span></button></span>}
                     {monthMode === "single" && singleMonth && <span className="badge badge-info badge-sm gap-1">Bulan: {singleMonth}<button onClick={() => { setSingleMonth(""); handleMonthModeChange({ target: { value: "none" } } as any); }}><span className="material-symbols-outlined !text-sm">close</span></button></span>}
                     {monthMode === "range" && monthFrom && monthTo && <span className="badge badge-info badge-sm gap-1">Range: {monthFrom} s/d {monthTo}<button onClick={() => handleMonthModeChange({ target: { value: "none" } } as any)}><span className="material-symbols-outlined !text-sm">close</span></button></span>}
                     {searchKodeBarang && <span className="badge badge-info badge-sm gap-1">Kode: {searchKodeBarang}<button onClick={handleClearSearchKodeBarang}><span className="material-symbols-outlined !text-sm">close</span></button></span>}
