@@ -74,7 +74,6 @@ export default function Profile({ user, updateCallName, callName }: { user: User
             } else if (user.employee?.group_jabatan?.id === 5) {
                 setGroupJabatan("Staf OS")
             }
-            console.log('user', user);
         }
     }, [user]);
 
@@ -89,18 +88,28 @@ export default function Profile({ user, updateCallName, callName }: { user: User
 
         if (formProfileRef.current) {
             const formData = new FormData(formProfileRef.current);
-            // Get the signature data URL
-            const signatureDataURL = signatureSelectRef.current.toDataURL();
+            formData.append('_method', 'PATCH');
 
-            // jika kosong, berarti user tidak mengubah tanda tangan, maka tidak usah dikirim ke backend
+            // Jika canvas tidak kosong, user mengubah tanda tangan
             if (!signatureSelectRef.current.isEmpty()) {
+                const signatureDataURL = signatureSelectRef.current.toDataURL();
+
+                api.patch(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/update-signature`, {
+                    signature_path: signatureDataURL,
+                })
+                    .then(res => {
+                        dispatch(showAlert({ type: "success", message: res.data.message, description: res.data.message }));
+                    })
+                    .catch(err => {
+                        dispatch(showAlert({ type: "error", message: err?.response?.data?.message, description: err.response?.data?.message || "No Message from Backend" }));
+                    });
                 formData.append('signature_path', signatureDataURL);
             }
 
-            formData.append('_method', 'PATCH');
+            // Selalu kirim update profile (tanpa signature)
             api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/update-profile`, formData)
                 .then(res => {
-                    dispatch(showAlert({ type: "success", message: res.data.message, description: res.data.message }))
+                    dispatch(showAlert({ type: "success", message: res.data.message, description: res.data.message }));
                     dispatch(getUser());
                     setIsEditing(false);
                 })
@@ -108,7 +117,7 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                     dispatch(showAlert({ type: "error", message: err?.response?.data?.message, description: err.response?.data?.message || "No Message from Backend" }));
                 });
         }
-    }
+    };
 
     return (
         <div className="flex flex-col">
