@@ -4,7 +4,7 @@ import LoadingWithoutText from "@/components/main/loading/LoadingWithoutText"
 import { RootState } from "@/redux/store"
 import api from "@/utils/api"
 import Link from "next/link"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useSelector } from "react-redux"
 import ContentDisposisi from "./ContentDisposisi"
 import ContentPemeliharaanAll from "./ContentPemeliharaanAll"
@@ -94,6 +94,7 @@ export default function PemeliharaanSimpelBmn() {
     const [code, setCode] = useState<string>("");
     const [statusFilterDisposisi, setStatusFilterDisposisi] = useState<string>("all");
     const [isLoading, setIsLoading] = useState(false);
+    const [jumlahDisposisi, setJumlahDisposisi] = useState(0);
 
     const { user } = useSelector((state: RootState) => state.auth);
     const currentUserId = user?.id;
@@ -119,6 +120,29 @@ export default function PemeliharaanSimpelBmn() {
         const res = await api.get(url);
         return res?.data ?? null;
     }, []);
+
+    const fetchJumlahDisposisi = () => {
+        // Untuk badge, kita perlu menghitung total data 'open' yang ditujukan ke user ini.
+        // Karena tabel menggunakan paginasi server-side, kita melakukan fetch terpisah 
+        // dengan per_page yang besar atau tanpa paginasi (jika didukung backend) untuk mendapatkan angka total.
+        const url = `${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-disposition-by-user?status=open&per_page=100`;
+        api.get(url)
+            .then(res => {
+                const responseData = res.data;
+                const items = responseData?.data || responseData || [];
+
+                const total = items.reduce((count: number, item: any) => {
+                    const last = item.disposisi_new_pemeliharaan?.at(-1);
+                    if (last?.to_user?.external_user_id === user?.id) {
+                        return count + 1;
+                    }
+                    return count;
+                }, 0);
+
+                setJumlahDisposisi(total);
+            })
+            .catch(err => console.error("Gagal mengambil jumlah disposisi:", err));
+    }
 
     // ─── Re-merge dataAll saat berubah akibat filter/pagination di child ────────
     useEffect(() => {
@@ -168,18 +192,19 @@ export default function PemeliharaanSimpelBmn() {
         if (!currentUserId || hasFetchedRef.current) return;
         hasFetchedRef.current = true;
         loadAllData();
+        fetchJumlahDisposisi()
     }, [currentUserId, loadAllData]);
 
     // ─── Jumlah disposisi — dihitung dari data yang sudah ada ────────────────
 
-    const jumlahDisposisi = useMemo(() => {
-        const items: any[] = mergedDisposisi?.data ?? mergedDisposisi ?? [];
-        if (!Array.isArray(items)) return 0;
-        return items.filter((item: any) => {
-            const last = item.disposisi_new_pemeliharaan?.at(-1);
-            return last?.to_user?.external_user_id === currentUserId;
-        }).length;
-    }, [mergedDisposisi, currentUserId]);
+    // const jumlahDisposisi = useMemo(() => {
+    //     const items: any[] = mergedDisposisi?.data ?? mergedDisposisi ?? [];
+    //     if (!Array.isArray(items)) return 0;
+    //     return items.filter((item: any) => {
+    //         const last = item.disposisi_new_pemeliharaan?.at(-1);
+    //         return last?.to_user?.external_user_id === currentUserId;
+    //     }).length;
+    // }, [mergedDisposisi, currentUserId]);
 
     // ─── Update disposisi setelah aksi (kirim disposisi baru, dll) ───────────
 
@@ -192,6 +217,8 @@ export default function PemeliharaanSimpelBmn() {
                 const items: any[] = rawDisposisi?.data ?? rawDisposisi ?? [];
                 const authMap = await fetchAuthMap(extractDisposisiIds(items));
                 setMergedDisposisi(applyMergeDisposisi(rawDisposisi, authMap));
+                fetchJumlahDisposisi(); // This fetches open dispositions, so no status needed
+
             } catch (err) {
                 console.error("handleUpdateDataDisposisi error:", err);
             } finally {
