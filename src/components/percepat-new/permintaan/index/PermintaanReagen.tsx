@@ -188,15 +188,25 @@ export default function PermintaanReagenPercepat() {
                                         >
                                             <span className="material-symbols-outlined">list</span>
                                         </span>
-                                        {/* === TOMBOL DELETE BARU === */}
+                                        {(item.status?.id === 1 && item.peminta?.external_user_id === user?.id) && (
+                                            <span
+                                                className="btn btn-sm btn-ghost text-error tooltip tooltip-error tooltip-left"
+                                                data-tip="Hapus"
+                                                onClick={() => openConfirmDeleteHandler(item.id)}
+                                            >
+                                                <span className="material-symbols-outlined">delete</span>
+                                            </span>
+                                        )}
 
-                                        {(item.status?.id === 1 && item.peminta?.external_user_id === user?.id) && <span
-                                            className="btn btn-sm btn-ghost text-error tooltip tooltip-error tooltip-left"
-                                            data-tip="Hapus"
-                                            onClick={() => openConfirmDeleteHandler(item.id)}
-                                        >
-                                            <span className="material-symbols-outlined">delete</span>
-                                        </span>}
+                                        {(item.status?.id < 4 && item.peminta?.external_user_id === user?.id) && (
+                                            <Link
+                                                href={`/percepat-new/permintaan/form?id=${item.id}`}
+                                                className="btn btn-sm btn-ghost btn-warning tooltip tooltip-warning tooltip-left"
+                                                data-tip="Edit"
+                                            >
+                                                <span className="material-symbols-outlined">edit</span>
+                                            </Link>
+                                        )}
                                     </td>
                                 </tr>
                             ))
