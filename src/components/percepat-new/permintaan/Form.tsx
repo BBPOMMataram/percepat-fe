@@ -4,13 +4,13 @@ import { AppDispatch, RootState } from "@/redux/store";
 import api from "@/utils/api";
 import dayjs from "dayjs";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import FormPerlengkapanKebersihan from "./FormPerlengkapanKebersihan";
 import FormReagen from "./FormReagen";
 import FormAtk from "./FromAtk";
 
-export default function FormPemeliharaanSimpelBmn() {
+function FormPermintaanPercepat() {
     const [listBarang, setListBarang] = useState<any[]>([]);
     const { user } = useSelector((state: RootState) => state.auth);
     const [jenisBarang, setSetTipeBarang] = useState("reagen"); // u menentukan end point saja, ga dikirim sbg payload
@@ -290,5 +290,13 @@ export default function FormPemeliharaanSimpelBmn() {
             </div>
 
         </div>
+    );
+}
+
+export default function Page() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <FormPermintaanPercepat />
+        </Suspense>
     );
 }
