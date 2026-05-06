@@ -200,7 +200,7 @@ export default function PermintaanReagenPercepat() {
 
                                         {(item.status?.id < 4 && item.peminta?.external_user_id === user?.id) && (
                                             <Link
-                                                href={`/percepat-new/permintaan/form?id=${item.id}`}
+                                                href={`/percepat-new/permintaan/form?id=${item.id}&type=reagen`}
                                                 className="btn btn-sm btn-ghost btn-warning tooltip tooltip-warning tooltip-left"
                                                 data-tip="Edit"
                                             >

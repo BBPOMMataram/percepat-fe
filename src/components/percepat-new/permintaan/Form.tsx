@@ -3,7 +3,7 @@ import { showAlert } from "@/features/alertSlice";
 import { AppDispatch, RootState } from "@/redux/store";
 import api from "@/utils/api";
 import dayjs from "dayjs";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import FormPerlengkapanKebersihan from "./FormPerlengkapanKebersihan";
@@ -21,6 +21,10 @@ export default function FormPemeliharaanSimpelBmn() {
 
     const dispatch = useDispatch<AppDispatch>();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const editId = searchParams.get("id");
+    const editType = searchParams.get("type");
+    const isEditMode = !!editId;
 
     const listJenisBarang = [
         'reagen', 'atk', 'baku pembanding', 'suku cadang', 'perlengkapan kebersihan'
@@ -30,7 +34,7 @@ export default function FormPemeliharaanSimpelBmn() {
         try {
             const [katimRes, katuRes] = await Promise.all([
                 api(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-katim`),
-                api(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-katu`)
+                api(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/get-katu`) // karena katu juga sebagai katim
             ]);
 
             const katim = katimRes.data; // array
@@ -49,6 +53,48 @@ export default function FormPemeliharaanSimpelBmn() {
     useEffect(() => {
         getKaTim();
     }, []);
+
+    // Autofill Logic for Edit Mode
+    useEffect(() => {
+        if (editId && editType) {
+            const fetchDetail = async () => {
+                try {
+                    // Fetch Header Data
+                    const res = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-${editType.replace(/\s+/g, '-')}/${editId}`);
+                    const data = res.data.data;
+
+                    setSetTipeBarang(editType);
+                    setKaTimId(data.katimId);
+                    setTanggal(dayjs(data.created_at || data.tgl_permintaan).format('YYYY-MM-DD'));
+
+                    // Fetch Items Data
+                    const resItems = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/list-permintaan-${editType.replace(/\s+/g, '-')}/${editId}`);
+
+                    let mappedJenis = "reagen";
+                    if (editType === 'atk') mappedJenis = "ATK";
+                    if (editType === 'perlengkapan kebersihan') mappedJenis = "barang";
+
+                    const items = resItems.data.data.map((it: any) => {
+                        const barang = it.barang || it.atk || it.reagen || {};
+                        return {
+                            id: it.barang_id || it.atk_id || it.reagen_id || it.id,
+                            nama: barang.name || "",
+                            satuan: barang.satuan || "",
+                            expired: barang.expired || null,
+                            jumlah: it.jumlahpermintaan,
+                            keterangan: it.keterangan,
+                            jenis: mappedJenis
+                        };
+                    });
+                    setListBarang(items);
+                } catch (err) {
+                    console.error("Gagal mengambil data edit:", err);
+                    dispatch(showAlert({ type: "error", message: "Gagal memuat data permintaan", description: "Terjadi kesalahan saat mengambil data." }));
+                }
+            };
+            fetchDetail();
+        }
+    }, [editId, editType, dispatch]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -78,10 +124,8 @@ export default function FormPemeliharaanSimpelBmn() {
                 redirectUrlAfterSubmit = '/percepat-new/permintaan/atk';
                 break;
             case 'baku pembanding':
-                // endpoint baku pembanding
                 break;
             case 'suku cadang':
-                // endpoint suku cadang
                 break;
             case 'perlengkapan kebersihan':
                 url += `/api/v1/permintaan-perlengkapan-kebersihan`;
@@ -92,19 +136,39 @@ export default function FormPemeliharaanSimpelBmn() {
                 return;
         }
 
+        if (isEditMode) url += `/${editId}`;
+
         setIsSubmitting(true);
-        api.post(url, { jenisBarang, listBarang, pemohon: user, katimId, createdAt: tanggal }
-        ).then((res) => {
-            dispatch(showAlert({ type: "success", message: res.data.message || `Berhasil mengajukan Permintaan ${jenisBarang}`, description: res.data.message || "Berhasil mengajukan permintaan" }));
-            setListBarang([]);
-            router.push(redirectUrlAfterSubmit);
-            setIsSubmitting(false);
-        }).catch((err) => {
-            // GUNAKAN SHOW ERROR ALERT INI NANTI UNTUK SEMUA CATCH ERROR DI PROYEK INI
-            dispatch(showAlert({ type: "error", message: err?.response?.data?.message || err.message, description: err.response?.data?.message || "No Message from Backend" }));
-            console.log(err);
-            setIsSubmitting(false);
-        });
+
+        const payload = {
+            ...(isEditMode && { _method: 'PUT' }),
+            jenisBarang,
+            listBarang,
+            pemohon: user,
+            katimId,
+            createdAt: tanggal,
+        };
+
+        api.post(url, payload)
+            .then((res) => {
+                dispatch(showAlert({
+                    type: "success",
+                    message: res.data.message || `Berhasil ${isEditMode ? 'memperbarui' : 'mengajukan'} Permintaan ${jenisBarang}`,
+                    description: res.data.message || `Berhasil ${isEditMode ? 'memperbarui' : 'mengajukan'} permintaan`
+                }));
+                setListBarang([]);
+                router.push(redirectUrlAfterSubmit);
+                setIsSubmitting(false);
+            })
+            .catch((err) => {
+                dispatch(showAlert({
+                    type: "error",
+                    message: err?.response?.data?.message || err.message,
+                    description: err.response?.data?.message || "No Message from Backend"
+                }));
+                console.log(err);
+                setIsSubmitting(false);
+            });
     };
 
     return (
@@ -207,10 +271,15 @@ export default function FormPemeliharaanSimpelBmn() {
                             disabled={isSubmitting || listBarang.length === 0}
                             className={`w-full py-3 px-4 rounded font-semibold ${isSubmitting || listBarang.length === 0
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-green-500 text-white hover:bg-green-600'
+                                : isEditMode
+                                    ? 'bg-green-500 text-white hover:bg-green-600'
+                                    : 'bg-blue-500 text-white hover:bg-blue-600'
                                 }`}
                         >
-                            {isSubmitting ? 'Mengirim...' : 'Ajukan Permintaan'}
+                            {isSubmitting
+                                ? (isEditMode ? 'Memperbarui...' : 'Mengirim...')
+                                : (isEditMode ? 'Perbarui Permintaan' : 'Ajukan Permintaan')
+                            }
                         </button>
                     </div>
 
@@ -223,4 +292,3 @@ export default function FormPemeliharaanSimpelBmn() {
         </div>
     );
 }
-

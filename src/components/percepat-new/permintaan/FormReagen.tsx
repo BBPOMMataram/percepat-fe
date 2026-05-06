@@ -21,7 +21,7 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
     const [searchTerm, setSearchTerm] = useState("");
     const [reagenList, setReagenList] = useState<any[]>([]);
     const [selectedReagen, setSelectedReagen] = useState<any>(null);
-    const [jumlah, setJumlah] = useState<number>(1);
+    const [jumlah, setJumlah] = useState<string>("1");
     const [keterangan, setKeterangan] = useState<string>("");
 
     useEffect(() => {
@@ -66,24 +66,24 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
             dispatch(showAlert({ type: "error", message: "Silakan pilih reagen terlebih dahulu", description: "Silakan pilih reagen terlebih dahulu" }));
             return;
         }
-        if (jumlah < 1) {
+
+        const jumlahParsed = parseInt(jumlah) || 0; // parse di sini
+
+        if (jumlahParsed < 1) {
             dispatch(showAlert({ type: "error", message: "Jumlah harus minimal 1", description: "Jumlah harus minimal 1" }));
             return;
         }
-        if (jumlah > selectedReagen.stock) {
+        if (jumlahParsed > selectedReagen.stock) {
             dispatch(showAlert({ type: "error", message: `Jumlah tidak boleh melebihi stok tersedia (${selectedReagen.stock})`, description: `Jumlah tidak boleh melebihi stok tersedia (${selectedReagen.stock})` }));
             return;
         }
 
-        // Check if item already exists in list
         const existingIndex = listBarang.findIndex((item: any) => item.id === selectedReagen.id);
 
         if (existingIndex >= 0) {
-            // Item exists - update quantity
             const updatedList = [...listBarang];
-            const newQuantity = updatedList[existingIndex].jumlah + jumlah;
+            const newQuantity = updatedList[existingIndex].jumlah + jumlahParsed; // pakai jumlahParsed
 
-            // Check total doesn't exceed stock
             if (newQuantity > selectedReagen.stock) {
                 dispatch(showAlert({ type: "error", message: `Total quantity (${newQuantity}) tidak boleh melebihi stok tersedia (${selectedReagen.stock})`, description: `Total quantity (${newQuantity}) tidak boleh melebihi stok tersedia (${selectedReagen.stock})` }));
                 return;
@@ -93,13 +93,12 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
             updatedList[existingIndex].keterangan = keterangan || updatedList[existingIndex].keterangan;
             setListBarang(updatedList);
         } else {
-            // Item doesn't exist - add new
             const newItem = {
                 id: selectedReagen.id,
                 nama: selectedReagen.name,
                 satuan: selectedReagen.satuan,
                 expired: selectedReagen.expired,
-                jumlah,
+                jumlah: jumlahParsed, // pakai jumlahParsed
                 keterangan,
                 jenis: "reagen"
             };
@@ -109,7 +108,7 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
         dispatch(showAlert({ type: "success", message: "Berhasil menambahkan reagen", description: `Berhasil menambahkan ${selectedReagen.name}` }));
 
         setSelectedReagen(null);
-        setJumlah(1);
+        setJumlah("1"); // reset ke string
         setKeterangan("");
     };
 
@@ -208,11 +207,7 @@ export default function FormReagen({ listBarang, setListBarang }: FormReagenProp
                             min="1"
                             max={selectedReagen?.stock || 9999}
                             value={jumlah}
-                            onChange={(e) => {
-                                const val = parseInt(e.target.value) || 1;
-                                const maxStock = selectedReagen?.stock || 9999;
-                                setJumlah(Math.min(val, maxStock));
-                            }}
+                            onChange={(e) => setJumlah(e.target.value)}
                             className="ar-input-text-purple w-full"
                         />
                     </div>

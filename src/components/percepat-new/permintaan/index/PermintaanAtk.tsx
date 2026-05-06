@@ -1,5 +1,6 @@
 "use client";
 import { ModalGeneral } from "@/components/main/ModalGeneral";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import api from "@/utils/api";
 import dayjs from "dayjs";
 import Link from "next/link";
@@ -7,6 +8,7 @@ import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 
 export default function PermintaanAtkPercepat() {
+    const { user } = useRequireAuth();
     const [dataPermintaan, setDataBarang] = useState<any>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [perPage, setPerPage] = useState(10);
@@ -155,6 +157,16 @@ export default function PermintaanAtkPercepat() {
                                                 list
                                             </span>
                                         </span>
+
+                                        {(item.status?.id < 4 && item.peminta?.external_user_id === user?.id) && (
+                                            <Link
+                                                href={`/percepat-new/permintaan/form?id=${item.id}&type=atk`}
+                                                className="btn btn-sm btn-ghost btn-warning tooltip tooltip-warning tooltip-left"
+                                                data-tip="Edit"
+                                            >
+                                                <span className="material-symbols-outlined">edit</span>
+                                            </Link>
+                                        )}
                                     </td>
                                 </tr>
                             ))
