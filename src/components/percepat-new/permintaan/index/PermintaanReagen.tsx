@@ -173,38 +173,38 @@ export default function PermintaanReagenPercepat() {
                                     <td className="px-4 py-3">{dayjs(item.created_at).format("DD MMM YYYY")}</td>
                                     <td className="px-4 py-3">{item.tgl_penyerahan ? dayjs(item.tgl_penyerahan).format("DD MMM YYYY") : '-'}</td>
                                     <td className="px-4 py-3">{item.penyerah?.name || '-'}</td>
-                                    <td className="px-4 py-3 flex gap-1">
+                                    <td className="px-1 py-3 flex">
                                         <span
-                                            className="btn btn-sm btn-ghost btn-error tooltip tooltip-error tooltip-left"
+                                            className="btn btn-xs btn-ghost btn-error tooltip tooltip-error tooltip-left"
                                             data-tip="Download SPB"
                                             onClick={() => downloadSpbHandler(item.id)}
                                         >
-                                            <span className="material-symbols-outlined">download</span>
+                                            <span className="material-symbols-outlined text-[20px]!">download</span>
                                         </span>
                                         <span
-                                            className="btn btn-sm btn-ghost btn-accent tooltip tooltip-accent tooltip-left"
+                                            className="btn btn-xs btn-ghost btn-accent tooltip tooltip-accent tooltip-left"
                                             data-tip="List Barang"
                                             onClick={() => showListBarangHandler(item.id)}
                                         >
-                                            <span className="material-symbols-outlined">list</span>
+                                            <span className="material-symbols-outlined text-[20px]!">list</span>
                                         </span>
                                         {(item.status?.id === 1 && item.peminta?.external_user_id === user?.id) && (
                                             <span
-                                                className="btn btn-sm btn-ghost text-error tooltip tooltip-error tooltip-left"
+                                                className="btn btn-xs btn-ghost text-error tooltip tooltip-error tooltip-left"
                                                 data-tip="Hapus"
                                                 onClick={() => openConfirmDeleteHandler(item.id)}
                                             >
-                                                <span className="material-symbols-outlined">delete</span>
+                                                <span className="material-symbols-outlined text-[20px]!">delete</span>
                                             </span>
                                         )}
 
                                         {(item.status?.id < 4 && item.peminta?.external_user_id === user?.id) && (
                                             <Link
                                                 href={`/percepat-new/permintaan/form?id=${item.id}&type=reagen`}
-                                                className="btn btn-sm btn-ghost btn-warning tooltip tooltip-warning tooltip-left"
+                                                className="btn btn-xs btn-ghost btn-warning tooltip tooltip-warning tooltip-left"
                                                 data-tip="Edit"
                                             >
-                                                <span className="material-symbols-outlined">edit</span>
+                                                <span className="material-symbols-outlined text-[20px]!">edit</span>
                                             </Link>
                                         )}
                                     </td>

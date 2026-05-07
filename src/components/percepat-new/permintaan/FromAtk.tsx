@@ -96,7 +96,7 @@ export default function FormAtk({ listBarang, setListBarang }: FormProps) {
                 id: selectedBarang.id,
                 nama: selectedBarang.name,
                 satuan: selectedBarang.satuan,
-                expired: selectedBarang.expired,
+                // expired: selectedBarang.expired,
                 jumlah,
                 keterangan,
                 jenis: "ATK"

@@ -16,9 +16,14 @@ export default function PermintaanPerlengkapanKebersihanPercepat() {
     const [listBarangPermintaan, setListBarangPermintaan] = useState<any>([]);
     const [showModalListBarangPermintaan, setShowModalListBarangPermintaan] = useState(false);
 
+    // === STATE BARU UNTUK DELETE ===
+    const [showModalConfirmDelete, setShowModalConfirmDelete] = useState(false);
+    const [selectedDeleteId, setSelectedDeleteId] = useState<number | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const rowNumber = (index: number) => (currentPage - 1) * perPage + index + 1;
 
-    useEffect(() => {
+    const fetchData = (url?: string) => {
         api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-perlengkapan-kebersihan?
             per_page=${perPage}
             &kode_or_name=${kodeBarangOrNameFilter}
@@ -32,13 +37,11 @@ export default function PermintaanPerlengkapanKebersihanPercepat() {
             .catch((err) => {
                 console.log(err);
             });
-    }, [perPage, kodeBarangOrNameFilter]);
-
-    const filterKodeOrNameHander = (v: string) => {
-        setTimeout(() => {
-            setKodeBarangOrNameFilter(v)
-        }, 2000);
     }
+
+    useEffect(() => {
+        fetchData();
+    }, [perPage, kodeBarangOrNameFilter]);
 
     const showListBarangHandler = (id: number) => {
         setShowModalListBarangPermintaan(true);
@@ -80,6 +83,46 @@ export default function PermintaanPerlengkapanKebersihanPercepat() {
             })
             .catch(err => console.log(err))
     }
+
+    // === HANDLER DELETE ===
+    const openConfirmDeleteHandler = (id: number) => {
+        setSelectedDeleteId(id);
+        setShowModalConfirmDelete(true);
+    };
+
+    const closeConfirmDeleteHandler = () => {
+        setSelectedDeleteId(null);
+        setShowModalConfirmDelete(false);
+    };
+
+    const confirmDeleteHandler = () => {
+        if (!selectedDeleteId) return;
+
+        setIsDeleting(true);
+        api.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-perlengkapan-kebersihan/${selectedDeleteId}`)
+            .then(() => {
+                toast.success('Data berhasil dihapus!', {
+                    position: "top-right",
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    theme: "light",
+                });
+                closeConfirmDeleteHandler();
+                fetchData(); // refresh data setelah delete
+            })
+            .catch((err) => {
+                console.log(err);
+                toast.error('Gagal menghapus data!', {
+                    position: "top-right",
+                    autoClose: 3000,
+                    theme: "light",
+                });
+            })
+            .finally(() => setIsDeleting(false));
+    };
 
     const closeModalListBarangPermintaanHandler = () => {
         setShowModalListBarangPermintaan(false);
@@ -147,26 +190,35 @@ export default function PermintaanPerlengkapanKebersihanPercepat() {
                                             : '-'
                                     }</td>
                                     <td className={`px-4 py-3`}>{item.penyerah?.name || '-'}</td>
-                                    <td className="px-4 py-3 flex">
-                                        <span className="btn btn-sm btn-ghost btn-error tooltip tooltip-error tooltip-left" data-tip="Download SPB" onClick={() => downloadSpbHandler(item.id)}>
-                                            <span className="material-symbols-outlined">
+                                    <td className="px-1 py-3 flex">
+                                        <span className="btn btn-xs btn-ghost btn-error tooltip tooltip-error tooltip-left" data-tip="Download SPB" onClick={() => downloadSpbHandler(item.id)}>
+                                            <span className="material-symbols-outlined text-[20px]!">
                                                 download
                                             </span>
                                         </span>
 
-                                        <span className="btn btn-sm btn-ghost btn-accent tooltip tooltip-accent tooltip-left" data-tip="List Barang" onClick={() => showListBarangHandler(item.id)}>
-                                            <span className="material-symbols-outlined">
+                                        <span className="btn btn-xs btn-ghost btn-accent tooltip tooltip-accent tooltip-left" data-tip="List Barang" onClick={() => showListBarangHandler(item.id)}>
+                                            <span className="material-symbols-outlined text-[20px]!">
                                                 list
                                             </span>
                                         </span>
+                                        {(item.status?.id === 1 && item.peminta?.external_user_id === user?.id) && (
+                                            <span
+                                                className="btn btn-xs btn-ghost text-error tooltip tooltip-error tooltip-left"
+                                                data-tip="Hapus"
+                                                onClick={() => openConfirmDeleteHandler(item.id)}
+                                            >
+                                                <span className="material-symbols-outlined text-[20px]!">delete</span>
+                                            </span>
+                                        )}
 
                                         {(item.status?.id < 4 && item.peminta?.external_user_id === user?.id) && (
                                             <Link
                                                 href={`/percepat-new/permintaan/form?id=${item.id}&type=perlengkapan kebersihan`}
-                                                className="btn btn-sm btn-ghost btn-warning tooltip tooltip-warning tooltip-left"
+                                                className="btn btn-xs btn-ghost btn-warning tooltip tooltip-warning tooltip-left"
                                                 data-tip="Edit"
                                             >
-                                                <span className="material-symbols-outlined">edit</span>
+                                                <span className="material-symbols-outlined text-[20px]!">edit</span>
                                             </Link>
                                         )}
                                     </td>
@@ -202,8 +254,6 @@ export default function PermintaanPerlengkapanKebersihanPercepat() {
                                                     setDataBarang(data);
                                                     setCurrentPage(data?.current_page);
                                                     setPerPage(data?.per_page);
-                                                    console.log('test', data);
-
                                                 })
                                         }
                                     }}
@@ -224,6 +274,7 @@ export default function PermintaanPerlengkapanKebersihanPercepat() {
                     </span>
                 </Link>
             </div>
+
             {
                 showModalListBarangPermintaan &&
                 <ModalGeneral
@@ -247,7 +298,7 @@ export default function PermintaanPerlengkapanKebersihanPercepat() {
                                     <div className="text-xs [&>span]:mr-1">
                                         <span className="badge badge-soft badge-primary">Jumlah Permintaan : {item.jumlahpermintaan}</span>
                                         <span className="badge badge-soft badge-primary">Jumlah Realisasi : {item.jumlahrealisasi || '-'}</span>
-                                        <span className="badge badge-soft badge-primary">Satuan : {item.barang.satuan || '-'}</span>
+                                        <span className="badge badge-soft badge-primary">Satuan : {item.barang?.satuan || '-'}</span>
                                         {/* <span className="badge badge-soft badge-primary">Expired : {expiredFormatted}</span> */}
                                         <span className="badge badge-soft badge-primary">Ket : {item.keterangan || '-'}</span>
                                     </div>
@@ -272,6 +323,39 @@ export default function PermintaanPerlengkapanKebersihanPercepat() {
                     </ul>
                 </ModalGeneral>
             }
+
+            {/* === MODAL KONFIRMASI DELETE === */}
+            {showModalConfirmDelete && (
+                <ModalGeneral open={showModalConfirmDelete} onClose={closeConfirmDeleteHandler}>
+                    <div className="text-center">
+                        <span className="material-symbols-outlined text-error text-5xl mb-3">warning</span>
+                        <h3 className="text-lg font-semibold mb-2">Konfirmasi Hapus</h3>
+                        <p className="text-gray-500 mb-6">
+                            Apakah Anda yakin ingin menghapus data permintaan ini? <br />
+                            <span className="text-error font-medium">Tindakan ini tidak dapat dibatalkan.</span>
+                        </p>
+                        <div className="flex justify-center gap-3">
+                            <button
+                                className="btn btn-ghost"
+                                onClick={closeConfirmDeleteHandler}
+                                disabled={isDeleting}
+                            >
+                                Batal
+                            </button>
+                            <button
+                                className="btn btn-error"
+                                onClick={confirmDeleteHandler}
+                                disabled={isDeleting}
+                            >
+                                {isDeleting
+                                    ? <><span className="loading loading-spinner loading-sm"></span> Menghapus...</>
+                                    : 'Ya, Hapus'
+                                }
+                            </button>
+                        </div>
+                    </div>
+                </ModalGeneral>
+            )}
         </>
     )
 }

@@ -13,7 +13,7 @@ import FormAtk from "./FromAtk";
 function FormPermintaanPercepat() {
     const [listBarang, setListBarang] = useState<any[]>([]);
     const { user } = useSelector((state: RootState) => state.auth);
-    const [jenisBarang, setSetTipeBarang] = useState("reagen"); // u menentukan end point saja, ga dikirim sbg payload
+    const [jenisBarang, setTipeBarang] = useState("reagen"); // u menentukan end point saja, ga dikirim sbg payload
     const [listKaTim, setListKaTim] = useState<any[]>([]);
     const [katimId, setKaTimId] = useState<any>("");
     const [tanggal, setTanggal] = useState<string>(dayjs().format('YYYY-MM-DD'));
@@ -63,18 +63,18 @@ function FormPermintaanPercepat() {
                     const res = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-${editType.replace(/\s+/g, '-')}/${editId}`);
                     const data = res.data.data;
 
-                    setSetTipeBarang(editType);
+                    setTipeBarang(editType);
                     setKaTimId(data.katimId);
                     setTanggal(dayjs(data.created_at || data.tgl_permintaan).format('YYYY-MM-DD'));
 
                     // Fetch Items Data
-                    const resItems = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/list-permintaan-${editType.replace(/\s+/g, '-')}/${editId}`);
+                    // const resItems = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/list-permintaan-${editType.replace(/\s+/g, '-')}/${editId}`);
 
                     let mappedJenis = "reagen";
                     if (editType === 'atk') mappedJenis = "ATK";
                     if (editType === 'perlengkapan kebersihan') mappedJenis = "barang";
 
-                    const items = resItems.data.data.map((it: any) => {
+                    const items = data.listBarang.map((it: any) => {
                         const barang = it.barang || it.atk || it.reagen || {};
                         return {
                             id: it.barang_id || it.atk_id || it.reagen_id || it.id,
@@ -86,6 +86,7 @@ function FormPermintaanPercepat() {
                             jenis: mappedJenis
                         };
                     });
+
                     setListBarang(items);
                 } catch (err) {
                     console.error("Gagal mengambil data edit:", err);
@@ -185,7 +186,7 @@ function FormPermintaanPercepat() {
                         <select
                             name="role_id"
                             value={jenisBarang}
-                            onChange={(e) => setSetTipeBarang(e.target.value)}
+                            onChange={(e) => setTipeBarang(e.target.value)}
                             required
                             className="ar-input-text-purple"
                         >

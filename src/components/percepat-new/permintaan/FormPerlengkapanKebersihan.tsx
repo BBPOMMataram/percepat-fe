@@ -4,7 +4,6 @@ import LoadingWithoutText from "@/components/main/loading/LoadingWithoutText";
 import { showAlert } from "@/features/alertSlice";
 import { AppDispatch } from "@/redux/store";
 import api from "@/utils/api";
-import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 
@@ -98,7 +97,7 @@ export default function FormPerlengkapanKebersihan({ listBarang, setListBarang }
                 id: selectedBarang.id,
                 nama: selectedBarang.name,
                 satuan: selectedBarang.satuan,
-                expired: selectedBarang.expired,
+                // expired: selectedBarang.expired,
                 jumlah,
                 keterangan,
                 jenis: "barang"
@@ -261,7 +260,6 @@ export default function FormPerlengkapanKebersihan({ listBarang, setListBarang }
                                     <th className="p-2 text-left text-sm">Nama</th>
                                     <th className="p-2 text-left text-sm">Jumlah</th>
                                     <th className="p-2 text-left text-sm">Satuan</th>
-                                    <th className="p-2 text-left text-sm">Expired</th>
                                     <th className="p-2 text-left text-sm">Keterangan</th>
                                     <th className="p-2 text-left text-sm">Aksi</th>
                                 </tr>
@@ -273,7 +271,6 @@ export default function FormPerlengkapanKebersihan({ listBarang, setListBarang }
                                         <td className="p-2 text-sm">{item.nama}</td>
                                         <td className="p-2 text-sm">{item.jumlah}</td>
                                         <td className="p-2 text-sm">{item.satuan}</td>
-                                        <td className="p-2 text-sm">{item.expired ? dayjs(item.expired).format('DD MMM YYYY') : '-'}</td>
                                         <td className="p-2 text-sm">{item.keterangan || '-'}</td>
                                         <td className="p-2 text-sm">
                                             <button
