@@ -75,9 +75,9 @@ function FormPermintaanPercepat() {
                     if (editType === 'perlengkapan kebersihan') mappedJenis = "barang";
 
                     const items = data.listBarang.map((it: any) => {
-                        const barang = it.barang || it.atk || it.reagen || {};
+                        const barang = it.barang || it.atk || {};
                         return {
-                            id: it.barang_id || it.atk_id || it.reagen_id || it.id,
+                            id: barang.id,
                             nama: barang.name || "",
                             satuan: barang.satuan || "",
                             expired: barang.expired || null,
@@ -86,6 +86,8 @@ function FormPermintaanPercepat() {
                             jenis: mappedJenis
                         };
                     });
+
+                    console.log("Data edit yang dimapping:", items);
 
                     setListBarang(items);
                 } catch (err) {

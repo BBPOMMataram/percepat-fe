@@ -102,6 +102,7 @@ export default function FormPerlengkapanKebersihan({ listBarang, setListBarang }
                 keterangan,
                 jenis: "barang"
             };
+            console.log(newItem);
             setListBarang([...listBarang, newItem]);
         }
 
