@@ -30,8 +30,6 @@ export default function AdminPenerimaanAtkPercepat() {
         if (window.confirm('Confirm delete?')) {
             api.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/penerimaan-atk/${id}`)
                 .then((res) => {
-                    console.log(res);
-
                     dispatch(showAlert({ type: 'success', message: res.data.message, description: res.data.message }))
                     loadData()
                 })

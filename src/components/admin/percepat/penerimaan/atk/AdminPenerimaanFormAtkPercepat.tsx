@@ -97,13 +97,13 @@ export default function AdminPenerimaanFormAtkPercepat({ open, onClose, initialD
             console.log('initial data: ', initialData);
 
             setFormData({
-                atkId: initialData.barangs_id || initialData.barang?.id || "",
+                atkId: initialData.atk_id || initialData.atk?.id || "",
                 jumlah: initialData.jumlah ?? "",
                 vendor: initialData.vendor || "",
                 // tglTerima: initialData.tglTerima || "", // Use created_at for display
             });
-            setSelectedAtk(initialData.barang);
-            setSearchTerm(initialData.barang?.name || "");
+            setSelectedAtk(initialData.atk);
+            setSearchTerm(initialData.atk?.name || "");
 
             // Use created_at for tglTerima display (table shows it)
             if (initialData.created_at) {
