@@ -1,15 +1,15 @@
 import { showAlert } from "@/features/alertSlice";
 import { AppDispatch } from "@/redux/store";
 import api from "@/utils/api";
-import { useEffect, useState, useCallback } from "react";
+import dayjs from "dayjs";
+import { useCallback, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
-import AdminMasterFormPerlengkapanPercepat from "./AdminMasterFormPerlengkapanPercepat";
+import AdminPenerimaanFormAtkPercepat from "./AdminPenerimaanFormAtkPercepat";
 
-export default function AdminMasterPerlengkapanPercepat() {
+export default function AdminPenerimaanAtkPercepat() {
     const [data, setData] = useState<any>([])
     const [currentPage, setCurrentPage] = useState(1);
     const [perPage, setPerPage] = useState(10);
-
     const [open, setOpen] = useState<boolean>(false)
     const [editData, setEditData] = useState<any>(null)
 
@@ -17,7 +17,7 @@ export default function AdminMasterPerlengkapanPercepat() {
 
     const rowNumber = (index: number) => (currentPage - 1) * perPage + index + 1;
     const loadData = useCallback(() => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/perlengkapan-kebersihan?per_page=${perPage}`)
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/penerimaan-atk?per_page=${perPage}`)
             .then(({ data }) => {
                 setData(data)
                 setCurrentPage(data?.current_page);
@@ -28,8 +28,10 @@ export default function AdminMasterPerlengkapanPercepat() {
 
     const handleRemove = (id: number) => {
         if (window.confirm('Confirm delete?')) {
-            api.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/perlengkapan-kebersihan/${id}`)
+            api.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/penerimaan-atk/${id}`)
                 .then((res) => {
+                    console.log(res);
+
                     dispatch(showAlert({ type: 'success', message: res.data.message, description: res.data.message }))
                     loadData()
                 })
@@ -45,10 +47,10 @@ export default function AdminMasterPerlengkapanPercepat() {
 
     return (
         <>
-            <AdminMasterFormPerlengkapanPercepat open={open} onClose={() => setOpen(false)} initialData={editData} onSuccess={loadData} />
+            <AdminPenerimaanFormAtkPercepat open={open} onClose={() => setOpen(false)} initialData={editData} onSuccess={loadData} />
 
             <div className="bg-white rounded-2xl shadow px-8 py-4 mb-2 flex flex-col md:flex-row">
-                <div className="text-lg font-semibold text-gray-800 uppercase">Perlengkapan Kebersihan</div>
+                <div className="text-lg font-semibold text-gray-800 uppercase">Penerimaan ATK</div>
                 <h2 className="text-xl font-semibold text-gray-800 uppercase md:ml-auto">Admin Panel Percepat</h2>
             </div>
             <div className="bg-white rounded-2xl shadow px-8 py-4">
@@ -85,8 +87,9 @@ export default function AdminMasterPerlengkapanPercepat() {
                             <tr>
                                 <th>No</th>
                                 <th>Nama</th>
-                                <th>Stock</th>
-                                <th>Satuan</th>
+                                <th>jumlah</th>
+                                <th>vendor</th>
+                                <th>tgl terima</th>
                                 <th>##</th>
                             </tr>
                         </thead>
@@ -95,9 +98,10 @@ export default function AdminMasterPerlengkapanPercepat() {
                                 data?.data?.map((item: any, index: number) => (
                                     <tr key={item.id}>
                                         <td>{rowNumber(index)}</td>
-                                        <td>{item.name}</td>
-                                        <td>{item.stock}</td>
-                                        <td>{item.satuan}</td>
+                                        <td>{item.atk?.name}</td>
+                                        <td>{item.jumlah}</td>
+                                        <td>{item.vendor}</td>
+                                        <td>{item.created_at ? dayjs(item.created_at).format("DD MMM YYYY") : '-'}</td>
                                         <td>
                                             <button
                                                 className="btn btn-sm"
@@ -115,7 +119,6 @@ export default function AdminMasterPerlengkapanPercepat() {
                                                 Delete
                                             </button>
                                         </td>
-                                        {/* <td>{item.created_at ? dayjs(item.created_at).format("dddd, DD MMMM YYYY (HH:mm)") : '-'}</td> */}
                                     </tr>
                                 ))
                             }
