@@ -2,7 +2,7 @@ import { showAlert } from "@/features/alertSlice";
 import { AppDispatch } from "@/redux/store";
 import api from "@/utils/api";
 import dayjs from "dayjs";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import AdminPenerimaanFormAtkPercepat from "./AdminPenerimaanFormAtkPercepat";
 
@@ -12,19 +12,20 @@ export default function AdminPenerimaanAtkPercepat() {
     const [perPage, setPerPage] = useState(10);
     const [open, setOpen] = useState<boolean>(false)
     const [editData, setEditData] = useState<any>(null)
+    const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
 
     const dispatch = useDispatch<AppDispatch>()
 
     const rowNumber = (index: number) => (currentPage - 1) * perPage + index + 1;
     const loadData = useCallback(() => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/penerimaan-atk?per_page=${perPage}`)
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/penerimaan-atk?per_page=${perPage}&name=${kodeBarangOrNameFilter}`)
             .then(({ data }) => {
                 setData(data)
                 setCurrentPage(data?.current_page);
                 setPerPage(data?.per_page);
                 console.log(data);
             })
-    }, [perPage]);
+    }, [perPage, kodeBarangOrNameFilter]);
 
     const handleRemove = (id: number) => {
         if (window.confirm('Confirm delete?')) {
@@ -37,6 +38,14 @@ export default function AdminPenerimaanAtkPercepat() {
                     dispatch(showAlert({ type: 'error', message: err.response?.data?.message, description: err.data?.message }))
                 })
         }
+    }
+
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const filterKodeOrNameHander = (v: string) => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            setKodeBarangOrNameFilter(v)
+        }, 500);
     }
 
     useEffect(() => {
@@ -75,9 +84,9 @@ export default function AdminPenerimaanAtkPercepat() {
                             <option value="50">50</option>
                         </select>
                     </div>
-                    {/* <div className="ml-auto flex items-center gap-2">
-                    <input type="text" className="ar-input-text-purple" placeholder="Cari Kode Barang / Nama" onChange={e => filterKodeOrNameHander(e.currentTarget.value)} />
-                </div> */}
+                    <div className="ml-auto flex items-center gap-2">
+                        <input type="text" className="ar-input-text-purple" placeholder="Cari Kode Barang / Nama" onChange={e => filterKodeOrNameHander(e.currentTarget.value)} />
+                    </div>
                 </div>
                 <div className="w-full overflow-x-auto">
                     <table className="ar-table">

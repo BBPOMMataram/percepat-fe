@@ -1,7 +1,7 @@
 import { showAlert } from "@/features/alertSlice";
 import { AppDispatch } from "@/redux/store";
 import api from "@/utils/api";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import AdminMasterFormPerlengkapanPercepat from "./AdminMasterFormPerlengkapanPercepat";
 
@@ -39,10 +39,12 @@ export default function AdminMasterPerlengkapanPercepat() {
         }
     }
 
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const filterKodeOrNameHander = (v: string) => {
-        setTimeout(() => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
             setKodeBarangOrNameFilter(v)
-        }, 2000);
+        }, 500);
     }
 
     useEffect(() => {
