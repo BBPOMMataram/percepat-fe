@@ -10,14 +10,14 @@ import AdminPercepat from "../percepat/AdminPercepat";
 import AdminMasterAtkPercepat from "../percepat/master/atk/AdminMasterAtkPercepat";
 import AdminMasterPerlengkapanPercepat from "../percepat/master/perlengkapan/AdminMasterPerlengkapanPercepat";
 import AdminMasterReagenPercepat from "../percepat/master/reagen/AdminMasterReagenPercepat";
+import AdminPenerimaanAtkPercepat from "../percepat/penerimaan/atk/AdminPenerimaanAtkPercepat";
+import AdminPenerimaanPerlengkapanPercepat from "../percepat/penerimaan/perlengkapan/AdminPenerimaanPerlengkapanPercepat";
+import AdminPenerimaanReagenPercepat from "../percepat/penerimaan/reagen/AdminPenerimaanReagenPercepat";
 import AdminAtkPercepat from "../percepat/permintaan/atk/AdminAtkPercepat";
 import AdminPermintaanPerlengkapanPercepat from "../percepat/permintaan/perlengkapan/AdminPermintaanPerlengkapanPercepat";
 import AdminPermintaanReagenPercepat from "../percepat/permintaan/reagen/AdminPermintaanReagenPercepat";
 import AdminSettingsPercepat from "../percepat/settings/AdminSettingsPercepat";
 import SidebarAdminPercepat from "./sidebar/SidebarAdminPercepat";
-import AdminPenerimaanReagenPercepat from "../percepat/penerimaan/reagen/AdminPenerimaanReagenPercepat";
-import AdminPenerimaanAtkPercepat from "../percepat/penerimaan/atk/AdminPenerimaanAtkPercepat";
-import AdminPenerimaanPerlengkapanPercepat from "../percepat/penerimaan/perlengkapan/AdminPenerimaanPerlengkapanPercepat";
 
 export default function AdminAreaPercepat() {
     const [callName, setCallName] = useState<string>("");
