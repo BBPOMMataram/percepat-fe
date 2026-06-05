@@ -3,7 +3,7 @@ import { showAlert } from "@/features/alertSlice";
 import { AppDispatch } from "@/redux/store";
 import api from "@/utils/api";
 import dayjs from "dayjs";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 
@@ -16,6 +16,7 @@ export default function AdminAtkPercepat() {
     const [listBarangPermintaan, setListBarangPermintaan] = useState<any>([]);
     const [permintaanId, setPermintaanId] = useState<number | null>(null); // 
     const [jumlahRealisasi, setJumlahRealisasi] = useState<any>([]); // Array untuk menyimpan jumlah realisasi per item
+    const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
 
     const { user } = useSelector((state: any) => state.auth);
 
@@ -24,7 +25,7 @@ export default function AdminAtkPercepat() {
     const rowNumber = (index: number) => (currentPage - 1) * perPage + index + 1;
 
     const loadData = useCallback(() => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-atk?per_page=${perPage}`)
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-atk?per_page=${perPage}&name=${kodeBarangOrNameFilter}`)
             .then(({ data }) => {
                 setData(data)
                 setCurrentPage(data?.current_page);
@@ -32,7 +33,7 @@ export default function AdminAtkPercepat() {
                 console.log(data);
             })
             .catch(err => console.log(err));
-    }, [perPage]);
+    }, [perPage, kodeBarangOrNameFilter]);
 
     const getListBarangPermintaan = (id: number) => {
         api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/list-permintaan-atk/${id}`)
@@ -123,6 +124,14 @@ export default function AdminAtkPercepat() {
             })
     }
 
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const filterKodeOrNameHander = (v: string) => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            setKodeBarangOrNameFilter(v)
+        }, 500);
+    }
+
     return (
         <>
             <div className="bg-white rounded-2xl shadow px-8 py-4 mb-2 flex flex-col md:flex-row">
@@ -143,6 +152,9 @@ export default function AdminAtkPercepat() {
                             <option value="25">25</option>
                             <option value="50">50</option>
                         </select>
+                    </div>
+                    <div className="ml-auto flex items-center gap-2">
+                        <input type="text" className="ar-input-text-purple" placeholder="Cari nama barang" onChange={e => filterKodeOrNameHander(e.currentTarget.value)} />
                     </div>
                 </div>
                 <div className="w-full overflow-x-auto">
