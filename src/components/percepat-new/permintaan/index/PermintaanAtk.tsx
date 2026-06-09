@@ -181,7 +181,7 @@ export default function PermintaanAtkPercepat() {
                                     <td className="px-4 py-3 font-semibold capitalize">{item.bidang?.name || item.bidang_name_auth_external}</td>
                                     <td className={`px-4 py-3`}>{item.bidang?.user?.name || item.katim?.name}</td>
                                     <td className={`px-4 py-3`}>{item.status?.name}</td>
-                                    <td className={`px-4 py-3`}>{dayjs(item.created_at).format("DD MMM YYYY")}</td>
+                                    <td className={`px-4 py-3`}>{dayjs(item.tgl_permintaan).format("DD MMM YYYY")}</td>
                                     <td className={`px-4 py-3`}>{
                                         item.tgl_penyerahan ?
                                             dayjs(item.tgl_penyerahan).format("DD MMM YYYY")
