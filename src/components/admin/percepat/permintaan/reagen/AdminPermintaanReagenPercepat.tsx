@@ -230,9 +230,14 @@ export default function AdminPermintaanReagenPercepat() {
                                     className={`btn ${link.active && 'btn-active'} ${!link.url && 'btn-disabled'} mr-1`}
                                     onClick={() => {
                                         if (link.url) {
-                                            api.get(link.url)
+                                            const url = new URL(link.url);
+                                            url.searchParams.set('per_page', String(perPage));
+                                            url.searchParams.set('name', kodeBarangOrNameFilter);
+
+                                            api.get(url.toString())
                                                 .then(res => {
                                                     setData(res.data)
+                                                    setCurrentPage(res.data?.current_page);
                                                 })
                                         }
                                     }}
