@@ -155,6 +155,22 @@ export default function AdminPermintaanReagenPercepat() {
                     </div>
                     <div className="ml-auto flex items-center gap-2">
                         <input type="text" className="ar-input-text-purple" placeholder="Cari nama barang" onChange={e => filterKodeOrNameHander(e.currentTarget.value)} />
+                        <button
+                            onClick={() => {
+                                const params = new URLSearchParams({
+                                    per_page: String(perPage),
+                                    page: String(currentPage),
+                                    ...(kodeBarangOrNameFilter && { name: kodeBarangOrNameFilter }),
+                                });
+                                window.open(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-reagen/export-pdf?${params}`, '_blank');
+                            }}
+                            className="btn btn-success text-white gap-2"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            PDF
+                        </button>
                     </div>
                 </div>
                 <div className="w-full overflow-x-auto">
