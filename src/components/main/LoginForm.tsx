@@ -17,7 +17,7 @@ export default function LoginForm() {
     const searchParams = useSearchParams();
 
     const { user, loading } = useSelector((state: RootState) => state.auth);
-    const callbackUrl = searchParams.get("redirectUrl") || "/profile";
+    const callbackUrl = searchParams.get("redirectUrl") || "/our-apps";
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
