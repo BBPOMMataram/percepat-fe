@@ -17,6 +17,8 @@ export default function AdminPermintaanPerlengkapanPercepat() {
     const [permintaanId, setPermintaanId] = useState<number | null>(null); // 
     const [jumlahRealisasi, setJumlahRealisasi] = useState<any>([]); // Array untuk menyimpan jumlah realisasi per item
     const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
 
     const { user } = useSelector((state: any) => state.auth);
 
@@ -25,7 +27,14 @@ export default function AdminPermintaanPerlengkapanPercepat() {
     const rowNumber = (index: number) => (currentPage - 1) * perPage + index + 1;
 
     const loadData = useCallback(() => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-perlengkapan-kebersihan?per_page=${perPage}&name=${kodeBarangOrNameFilter}`)
+        const params = new URLSearchParams({
+            per_page: String(perPage),
+            name: kodeBarangOrNameFilter,
+            ...(startDate && { start_date: startDate }),
+            ...(endDate && { end_date: endDate }),
+        });
+
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-perlengkapan-kebersihan?${params}`)
             .then(({ data }) => {
                 setData(data)
                 setCurrentPage(data?.current_page);
@@ -33,7 +42,7 @@ export default function AdminPermintaanPerlengkapanPercepat() {
                 console.log(data);
             })
             .catch(err => console.log(err));
-    }, [perPage, kodeBarangOrNameFilter]);
+    }, [perPage, kodeBarangOrNameFilter, startDate, endDate]);
 
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const filterKodeOrNameHander = (v: string) => {
@@ -153,8 +162,43 @@ export default function AdminPermintaanPerlengkapanPercepat() {
                             <option value="50">50</option>
                         </select>
                     </div>
+
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="ar-input-text-purple"
+                        />
+                        <span className="text-sm text-gray-600">s/d</span>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="ar-input-text-purple"
+                        />
+                    </div>
+
                     <div className="ml-auto flex items-center gap-2">
                         <input type="text" className="ar-input-text-purple" placeholder="Cari nama barang" onChange={e => filterKodeOrNameHander(e.currentTarget.value)} />
+                        <button
+                            onClick={() => {
+                                const params = new URLSearchParams({
+                                    per_page: String(perPage),
+                                    page: String(currentPage),
+                                    ...(kodeBarangOrNameFilter && { name: kodeBarangOrNameFilter }),
+                                    ...(startDate && { start_date: startDate }),
+                                    ...(endDate && { end_date: endDate }),
+                                });
+                                window.open(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-perlengkapan/export-pdf?${params}`, '_blank');
+                            }}
+                            className="btn btn-success text-white gap-2"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            PDF
+                        </button>
                     </div>
                 </div>
                 <div className="w-full overflow-x-auto">

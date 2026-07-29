@@ -14,6 +14,9 @@ import AdminPenerimaanAtkPercepat from "../percepat/penerimaan/atk/AdminPenerima
 import AdminPenerimaanPerlengkapanPercepat from "../percepat/penerimaan/perlengkapan/AdminPenerimaanPerlengkapanPercepat";
 import AdminPenerimaanReagenPercepat from "../percepat/penerimaan/reagen/AdminPenerimaanReagenPercepat";
 import AdminAtkPercepat from "../percepat/permintaan/atk/AdminAtkPercepat";
+import AdminKartuStokReagenPercepat from "../percepat/kartu-stok/reagen/AdminKartuStokReagenPercepat";
+import AdminKartuStokAtkPercepat from "../percepat/kartu-stok/atk/AdminKartuStokAtkPercepat";
+import AdminKartuStokPerlengkapanPercepat from "../percepat/kartu-stok/perlengkapan/AdminKartuStokPerlengkapanPercepat";
 import AdminPermintaanPerlengkapanPercepat from "../percepat/permintaan/perlengkapan/AdminPermintaanPerlengkapanPercepat";
 import AdminPermintaanReagenPercepat from "../percepat/permintaan/reagen/AdminPermintaanReagenPercepat";
 import AdminSettingsPercepat from "../percepat/settings/AdminSettingsPercepat";
@@ -77,6 +80,18 @@ export default function AdminAreaPercepat() {
                     {
                         pathname === '/admin/percepat/permintaan/atk' && user &&
                         <AdminAtkPercepat />
+                    }
+                    {
+                        pathname === '/admin/percepat/kartu-stok/reagen' && user &&
+                        <AdminKartuStokReagenPercepat />
+                    }
+                    {
+                        pathname === '/admin/percepat/kartu-stok/atk' && user &&
+                        <AdminKartuStokAtkPercepat />
+                    }
+                    {
+                        pathname === '/admin/percepat/kartu-stok/perlengkapan' && user &&
+                        <AdminKartuStokPerlengkapanPercepat />
                     }
                     {
                         pathname === '/admin/percepat/permintaan/perlengkapan' && user &&
