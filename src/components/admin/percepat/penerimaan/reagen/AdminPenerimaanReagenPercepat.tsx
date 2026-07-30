@@ -13,19 +13,28 @@ export default function AdminPenerimaanReagenPercepat() {
     const [open, setOpen] = useState<boolean>(false)
     const [editData, setEditData] = useState<any>(null)
     const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
 
     const dispatch = useDispatch<AppDispatch>()
 
     const rowNumber = (index: number) => (currentPage - 1) * perPage + index + 1;
     const loadData = useCallback(() => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/penerimaan-reagen?per_page=${perPage}&name=${kodeBarangOrNameFilter}`)
+        const params = new URLSearchParams({
+            per_page: String(perPage),
+            name: kodeBarangOrNameFilter,
+            ...(startDate && { start_date: startDate }),
+            ...(endDate && { end_date: endDate }),
+        });
+
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/penerimaan-reagen?${params}`)
             .then(({ data }) => {
                 setData(data)
                 setCurrentPage(data?.current_page);
                 setPerPage(data?.per_page);
                 console.log(data);
             })
-    }, [perPage, kodeBarangOrNameFilter]);
+    }, [perPage, kodeBarangOrNameFilter, startDate, endDate]);
 
     const handleRemove = (id: number) => {
         if (window.confirm('Confirm delete?')) {
@@ -73,7 +82,7 @@ export default function AdminPenerimaanReagenPercepat() {
                         >Add New</button>
                     </div>
 
-                    <div className="flex items-center gap-2 ml-auto">
+                    <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600">Tampilkan</span>
                         <select
                             value={perPage}
@@ -86,6 +95,23 @@ export default function AdminPenerimaanReagenPercepat() {
                             <option value="50">50</option>
                         </select>
                     </div>
+
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="ar-input-text-purple"
+                        />
+                        <span className="text-sm text-gray-600">s/d</span>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="ar-input-text-purple"
+                        />
+                    </div>
+
                     <div className="ml-auto flex items-center gap-2">
                         <input type="text" className="ar-input-text-purple" placeholder="Cari Kode Barang / Nama" onChange={e => filterKodeOrNameHander(e.currentTarget.value)} />
                     </div>
@@ -146,9 +172,11 @@ export default function AdminPenerimaanReagenPercepat() {
                                     className={`btn ${link.active && 'btn-active'} ${!link.url && 'btn-disabled'} mr-1`}
                                     onClick={() => {
                                         if (link.url) {
-                                            const url = new URL(link.url);
+                                                                    const url = new URL(link.url);
                                             url.searchParams.set('per_page', String(perPage));
                                             url.searchParams.set('name', kodeBarangOrNameFilter);
+                                            if (startDate) url.searchParams.set('start_date', startDate);
+                                            if (endDate) url.searchParams.set('end_date', endDate);
 
                                             api.get(url.toString())
                                                 .then(res => {
