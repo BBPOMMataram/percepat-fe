@@ -1,5 +1,4 @@
 import api from "@/utils/api";
-import dayjs from "dayjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 
@@ -21,7 +20,7 @@ export default function AdminKartuStokAtkPercepat() {
             ...(endDate && { end_date: endDate }),
         });
 
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-atk?${params}`)
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/atk?${params}`)
             .then(({ data }) => {
                 setData(data);
                 setCurrentPage(data?.current_page);
@@ -118,7 +117,7 @@ export default function AdminKartuStokAtkPercepat() {
                                     ...(startDate && { start_date: startDate }),
                                     ...(endDate && { end_date: endDate }),
                                 });
-                                window.open(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-api/export-pdf?${params}`, '_blank');
+                                window.open(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/atk/export-pdf?${params}`, '_blank');
                             }}
                             className="btn btn-success text-white gap-2"
                         >
@@ -133,37 +132,22 @@ export default function AdminKartuStokAtkPercepat() {
                     <table className="ar-table">
                         <thead>
                             <tr>
-                                <th className="px-4 py-3 text-left">#</th>
-                                <th className="px-4 py-3 text-left">Pemohon</th>
-                                <th className="px-4 py-3 text-left">Fungsi</th>
-                                <th className="px-4 py-3 text-left">KaTim / Penyelia</th>
-                                <th className="px-4 py-3 text-left">Status</th>
-                                <th className="px-4 py-3 text-left">Tgl Permintaan</th>
-                                <th className="px-4 py-3 text-left">Tgl Penyerahan</th>
-                                <th className="px-4 py-3 text-left">Yang Menyerahkan</th>
-                                <th className="px-4 py-3 text-center">##</th>
+                                <th>No</th>
+                                <th>Nama</th>
+                                <th>Stock</th>
+                                <th>Satuan</th>
+                                <th>##</th>
                             </tr>
                         </thead>
                         <tbody>
                             {
                                 data?.data?.map((item: any, index: number) => (
-                                    <tr
-                                        key={item.id}
-                                        className={`border-t transition`}
-                                    >
-                                        <td className="px-4 py-3 font-medium">{rowNumber(index)}</td>
-                                        <td className="px-4 py-3 capitalize">{item.peminta?.name}</td>
-                                        <td className="px-4 py-3 capitalize">{item.bidang?.name || item.bidang_name_auth_external}</td>
-                                        <td className="px-4 py-3 capitalize">{item.bidang?.user?.name || item.katim?.name}</td>
-                                        <td className="px-4 py-3 capitalize">{item.status?.name}</td>
-                                        <td className="px-4 py-3 capitalize">{dayjs(item.tgl_permintaan).format("DD MMM YYYY")}</td>
-                                        <td className="px-4 py-3">{
-                                            item.tgl_penyerahan ?
-                                                dayjs(item.tgl_penyerahan).format("DD MMM YYYY")
-                                                : '-'
-                                        }</td>
-                                        <td className="px-4 py-3 capitalize">{item.penyerah?.name || '-'}</td>
-                                        <td className="px-4 py-3 flex">
+                                    <tr key={item.id}>
+                                        <td>{rowNumber(index)}</td>
+                                        <td>{item.name}</td>
+                                        <td>{item.stock}</td>
+                                        <td>{item.satuan}</td>
+                                        <td>
                                             <span className="btn btn-sm btn-ghost btn-error tooltip tooltip-error tooltip-left" data-tip="Download Kartu Stok"
                                                 onClick={() => downloadHandler(item.id)}>
                                                 <span className="material-symbols-outlined">
@@ -189,6 +173,8 @@ export default function AdminKartuStokAtkPercepat() {
                                             const url = new URL(link.url);
                                             url.searchParams.set('per_page', String(perPage));
                                             url.searchParams.set('name', kodeBarangOrNameFilter);
+                                            if (startDate) url.searchParams.set('start_date', startDate);
+                                            if (endDate) url.searchParams.set('end_date', endDate);
 
                                             api.get(url.toString())
                                                 .then(res => {
