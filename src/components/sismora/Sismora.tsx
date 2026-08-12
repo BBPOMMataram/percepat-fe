@@ -12,6 +12,7 @@ import SidebarSismora from "./SidebarSismora";
 import LoginPrompt from "./LoginPrompt";
 import DashboardSismora from "./DashboardSismora";
 import Ruangan from "./ruangan/Ruangan";
+import Mutasi from "./mutasi/Mutasi";
 
 export default function MainSismora() {
     const [callName, setCallName] = useState<string>("");
@@ -42,6 +43,7 @@ export default function MainSismora() {
                 <HeaderUserArea user={user} callName={callName} />
                 <div className="flex-1 p-4 md:p-8 overflow-y-auto">
                     {pathname === '/sismora' && <DashboardSismora />}
+                    {pathname.startsWith('/sismora/mutasi') && <Mutasi />}
                     {pathname.startsWith('/sismora/ruangan') && <Ruangan />}
                     <FooterUserArea />
                 </div>
