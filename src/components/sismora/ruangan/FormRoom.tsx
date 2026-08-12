@@ -23,7 +23,7 @@ function FormRoomContent() {
     useEffect(() => {
         api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SISMORA}/api/v1/room-types?per_page=100`)
             .then(({ data }) => {
-                setListRoomTypes(data.data || []);
+                setListRoomTypes(Array.isArray(data) ? data : data?.data || []);
             })
             .catch((err) => console.error(err));
     }, []);

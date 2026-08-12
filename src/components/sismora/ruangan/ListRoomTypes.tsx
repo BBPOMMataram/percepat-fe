@@ -1,43 +1,43 @@
 "use client";
 
 import { ModalGeneral } from "@/components/main/ModalGeneral";
-import { useSelector } from "react-redux";
-import { RootState } from "@/redux/store";
 import api from "@/utils/api";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 
 export default function ListRoomTypes() {
-    const { user } = useSelector((state: RootState) => state.auth);
-    const [data, setData] = useState<any>(null);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [perPage, setPerPage] = useState(10);
+    const [items, setItems] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [showModalDelete, setShowModalDelete] = useState(false);
     const [selectedDeleteId, setSelectedDeleteId] = useState<number | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    const rowNumber = (index: number) => (currentPage - 1) * perPage + index + 1;
+    const rowNumber = (index: number) => index + 1;
 
-    useEffect(() => {
-        const endpoint = `${process.env.NEXT_PUBLIC_BACKEND_URL_SISMORA}/api/v1/room-types?per_page=${perPage}&search=${search}`;
+    const fetchRoomTypes = useCallback(() => {
+        setLoading(true);
+        const endpoint = `${process.env.NEXT_PUBLIC_BACKEND_URL_SISMORA}/api/v1/room-types?search=${search}`;
         api.get(endpoint)
             .then(({ data }) => {
-                setData(data);
-                setCurrentPage(data?.current_page);
+                const list = Array.isArray(data) ? data : data?.data || [];
+                setItems(list);
             })
-            .catch((err) => console.log(err));
-    }, [perPage, search]);
+            .catch((err) => {
+                console.log(err);
+                setItems([]);
+            })
+            .finally(() => setLoading(false));
+    }, [search]);
 
-    const fetchWithUrl = (url: string) => {
-        api.get(url)
-            .then(({ data }) => {
-                setData(data);
-                setCurrentPage(data?.current_page);
-            })
-            .catch((err) => console.log(err));
-    };
+    useEffect(() => {
+        fetchRoomTypes();
+    }, [fetchRoomTypes]);
+
+    const filteredItems = items.filter((item: any) =>
+        item.nama?.toLowerCase().includes(search.toLowerCase())
+    );
 
     const openDeleteHandler = (id: number) => {
         setSelectedDeleteId(id);
@@ -57,6 +57,7 @@ export default function ListRoomTypes() {
             .then(() => {
                 toast.success("Tipe ruangan berhasil dihapus!");
                 closeDeleteHandler();
+                fetchRoomTypes();
             })
             .catch((err) => {
                 console.log(err);
@@ -68,19 +69,6 @@ export default function ListRoomTypes() {
     return (
         <>
             <div className="flex flex-wrap items-center gap-4 mb-4">
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">Tampilkan</span>
-                    <select
-                        value={perPage}
-                        onChange={(e) => setPerPage(Number(e.target.value))}
-                        className="select select-bordered w-fit"
-                    >
-                        <option value="5">5</option>
-                        <option value="10">10</option>
-                        <option value="25">25</option>
-                        <option value="50">50</option>
-                    </select>
-                </div>
                 <input
                     type="text"
                     placeholder="Cari tipe ruangan..."
@@ -106,14 +94,20 @@ export default function ListRoomTypes() {
                         </tr>
                     </thead>
                     <tbody>
-                        {data?.data?.length === 0 ? (
+                        {loading ? (
+                            <tr>
+                                <td colSpan={9} className="text-center py-6 text-gray-500">
+                                    <span className="loading loading-spinner loading-sm"></span> Memuat data...
+                                </td>
+                            </tr>
+                        ) : filteredItems.length === 0 ? (
                             <tr>
                                 <td colSpan={9} className="text-center py-6 text-gray-500">
                                     Belum ada data tipe ruangan
                                 </td>
                             </tr>
                         ) : (
-                            data?.data?.map((item: any, index: number) => (
+                            filteredItems.map((item: any, index: number) => (
                                 <tr key={item.id} className="border-t transition">
                                     <td className="px-4 py-3 font-medium">{rowNumber(index)}</td>
                                     <td className="px-4 py-3 font-semibold">{item.nama}</td>
@@ -148,32 +142,6 @@ export default function ListRoomTypes() {
                         )}
                     </tbody>
                 </table>
-
-                <div className="flex justify-between items-center m-6">
-                    <span>
-                        Menampilkan {data?.from} - {data?.to} dari {data?.total} data
-                    </span>
-                </div>
-                <div className="flex justify-end items-center m-4 gap-4">
-                    <div className="btn-group">
-                        {data?.links?.map((link: any, index: number) => (
-                            <button
-                                key={index}
-                                className={`btn ${link.active && "btn-active"} ${!link.url && "btn-disabled"} mr-1`}
-                                onClick={() => {
-                                    if (link.url) {
-                                        const url = new URL(link.url, window.location.origin);
-                                        url.searchParams.set("per_page", String(perPage));
-                                        url.searchParams.set("search", search);
-                                        fetchWithUrl(url.toString());
-                                    }
-                                }}
-                            >
-                                <span dangerouslySetInnerHTML={{ __html: link.label }}></span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
             </div>
 
             <div className="fixed bottom-4 lg:bottom-8 right-4 lg:right-8 tooltip tooltip-left" data-tip="Tambah Tipe Ruangan">
