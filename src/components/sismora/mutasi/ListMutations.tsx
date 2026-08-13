@@ -127,6 +127,13 @@ export default function ListMutations() {
                                         >
                                             <span className="material-symbols-outlined text-[20px]!">edit</span>
                                         </Link>
+                                        <Link
+                                            href={`/sismora/mutasi/laporan?mutasi_id=${item.id}`}
+                                            className="btn btn-xs btn-ghost btn-info tooltip tooltip-info"
+                                            data-tip="Laporan"
+                                        >
+                                            <span className="material-symbols-outlined text-[20px]!">description</span>
+                                        </Link>
                                         <span
                                             className="btn btn-xs btn-ghost btn-error tooltip tooltip-error"
                                             data-tip="Hapus"

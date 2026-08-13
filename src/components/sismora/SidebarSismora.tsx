@@ -31,12 +31,6 @@ export default function SidebarSismora() {
                 </span>
                 <span className="hidden lg:block whitespace-nowrap">Mutasi</span>
             </Link>
-            <Link href={'/sismora/monitoring'} className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/sismora/monitoring')}`} data-tip="Monitoring">
-                <span className="material-symbols-outlined">
-                    monitor
-                </span>
-                <span className="hidden lg:block whitespace-nowrap">Monitoring</span>
-            </Link>
             <Link href={'/sismora/ruangan'} className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/sismora/ruangan')}`} data-tip="Ruangan">
                 <span className="material-symbols-outlined">
                     meeting_room
