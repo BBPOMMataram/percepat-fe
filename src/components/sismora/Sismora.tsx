@@ -30,7 +30,7 @@ export default function MainSismora() {
         }
     }, [user]);
 
-    if (loading) return <LoadingWithoutText />;
+    if (loading) return <div className="flex h-screen w-full items-center justify-center bg-gray-100"><LoadingWithoutText /></div>;
 
     if (!user) {
         return <LoginPrompt />;
