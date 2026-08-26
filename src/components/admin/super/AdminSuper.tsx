@@ -9,7 +9,7 @@ import api from "@/utils/api"
 
 const AUTH_URL = process.env.NEXT_PUBLIC_BACKEND_URL_AUTH
 
-const PIE_COLORS = ["#3b82f6", "#f59e0b", "#9ca3af"]
+const PIE_COLORS = ["#3b82f6", "#f59e0b"]
 const BAR_COLORS = ["#2563eb", "#7c3aed", "#0d9488", "#db2777", "#ea580c", "#65a30d", "#0891b2", "#9333ea"]
 
 export default function AdminSuper() {

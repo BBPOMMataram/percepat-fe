@@ -192,7 +192,6 @@ export default function AdminUserAdminSuper() {
                         <option value="">Semua Tipe</option>
                         <option value="pegawai">Pegawai</option>
                         <option value="mahasiswa">Mahasiswa</option>
-                        <option value="umum">Umum</option>
                     </select>
                 </div>
 
@@ -244,7 +243,7 @@ export default function AdminUserAdminSuper() {
                                             ) : u.student ? (
                                                 <span className="badge badge-warning badge-sm">Mahasiswa</span>
                                             ) : (
-                                                <span className="badge badge-ghost badge-sm">Umum</span>
+                                                <span className="text-gray-400">-</span>
                                             )}
                                         </td>
                                         <td>{u.employee?.nip || u.student?.nim || '-'}</td>
