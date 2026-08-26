@@ -3,7 +3,7 @@ import CountUp from "react-countup"
 import Link from "next/link"
 import {
     ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid,
-    Tooltip, PieChart, Pie, Cell, BarChart, Bar, Legend,
+    Tooltip, PieChart, Pie, Cell, Legend,
 } from "recharts"
 import api from "@/utils/api"
 
@@ -116,28 +116,6 @@ export default function AdminSuper() {
                                 <Legend verticalAlign="bottom" height={28} />
                             </PieChart>
                         </ResponsiveContainer>
-                    </div>
-
-                    {/* Grafik 3: User per aplikasi (bar horizontal) */}
-                    <div className="bg-white rounded-2xl shadow px-6 py-5 lg:col-span-2">
-                        <h3 className="font-semibold text-gray-800 mb-4">Jumlah User per Aplikasi</h3>
-                        {(stats.user_per_site || []).length === 0 ? (
-                            <p className="text-sm text-gray-400 text-center py-10">Belum ada user yang terhubung ke aplikasi.</p>
-                        ) : (
-                            <ResponsiveContainer width="100%" height={Math.max(220, (stats.user_per_site?.length || 0) * 42)}>
-                                <BarChart data={stats.user_per_site} layout="vertical" margin={{ left: 40 }}>
-                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                                    <XAxis type="number" allowDecimals={false} fontSize={12} />
-                                    <YAxis type="category" dataKey="name" width={140} fontSize={12} tickLine={false} />
-                                    <Tooltip />
-                                    <Bar dataKey="total" name="Jumlah User" radius={[0, 6, 6, 0]}>
-                                        {(stats.user_per_site || []).map((_: any, i: number) => (
-                                            <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        )}
                     </div>
                 </div>
             )}
