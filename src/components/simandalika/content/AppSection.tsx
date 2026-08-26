@@ -77,9 +77,9 @@ export default function AppSection() {
             </div>
 
             {/* Grid card */}
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {isLoading
-                    ? Array.from({ length: 8 }).map((_, i) => <CardSkeleton key={i} />)
+                    ? Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)
                     : dataApp.map((app, index) => (
                         <AppContainer key={index} appData={app} />
                     ))
