@@ -1,18 +1,38 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import CountUp from "react-countup"
+import Link from "next/link"
+import api from "@/utils/api"
+
+const AUTH_URL = process.env.NEXT_PUBLIC_BACKEND_URL_AUTH
 
 export default function AdminSuper() {
     const [dataDashboard, setDataDashboard] = useState<any>(null)
+    const [stats, setStats] = useState<any>(null)
+    const [loading, setLoading] = useState(true)
 
-    // useEffect(() => {
-    //     api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI}/api/dashboard`)
-    //         .then(res => {
-    //             setDataDashboard(res.data)
-    //         })
-    //         .catch(err => {
-    //             console.log(err)
-    //         })
-    // }, [])
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const res = await api.get(`${AUTH_URL}/api/super/stats`)
+                setStats(res.data)
+            } catch (e) {
+                console.error("Gagal memuat statistik:", e)
+            } finally {
+                setLoading(false)
+            }
+        }
+        load()
+    }, [])
+
+    const cards = [
+        { label: "Total Users", value: stats?.total_users, bg: "bg-primary text-primary-content", href: "/admin/super/users" },
+        { label: "Aplikasi (Sites)", value: stats?.total_sites, bg: "bg-secondary text-secondary-content", href: "/admin/super/users" },
+        { label: "Pegawai", value: stats?.total_pegawai, bg: "bg-accent text-accent-content", href: "/admin/super/users" },
+        { label: "Mahasiswa", value: stats?.total_mahasiswa, bg: "bg-info text-info-content", href: "/admin/super/users" },
+        { label: "Admin", value: stats?.total_admin, bg: "bg-warning text-warning-content", href: "/admin/super/users" },
+        { label: "User Aktif", value: stats?.total_active, bg: "bg-success text-success-content", href: "/admin/super/users" },
+        { label: "User Nonaktif", value: stats?.total_inactive, bg: "bg-error text-error-content", href: "/admin/super/users" },
+    ]
 
     return (
         <>
@@ -20,87 +40,28 @@ export default function AdminSuper() {
                 <h2 className="text-xl font-semibold text-gray-800 uppercase">Admin Panel Super Admin</h2>
             </div>
 
-            <div className="bg-white rounded-2xl shadow px-8 py-4 mt-2">
-                {/* make content center */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 justify-items-center">
-                    <div className="card bg-success text-success-content w-52 shadow-sm">
-                        <div className="card-body">
-                            <h2 className="card-title">DATA</h2>
-                            <p className="text-4xl lg:text-6xl font-bold flex items-center justify-center">
-                                {
-                                    <CountUp
-                                        end={dataDashboard?.totalPeserta || 0}
-                                        duration={1.5}
-                                        separator="."
-                                    />
-                                }
-                            </p>
-                            <div className="card-actions justify-center">
-                                {/* <Link href="/admin/siap-melayani/peserta"> */}
-                                <button className="btn btn-success">Check it out</button>
-                                {/* </Link> */}
-                            </div>
-                        </div>
+            <div className="bg-white rounded-2xl shadow px-8 py-6 mt-2">
+                {loading ? (
+                    <div className="flex justify-center py-10">
+                        <span className="loading loading-spinner loading-lg text-primary"></span>
                     </div>
-                    <div className="card bg-info text-info-content w-52 shadow-sm">
-                        <div className="card-body">
-                            <h2 className="card-title">DATA</h2>
-                            <p className="text-4xl lg:text-6xl font-bold flex items-center justify-center">
-                                {
-                                    <CountUp
-                                        end={dataDashboard?.totalPresensiToday || 0}
-                                        duration={1.5}
-                                        separator="."
-                                    />
-                                }
-                            </p>
-                            <div className="card-actions justify-center">
-                                {/* <Link href="/admin/siap-melayani/presensi"> */}
-                                <button className="btn btn-info">Check it out</button>
-                                {/* </Link> */}
-                            </div>
-                        </div>
+                ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {cards.map(c => (
+                            <Link key={c.label} href={c.href}
+                                className={`${c.bg} rounded-2xl p-5 shadow-sm hover:shadow-lg transition-shadow`}>
+                                <p className="text-sm font-medium opacity-90">{c.label}</p>
+                                <p className="text-3xl lg:text-5xl font-bold mt-2">
+                                    <CountUp end={c.value || 0} duration={1.5} separator="." />
+                                </p>
+                            </Link>
+                        ))}
                     </div>
-                    <div className="card bg-accent text-accent-content w-52 shadow-sm">
-                        <div className="card-body">
-                            <h2 className="card-title">DATA</h2>
-                            <p className="text-4xl lg:text-6xl font-bold flex items-center justify-center">
-                                {
-                                    <CountUp
-                                        end={dataDashboard?.totalPengajuan || 0}
-                                        duration={1.5}
-                                        separator="."
-                                    />
-                                }
-                            </p>
-                            <div className="card-actions justify-center">
-                                {/* <Link href="/admin/siap-melayani/penempatan"> */}
-                                <button className="btn btn-accent">Check it out</button>
-                                {/* </Link> */}
-                            </div>
-                        </div>
-                    </div>
-                    <div className="card bg-warning text-warning-content w-52 shadow-sm">
-                        <div className="card-body">
-                            <h2 className="card-title">DATA</h2>
-                            <p className="text-4xl lg:text-6xl font-bold flex items-center justify-center">
-                                {
-                                    <CountUp
-                                        end={dataDashboard?.totalKuota || 0}
-                                        duration={1.5}
-                                        separator="."
-                                    />
-                                }
-                            </p>
-                            <div className="card-actions justify-center">
-                                {/* <Link href="/admin/siap-melayani/presensi"> */}
-                                <button className="btn btn-warning">Check it out</button>
-                                {/* </Link> */}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                )}
             </div>
+
+            {/* Dashboard lama (Siap Melayani) — disembunyikan sementara
+            <div className="bg-white rounded-2xl shadow px-8 py-4 mt-2"> ... </div> */}
         </>
     )
 }
