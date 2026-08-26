@@ -1,6 +1,6 @@
 import api from "@/utils/api"
 import { useEffect, useState, useCallback } from "react"
-import { useDispatch } from "react-redux"
+import { useDispatch, useSelector } from "react-redux"
 
 const AUTH_URL = process.env.NEXT_PUBLIC_BACKEND_URL_AUTH
 
@@ -29,6 +29,8 @@ export default function AdminUserAdminSuper() {
     const [typeFilter, setTypeFilter] = useState("")
     const [page, setPage] = useState(1)
     const dispatch = useDispatch()
+    const { user: authUser } = useSelector((s: any) => s.auth)
+    const myIdRef = { current: authUser?.id as string | undefined }
 
     // master data
     const [roles, setRoles] = useState<Role[]>([])
@@ -125,6 +127,22 @@ export default function AdminUserAdminSuper() {
         } catch (e: any) {
             const errs = (e?.response?.data?.errors || {}) as Record<string, string[]>
             const msg = e?.response?.data?.message || Object.values(errs)?.[0]?.[0] || "Gagal menyimpan perubahan."
+            notify(false, String(msg))
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    const deleteUser = async (u: UserRow) => {
+        if (!confirm(`Hapus user "${u.name}" (${u.email})?\n\nTindakan ini PERMANEN dan tidak bisa dibatalkan!`)) return
+        setSaving(true)
+        try {
+            await api.delete(`${AUTH_URL}/api/users/${u.id}`)
+            notify(true, `User "${u.name}" berhasil dihapus.`)
+            loadUsers()
+        } catch (e: any) {
+            const errs = (e?.response?.data?.errors || {}) as Record<string, string[]>
+            const msg = e?.response?.data?.message || Object.values(errs)?.[0]?.[0] || "Gagal menghapus user."
             notify(false, String(msg))
         } finally {
             setSaving(false)
@@ -250,9 +268,16 @@ export default function AdminUserAdminSuper() {
                                             </span>
                                         </td>
                                         <td>
-                                            <button className="btn btn-sm btn-outline btn-primary" onClick={() => openEdit(u)}>
-                                                Kelola
-                                            </button>
+                                            <div className="flex gap-1">
+                                                <button className="btn btn-sm btn-outline btn-primary" onClick={() => openEdit(u)}>
+                                                    Kelola
+                                                </button>
+                                                {u.id !== myIdRef.current && (
+                                                    <button className="btn btn-sm btn-outline btn-error" onClick={() => deleteUser(u)} disabled={saving}>
+                                                        Hapus
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
