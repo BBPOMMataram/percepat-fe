@@ -190,7 +190,7 @@ export default function AdminUserAdminSuper() {
                             ) : (
                                 (users.data as UserRow[]).map((u, index) => (
                                     <tr key={u.id}>
-                                        <td>{(users.meta.current_page - 1) * users.meta.per_page + index + 1}</td>
+                                        <td>{(loading || !users?.meta) ? index + 1 : ((users.meta.current_page - 1) * (users.meta.per_page || 15) + index + 1)}</td>
                                         <td className="font-medium">{u.name}</td>
                                         <td>{u.email}</td>
                                         <td>{u.call_name || '-'}</td>
