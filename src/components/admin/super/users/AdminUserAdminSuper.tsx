@@ -14,6 +14,9 @@ interface UserRow {
     is_active: number | boolean
     role?: Role | null
     sites?: Site[]
+    phones?: { id?: number; phone_number?: string; is_main?: boolean }[]
+    employee?: { nip?: string; unit_kerja?: string } | null
+    student?: { nim?: string; university?: string } | null
 }
 
 export default function AdminUserAdminSuper() {
@@ -23,6 +26,7 @@ export default function AdminUserAdminSuper() {
     const [searchInput, setSearchInput] = useState("")
     const [search, setSearch] = useState("")
     const [roleFilter, setRoleFilter] = useState("")
+    const [typeFilter, setTypeFilter] = useState("")
     const [page, setPage] = useState(1)
     const dispatch = useDispatch()
 
@@ -48,6 +52,7 @@ export default function AdminUserAdminSuper() {
             const params = new URLSearchParams({ page: String(page), per_page: "15" })
             if (search.trim()) params.set("search", search.trim())
             if (roleFilter) params.set("role_id", roleFilter)
+            if (typeFilter) params.set("type", typeFilter)
             const res = await api.get(`${AUTH_URL}/api/super/users?${params.toString()}`)
             setUsers(res.data)
         } catch (e: any) {
@@ -58,7 +63,7 @@ export default function AdminUserAdminSuper() {
         } finally {
             setLoading(false)
         }
-    }, [page, search, roleFilter])
+    }, [page, search, roleFilter, typeFilter])
 
     useEffect(() => { loadUsers() }, [loadUsers])
 
@@ -161,6 +166,16 @@ export default function AdminUserAdminSuper() {
                         <option value="2">Admin</option>
                         <option value="3">User</option>
                     </select>
+                    <select
+                        className="select select-bordered md:w-48"
+                        value={typeFilter}
+                        onChange={e => { setPage(1); setTypeFilter(e.target.value) }}
+                    >
+                        <option value="">Semua Tipe</option>
+                        <option value="pegawai">Pegawai</option>
+                        <option value="mahasiswa">Mahasiswa</option>
+                        <option value="umum">Umum</option>
+                    </select>
                 </div>
 
                 {flash && (
@@ -179,7 +194,9 @@ export default function AdminUserAdminSuper() {
                                 <th>No</th>
                                 <th>Nama</th>
                                 <th>Email</th>
-                                <th>Call Name</th>
+                                <th>No HP</th>
+                                <th>Tipe</th>
+                                <th>NIP / NIM</th>
                                 <th>Role</th>
                                 <th>Akses Aplikasi (Sites)</th>
                                 <th>Status</th>
@@ -188,16 +205,31 @@ export default function AdminUserAdminSuper() {
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan={8} className="text-center py-6">Memuat...</td></tr>
+                                <tr><td colSpan={10} className="text-center py-6">Memuat...</td></tr>
                             ) : (users?.data || []).length === 0 ? (
-                                <tr><td colSpan={8} className="text-center py-6">Tidak ada data.</td></tr>
+                                <tr><td colSpan={10} className="text-center py-6">Tidak ada data.</td></tr>
                             ) : (
                                 (users.data as UserRow[]).map((u, index) => (
                                     <tr key={u.id}>
                                         <td>{(loading || !users?.meta) ? index + 1 : ((users.meta.current_page - 1) * (users.meta.per_page || 15) + index + 1)}</td>
                                         <td className="font-medium">{u.name}</td>
                                         <td>{u.email}</td>
-                                        <td>{u.call_name || '-'}</td>
+                                        <td>
+                                            {(() => {
+                                                const main = (u.phones || []).find(p => p.is_main) || (u.phones || [])[0]
+                                                return main?.phone_number || '-'
+                                            })()}
+                                        </td>
+                                        <td>
+                                            {u.employee ? (
+                                                <span className="badge badge-info badge-sm">Pegawai</span>
+                                            ) : u.student ? (
+                                                <span className="badge badge-warning badge-sm">Mahasiswa</span>
+                                            ) : (
+                                                <span className="badge badge-ghost badge-sm">Umum</span>
+                                            )}
+                                        </td>
+                                        <td>{u.employee?.nip || u.student?.nim || '-'}</td>
                                         <td>
                                             <span className={`badge ${u.role?.level === 'superadmin' ? 'badge-secondary' : u.role?.level === 'admin' ? 'badge-primary' : 'badge-ghost'}`}>
                                                 {u.role?.level || '-'}
