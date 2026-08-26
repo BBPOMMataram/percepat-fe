@@ -105,9 +105,13 @@ export default function AdminUserAdminSuper() {
                 is_active: form.is_active,
                 site_ids: form.site_ids,
             }
-            if (form.password) {
+            if (form.password && form.password === form.password_confirmation) {
                 payload.password = form.password
                 payload.password_confirmation = form.password_confirmation
+            } else if (form.password && form.password !== form.password_confirmation) {
+                notify(false, "Konfirmasi password tidak cocok.")
+                setSaving(false)
+                return
             }
             await api.patch(`${AUTH_URL}/api/super/users/${editing.id}`, payload)
             notify(true, `User "${form.name}" berhasil diperbarui.`)
