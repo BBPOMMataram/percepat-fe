@@ -102,10 +102,11 @@ export default function AdminSuper() {
                                     nameKey="nama"
                                     cx="50%"
                                     cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={90}
+                                    innerRadius={55}
+                                    outerRadius={85}
                                     paddingAngle={3}
                                     label={({ name, value }: any) => `${name}: ${value}`}
+                                    labelLine={false}
                                 >
                                     {(stats.distribusi_tipe || []).map((_: any, i: number) => (
                                         <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
