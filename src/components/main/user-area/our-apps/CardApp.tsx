@@ -36,7 +36,7 @@ const CardApp = ({ appData, isAdmin }: { appData: AppData, isAdmin?: boolean }) 
               alt={appData.name}
               width={40}
               height={40}
-              src={appData.logo_path ?? '/assets/images/noimage.svg'}
+              src={appData.logo_path && appData.logo_path !== '' ? appData.logo_path : '/assets/images/bpom.webp'}
             />
           </div>
 

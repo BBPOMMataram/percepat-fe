@@ -23,7 +23,7 @@ const AppContainer = ({ appData }: { appData: AppData }) => {
                             alt={appData.name}
                             width={44}
                             height={44}
-                            src={appData.logo_path ?? '/assets/images/noimage.svg'}
+                            src={appData.logo_path && appData.logo_path !== '' ? appData.logo_path : '/assets/images/bpom.webp'}
                         />
                     </div>
 
