@@ -35,7 +35,7 @@ export default function AdminKartuStokAtkPercepat() {
 
     const downloadHandler = (id: number) => {
         api({
-            url: `/api/kartu-stok/atk/${id}`,
+            url: `/api/v1/kartu-stok/atk/${id}`,
             method: 'GET',
             responseType: 'blob'
         })
