@@ -35,7 +35,7 @@ export default function AdminKartuStokAtkPercepat() {
 
     const downloadHandler = (id: number) => {
         api({
-            url: `/api/v1/download-permintaan-atk/${id}`,
+            url: `/api/v1/kartu-stok/atk/${id}`,
             method: 'GET',
             responseType: 'blob'
         })
@@ -46,7 +46,7 @@ export default function AdminKartuStokAtkPercepat() {
                 link.setAttribute('download', `Kartu-Stok-ATK-${id}.pdf`);
                 document.body.appendChild(link);
                 link.click();
-                toast.success('Download berhasil !', {
+                toast.success('Download kartu stok berhasil!', {
                     position: "top-right",
                     autoClose: 5000,
                     hideProgressBar: false,
