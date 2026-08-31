@@ -7,6 +7,7 @@ export default function ListBarangSimpelBmn() {
     const [currentPage, setCurrentPage] = useState(1);
     const [perPage, setPerPage] = useState(10);
     const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
+    const [merkFilter, setMerkFilter] = useState("");
 
     const rowNumber = (index: number) => (currentPage - 1) * perPage + index + 1;
 
@@ -14,6 +15,7 @@ export default function ListBarangSimpelBmn() {
         api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-barang-all?
             per_page=${perPage}
             &kode_or_name=${kodeBarangOrNameFilter}
+            &merk=${merkFilter}
             `)
             .then(({ data }) => {
                 setDataBarang(data)
@@ -24,11 +26,17 @@ export default function ListBarangSimpelBmn() {
             .catch((err) => {
                 console.log(err);
             });
-    }, [perPage, kodeBarangOrNameFilter]);
+    }, [perPage, kodeBarangOrNameFilter, merkFilter]);
 
     const filterKodeOrNameHander = (v: string) => {
         setTimeout(() => {
             setKodeBarangOrNameFilter(v)
+        }, 2000);
+    }
+
+    const filterMerkHander = (v: string) => {
+        setTimeout(() => {
+            setMerkFilter(v)
         }, 2000);
     }
 
@@ -51,6 +59,7 @@ export default function ListBarangSimpelBmn() {
                 </div>
                 <div className="ml-auto flex items-center gap-2">
                     <input type="text" className="ar-input-text-purple" placeholder="Cari Kode Barang / Nama" onChange={e => filterKodeOrNameHander(e.currentTarget.value)} />
+                    <input type="text" className="ar-input-text-purple" placeholder="Cari Merk" onChange={e => filterMerkHander(e.currentTarget.value)} />
                 </div>
             </div>
             <div className="overflow-x-auto rounded-2xl shadow-sm border border-gray-200 bg-white">
