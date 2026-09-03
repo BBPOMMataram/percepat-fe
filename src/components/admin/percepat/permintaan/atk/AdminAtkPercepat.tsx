@@ -224,7 +224,7 @@ export default function AdminAtkPercepat() {
                                         className={`border-t transition`}
                                     >
                                         <td className="px-4 py-3 font-medium">{rowNumber(index)}</td>
-                                        <td className="px-4 py-3 capitalize">{item.peminta.name}</td>
+                                        <td className="px-4 py-3 capitalize">{item.peminta?.name || '-'}</td>
                                         <td className="px-4 py-3 capitalize">{item.bidang?.name || item.bidang_name_auth_external}</td>
                                         <td className="px-4 py-3 capitalize">{item.bidang?.user?.name || item.katim?.name}</td>
                                         <td className="px-4 py-3 capitalize">{item.status?.name}</td>
@@ -304,7 +304,7 @@ export default function AdminAtkPercepat() {
                     {
                         listBarangPermintaan.map((item: any, index: number) => (
                             <li key={index} className="my-1 py-1 px-2 w-fit rounded">
-                                {`${item.atk?.name} (Stok: ${item.atk?.stock})`}
+                                {item.atk ? `${item.atk.name} (Stok: ${item.atk.stock})` : `Barang tidak ditemukan (ID: ${item.atk_id || '-'})`}
                                 <div className="text-xs [&>span]:mr-1">
                                     <span className="badge badge-soft badge-primary">Jumlah Permintaan : {item.jumlahpermintaan}</span>
                                     <span className="badge badge-soft badge-primary">Jumlah Realisasi : {item.jumlahrealisasi || '-'}</span>
@@ -330,7 +330,7 @@ export default function AdminAtkPercepat() {
                     ) : (
                         listBarangPermintaan.map((item: any, index: number) => (
                             <li key={index} className="my-1 py-1 px-2 w-fit rounded">
-                                {`${item.atk?.name} (Stok: ${item.atk?.stock})`}
+                                {item.atk ? `${item.atk.name} (Stok: ${item.atk.stock})` : `Barang tidak ditemukan (ID: ${item.atk_id || '-'})`}
                                 <span className="ml-4">
                                     <label htmlFor={`realisasi-${index}`} className="text-secondary">Realisasi : </label>
                                     <input

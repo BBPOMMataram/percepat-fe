@@ -1,6 +1,6 @@
 "use client";
 import api from "@/utils/api";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 
 export default function ListBarangSimpelBmn() {
     const [dataBarang, setDataBarang] = useState<any>(null);
@@ -9,35 +9,39 @@ export default function ListBarangSimpelBmn() {
     const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
     const [merkFilter, setMerkFilter] = useState("");
 
+    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const debounce = useCallback((fn: () => void, delay: number) => {
+        if (debounceTimer.current) clearTimeout(debounceTimer.current);
+        debounceTimer.current = setTimeout(fn, delay);
+    }, []);
+
     const rowNumber = (index: number) => (currentPage - 1) * perPage + index + 1;
 
     useEffect(() => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-barang-all?
-            per_page=${perPage}
-            &kode_or_name=${kodeBarangOrNameFilter}
-            &merk=${merkFilter}
-            `)
-            .then(({ data }) => {
-                setDataBarang(data)
-                setCurrentPage(data?.current_page);
-                setPerPage(data?.per_page);
-                console.log(data);
-            })
-            .catch((err) => {
-                console.log(err);
-            });
-    }, [perPage, kodeBarangOrNameFilter, merkFilter]);
+        debounce(() => {
+            api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN}/api/get-barang-all?
+                per_page=${perPage}
+                &kode_or_name=${kodeBarangOrNameFilter}
+                &merk=${merkFilter}
+                `)
+                .then(({ data }) => {
+                    setDataBarang(data)
+                    setCurrentPage(data?.current_page);
+                    setPerPage(data?.per_page);
+                })
+                .catch((err) => {
+                    console.log(err);
+                });
+        }, 500);
+    }, [perPage, kodeBarangOrNameFilter, merkFilter, debounce]);
 
     const filterKodeOrNameHander = (v: string) => {
-        setTimeout(() => {
-            setKodeBarangOrNameFilter(v)
-        }, 2000);
+        setKodeBarangOrNameFilter(v);
     }
 
     const filterMerkHander = (v: string) => {
-        setTimeout(() => {
-            setMerkFilter(v)
-        }, 2000);
+        setMerkFilter(v);
     }
 
     return (

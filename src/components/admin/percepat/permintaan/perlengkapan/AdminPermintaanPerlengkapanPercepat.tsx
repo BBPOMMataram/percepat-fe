@@ -224,7 +224,7 @@ export default function AdminPermintaanPerlengkapanPercepat() {
                                         className={`border-t transition`}
                                     >
                                         <td className="px-4 py-3 font-medium">{rowNumber(index)}</td>
-                                        <td className="px-4 py-3 capitalize">{item.peminta.name}</td>
+                                        <td className="px-4 py-3 capitalize">{item.peminta?.name || '-'}</td>
                                         <td className="px-4 py-3 capitalize">{item.bidang?.name || item.bidang_name_auth_external}</td>
                                         <td className="px-4 py-3 capitalize">{item.bidang?.user?.name || item.katim?.name}</td>
                                         <td className="px-4 py-3 capitalize">{item.status?.name}</td>
@@ -301,19 +301,17 @@ export default function AdminPermintaanPerlengkapanPercepat() {
                 <h3 className="text-lg font-semibold mb-4">List Barang Permintaan</h3>
 
                 <ul className="max-h-96 overflow-y-auto list-decimal list-inside">
-                    {
-                        listBarangPermintaan.map((item: any, index: number) => (
-                            <li key={index} className="my-1 py-1 px-2 w-fit rounded">
-                                {`${item.barang?.name} (Stok: ${item.barang?.stock})`}
-                                <div className="text-xs [&>span]:mr-1">
-                                    <span className="badge badge-soft badge-primary">Jumlah Permintaan : {item.jumlahpermintaan}</span>
-                                    <span className="badge badge-soft badge-primary">Jumlah Realisasi : {item.jumlahrealisasi || '-'}</span>
-                                    <span className="badge badge-soft badge-primary">Satuan : {item.barang.satuan || '-'}</span>
-                                    <span className="badge badge-soft badge-primary">Ket : {item.keterangan || '-'}</span>
-                                </div>
-                            </li>
-                        ))
-                    }
+                    {listBarangPermintaan.map((item: any, index: number) => (
+                        <li key={index} className="my-1 py-1 px-2 w-fit rounded">
+                            {item.barang ? `${item.barang.name} (Stok: ${item.barang.stock})` : `Barang tidak ditemukan (ID: ${item.perlengkapan_kebersihan_id || '-'})`}
+                            <div className="text-xs [&>span]:mr-1">
+                                <span className="badge badge-soft badge-primary">Jumlah Permintaan : {item.jumlahpermintaan}</span>
+                                <span className="badge badge-soft badge-primary">Jumlah Realisasi : {item.jumlahrealisasi || '-'}</span>
+                                <span className="badge badge-soft badge-primary">Satuan : {item.barang?.satuan || '-'}</span>
+                                <span className="badge badge-soft badge-primary">Ket : {item.keterangan || '-'}</span>
+                            </div>
+                        </li>
+                    ))}
                 </ul>
             </ModalGeneral>
 
@@ -330,7 +328,7 @@ export default function AdminPermintaanPerlengkapanPercepat() {
                     ) : (
                         listBarangPermintaan.map((item: any, index: number) => (
                             <li key={index} className="my-1 py-1 px-2 w-fit rounded">
-                                {`${item.barang?.name} (Stok: ${item.barang?.stock})`}
+                                {item.barang ? `${item.barang.name} (Stok: ${item.barang.stock})` : `Barang tidak ditemukan (ID: ${item.perlengkapan_kebersihan_id || '-'})`}
                                 <span className="ml-4">
                                     <label htmlFor={`realisasi-${index}`} className="text-secondary">Realisasi : </label>
                                     <input
@@ -352,7 +350,7 @@ export default function AdminPermintaanPerlengkapanPercepat() {
                                 <div className="text-xs [&>span]:mr-1">
                                     <span className="badge badge-soft badge-primary">Jumlah Permintaan : {item.jumlahpermintaan}</span>
                                     <span className="badge badge-soft badge-primary">Jumlah Realisasi : {item.jumlahrealisasi || '-'}</span>
-                                    <span className="badge badge-soft badge-primary">Satuan : {item.barang.satuan || '-'}</span>
+                                    <span className="badge badge-soft badge-primary">Satuan : {item.barang?.satuan || '-'}</span>
                                     <span className="badge badge-soft badge-primary">Ket : {item.keterangan || '-'}</span>
                                 </div>
 
