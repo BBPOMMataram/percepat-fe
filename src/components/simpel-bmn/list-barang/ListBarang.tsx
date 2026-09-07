@@ -8,6 +8,7 @@ export default function ListBarangSimpelBmn() {
     const [perPage, setPerPage] = useState(10);
     const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
     const [merkFilter, setMerkFilter] = useState("");
+    const [kondisiFilter, setKondisiFilter] = useState("");
 
     const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -24,6 +25,7 @@ export default function ListBarangSimpelBmn() {
                 per_page=${perPage}
                 &kode_or_name=${kodeBarangOrNameFilter}
                 &merk=${merkFilter}
+                &kondisi=${kondisiFilter}
                 `)
                 .then(({ data }) => {
                     setDataBarang(data)
@@ -34,7 +36,7 @@ export default function ListBarangSimpelBmn() {
                     console.log(err);
                 });
         }, 500);
-    }, [perPage, kodeBarangOrNameFilter, merkFilter, debounce]);
+    }, [perPage, kodeBarangOrNameFilter, merkFilter, kondisiFilter, debounce]);
 
     const filterKodeOrNameHander = (v: string) => {
         setKodeBarangOrNameFilter(v);
@@ -64,6 +66,17 @@ export default function ListBarangSimpelBmn() {
                 <div className="ml-auto flex items-center gap-2">
                     <input type="text" className="ar-input-text-purple" placeholder="Cari Kode Barang / Nama" onChange={e => filterKodeOrNameHander(e.currentTarget.value)} />
                     <input type="text" className="ar-input-text-purple" placeholder="Cari Merk" onChange={e => filterMerkHander(e.currentTarget.value)} />
+                    <select
+                        value={kondisiFilter}
+                        onChange={(e) => setKondisiFilter(e.target.value)}
+                        className="select select-bordered w-fit"
+                    >
+                        <option value="">Semua Kondisi</option>
+                        <option value="Baik">Baik</option>
+                        <option value="Rusak Ringan">Rusak Ringan</option>
+                        <option value="Rusak Berat">Rusak Berat</option>
+                        <option value="Proses Perbaikan">Proses Perbaikan</option>
+                    </select>
                 </div>
             </div>
             <div className="overflow-x-auto rounded-2xl shadow-sm border border-gray-200 bg-white">
