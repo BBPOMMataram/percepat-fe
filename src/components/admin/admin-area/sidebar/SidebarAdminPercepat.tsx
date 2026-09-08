@@ -46,6 +46,9 @@ export default function SidebarAdminPercepat() {
                     <li>
                         <Link href={'/admin/percepat/master/perlengkapan'} className="whitespace-nowrap">Perlengkapan Kebersihan</Link>
                     </li>
+                    <li>
+                        <Link href={'/admin/percepat/master/suku-cadang'} className="whitespace-nowrap">Suku Cadang</Link>
+                    </li>
                 </ul>
             </div>
             <div className="dropdown dropdown-right dropdown-center lg:w-full">
@@ -70,6 +73,9 @@ export default function SidebarAdminPercepat() {
                     <li>
                         <Link href={'/admin/percepat/permintaan/perlengkapan'} className="whitespace-nowrap">Perlengkapan Kebersihan</Link>
                     </li>
+                    <li>
+                        <Link href={'/admin/percepat/permintaan/suku-cadang'} className="whitespace-nowrap">Suku Cadang</Link>
+                    </li>
                 </ul>
             </div>
 
@@ -93,6 +99,9 @@ export default function SidebarAdminPercepat() {
                     </li>
                     <li>
                         <Link href={'/admin/percepat/penerimaan/perlengkapan'} className="whitespace-nowrap">Perlengkapan Kebersihan</Link>
+                    </li>
+                    <li>
+                        <Link href={'/admin/percepat/penerimaan/suku-cadang'} className="whitespace-nowrap">Suku Cadang</Link>
                     </li>
                 </ul>
             </div>

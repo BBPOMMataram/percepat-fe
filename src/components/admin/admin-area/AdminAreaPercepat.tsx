@@ -10,10 +10,13 @@ import AdminPercepat from "../percepat/AdminPercepat";
 import AdminMasterAtkPercepat from "../percepat/master/atk/AdminMasterAtkPercepat";
 import AdminMasterPerlengkapanPercepat from "../percepat/master/perlengkapan/AdminMasterPerlengkapanPercepat";
 import AdminMasterReagenPercepat from "../percepat/master/reagen/AdminMasterReagenPercepat";
+import AdminMasterSukuCadangPercepat from "../percepat/master/suku-cadang/AdminMasterSukuCadangPercepat";
 import AdminPenerimaanAtkPercepat from "../percepat/penerimaan/atk/AdminPenerimaanAtkPercepat";
 import AdminPenerimaanPerlengkapanPercepat from "../percepat/penerimaan/perlengkapan/AdminPenerimaanPerlengkapanPercepat";
 import AdminPenerimaanReagenPercepat from "../percepat/penerimaan/reagen/AdminPenerimaanReagenPercepat";
+import AdminPenerimaanSukuCadangPercepat from "../percepat/penerimaan/suku-cadang/AdminPenerimaanSukuCadangPercepat";
 import AdminAtkPercepat from "../percepat/permintaan/atk/AdminAtkPercepat";
+import AdminSukuCadangPercepat from "../percepat/permintaan/suku-cadang/AdminSukuCadangPercepat";
 import AdminKartuStokReagenPercepat from "../percepat/kartu-stok/reagen/AdminKartuStokReagenPercepat";
 import AdminKartuStokAtkPercepat from "../percepat/kartu-stok/atk/AdminKartuStokAtkPercepat";
 import AdminKartuStokPerlengkapanPercepat from "../percepat/kartu-stok/perlengkapan/AdminKartuStokPerlengkapanPercepat";
@@ -109,6 +112,18 @@ export default function AdminAreaPercepat() {
                     {
                         pathname === '/admin/percepat/penerimaan/perlengkapan' && user &&
                         <AdminPenerimaanPerlengkapanPercepat />
+                    }
+                    {
+                        pathname === '/admin/percepat/penerimaan/suku-cadang' && user &&
+                        <AdminPenerimaanSukuCadangPercepat />
+                    }
+                    {
+                        pathname === '/admin/percepat/master/suku-cadang' && user &&
+                        <AdminMasterSukuCadangPercepat />
+                    }
+                    {
+                        pathname === '/admin/percepat/permintaan/suku-cadang' && user &&
+                        <AdminSukuCadangPercepat />
                     }
 
 
