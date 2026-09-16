@@ -18,7 +18,7 @@ export default function AdminMasterFormSukuCadangPercepat({ open, onClose, initi
         stock: 0,
         name: "",
         satuan: "",
-        desc: "",
+        description: "",
     });
 
     const dispatch = useDispatch<AppDispatch>()
@@ -30,7 +30,7 @@ export default function AdminMasterFormSukuCadangPercepat({ open, onClose, initi
                 stock: 0,
                 name: "",
                 satuan: "",
-                desc: "",
+                description: "",
             });
     }, [initialData, open]);
 
@@ -70,89 +70,86 @@ export default function AdminMasterFormSukuCadangPercepat({ open, onClose, initi
                 onClose();
             })
             .catch(err => {
-                dispatch(showAlert({ type: 'error', message: err.response?.data?.message, description: err.data?.message }))
+                dispatch(showAlert({ type: 'error', message: err.response?.data?.message || 'Terjadi kesalahan', description: err.response?.data?.message || 'Terjadi kesalahan' }))
                 console.log(err);
 
             })
         setLoading(false);
     };
 
+    if (!open) return null;
+
     return (
-        <>
-            <input
-                type="checkbox"
-                className="modal-toggle"
-                checked={open}
-                onChange={onClose}
-            />
-            <div className="modal modal-bottom sm:modal-middle">
-                <div className="modal-box">
-                    <h3 className="font-bold text-lg mb-4">
-                        {initialData ? "Edit Data" : "Tambah Suku Cadang"}
-                    </h3>
+        <div className="modal modal-open z-50">
+            <div className="modal-box relative">
+                <button
+                    type="button"
+                    className="btn btn-sm btn-circle absolute right-2 top-2"
+                    onClick={onClose}
+                >
+                    ✕
+                </button>
+                <h3 className="font-bold text-lg mb-4">
+                    {initialData ? "Edit Data" : "Tambah Suku Cadang"}
+                </h3>
 
-                    <form onSubmit={handleSubmit} className="space-y-3">
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Nama</label>
-                            <input
-                                type="text"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                placeholder="Masukkan nama suku cadang"
-                                className="input input-bordered w-full"
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Satuan</label>
-                            <input
-                                type="text"
-                                name="satuan"
-                                value={formData.satuan}
-                                onChange={handleChange}
-                                placeholder="Masukkan satuan (pcs, box, dll)"
-                                className="input input-bordered w-full"
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Stok</label>
-                            <input
-                                type="number"
-                                name="stock"
-                                value={formData.stock}
-                                onChange={handleChange}
-                                placeholder="Masukkan jumlah stok"
-                                className="input input-bordered w-full"
-                                min={0}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Deskripsi</label>
-                            <textarea
-                                name="desc"
-                                value={formData.desc}
-                                onChange={handleChange}
-                                placeholder="Masukkan deskripsi (opsional)"
-                                className="textarea textarea-bordered w-full"
-                                rows={3}
-                            />
-                        </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Nama</label>
+                        <input
+                            type="text"
+                            name="name"
+                            value={formData.name || ""}
+                            onChange={handleChange}
+                            placeholder="Masukkan nama suku cadang"
+                            className="input input-bordered w-full"
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Satuan</label>
+                        <input
+                            type="text"
+                            name="satuan"
+                            value={formData.satuan || ""}
+                            onChange={handleChange}
+                            placeholder="Masukkan satuan (pcs, box, dll)"
+                            className="input input-bordered w-full"
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Stok</label>
+                        <input
+                            type="number"
+                            name="stock"
+                            value={formData.stock || 0}
+                            onChange={handleChange}
+                            placeholder="Masukkan jumlah stok"
+                            className="input input-bordered w-full"
+                            min={0}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Deskripsi</label>
+                        <textarea
+                            name="description"
+                            value={formData.description || ""}
+                            onChange={handleChange}
+                            placeholder="Masukkan deskripsi (opsional)"
+                            className="textarea textarea-bordered w-full"
+                            rows={3}
+                        />
+                    </div>
 
-                        <div className="modal-action pt-4">
-                            <button type="button" className="btn" onClick={onClose}>Batal</button>
-                            <button type="submit" className="btn btn-primary" disabled={loading}>
-                                {loading ? (
-                                    <span className="loading loading-spinner loading-xs"></span>
-                                ) : (
-                                    initialData ? "Simpan Perubahan" : "Tambah"
-                                )}
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                    <div className="modal-action pt-4">
+                        <button type="button" className="btn" onClick={onClose}>Batal</button>
+                        <button type="submit" className="btn btn-primary" disabled={loading}>
+                            {loading ? <span className="loading loading-spinner loading-xs"></span> : (initialData ? "Simpan Perubahan" : "Tambah")}
+                        </button>
+                    </div>
+                </form>
             </div>
-        </>
+        </div>
     );
 }
