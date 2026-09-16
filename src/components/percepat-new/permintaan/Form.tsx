@@ -9,6 +9,7 @@ import { useDispatch, useSelector } from "react-redux";
 import FormPerlengkapanKebersihan from "./FormPerlengkapanKebersihan";
 import FormReagen from "./FormReagen";
 import FormAtk from "./FromAtk";
+import FormSukuCadang from "./FormSukuCadang";
 
 function FormPermintaanPercepat() {
     const [listBarang, setListBarang] = useState<any[]>([]);
@@ -129,6 +130,8 @@ function FormPermintaanPercepat() {
             case 'baku pembanding':
                 break;
             case 'suku cadang':
+                url += `/api/v1/permintaan-suku-cadang`;
+                redirectUrlAfterSubmit = '/percepat-new/permintaan/suku-cadang';
                 break;
             case 'perlengkapan kebersihan':
                 url += `/api/v1/permintaan-perlengkapan-kebersihan`;
@@ -193,8 +196,8 @@ function FormPermintaanPercepat() {
                             className="ar-input-text-purple"
                         >
                             {listJenisBarang.map((jb, index) => {
-                                const isAllowed = ['baku pembanding', 'suku cadang']
-                                    .includes(jb.toLowerCase().trim());
+                                const isAllowed = ['baku pembanding']
+                                .includes(jb.toLowerCase().trim());
                                 return (
                                     <option key={index} value={jb} disabled={isAllowed}>
                                         {jb.toUpperCase()}
@@ -246,10 +249,10 @@ function FormPermintaanPercepat() {
                     )}
                     {/* {jenisBarang === 'baku pembanding' && (
                         <FormBakuPembanding listBarang={listBarang} setListBarang={setListBarang} />
-                    )}
+                    )} */}
                     {jenisBarang === 'suku cadang' && (
                         <FormSukuCadang listBarang={listBarang} setListBarang={setListBarang} />
-                    )} */}
+                    )}
                     {jenisBarang === 'perlengkapan kebersihan' && (
                         <FormPerlengkapanKebersihan listBarang={listBarang} setListBarang={setListBarang} />
                     )}

@@ -55,9 +55,9 @@ const AppContainer = ({ appData }: { appData: AppData }) => {
                 {/* Deskripsi */}
                 <p
                     className={`line-clamp-3 text-sm leading-relaxed ${hasDesc ? 'text-gray-600' : 'italic text-gray-400'}`}
-                    title={hasDesc ? appData.desc : undefined}
+                    title={hasDesc ? (appData.expanation_name || appData.desc) : undefined}
                 >
-                    {hasDesc ? appData.desc : 'Belum ada deskripsi untuk aplikasi ini.'}
+                    {hasDesc ? (appData.expanation_name || appData.desc) : 'Belum ada deskripsi untuk aplikasi ini.'}
                 </p>
 
                 {/* Footer: kunjungan + CTA */}

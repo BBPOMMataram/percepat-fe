@@ -3,8 +3,9 @@ import { useState } from "react";
 import TableAtk from "./TableAtk";
 import TablePerlengkapan from "./TablePerlengkapan";
 import TableReagen from "./TableReagen";
+import TableSukuCadang from "./TableSukuCadang";
 
-type TypeBarang = 'reagen' | 'atk' | 'perlengkapan'
+type TypeBarang = 'reagen' | 'atk' | 'perlengkapan' | 'sukuCadang'
 
 const Inventory = () => {
     const [typeBarang, setTypeBarang] = useState<TypeBarang>('reagen')
@@ -28,6 +29,12 @@ const Inventory = () => {
                                 "bg-gray-100 text-gray-300": typeBarang !== 'atk'
                             })}>ATK</a>
                         </li>
+                        <li onClick={() => setTypeBarang('sukuCadang')}>
+                            <a className={cs("rounded py-1 inline-block px-2 mr-2", {
+                                "bg-quaternary": typeBarang === 'sukuCadang',
+                                "bg-gray-100 text-gray-300": typeBarang !== 'sukuCadang'
+                            })}>Suku Cadang</a>
+                        </li>
                         <li onClick={() => setTypeBarang('perlengkapan')}>
                             <a className={cs("rounded py-1 inline-block px-2", {
                                 "bg-quaternary": typeBarang === 'perlengkapan',
@@ -49,11 +56,16 @@ const Inventory = () => {
                                 url='api/v1/barang/atk'
                                 title='Data ATK'
                             />
-                            :
-                            <TablePerlengkapan
-                                url='api/v1/barang/perlengkapan'
-                                title='Data Perlengkapan'
-                            />
+                            : typeBarang === 'sukuCadang' ?
+                                <TableSukuCadang
+                                    url='api/v1/barang/suku-cadang'
+                                    title='Data Suku Cadang'
+                                />
+                                :
+                                <TablePerlengkapan
+                                    url='api/v1/barang/perlengkapan'
+                                    title='Data Perlengkapan'
+                                />
                     }
                 </div>
             </section>

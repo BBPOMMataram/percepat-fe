@@ -6,4 +6,5 @@ export interface AppData {
     logo_path: string,
     pic: string,
     clicks: number,
+    expanation_name?: string,
 }

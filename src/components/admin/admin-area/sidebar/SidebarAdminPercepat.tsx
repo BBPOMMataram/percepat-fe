@@ -127,6 +127,9 @@ export default function SidebarAdminPercepat() {
                     <li>
                         <Link href={'/admin/percepat/kartu-stok/perlengkapan'} className="whitespace-nowrap">Perlengkapan Kebersihan</Link>
                     </li>
+                    <li>
+                        <Link href={'/admin/percepat/kartu-stok/suku-cadang'} className="whitespace-nowrap">Suku Cadang</Link>
+                    </li>
                 </ul>
             </div>
             <Link href={'/admin/percepat/settings'} className={`mt-auto flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/percepat/settings')}`} data-tip="Settings">

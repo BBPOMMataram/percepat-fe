@@ -53,12 +53,12 @@ export default function AdminPenerimaanFormSukuCadangPercepat({ open, onClose, i
 
         method(url, payload)
             .then((res) => {
-                dispatch(showAlert({ type: 'success', message: res.data.message }));
+                dispatch(showAlert({ type: 'success', message: res.data.message, description: res.data.message }));
                 onSuccess();
                 onClose();
             })
             .catch(err => {
-                dispatch(showAlert({ type: 'error', message: err.response?.data?.message || 'Error' }));
+                dispatch(showAlert({ type: 'error', message: err.response?.data?.message || 'Error', description: err.response?.data?.message || 'Error' }));
             })
             .finally(() => setLoading(false));
     };

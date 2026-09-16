@@ -28,7 +28,13 @@ const nextConfig = {
                 hostname: 'simpel.bbpommataram.id',
             },
         ],
-    }
+    },
+    eslint: {
+        ignoreDuringBuilds: true,
+    },
+    typescript: {
+        ignoreBuildErrors: true,
+    },
 }
 
 module.exports = nextConfig

@@ -1,3 +1,4 @@
+"use client";
 import { showAlert } from "@/features/alertSlice";
 import { AppDispatch } from "@/redux/store";
 import api from "@/utils/api";
@@ -8,86 +9,150 @@ interface Props {
     open: boolean;
     onClose: () => void;
     initialData?: any;
-    onSuccess: () => void;
+    onSuccess?: () => void;
 }
 
 export default function AdminMasterFormSukuCadangPercepat({ open, onClose, initialData, onSuccess }: Props) {
-    const [name, setName] = useState("");
-    const [satuan, setSatuan] = useState("");
-    const [stock, setStock] = useState(0);
-    const [description, setDescription] = useState("");
     const [loading, setLoading] = useState(false);
+    const [formData, setFormData] = useState<any>({
+        stock: 0,
+        name: "",
+        satuan: "",
+        desc: "",
+    });
 
-    const dispatch = useDispatch<AppDispatch>();
+    const dispatch = useDispatch<AppDispatch>()
 
     useEffect(() => {
-        if (initialData) {
-            setName(initialData.name || "");
-            setSatuan(initialData.satuan || "");
-            setStock(initialData.stock || 0);
-            setDescription(initialData.description || "");
-        } else {
-            setName("");
-            setSatuan("");
-            setStock(0);
-            setDescription("");
-        }
+        if (initialData) setFormData(initialData);
+        else
+            setFormData({
+                stock: 0,
+                name: "",
+                satuan: "",
+                desc: "",
+            });
     }, [initialData, open]);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setFormData((prev: any) => ({
+            ...prev,
+            [name]: name === "stock" ? Number(value) : value,
+        }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
-        const payload = { name, satuan, stock, description };
         const url = initialData
-            ? `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/suku-cadang/${initialData.id}`
-            : `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/suku-cadang`;
+            ? `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/barang-suku-cadang/${initialData.id}`
+            : `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/barang-suku-cadang`;
 
-        const method = initialData ? api.put : api.post;
+        const method = "POST";
 
-        method(url, payload)
+        let payload = formData;
+
+        if (initialData) {
+            payload = {
+                ...formData,
+                _method: 'PUT'
+            };
+        }
+
+        await api({
+            url, method, data: payload
+        })
             .then((res) => {
-                dispatch(showAlert({ type: 'success', message: res.data.message }));
-                onSuccess();
+                dispatch(showAlert({ type: 'success', message: res.data.message, description: res.data.message }))
+                onSuccess?.();
                 onClose();
             })
             .catch(err => {
-                dispatch(showAlert({ type: 'error', message: err.response?.data?.message || 'Error' }));
+                dispatch(showAlert({ type: 'error', message: err.response?.data?.message, description: err.data?.message }))
+                console.log(err);
+
             })
-            .finally(() => setLoading(false));
+        setLoading(false);
     };
 
-    if (!open) return null;
-
     return (
-        <div className="modal modal-open">
-            <div className="modal-box">
-                <h3 className="font-bold text-lg">{initialData ? 'Edit' : 'Tambah'} Suku Cadang</h3>
-                <form onSubmit={handleSubmit} className="py-4">
-                    <div className="form-control">
-                        <label className="label">Nama</label>
-                        <input type="text" className="input input-bordered" value={name} onChange={e => setName(e.target.value)} required />
-                    </div>
-                    <div className="form-control">
-                        <label className="label">Satuan</label>
-                        <input type="text" className="input input-bordered" value={satuan} onChange={e => setSatuan(e.target.value)} required />
-                    </div>
-                    <div className="form-control">
-                        <label className="label">Stock</label>
-                        <input type="number" className="input input-bordered" value={stock} onChange={e => setStock(Number(e.target.value))} min={0} />
-                    </div>
-                    <div className="form-control">
-                        <label className="label">Deskripsi</label>
-                        <textarea className="textarea textarea-bordered" value={description} onChange={e => setDescription(e.target.value)} />
-                    </div>
-                    <div className="modal-action">
-                        <button type="button" className="btn" onClick={onClose}>Batal</button>
-                        <button type="submit" className="btn btn-primary" disabled={loading}>
-                            {loading ? 'Menyimpan...' : 'Simpan'}
-                        </button>
-                    </div>
-                </form>
+        <>
+            <input
+                type="checkbox"
+                className="modal-toggle"
+                checked={open}
+                onChange={onClose}
+            />
+            <div className="modal modal-bottom sm:modal-middle">
+                <div className="modal-box">
+                    <h3 className="font-bold text-lg mb-4">
+                        {initialData ? "Edit Data" : "Tambah Suku Cadang"}
+                    </h3>
+
+                    <form onSubmit={handleSubmit} className="space-y-3">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Nama</label>
+                            <input
+                                type="text"
+                                name="name"
+                                value={formData.name}
+                                onChange={handleChange}
+                                placeholder="Masukkan nama suku cadang"
+                                className="input input-bordered w-full"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Satuan</label>
+                            <input
+                                type="text"
+                                name="satuan"
+                                value={formData.satuan}
+                                onChange={handleChange}
+                                placeholder="Masukkan satuan (pcs, box, dll)"
+                                className="input input-bordered w-full"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Stok</label>
+                            <input
+                                type="number"
+                                name="stock"
+                                value={formData.stock}
+                                onChange={handleChange}
+                                placeholder="Masukkan jumlah stok"
+                                className="input input-bordered w-full"
+                                min={0}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Deskripsi</label>
+                            <textarea
+                                name="desc"
+                                value={formData.desc}
+                                onChange={handleChange}
+                                placeholder="Masukkan deskripsi (opsional)"
+                                className="textarea textarea-bordered w-full"
+                                rows={3}
+                            />
+                        </div>
+
+                        <div className="modal-action pt-4">
+                            <button type="button" className="btn" onClick={onClose}>Batal</button>
+                            <button type="submit" className="btn btn-primary" disabled={loading}>
+                                {loading ? (
+                                    <span className="loading loading-spinner loading-xs"></span>
+                                ) : (
+                                    initialData ? "Simpan Perubahan" : "Tambah"
+                                )}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-        </div>
+        </>
     );
 }

@@ -70,8 +70,7 @@ export default function AppSection() {
                     Aplikasi &amp; Inovasi Kami
                 </h2>
                 <p className="mx-auto mt-3 max-w-2xl text-base text-gray-600 md:text-lg">
-                    Kumpulan inovasi digital Balai Besar POM di Mataram
-                    {!isLoading && dataApp.length > 0 && ` — ${dataApp.length} aplikasi siap digunakan`}.
+                    Inovasi Digital BBPOM di Mataram
                 </p>
                 <div className="mx-auto mt-5 h-1 w-20 rounded-full bg-gradient-to-r from-bpom-green to-teal-400" />
             </div>

@@ -34,7 +34,7 @@ export default function AdminSukuCadangPercepat() {
             ...(endDate && { end_date: endDate }),
         });
 
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-suku-cadang?${params}`)
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/permintaan-suku-cadang?${params}`)
             .then(({ data }) => {
                 setData(data)
                 setCurrentPage(data?.current_page);
@@ -44,7 +44,7 @@ export default function AdminSukuCadangPercepat() {
     }, [perPage, kodeBarangOrNameFilter, startDate, endDate]);
 
     const getListBarangPermintaan = (id: number) => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/list-permintaan-suku-cadang/${id}`)
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/list-permintaan-suku-cadang/${id}`)
             .then(({ data }) => {
                 setListBarangPermintaan(data.data)
                 const defaults = data.data.map((item: any) => (item.jumlahrealisasi ?? item.jumlahpermintaan ?? 1));
@@ -57,7 +57,7 @@ export default function AdminSukuCadangPercepat() {
 
     const downloadSpbHandler = (id: number) => {
         api({
-            url: `/api/v1/download-permintaan-suku-cadang/${id}`,
+            url: `/api/download-permintaan-suku-cadang/${id}`,
             method: 'GET',
             responseType: 'blob'
         })
@@ -187,7 +187,7 @@ export default function AdminSukuCadangPercepat() {
                                     ...(startDate && { start_date: startDate }),
                                     ...(endDate && { end_date: endDate }),
                                 });
-                                window.open(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-suku-cadang/export-pdf?${params}`, '_blank');
+                                window.open(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/permintaan-suku-cadang/export-pdf?${params}`, '_blank');
                             }}
                             className="btn btn-success text-white gap-2"
                         >

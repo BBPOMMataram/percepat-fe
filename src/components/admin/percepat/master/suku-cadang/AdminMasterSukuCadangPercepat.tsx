@@ -17,7 +17,7 @@ export default function AdminMasterSukuCadangPercepat() {
 
     const rowNumber = (index: number) => (currentPage - 1) * perPage + index + 1;
     const loadData = useCallback(() => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/suku-cadang?per_page=${perPage}&name=${kodeBarangOrNameFilter}`)
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/barang-suku-cadang?per_page=${perPage}&name=${kodeBarangOrNameFilter}`)
             .then(({ data }) => {
                 setData(data)
                 setCurrentPage(data?.current_page);
@@ -28,7 +28,7 @@ export default function AdminMasterSukuCadangPercepat() {
 
     const handleRemove = (id: number) => {
         if (window.confirm('Confirm delete?')) {
-            api.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/suku-cadang/${id}`)
+            api.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/barang-suku-cadang/${id}`)
                 .then((res) => {
                     dispatch(showAlert({ type: 'success', message: res.data.message, description: res.data.message }))
                     loadData()
