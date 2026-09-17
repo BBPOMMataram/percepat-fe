@@ -64,7 +64,7 @@ function FormPermintaanPercepat() {
                     const res = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-${editType.replace(/\s+/g, '-')}/${editId}`);
                     const data = res.data.data;
 
-                    setTipeBarang(editType);
+                    setTipeBarang(editType.replace(/-/g, ' '));
                     setKaTimId(data.katimId);
                     setTanggal(dayjs(data.created_at || data.tgl_permintaan).format('YYYY-MM-DD'));
 
@@ -74,6 +74,7 @@ function FormPermintaanPercepat() {
                     let mappedJenis = "reagen";
                     if (editType === 'atk') mappedJenis = "ATK";
                     if (editType === 'perlengkapan kebersihan') mappedJenis = "barang";
+                    if (editType === 'suku-cadang' || editType === 'suku cadang') mappedJenis = "suku_cadang";
 
                     const items = data.listBarang.map((it: any) => {
                         const barang = it.barang || it.atk || it.sukuCadang || {};
