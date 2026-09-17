@@ -57,7 +57,7 @@ export default function PermintaanSukuCadangPercepat() {
 
     const downloadSpbHandler = (id: number) => {
         api({
-            url: `/api/v1/download-permintaan-suku-cadang/${id}`,
+            url: `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/download-permintaan-suku-cadang/${id}`,
             method: 'GET',
             responseType: 'blob'
         })

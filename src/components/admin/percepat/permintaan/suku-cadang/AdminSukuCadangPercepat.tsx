@@ -37,8 +37,8 @@ export default function AdminSukuCadangPercepat() {
         api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-suku-cadang?${params}`)
             .then(({ data }) => {
                 setData(data)
-                setCurrentPage(data?.current_page);
-                setPerPage(data?.perPage);
+                setCurrentPage(data?.current_page || 1);
+                setPerPage(data?.per_page || 10);
             })
             .catch(err => console.log(err));
     }, [perPage, kodeBarangOrNameFilter, startDate, endDate]);
