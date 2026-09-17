@@ -21,7 +21,7 @@ export default function AdminPenerimaanFormSukuCadangPercepat({ open, onClose, i
     const dispatch = useDispatch<AppDispatch>();
 
     useEffect(() => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/barang-suku-cadang/getAll`)
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/barang-suku-cadang-all`)
             .then(({ data }) => {
                 setSukuCadangList(data.data || data);
             })
