@@ -48,10 +48,15 @@ export default function PermintaanSukuCadangPercepat() {
         api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/list-permintaan-suku-cadang/${id}`)
             .then(({ data }) => {
                 console.log('list barang', data);
-                setListBarangPermintaan(data.data)
+                if (data.data) {
+                    setListBarangPermintaan(data.data);
+                } else {
+                    setListBarangPermintaan([]);
+                }
             })
             .catch((err) => {
-                console.log(err)
+                console.log(err);
+                setListBarangPermintaan([]);
             });
     }
 
@@ -174,7 +179,7 @@ export default function PermintaanSukuCadangPercepat() {
                                     className={`border-t transition`}
                                 >
                                     <td className="px-4 py-3 font-medium">{rowNumber(index)}</td>
-                                    <td className="px-4 py-3 font-semibold capitalize">{item.peminta.name}</td>
+                                    <td className="px-4 py-3 font-semibold capitalize">{item.peminta?.name || '-'}</td>
                                     <td className="px-4 py-3 font-semibold capitalize">{item.bidang?.name || item.bidang_name_auth_external}</td>
                                     <td className={`px-4 py-3`}>{item.bidang?.user?.name || item.katim?.name}</td>
                                     <td className={`px-4 py-3`}>{item.status?.name}</td>
@@ -283,7 +288,7 @@ export default function PermintaanSukuCadangPercepat() {
                         ) : (
                             listBarangPermintaan.map((item: any, index: number) => (
                                 <li key={index} className="my-1 py-1 px-2 w-fit rounded">
-                                    {`${item.sukuCadang?.name} (Stok: ${item.sukuCadang?.stock})`}
+                                    {`${item.sukuCadang?.name || 'Nama tidak tersedia'} (Stok: ${item.sukuCadang?.stock || '-'})`}
                                     <div className="text-xs [&>span]:mr-1">
                                         <span className="badge badge-soft badge-primary">Jumlah Permintaan : {item.jumlahpermintaan}</span>
                                         <span className="badge badge-soft badge-primary">Jumlah Realisasi : {item.jumlahrealisasi || '-'}</span>
