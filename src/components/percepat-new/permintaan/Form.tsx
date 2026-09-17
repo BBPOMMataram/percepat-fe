@@ -76,13 +76,13 @@ function FormPermintaanPercepat() {
                     if (editType === 'perlengkapan kebersihan') mappedJenis = "barang";
 
                     const items = data.listBarang.map((it: any) => {
-                        const barang = it.barang || it.atk || {};
+                        const barang = it.barang || it.atk || it.sukuCadang || {};
                         return {
                             id: barang.id,
                             nama: barang.name || "",
                             satuan: barang.satuan || "",
                             expired: barang.expired || null,
-                            jumlah: it.jumlahpermintaan,
+                            jumlah: it.jumlahpermintaan || it.jumlah,
                             keterangan: it.keterangan,
                             jenis: mappedJenis
                         };
