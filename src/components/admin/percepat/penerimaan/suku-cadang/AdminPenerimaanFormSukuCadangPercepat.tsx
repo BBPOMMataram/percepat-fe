@@ -90,33 +90,25 @@ export default function AdminPenerimaanFormSukuCadangPercepat({ open, onClose, i
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    // Fetch detail data when editing
     useEffect(() => {
-        if (initialData) {
-            console.log('initial data: ', initialData);
-
-            setFormData({
-                sukuCadangId: initialData.suku_cadang_id || initialData.sukuCadang?.id || "",
-                jumlah: initialData.jumlah ?? "",
-                vendor: initialData.vendor || "",
-            });
-            setSelectedSukuCadang(initialData.sukuCadang);
-            setSearchTerm(initialData.sukuCadang?.name || "");
-
-            if (initialData.created_at) {
-                setTglTerimaSelected(dayjs(initialData.created_at).format("YYYY-MM-DD"));
-            }
-        } else {
-            setFormData({
-                sukuCadangId: "",
-                jumlah: "",
-                vendor: "",
-            });
-            setSelectedSukuCadang(null);
-            setSearchTerm("");
-            setTglTerimaSelected(dayjs().format("YYYY-MM-DD"));
+        if (initialData?.id) {
+            api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/penerimaan-suku-cadang/${initialData.id}`)
+                .then(({ data }) => {
+                    setSelectedSukuCadang(data.sukuCadang);
+                    setSearchTerm(data.sukuCadang?.name || "");
+                    setFormData({
+                        sukuCadangId: data.suku_cadang_id || "",
+                        jumlah: data.jumlah ?? "",
+                        vendor: data.vendor || "",
+                    });
+                    if (data.created_at) {
+                        setTglTerimaSelected(dayjs(data.created_at).format("YYYY-MM-DD"));
+                    }
+                })
+                .catch(err => console.log(err));
         }
-        setSukuCadangList([]);
-    }, [initialData, open]);
+    }, [initialData?.id]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
