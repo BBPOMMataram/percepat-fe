@@ -3,7 +3,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 const AppContainer = ({ appData }: { appData: AppData }) => {
-    const isExternal = appData.link?.includes('http');
+    // Link dianggap eksternal hanya jika URL lengkap dan bukan domain milik BBPOM
+    const isBpomDomain = appData.link?.includes('bbpommataram.id') || appData.link?.includes('infokom-bbpommataram.workers.dev');
+    const isExternal = (appData.link?.startsWith('http://') || appData.link?.startsWith('https://')) && !isBpomDomain;
     // link internal di DB bisa "/percepat" atau "percepat" → normalisasi supaya tidak jadi "//"
     const slug = (appData.link ?? '').replace(/^\/+/, '');
     const href = isExternal ? appData.link : `/${slug}`;
