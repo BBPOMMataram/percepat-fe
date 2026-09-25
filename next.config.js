@@ -8,6 +8,10 @@ const nextConfig = {
                 hostname: 'localhost',
             },
             {
+                protocol: 'http',
+                hostname: '127.0.0.1',
+            },
+            {
                 protocol: 'https',
                 hostname: 'percepat-api.bbpommataram.id',
             },

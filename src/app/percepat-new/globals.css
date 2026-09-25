@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @plugin "daisyui" {
-  themes: light --default;
+  themes: light --default, dark, nord, coffee;
 }
 
 html {
@@ -13,6 +13,7 @@ html {
   /* --color-primary: #faf8f1;
   --color-secondary: #faeab1; */
 }
+
 
 @import "material-symbols/outlined.css";
 

@@ -1,0 +1,853 @@
+﻿├── .github
+│   └── workflows
+│       └── deploy.yaml
+├── .next
+│   ├── build
+│   │   └── chunks
+│   │       ├── [root-of-the-server]__44695d76._.js
+│   │       ├── [root-of-the-server]__44695d76._.js.map
+│   │       ├── [root-of-the-server]__6d51cb5d._.js
+│   │       ├── [root-of-the-server]__6d51cb5d._.js.map
+│   │       ├── [turbopack]_runtime.js
+│   │       ├── [turbopack]_runtime.js.map
+│   │       ├── [turbopack-node]_transforms_postcss_ts_1cad1378._.js
+│   │       ├── [turbopack-node]_transforms_postcss_ts_1cad1378._.js.map
+│   │       ├── node_modules_fe693df6._.js
+│   │       └── node_modules_fe693df6._.js.map
+│   ├── cache
+│   │   ├── images
+│   │   │   ├── 8yOx1Tm5fNZuTIc6CimQ3cDyP4E7SdoKa2HiikYP8dM
+│   │   │   │   └── 60.1790082912610.EeHMGD0nuhB4mmhoz9ON_2PuHVKN-XWqFu9ZrVr-rag.Vy8iZDJjYy0xYTBjN2NkNDY4OCI.webp
+│   │   │   ├── crb2X2gamsbnwL2F4PBXIXBxhkq4FCkDRsO1WenAM4Q
+│   │   │   │   └── 60.1790076707889.7KMjUSrbrqFDYw-Y2_SYuHB_KpiHnXjRmz-1e-GZZNw.Vy8iMTkwZjgtMWEwYzdjZDQ2ODUi.webp
+│   │   │   ├── EurkTesl3k8H4dOIRidneFO-TKEzK1IbRqvGykRzumQ
+│   │   │   │   └── 60.1790086317275.2tSGL6xXsFh0wsP_ePMOj5ed1ia_eVRjHQ8H2g3XUtM.Vy8iZmRmMS0xYTBjNmMxYmI3OCI.webp
+│   │   │   ├── k62vi3zNP2qirTp8B0HhNnOIasUaNFfIHShqCVozgm8
+│   │   │   │   └── 60.1790086311587.TNyswSJs_9weP3ZEdahdwH-ECmKZaU-FAGMDgk9RvqY.Vy8iMTkwZjgtMWEwYzdjZDQ2ODUi.webp
+│   │   │   ├── mNWdUj5lIpnXxvkf37Ay2_c8p_hCJtAUJuQLBuOFV60
+│   │   │   │   └── 60.1790086317347.4bDzW5w_q7zO7NRNR-EzbYj819uHKNDCAsLTXZMrO7w.Vy8iNzI4MWEtMWEwYzZjMWJiNjIi.webp
+│   │   │   ├── P9kRtEaf_nSq0Pe06CgSy01pk4YkQK5OODTWOMrN9bw
+│   │   │   │   └── 60.1790086250644.NfnI1Zu8hi97PjRgHOAo3ZA-YXp4cUxN_Fc6oVwQ4lA.Vy8iMTkwZjgtMWEwYzdjZDQ2ODUi.webp
+│   │   │   ├── U5X02w6fAe8kkhpXPH2Fk_DegarMpDnPsZZ9y3d34fo
+│   │   │   │   └── 60.1790081242501.MrTcrfYvXTfwlxQZrC-jrBdGu10ELWg08dVnAum2u3E.Vy8iMTkwZjgtMWEwYzdjZDQ2ODUi.webp
+│   │   │   ├── uzx8h2cRTubCNUjnVyFRM2ekTdsej06cZ5L4w62x_VE
+│   │   │   │   └── 60.1790086297567.EWq59-qluaSdhS__HjUJWEfKoPFNX0C4nUQFXMpjxEE.Vy8iM2E2ZS0xYTBjN2NkNDY4YSI.webp
+│   │   │   └── xooOsyoI69xZE0RKtMFfStz11FLxWqPHJLeP0VD10r0
+│   │   │       └── 60.1790085988702.9t5pO2uWBXHdFVTaXcnVBFjWGHX97EMWzzdHNVR201A.Vy8iMTkwZjgtMWEwYzdjZDQ2ODUi.webp
+│   │   ├── .rscinfo
+│   │   ├── chrome-devtools-workspace-uuid
+│   │   └── next-devtools-config.json
+│   ├── server
+│   │   ├── app
+│   │   │   ├── (main)
+│   │   │   │   ├── login
+│   │   │   │   │   ├── page
+│   │   │   │   │   │   ├── app-build-manifest.json
+│   │   │   │   │   │   ├── app-paths-manifest.json
+│   │   │   │   │   │   ├── build-manifest.json
+│   │   │   │   │   │   ├── next-font-manifest.json
+│   │   │   │   │   │   ├── react-loadable-manifest.json
+│   │   │   │   │   │   └── server-reference-manifest.json
+│   │   │   │   │   ├── page.js
+│   │   │   │   │   ├── page.js.map
+│   │   │   │   │   └── page_client-reference-manifest.js
+│   │   │   │   └── our-apps
+│   │   │   │       ├── page
+│   │   │   │       │   ├── app-build-manifest.json
+│   │   │   │       │   ├── app-paths-manifest.json
+│   │   │   │       │   ├── build-manifest.json
+│   │   │   │       │   ├── next-font-manifest.json
+│   │   │   │       │   ├── react-loadable-manifest.json
+│   │   │   │       │   └── server-reference-manifest.json
+│   │   │   │       ├── page.js
+│   │   │   │       ├── page.js.map
+│   │   │   │       └── page_client-reference-manifest.js
+│   │   │   ├── _not-found
+│   │   │   │   ├── page
+│   │   │   │   │   ├── app-build-manifest.json
+│   │   │   │   │   ├── app-paths-manifest.json
+│   │   │   │   │   ├── build-manifest.json
+│   │   │   │   │   ├── next-font-manifest.json
+│   │   │   │   │   ├── react-loadable-manifest.json
+│   │   │   │   │   └── server-reference-manifest.json
+│   │   │   │   ├── page.js
+│   │   │   │   ├── page.js.map
+│   │   │   │   └── page_client-reference-manifest.js
+│   │   │   ├── e-sapa
+│   │   │   │   ├── dashboard
+│   │   │   │   │   ├── page
+│   │   │   │   │   │   ├── app-build-manifest.json
+│   │   │   │   │   │   ├── app-paths-manifest.json
+│   │   │   │   │   │   ├── build-manifest.json
+│   │   │   │   │   │   ├── next-font-manifest.json
+│   │   │   │   │   │   ├── react-loadable-manifest.json
+│   │   │   │   │   │   └── server-reference-manifest.json
+│   │   │   │   │   ├── page.js
+│   │   │   │   │   ├── page.js.map
+│   │   │   │   │   └── page_client-reference-manifest.js
+│   │   │   │   ├── page
+│   │   │   │   │   ├── app-build-manifest.json
+│   │   │   │   │   ├── app-paths-manifest.json
+│   │   │   │   │   ├── build-manifest.json
+│   │   │   │   │   ├── next-font-manifest.json
+│   │   │   │   │   ├── react-loadable-manifest.json
+│   │   │   │   │   └── server-reference-manifest.json
+│   │   │   │   ├── page.js
+│   │   │   │   ├── page.js.map
+│   │   │   │   └── page_client-reference-manifest.js
+│   │   │   ├── favicon.ico
+│   │   │   │   ├── route
+│   │   │   │   │   ├── app-build-manifest.json
+│   │   │   │   │   ├── app-paths-manifest.json
+│   │   │   │   │   └── build-manifest.json
+│   │   │   │   ├── route.js
+│   │   │   │   └── route.js.map
+│   │   │   ├── page
+│   │   │   │   ├── app-build-manifest.json
+│   │   │   │   ├── app-paths-manifest.json
+│   │   │   │   ├── build-manifest.json
+│   │   │   │   ├── next-font-manifest.json
+│   │   │   │   ├── react-loadable-manifest.json
+│   │   │   │   └── server-reference-manifest.json
+│   │   │   ├── page.js
+│   │   │   ├── page.js.map
+│   │   │   └── page_client-reference-manifest.js
+│   │   ├── chunks
+│   │   │   ├── ssr
+│   │   │   │   ├── [root-of-the-server]__06e49cc5._.js
+│   │   │   │   ├── [root-of-the-server]__06e49cc5._.js.map
+│   │   │   │   ├── [root-of-the-server]__0e9524a3._.js
+│   │   │   │   ├── [root-of-the-server]__0e9524a3._.js.map
+│   │   │   │   ├── [root-of-the-server]__26d5302e._.js
+│   │   │   │   ├── [root-of-the-server]__26d5302e._.js.map
+│   │   │   │   ├── [root-of-the-server]__294d5e92._.js
+│   │   │   │   ├── [root-of-the-server]__294d5e92._.js.map
+│   │   │   │   ├── [root-of-the-server]__41d5e64d._.js
+│   │   │   │   ├── [root-of-the-server]__41d5e64d._.js.map
+│   │   │   │   ├── [root-of-the-server]__44e502c7._.js
+│   │   │   │   ├── [root-of-the-server]__44e502c7._.js.map
+│   │   │   │   ├── [root-of-the-server]__51c49bf6._.js
+│   │   │   │   ├── [root-of-the-server]__51c49bf6._.js.map
+│   │   │   │   ├── [root-of-the-server]__9c61f190._.js
+│   │   │   │   ├── [root-of-the-server]__9c61f190._.js.map
+│   │   │   │   ├── [root-of-the-server]__b48070c8._.js
+│   │   │   │   ├── [root-of-the-server]__b48070c8._.js.map
+│   │   │   │   ├── [root-of-the-server]__c1eb23a7._.js
+│   │   │   │   ├── [root-of-the-server]__c1eb23a7._.js.map
+│   │   │   │   ├── [root-of-the-server]__c80f7c8f._.js
+│   │   │   │   ├── [root-of-the-server]__c80f7c8f._.js.map
+│   │   │   │   ├── [root-of-the-server]__dc3a21d4._.js
+│   │   │   │   ├── [root-of-the-server]__dc3a21d4._.js.map
+│   │   │   │   ├── [root-of-the-server]__dee2dacd._.js
+│   │   │   │   ├── [root-of-the-server]__dee2dacd._.js.map
+│   │   │   │   ├── [root-of-the-server]__e8a2741f._.js
+│   │   │   │   ├── [root-of-the-server]__e8a2741f._.js.map
+│   │   │   │   ├── [root-of-the-server]__ee452741._.js
+│   │   │   │   ├── [root-of-the-server]__ee452741._.js.map
+│   │   │   │   ├── [root-of-the-server]__f5fb25d2._.js
+│   │   │   │   ├── [root-of-the-server]__f5fb25d2._.js.map
+│   │   │   │   ├── [root-of-the-server]__f76a6641._.js
+│   │   │   │   ├── [root-of-the-server]__f76a6641._.js.map
+│   │   │   │   ├── [root-of-the-server]__f9538075._.js
+│   │   │   │   ├── [root-of-the-server]__f9538075._.js.map
+│   │   │   │   ├── [turbopack]_browser_dev_hmr-client_hmr-client_ts_818f0fdf._.js
+│   │   │   │   ├── [turbopack]_browser_dev_hmr-client_hmr-client_ts_818f0fdf._.js.map
+│   │   │   │   ├── [turbopack]_browser_dev_hmr-client_hmr-client_ts_89c5f8e8._.js
+│   │   │   │   ├── [turbopack]_browser_dev_hmr-client_hmr-client_ts_89c5f8e8._.js.map
+│   │   │   │   ├── [turbopack]_runtime.js
+│   │   │   │   ├── [turbopack]_runtime.js.map
+│   │   │   │   ├── _91054e13._.js
+│   │   │   │   ├── _91054e13._.js.map
+│   │   │   │   ├── node_modules_@swc_helpers_cjs_a7a9abec._.js
+│   │   │   │   ├── node_modules_@swc_helpers_cjs_a7a9abec._.js.map
+│   │   │   │   ├── node_modules_1694d0cb._.js
+│   │   │   │   ├── node_modules_1694d0cb._.js.map
+│   │   │   │   ├── node_modules_218e1ed6._.js
+│   │   │   │   ├── node_modules_218e1ed6._.js.map
+│   │   │   │   ├── node_modules_547e43fd._.js
+│   │   │   │   ├── node_modules_547e43fd._.js.map
+│   │   │   │   ├── node_modules_5f2d4120._.js
+│   │   │   │   ├── node_modules_5f2d4120._.js.map
+│   │   │   │   ├── node_modules_c2d84cae._.js
+│   │   │   │   ├── node_modules_c2d84cae._.js.map
+│   │   │   │   ├── node_modules_dfcf8577._.js
+│   │   │   │   ├── node_modules_dfcf8577._.js.map
+│   │   │   │   ├── node_modules_eba95ede._.js
+│   │   │   │   ├── node_modules_eba95ede._.js.map
+│   │   │   │   ├── node_modules_next_dist_22e312de._.js
+│   │   │   │   ├── node_modules_next_dist_22e312de._.js.map
+│   │   │   │   ├── node_modules_next_dist_2cf69334._.js
+│   │   │   │   ├── node_modules_next_dist_2cf69334._.js.map
+│   │   │   │   ├── node_modules_next_dist_52ca1ccf._.js
+│   │   │   │   ├── node_modules_next_dist_52ca1ccf._.js.map
+│   │   │   │   ├── node_modules_next_dist_9a2a41cb._.js
+│   │   │   │   ├── node_modules_next_dist_9a2a41cb._.js.map
+│   │   │   │   ├── node_modules_next_dist_9afa1ded._.js
+│   │   │   │   ├── node_modules_next_dist_9afa1ded._.js.map
+│   │   │   │   ├── node_modules_next_dist_a8258ef3._.js
+│   │   │   │   ├── node_modules_next_dist_a8258ef3._.js.map
+│   │   │   │   ├── node_modules_next_dist_b0820ad0._.js
+│   │   │   │   ├── node_modules_next_dist_b0820ad0._.js.map
+│   │   │   │   ├── node_modules_next_dist_client_0ed6f687._.js
+│   │   │   │   ├── node_modules_next_dist_client_0ed6f687._.js.map
+│   │   │   │   ├── node_modules_next_dist_client_46dcf5c7._.js
+│   │   │   │   ├── node_modules_next_dist_client_46dcf5c7._.js.map
+│   │   │   │   ├── node_modules_next_dist_client_9aa17ee6._.js
+│   │   │   │   ├── node_modules_next_dist_client_9aa17ee6._.js.map
+│   │   │   │   ├── node_modules_next_dist_client_components_9774470f._.js
+│   │   │   │   ├── node_modules_next_dist_client_components_9774470f._.js.map
+│   │   │   │   ├── node_modules_next_dist_client_components_builtin_forbidden_45780354.js
+│   │   │   │   ├── node_modules_next_dist_client_components_builtin_forbidden_45780354.js.map
+│   │   │   │   ├── node_modules_next_dist_client_components_builtin_global-error_ece394eb.js
+│   │   │   │   ├── node_modules_next_dist_client_components_builtin_global-error_ece394eb.js.map
+│   │   │   │   ├── node_modules_next_dist_client_components_builtin_unauthorized_15817684.js
+│   │   │   │   ├── node_modules_next_dist_client_components_builtin_unauthorized_15817684.js.map
+│   │   │   │   ├── node_modules_next_dist_compiled_b1baabe8._.js
+│   │   │   │   ├── node_modules_next_dist_compiled_b1baabe8._.js.map
+│   │   │   │   ├── node_modules_next_dist_compiled_next-devtools_index_a19313bf.js
+│   │   │   │   ├── node_modules_next_dist_compiled_next-devtools_index_a19313bf.js.map
+│   │   │   │   ├── node_modules_next_dist_e26b5ed5._.js
+│   │   │   │   ├── node_modules_next_dist_e26b5ed5._.js.map
+│   │   │   │   ├── node_modules_next_dist_esm_968ff1ee._.js
+│   │   │   │   ├── node_modules_next_dist_esm_968ff1ee._.js.map
+│   │   │   │   ├── node_modules_next_dist_f9783716._.js
+│   │   │   │   ├── node_modules_next_dist_f9783716._.js.map
+│   │   │   │   ├── node_modules_next_dist_server_route-modules_app-page_f354387c._.js
+│   │   │   │   ├── node_modules_next_dist_server_route-modules_app-page_f354387c._.js.map
+│   │   │   │   ├── node_modules_next_navigation_34126abf.js
+│   │   │   │   ├── node_modules_next_navigation_34126abf.js.map
+│   │   │   │   ├── node_modules_next_script_2fdf65d1.js
+│   │   │   │   ├── node_modules_next_script_2fdf65d1.js.map
+│   │   │   │   ├── node_modules_tsparticles-engine_esm_68122b16._.js
+│   │   │   │   ├── node_modules_tsparticles-engine_esm_68122b16._.js.map
+│   │   │   │   ├── src_app_ca777385._.js
+│   │   │   │   ├── src_app_ca777385._.js.map
+│   │   │   │   ├── src_components_e-sapa_ESapa_tsx_fcf1ca39._.js
+│   │   │   │   └── src_components_e-sapa_ESapa_tsx_fcf1ca39._.js.map
+│   │   │   ├── [root-of-the-server]__c676a26d._.js
+│   │   │   ├── [root-of-the-server]__c676a26d._.js.map
+│   │   │   ├── [turbopack]_runtime.js
+│   │   │   ├── [turbopack]_runtime.js.map
+│   │   │   ├── node_modules_next_fdd7302f._.js
+│   │   │   └── node_modules_next_fdd7302f._.js.map
+│   │   ├── edge
+│   │   │   └── chunks
+│   │   │       ├── [root-of-the-server]__8978dbac._.js
+│   │   │       ├── [root-of-the-server]__8978dbac._.js.map
+│   │   │       ├── _89d2af01._.js
+│   │   │       ├── _89d2af01._.js.map
+│   │   │       ├── edge-wrapper_3a2afa8d.js.map
+│   │   │       └── turbopack-edge-wrapper_3a2afa8d.js
+│   │   ├── middleware
+│   │   │   └── middleware-manifest.json
+│   │   ├── app-paths-manifest.json
+│   │   ├── interception-route-rewrite-manifest.js
+│   │   ├── middleware-build-manifest.js
+│   │   ├── middleware-manifest.json
+│   │   ├── next-font-manifest.js
+│   │   ├── next-font-manifest.json
+│   │   ├── pages-manifest.json
+│   │   ├── server-reference-manifest.js
+│   │   └── server-reference-manifest.json
+│   ├── static
+│   │   ├── chunks
+│   │   │   ├── [next]_internal_font_google_ar_one_sans_986c6613_module_eb64895e.css
+│   │   │   ├── [next]_internal_font_google_ar_one_sans_986c6613_module_eb64895e.css.map
+│   │   │   ├── [root-of-the-server]__69e4341b._.js
+│   │   │   ├── [root-of-the-server]__69e4341b._.js.map
+│   │   │   ├── [turbopack]_browser_dev_hmr-client_hmr-client_ts_0aff08c2._.js
+│   │   │   ├── [turbopack]_browser_dev_hmr-client_hmr-client_ts_c8c997ce._.js
+│   │   │   ├── [turbopack]_browser_dev_hmr-client_hmr-client_ts_c8c997ce._.js.map
+│   │   │   ├── [turbopack]_browser_dev_hmr-client_hmr-client_ts_e4e2c227._.js
+│   │   │   ├── [turbopack]_browser_dev_hmr-client_hmr-client_ts_e4e2c227._.js.map
+│   │   │   ├── _077ee1e8._.js
+│   │   │   ├── _077ee1e8._.js.map
+│   │   │   ├── _23dcfd8a._.js
+│   │   │   ├── _23dcfd8a._.js.map
+│   │   │   ├── _5de26769._.js
+│   │   │   ├── _5de26769._.js.map
+│   │   │   ├── _900dbc97._.js.map
+│   │   │   ├── _a0ff3932._.js
+│   │   │   ├── _b664cf8f._.js
+│   │   │   ├── _b664cf8f._.js.map
+│   │   │   ├── _c476151d._.css
+│   │   │   ├── _c476151d._.css.map
+│   │   │   ├── node_modules_@swc_helpers_cjs_a8804bf6._.js
+│   │   │   ├── node_modules_@swc_helpers_cjs_a8804bf6._.js.map
+│   │   │   ├── node_modules_7a1a3468._.js
+│   │   │   ├── node_modules_7a1a3468._.js.map
+│   │   │   ├── node_modules_9fc38014._.js
+│   │   │   ├── node_modules_9fc38014._.js.map
+│   │   │   ├── node_modules_b6edd0bf._.js
+│   │   │   ├── node_modules_b6edd0bf._.js.map
+│   │   │   ├── node_modules_ec45024f._.js
+│   │   │   ├── node_modules_ec45024f._.js.map
+│   │   │   ├── node_modules_next_dist_8db7fb1f._.js
+│   │   │   ├── node_modules_next_dist_8db7fb1f._.js.map
+│   │   │   ├── node_modules_next_dist_b0daae9a._.js
+│   │   │   ├── node_modules_next_dist_b0daae9a._.js.map
+│   │   │   ├── node_modules_next_dist_build_polyfills_polyfill-nomodule.js
+│   │   │   ├── node_modules_next_dist_client_cf1d9188._.js
+│   │   │   ├── node_modules_next_dist_client_cf1d9188._.js.map
+│   │   │   ├── node_modules_next_dist_client_components_builtin_global-error_c5f198ce.js
+│   │   │   ├── node_modules_next_dist_compiled_5150ccfd._.js
+│   │   │   ├── node_modules_next_dist_compiled_5150ccfd._.js.map
+│   │   │   ├── node_modules_next_dist_compiled_next-devtools_index_a9cb0712.js
+│   │   │   ├── node_modules_next_dist_compiled_next-devtools_index_a9cb0712.js.map
+│   │   │   ├── node_modules_next_dist_compiled_react-dom_1e674e59._.js
+│   │   │   ├── node_modules_next_dist_compiled_react-dom_1e674e59._.js.map
+│   │   │   ├── node_modules_react-toastify_dist_ReactToastify_css_bad6b30c._.single.css
+│   │   │   ├── node_modules_react-toastify_dist_ReactToastify_css_bad6b30c._.single.css.map
+│   │   │   ├── src_0355a7d2._.js
+│   │   │   ├── src_0355a7d2._.js.map
+│   │   │   ├── src_993f7202._.js
+│   │   │   ├── src_993f7202._.js.map
+│   │   │   ├── src_app_(main)_login_page_tsx_c5f198ce._.js
+│   │   │   ├── src_app_(main)_our-apps_page_tsx_c5f198ce._.js
+│   │   │   ├── src_app_e-sapa_dashboard_page_tsx_c5f198ce._.js
+│   │   │   ├── src_app_e-sapa_page_tsx_c5f198ce._.js
+│   │   │   ├── src_app_favicon_ico_mjs_e45035b8._.js
+│   │   │   ├── src_app_layout_tsx_05c78893._.js
+│   │   │   ├── src_app_page_tsx_c5f198ce._.js
+│   │   │   ├── src_app_percepat-new_globals_css_bad6b30c._.single.css
+│   │   │   ├── src_app_percepat-new_globals_css_bad6b30c._.single.css.map
+│   │   │   ├── src_components_e-sapa_ESapa_tsx_d9b1d33b._.js
+│   │   │   ├── src_components_e-sapa_ESapa_tsx_d9b1d33b._.js.map
+│   │   │   ├── src_f2944887._.js
+│   │   │   ├── src_f2944887._.js.map
+│   │   │   └── turbopack-_900dbc97._.js
+│   │   ├── development
+│   │   │   ├── _buildManifest.js
+│   │   │   ├── _clientMiddlewareManifest.json
+│   │   │   └── _ssgManifest.js
+│   │   └── media
+│   │       ├── 220681892073344b-s.p.d0d2b449.woff2
+│   │       ├── 60cc528940bc6e4f-s.86b1c3ab.woff2
+│   │       ├── 6a3fbbad5151061d-s.a2377860.woff2
+│   │       ├── favicon.940e2ae3.ico
+│   │       └── material-symbols-outlined.138dbd53.woff2
+│   ├── types
+│   │   ├── routes.d.ts
+│   │   └── validator.ts
+│   ├── _events.json
+│   ├── app-build-manifest.json
+│   ├── build-manifest.json
+│   ├── fallback-build-manifest.json
+│   ├── package.json
+│   ├── postcss.js
+│   ├── postcss.js.map
+│   ├── prerender-manifest.json
+│   ├── routes-manifest.json
+│   └── trace
+├── public
+│   ├── assets
+│   │   └── images
+│   │       ├── percepat
+│   │       │   ├── hero.webp
+│   │       │   └── hero-illustration.png
+│   │       ├── simpel-bmn
+│   │       │   └── bg-simpel-bmn.webp
+│   │       ├── spp
+│   │       │   ├── angry.png
+│   │       │   ├── love.png
+│   │       │   └── smile.png
+│   │       ├── bpom.webp
+│   │       ├── bpom_without_label.webp
+│   │       ├── bpomri_without_label.png
+│   │       ├── e-sapa-logo.png
+│   │       ├── noimage.svg
+│   │       ├── noimage.webp
+│   │       ├── siinges.png
+│   │       └── sisolah.png
+│   ├── next.svg
+│   ├── spp.html
+│   └── vercel.svg
+├── src
+│   ├── app
+│   │   ├── (main)
+│   │   │   ├── login
+│   │   │   │   └── page.tsx
+│   │   │   ├── our-apps
+│   │   │   │   └── page.tsx
+│   │   │   ├── profile
+│   │   │   │   └── page.tsx
+│   │   │   ├── register
+│   │   │   │   └── page.tsx
+│   │   │   └── settings
+│   │   │       └── page.tsx
+│   │   ├── admin
+│   │   │   ├── best-employee
+│   │   │   │   ├── presensi
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── settings
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── percepat
+│   │   │   │   ├── kartu-stok
+│   │   │   │   │   ├── atk
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── perlengkapan
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── reagen
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   └── suku-cadang
+│   │   │   │   │       └── page.tsx
+│   │   │   │   ├── master
+│   │   │   │   │   ├── atk
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── perlengkapan
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── reagen
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   └── suku-cadang
+│   │   │   │   │       └── page.tsx
+│   │   │   │   ├── penerimaan
+│   │   │   │   │   ├── atk
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── perlengkapan
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── reagen
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   └── suku-cadang
+│   │   │   │   │       └── page.tsx
+│   │   │   │   ├── permintaan
+│   │   │   │   │   ├── atk
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── perlengkapan
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── reagen
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   └── suku-cadang
+│   │   │   │   │       └── page.tsx
+│   │   │   │   ├── settings
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── siap-melayani
+│   │   │   │   ├── e-learning
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── pakta-integritas
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── penempatan
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── pengajuan
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── peserta
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── presensi
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── settings
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── tata-tertib
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── page.tsx
+│   │   │   └── super
+│   │   │       ├── settings
+│   │   │       │   └── page.tsx
+│   │   │       ├── users
+│   │   │       │   └── page.tsx
+│   │   │       └── page.tsx
+│   │   ├── api
+│   │   │   └── proxy
+│   │   │       └── pdf
+│   │   │           └── route.ts
+│   │   ├── best-employee
+│   │   │   └── page.tsx
+│   │   ├── e-sapa
+│   │   │   ├── dashboard
+│   │   │   │   └── page.tsx
+│   │   │   └── page.tsx
+│   │   ├── percepat-new
+│   │   │   ├── (sub-percepat)
+│   │   │   │   ├── permintaan
+│   │   │   │   │   ├── atk
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── form
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── perlengkapan-kebersihan
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── reagen
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   └── suku-cadang
+│   │   │   │   │       └── page.tsx
+│   │   │   │   ├── verif
+│   │   │   │   │   ├── atk
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── perlengkapan-kebersihan
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── reagen
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   └── suku-cadang
+│   │   │   │   │       └── page.tsx
+│   │   │   │   └── layout.tsx
+│   │   │   ├── globals.css
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx
+│   │   ├── siap-melayani
+│   │   │   ├── e-learning
+│   │   │   │   └── [category]
+│   │   │   │       └── page.tsx
+│   │   │   ├── pengajuan-pkl
+│   │   │   │   ├── form
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── form-update
+│   │   │   │   │   └── [id]
+│   │   │   │   │       └── page.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── presensi
+│   │   │   │   └── page.tsx
+│   │   │   ├── tata-tertib-pkl
+│   │   │   │   └── page.tsx
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx
+│   │   ├── simako
+│   │   │   ├── dashboard
+│   │   │   │   └── page.tsx
+│   │   │   ├── form-keluar
+│   │   │   │   └── page.tsx
+│   │   │   └── page.tsx
+│   │   ├── simpel-bmn
+│   │   │   ├── (sub-simpel-bmn)
+│   │   │   │   ├── disposisi
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── list-barang
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── pemeliharaan
+│   │   │   │   │   ├── form
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── pemeliharaan-anda
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── layout.tsx
+│   │   │   └── page.tsx
+│   │   ├── sismora
+│   │   │   ├── mutasi
+│   │   │   │   ├── form
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── laporan
+│   │   │   │   │   ├── form
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── ruangan
+│   │   │   │   ├── rooms
+│   │   │   │   │   ├── form
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── room-types
+│   │   │   │   │   ├── form
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── page.tsx
+│   │   │   └── page.tsx
+│   │   ├── unauthorized
+│   │   │   └── page.tsx
+│   │   ├── favicon.ico
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components
+│   │   ├── admin
+│   │   │   ├── admin-area
+│   │   │   │   ├── settings
+│   │   │   │   │   └── Settings.tsx
+│   │   │   │   ├── sidebar
+│   │   │   │   │   ├── SidebarAdminBestEmployee.tsx
+│   │   │   │   │   ├── SidebarAdminPercepat.tsx
+│   │   │   │   │   ├── SidebarAdminSiapMelayani.tsx
+│   │   │   │   │   └── SidebarAdminSuper.tsx
+│   │   │   │   ├── AdminAreaAdminSuper.tsx
+│   │   │   │   ├── AdminAreaBestEmployee.tsx
+│   │   │   │   ├── AdminAreaPercepat.tsx
+│   │   │   │   ├── AdminAreaSiapMelayani.tsx
+│   │   │   │   └── Footer.tsx
+│   │   │   ├── best-employee
+│   │   │   │   ├── presensi
+│   │   │   │   │   └── AdminPresensiBestEmployee.tsx
+│   │   │   │   ├── settings
+│   │   │   │   │   └── AdminSettingsBestEmployee.tsx
+│   │   │   │   └── AdminBestEmployee.tsx
+│   │   │   ├── percepat
+│   │   │   │   ├── kartu-stok
+│   │   │   │   │   ├── atk
+│   │   │   │   │   │   └── AdminKartuStokAtkPercepat.tsx
+│   │   │   │   │   ├── perlengkapan
+│   │   │   │   │   │   └── AdminKartuStokPerlengkapanPercepat.tsx
+│   │   │   │   │   ├── reagen
+│   │   │   │   │   │   └── AdminKartuStokReagenPercepat.tsx
+│   │   │   │   │   └── suku-cadang
+│   │   │   │   │       └── AdminKartuStokSukuCadangPercepat.tsx
+│   │   │   │   ├── master
+│   │   │   │   │   ├── atk
+│   │   │   │   │   │   ├── AdminMasterAtkPercepat.tsx
+│   │   │   │   │   │   └── AdminMasterFormAtkPercepat.tsx
+│   │   │   │   │   ├── perlengkapan
+│   │   │   │   │   │   ├── AdminMasterFormPerlengkapanPercepat.tsx
+│   │   │   │   │   │   └── AdminMasterPerlengkapanPercepat.tsx
+│   │   │   │   │   ├── reagen
+│   │   │   │   │   │   ├── AdminMasterFormReagenPercepat.tsx
+│   │   │   │   │   │   └── AdminMasterReagenPercepat.tsx
+│   │   │   │   │   └── suku-cadang
+│   │   │   │   │       ├── AdminMasterFormSukuCadangPercepat.tsx
+│   │   │   │   │       └── AdminMasterSukuCadangPercepat.tsx
+│   │   │   │   ├── penerimaan
+│   │   │   │   │   ├── atk
+│   │   │   │   │   │   ├── AdminPenerimaanAtkPercepat.tsx
+│   │   │   │   │   │   └── AdminPenerimaanFormAtkPercepat.tsx
+│   │   │   │   │   ├── perlengkapan
+│   │   │   │   │   │   ├── AdminPenerimaanFormPerlengkapanPercepat.tsx
+│   │   │   │   │   │   └── AdminPenerimaanPerlengkapanPercepat.tsx
+│   │   │   │   │   ├── reagen
+│   │   │   │   │   │   ├── AdminPenerimaanFormReagenPercepat.tsx
+│   │   │   │   │   │   └── AdminPenerimaanReagenPercepat.tsx
+│   │   │   │   │   └── suku-cadang
+│   │   │   │   │       ├── AdminPenerimaanFormSukuCadangPercepat.tsx
+│   │   │   │   │       └── AdminPenerimaanSukuCadangPercepat.tsx
+│   │   │   │   ├── permintaan
+│   │   │   │   │   ├── atk
+│   │   │   │   │   │   └── AdminAtkPercepat.tsx
+│   │   │   │   │   ├── perlengkapan
+│   │   │   │   │   │   └── AdminPermintaanPerlengkapanPercepat.tsx
+│   │   │   │   │   ├── reagen
+│   │   │   │   │   │   └── AdminPermintaanReagenPercepat.tsx
+│   │   │   │   │   └── suku-cadang
+│   │   │   │   │       └── AdminSukuCadangPercepat.tsx
+│   │   │   │   ├── settings
+│   │   │   │   │   └── AdminSettingsPercepat.tsx
+│   │   │   │   └── AdminPercepat.tsx
+│   │   │   ├── siap-melayani
+│   │   │   │   ├── e-learning
+│   │   │   │   │   ├── AdminElearningSiapMelayani.tsx
+│   │   │   │   │   └── AdminFormElearningSiapMelayani.tsx
+│   │   │   │   ├── pakta-integritas
+│   │   │   │   │   └── AdminPaktaIntegritasSiapMelayani.tsx
+│   │   │   │   ├── penempatan
+│   │   │   │   │   ├── AdminFormPenempatanSiapMelayani.tsx
+│   │   │   │   │   └── AdminPenempatanSiapMelayani.tsx
+│   │   │   │   ├── pengajuan
+│   │   │   │   │   ├── AdminFormPengajuanSiapMelayani.tsx
+│   │   │   │   │   └── AdminPengajuanSiapMelayani.tsx
+│   │   │   │   ├── peserta
+│   │   │   │   │   ├── AdminPesertaSiapMelayani.tsx
+│   │   │   │   │   └── UploadCertificateBtn.tsx
+│   │   │   │   ├── presensi
+│   │   │   │   │   └── AdminPresensiSiapMelayani.tsx
+│   │   │   │   ├── settings
+│   │   │   │   │   └── AdminSettingsSiapMelayani.tsx
+│   │   │   │   ├── tata-tertib
+│   │   │   │   │   └── AdminTataTertibSiapMelayani.tsx
+│   │   │   │   └── AdminSiapMelayani.tsx
+│   │   │   └── super
+│   │   │       ├── settings
+│   │   │       │   └── AdminSettingsBestEmployee.tsx
+│   │   │       ├── users
+│   │   │       │   └── AdminUserAdminSuper.tsx
+│   │   │       └── AdminSuper.tsx
+│   │   ├── e-sapa
+│   │   │   ├── layout
+│   │   │   │   ├── FooterESapa.tsx
+│   │   │   │   ├── LayoutESapa.tsx
+│   │   │   │   ├── NavbarESapa.tsx
+│   │   │   │   └── SidebarESapa.tsx
+│   │   │   ├── DashboardESapa.tsx
+│   │   │   └── ESapa.tsx
+│   │   ├── main
+│   │   │   ├── loading
+│   │   │   │   ├── Loading.tsx
+│   │   │   │   ├── LoadingWithoutText.tsx
+│   │   │   │   └── LoadingWithText.tsx
+│   │   │   ├── register
+│   │   │   │   ├── FormAdditionalExternal.tsx
+│   │   │   │   ├── FormAdditionalMahasiswa.tsx
+│   │   │   │   ├── FormUserGeneral.tsx
+│   │   │   │   └── RegisterForm.tsx
+│   │   │   ├── user-area
+│   │   │   │   ├── our-apps
+│   │   │   │   │   ├── CardApp.tsx
+│   │   │   │   │   └── OurApps.tsx
+│   │   │   │   ├── profile
+│   │   │   │   │   └── Profile.tsx
+│   │   │   │   ├── settings
+│   │   │   │   │   └── Settings.tsx
+│   │   │   │   ├── Footer.tsx
+│   │   │   │   ├── Header.tsx
+│   │   │   │   ├── Sidebar.tsx
+│   │   │   │   └── UserArea.tsx
+│   │   │   ├── Alert.tsx
+│   │   │   ├── LoginForm.tsx
+│   │   │   ├── LogoutBtn.tsx
+│   │   │   ├── ModalGeneral.tsx
+│   │   │   ├── NotificationBell.tsx
+│   │   │   ├── Social.tsx
+│   │   │   └── TextEditor.tsx
+│   │   ├── percepat-new
+│   │   │   ├── footer
+│   │   │   │   └── Footer.tsx
+│   │   │   ├── header
+│   │   │   │   ├── Hero.tsx
+│   │   │   │   └── NavBar.tsx
+│   │   │   ├── inventory
+│   │   │   │   ├── index.tsx
+│   │   │   │   ├── TableAtk.tsx
+│   │   │   │   ├── TablePerlengkapan.tsx
+│   │   │   │   ├── TableReagen.tsx
+│   │   │   │   └── TableSukuCadang.tsx
+│   │   │   ├── permintaan
+│   │   │   │   ├── index
+│   │   │   │   │   ├── PermintaanAtk.tsx
+│   │   │   │   │   ├── PermintaanPerlengkapanKebersihan.tsx
+│   │   │   │   │   ├── PermintaanReagen.tsx
+│   │   │   │   │   └── PermintaanSukuCadang.tsx
+│   │   │   │   ├── Form.tsx
+│   │   │   │   ├── FormPerlengkapanKebersihan.tsx
+│   │   │   │   ├── FormReagen.tsx
+│   │   │   │   ├── FormSukuCadang.tsx
+│   │   │   │   └── FromAtk.tsx
+│   │   │   ├── verif
+│   │   │   │   ├── VerifAtk.tsx
+│   │   │   │   ├── VerifPerlengkapanKebersihan.tsx
+│   │   │   │   ├── VerifReagen.tsx
+│   │   │   │   └── VerifSukuCadang.tsx
+│   │   │   └── Percepat.tsx
+│   │   ├── siap-melayani
+│   │   │   ├── e-learning
+│   │   │   │   └── Elearning.tsx
+│   │   │   ├── footer
+│   │   │   │   └── Footer.tsx
+│   │   │   ├── header
+│   │   │   │   ├── Hero.tsx
+│   │   │   │   └── NavBar.tsx
+│   │   │   ├── landing-page-content
+│   │   │   │   ├── Content.tsx
+│   │   │   │   └── Statistik.tsx
+│   │   │   ├── pengajuan-pkl
+│   │   │   │   ├── FormPengajuanPkl.tsx
+│   │   │   │   ├── FormUpdatePengajuanPkl.tsx
+│   │   │   │   ├── PengajuanIfLoggedUser.tsx
+│   │   │   │   ├── PengajuanPkl.tsx
+│   │   │   │   └── PengajuanTable.tsx
+│   │   │   ├── presensi
+│   │   │   │   ├── ModalWebcam.tsx
+│   │   │   │   ├── Presensi.tsx
+│   │   │   │   ├── PresensiCard.tsx
+│   │   │   │   └── PresensiTable.tsx
+│   │   │   ├── tata-tertib-pkl
+│   │   │   │   └── TataTertibPkl.tsx
+│   │   │   └── SiapMelayani.tsx
+│   │   ├── simako
+│   │   │   ├── dashboard
+│   │   │   │   └── Dashboard.tsx
+│   │   │   ├── form-keluar
+│   │   │   │   ├── FormKeluar.tsx
+│   │   │   │   ├── FormKeluarPegawai.tsx
+│   │   │   │   └── FormKeluarSecurity.tsx
+│   │   │   └── Simako.tsx
+│   │   ├── simandalika
+│   │   │   ├── content
+│   │   │   │   ├── AppContainer.tsx
+│   │   │   │   ├── AppSection.tsx
+│   │   │   │   ├── CardAppGreen.tsx
+│   │   │   │   ├── VideoMaklumat.tsx
+│   │   │   │   ├── VideoMaklumatSection.tsx
+│   │   │   │   └── VisitButton.tsx
+│   │   │   ├── footer
+│   │   │   │   ├── Footer.tsx
+│   │   │   │   └── FooterBottom.tsx
+│   │   │   └── hero
+│   │   │       ├── ButtonLogin.tsx
+│   │   │       ├── ColorPallet.tsx
+│   │   │       ├── DynamicText.tsx
+│   │   │       ├── Hero.tsx
+│   │   │       ├── ParticlesBackground.tsx
+│   │   │       └── SimandalikaText.tsx
+│   │   ├── simpel-bmn
+│   │   │   ├── footer
+│   │   │   │   └── Footer.tsx
+│   │   │   ├── header
+│   │   │   │   └── NavBar.tsx
+│   │   │   ├── list-barang
+│   │   │   │   └── ListBarang.tsx
+│   │   │   ├── pemeliharaan
+│   │   │   │   ├── detail
+│   │   │   │   │   ├── DetailPemeliharaan.tsx
+│   │   │   │   │   ├── GroupJabatan.tsx
+│   │   │   │   │   ├── ListDisposisiPemeliharaan.tsx
+│   │   │   │   │   ├── ModalDetailPemeliharaan.tsx
+│   │   │   │   │   ├── PermintaanBarangPemeliharaan.tsx
+│   │   │   │   │   ├── TableListBarang.tsx
+│   │   │   │   │   └── TableListBarangNonBmn.tsx
+│   │   │   │   ├── ContentDisposisi.tsx
+│   │   │   │   ├── ContentPemeliharaanAll.tsx
+│   │   │   │   ├── ContentPemeliharaanAnda.tsx
+│   │   │   │   ├── Form.tsx
+│   │   │   │   ├── FormNonBmn.tsx
+│   │   │   │   ├── ModalDisposisiPemeliharaan.tsx
+│   │   │   │   ├── ModalWebcamInputBarang.tsx
+│   │   │   │   ├── Pemeliharaan.tsx
+│   │   │   │   ├── PemeliharaanAnda.tsx
+│   │   │   │   ├── PemeliharaanDisposisi.tsx
+│   │   │   │   └── QRScannerModal.tsx
+│   │   │   ├── SimpelBmn.tsx
+│   │   │   └── TimelineFlow.tsx
+│   │   ├── sismora
+│   │   │   ├── mutasi
+│   │   │   │   ├── FormLaporan.tsx
+│   │   │   │   ├── FormMutation.tsx
+│   │   │   │   ├── LaporanMutasi.tsx
+│   │   │   │   ├── ListMutations.tsx
+│   │   │   │   └── Mutasi.tsx
+│   │   │   ├── ruangan
+│   │   │   │   ├── FormRoom.tsx
+│   │   │   │   ├── FormRoomType.tsx
+│   │   │   │   ├── ListRooms.tsx
+│   │   │   │   ├── ListRoomTypes.tsx
+│   │   │   │   └── Ruangan.tsx
+│   │   │   ├── DashboardSismora.tsx
+│   │   │   ├── LoginPrompt.tsx
+│   │   │   ├── SidebarSismora.tsx
+│   │   │   └── Sismora.tsx
+│   │   └── Main.tsx
+│   ├── config
+│   │   └── axios.ts
+│   ├── features
+│   │   ├── layout
+│   │   │   ├── sideBarSlice.ts
+│   │   │   └── topBarSlice.ts
+│   │   ├── alertSlice.ts
+│   │   ├── atkSlice.ts
+│   │   ├── authSlice.ts
+│   │   ├── bidangSlice.ts
+│   │   ├── laporanPermintaanSlice.ts
+│   │   ├── penerimaanSlice.ts
+│   │   ├── permintaanSlice.ts
+│   │   ├── reagenSlice.ts
+│   │   ├── settingSlice.ts
+│   │   └── userSlice.ts
+│   ├── hooks
+│   │   └── useRequireAuth.ts
+│   ├── redux
+│   │   ├── provider.tsx
+│   │   └── store.ts
+│   ├── types
+│   │   ├── app-data.d.ts
+│   │   └── auth.ts
+│   ├── utils
+│   │   ├── api.ts
+│   │   ├── axios.ts
+│   │   └── dayjs.ts
+│   └── middleware.ts
+├── .env
+├── .env.production
+├── .eslintrc.json
+├── .gitignore
+├── app.js
+├── bun.lock
+├── components.json
+├── ecosystem.config.js
+├── eslint.config.mjs
+├── next.config.js
+├── next-env.d.ts
+├── package.json
+├── package-lock.json
+├── postcss.config.js
+├── README.md
+├── struktur_project.txt
+└── tsconfig.json
