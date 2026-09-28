@@ -22,6 +22,9 @@ export default function DashboardESapa() {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        // Pengaman ganda: Mencegah fetch jika user belum ada
+        if (!user) return;
+
         const fetchDashboardData = async () => {
             setIsLoading(true);
             try {
@@ -47,7 +50,7 @@ export default function DashboardESapa() {
         };
 
         fetchDashboardData();
-    }, []);
+    }, [user]); // Menambahkan user sebagai dependency
 
     return (
         <div className="py-8 px-4 sm:px-8 w-full max-w-full overflow-hidden">
