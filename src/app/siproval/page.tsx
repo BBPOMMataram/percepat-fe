@@ -7,8 +7,6 @@ export const metadata: Metadata = {
   description: "Sistem Informasi Program dan Evaluasi BBPOM di Mataram",
 };
 
-"use client";
-
 export default function SiprovalPage() {
   return (
     <LayoutSiproval>
