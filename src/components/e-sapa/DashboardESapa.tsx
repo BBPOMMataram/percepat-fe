@@ -13,8 +13,8 @@ export default function DashboardESapa() {
     const [dashboardData, setDashboardData] = useState({
         countStToday: 0,
         countStThisMonth: 0,
-        countStThisYear: 0,
-        countPetugas: 0
+        countPerjadinToday: 0,
+        countPerjadinThisMonth: 0
     });
 
     const [recentST, setRecentST] = useState<any[]>([]);
@@ -22,7 +22,6 @@ export default function DashboardESapa() {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Pengaman ganda: Mencegah fetch jika user belum ada
         if (!user) return;
 
         const fetchDashboardData = async () => {
@@ -50,7 +49,7 @@ export default function DashboardESapa() {
         };
 
         fetchDashboardData();
-    }, [user]); // Menambahkan user sebagai dependency
+    }, [user]); 
 
     return (
         <div className="py-8 px-4 sm:px-8 w-full max-w-full overflow-hidden">
@@ -85,14 +84,14 @@ export default function DashboardESapa() {
                     </div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 border-b-[5px] border-b-[#003366] overflow-hidden flex items-center justify-between">
                         <div>
-                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Surat Tugas Tahun Ini</p>
-                            <h2 className="text-4xl font-bold text-slate-800">{dashboardData.countStThisYear}</h2>
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Perjadin Hari Ini</p>
+                            <h2 className="text-4xl font-bold text-slate-800">{dashboardData.countPerjadinToday}</h2>
                         </div>
                     </div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 border-b-[5px] border-b-[#003366] overflow-hidden flex items-center justify-between">
                         <div>
-                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Petugas Terdaftar</p>
-                            <h2 className="text-4xl font-bold text-slate-800">{dashboardData.countPetugas}</h2>
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Perjadin Bulan Ini</p>
+                            <h2 className="text-4xl font-bold text-slate-800">{dashboardData.countPerjadinThisMonth}</h2>
                         </div>
                     </div>
                 </div>

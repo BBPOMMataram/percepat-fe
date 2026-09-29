@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react"; // Tambahkan useRef
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter, usePathname } from "next/navigation";
 import { RootState, AppDispatch } from "@/redux/store";
+import api from "@/utils/api"; // Kembalikan menggunakan util api
 import { getUser } from "@/features/authSlice";
 import SidebarESapa from "./SidebarESapa";
 import NavbarESapa from "./NavbarESapa";
@@ -11,6 +12,9 @@ import FooterESapa from "./FooterESapa";
 
 export default function LayoutESapa({ children }: { children: React.ReactNode }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    
+    // Gunakan ref untuk melacak apakah sinkronisasi sudah dilakukan dalam sesi komponen ini
+    const isSyncedRef = useRef(false); 
 
     const dispatch = useDispatch<AppDispatch>();
     const { user, loading } = useSelector((state: RootState) => state.auth);
@@ -18,19 +22,34 @@ export default function LayoutESapa({ children }: { children: React.ReactNode })
     const router = useRouter();
     const pathname = usePathname();
 
-    // 1. Panggil getUser saat layout dimuat untuk mengecek sesi aktif
     useEffect(() => {
         dispatch(getUser());
     }, [dispatch]);
 
-    // 2. Logika Pengalihan (Route Guard)
     useEffect(() => {
-        if (loading === false && !user) {
-            router.push(`/login?redirectUrl=${pathname}`);
+        if (loading === false) {
+            if (!user) {
+                router.push(`/login?redirectUrl=${pathname}`);
+            } else if (user.email && !isSyncedRef.current) {
+                // Eksekusi hanya JIKA user ada DAN belum pernah disinkronisasi sebelumnya
+                isSyncedRef.current = true; // Tandai sudah diproses agar tidak berulang kali dikirim
+                
+                const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA || 'http://localhost:8001';
+                
+                // Gunakan util 'api' agar Token JWT otomatis terlampir dan bisa lolos dari AuthenticateWithJwt
+                api.post(`${baseURL}/api/sync-user`, {
+                    name: user.name,
+                    email: user.email
+                })
+                .then(res => console.log("Berhasil sinkronisasi user:", res.data))
+                .catch(err => {
+                    console.error("Gagal sinkronisasi user:", err);
+                    isSyncedRef.current = false; // Buka kunci lagi jika gagal agar bisa dicoba ulang
+                });
+            }
         }
     }, [user, loading, router, pathname]);
 
-    // Jangan render layout dan isinya jika sedang loading ATAU user belum terverifikasi
     if (loading || !user) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-[#f8fafa]">
