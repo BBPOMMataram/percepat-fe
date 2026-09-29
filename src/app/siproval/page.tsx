@@ -1,3 +1,5 @@
+"use client";
+
 import Siproval from "@/components/siproval/Siproval";
 import LayoutSiproval from "@/components/siproval/layout/LayoutSiproval";
 import { Metadata } from "next";
