@@ -46,7 +46,7 @@ export default function MasterSuratTugas() {
     const [selectedPetugasId, setSelectedPetugasId] = useState("");
 
     const fetchOptions = () => {
-        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA || 'http://localhost:8001';
+        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
         api.get(`${baseURL}/api/kegiatan?limit=1000`).then(res => setOptKegiatan(res.data?.data || res.data));
         api.get(`${baseURL}/api/wilayah?limit=1000`).then(res => setOptWilayah(res.data?.data || res.data));
         api.get(`${baseURL}/api/petugas?limit=1000`).then(res => setOptPetugas(res.data?.data || res.data));
@@ -54,7 +54,7 @@ export default function MasterSuratTugas() {
 
     const fetchData = useCallback((url?: string) => {
         setLoading(true);
-        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA || 'http://localhost:8001';
+        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
         let endpoint = url || `${baseURL}/api/st?page=${currentPage}&value_per_page=${perPage}&name=${activeSearch}`;
 
         api.get(endpoint)
@@ -140,13 +140,13 @@ export default function MasterSuratTugas() {
     };
 
     const handleDownload = (id: number) => {
-        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA || 'http://localhost:8001';
+        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
         window.open(`${baseURL}/api/download-st/${id}`, "_blank");
     };
 
     const handleDelete = (id: number) => {
         if (window.confirm("Apakah Anda yakin ingin menghapus item ini?")) {
-            const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA || 'http://localhost:8001';
+            const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
             api.delete(`${baseURL}/api/st/${id}`)
                 .then((res) => {
                     toast.success(res.data?.msg || "Data berhasil dihapus");
@@ -217,7 +217,7 @@ export default function MasterSuratTugas() {
             "list-petugas": JSON.stringify(formData.list_petugas.map(p => ({ id: p.id })))
         };
 
-        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA || 'http://localhost:8001';
+        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
         const request = formData.id 
             ? api.put(`${baseURL}/api/st/${formData.id}`, payload)
             : api.post(`${baseURL}/api/st`, payload);

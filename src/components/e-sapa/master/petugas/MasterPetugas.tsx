@@ -34,7 +34,7 @@ export default function MasterPetugas() {
 
     const fetchData = useCallback((url?: string) => {
         setLoading(true);
-        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA || 'http://localhost:8001';
+        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
         let endpoint = url || `${baseURL}/api/petugas?page=${currentPage}&value_per_page=${perPage}&name=${activeSearch}`;
 
         api.get(endpoint)
@@ -107,7 +107,7 @@ export default function MasterPetugas() {
 
     const handleDelete = (id: number) => {
         if (window.confirm("Apakah Anda yakin ingin menghapus petugas ini?")) {
-            const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA || 'http://localhost:8001';
+            const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
             api.delete(`${baseURL}/api/petugas/${id}`)
                 .then((res) => {
                     toast.success(res.data?.message || res.data?.msg || "Data berhasil dihapus");
@@ -134,7 +134,7 @@ export default function MasterPetugas() {
             level: formData.level
         };
 
-        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA || 'http://localhost:8001';
+        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
         const request = formData.id 
             ? api.put(`${baseURL}/api/petugas/${formData.id}`, payload)
             : api.post(`${baseURL}/api/petugas`, payload);

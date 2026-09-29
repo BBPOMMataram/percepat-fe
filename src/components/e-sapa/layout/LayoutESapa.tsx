@@ -34,7 +34,7 @@ export default function LayoutESapa({ children }: { children: React.ReactNode })
                 // Eksekusi hanya JIKA user ada DAN belum pernah disinkronisasi sebelumnya
                 isSyncedRef.current = true; // Tandai sudah diproses agar tidak berulang kali dikirim
                 
-                const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA || 'http://localhost:8001';
+                const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
                 
                 // Gunakan util 'api' agar Token JWT otomatis terlampir dan bisa lolos dari AuthenticateWithJwt
                 api.post(`${baseURL}/api/sync-user`, {

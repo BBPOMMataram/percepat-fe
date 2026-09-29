@@ -31,7 +31,6 @@ export default function DashboardETamu() {
     const [isLoading, setIsLoading] = useState(true);
     const chartRef = useRef<any>(null);
 
-    // State untuk Popup Gambar Zoom
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
     const [filterYear, setFilterYear] = useState("");
@@ -108,7 +107,6 @@ export default function DashboardETamu() {
     return (
         <div className="flex flex-col gap-6 animate-in fade-in duration-500 pb-10 relative text-slate-800">
             
-            {/* HEADER */}
             <div className="flex justify-between items-center pb-2">
                 <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
                 <div className="bg-white border border-slate-200 px-4 py-1.5 rounded-full shadow-sm flex items-center gap-2">
@@ -117,7 +115,6 @@ export default function DashboardETamu() {
                 </div>
             </div>
 
-            {/* TOP CARDS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white border-t-[4px] border-[#1e293b] shadow-sm rounded-xl p-6 text-center flex flex-col justify-center">
                     <h2 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">Tamu Hari Ini</h2>
@@ -158,12 +155,10 @@ export default function DashboardETamu() {
                 </div>
             </div>
 
-            {/* HEADER TOTAL TAMU */}
             <div className="bg-[#1e293b] rounded-lg p-3.5 text-center shadow-sm mt-2">
                 <h2 className="text-sm font-bold text-white tracking-wide">Total Tamu Berdasarkan Keperluan</h2>
             </div>
             
-            {/* STATS CARDS */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {isLoading ? (
                     <div className="col-span-full py-10 text-center text-slate-400 flex flex-col items-center">
@@ -186,7 +181,6 @@ export default function DashboardETamu() {
                 )}
             </div>
 
-            {/* HEADER STATISTIK CHART */}
             <div className="bg-[#1e293b] rounded-lg p-3.5 text-center shadow-sm mt-4">
                 <h2 className="text-sm font-bold text-white tracking-wide">Statistik Tamu Per Tahun</h2>
             </div>
@@ -217,12 +211,10 @@ export default function DashboardETamu() {
                 </div>
             </div>
 
-            {/* HEADER TABEL */}
             <div className="bg-[#1e293b] rounded-lg p-3.5 text-center shadow-sm mt-4">
                 <h2 className="text-sm font-bold text-white tracking-wide">Tabel Data Tamu</h2>
             </div>
 
-            {/* TABEL */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-slate-100">
                     <a href={`${baseURL}/security/guest-download`} target="_blank" className="bg-[#0284c7] hover:bg-[#0369a1] text-white font-medium py-2 px-5 rounded-lg shadow-sm transition-colors text-sm inline-flex items-center gap-2">
@@ -295,14 +287,15 @@ export default function DashboardETamu() {
                 </div>
             </div>
 
-            {/* POPUP ZOOM GAMBAR TAMU */}
+            {/* POPUP ZOOM GAMBAR TAMU DIPERBAIKI */}
             {selectedImage && (
                 <div 
-                    className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[9999] animate-in fade-in duration-300 p-4"
+                    className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[9999] animate-in fade-in duration-300 p-4 lg:p-10"
                     onClick={() => setSelectedImage(null)}
                 >
                     <div 
-                        className="relative w-auto max-w-4xl max-h-[90vh] flex flex-col items-center" 
+                        // Lebar kontainer diperbesar (max-w-4xl) dan di-set w-full
+                        className="relative w-full max-w-3xl flex flex-col items-center" 
                         onClick={e => e.stopPropagation()}
                     >
                         <button 
@@ -314,7 +307,8 @@ export default function DashboardETamu() {
                         <img 
                             src={selectedImage} 
                             alt="Zoomed Selfie" 
-                            className="w-auto h-auto max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain border-4 border-white"
+                            // Diubah menjadi w-full agar gambar dipaksa meregang mengikuti ukuran container
+                            className="w-full h-auto max-h-[85vh] rounded-2xl shadow-2xl object-cover border-4 border-white"
                         />
                     </div>
                 </div>

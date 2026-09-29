@@ -32,7 +32,7 @@ export default function PerjadinComponent() {
 
     const fetchData = useCallback((url?: string) => {
         setLoading(true);
-        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA || 'http://localhost:8001';
+        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
         let endpoint = url || `${baseURL}/api/perjadin?page=${currentPage}&value_per_page=${perPage}&name=${activeSearch}`;
 
         api.get(endpoint)
@@ -55,7 +55,7 @@ export default function PerjadinComponent() {
 
     useEffect(() => {
         fetchData();
-        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA || 'http://localhost:8001';
+        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
         api.get(`${baseURL}/api/st?limit=1000`).then(res => setOptSuratTugas(res.data?.data || res.data));
     }, [fetchData]);
 
@@ -89,7 +89,7 @@ export default function PerjadinComponent() {
         }
 
         try {
-            const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA || 'http://localhost:8001';
+            const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
             const res = await api.get(`${baseURL}/api/data-petugas/${id}`);
             const dataPetugas = res.data;
             
@@ -134,7 +134,7 @@ export default function PerjadinComponent() {
 
     const handleDelete = (id: number) => {
         if (window.confirm("Apakah Anda yakin ingin menghapus item ini?")) {
-            const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA || 'http://localhost:8001';
+            const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
             api.delete(`${baseURL}/api/perjadin/${id}`)
                 .then((res) => {
                     toast.success(res.data?.msg || "Data berhasil dihapus");
@@ -145,12 +145,12 @@ export default function PerjadinComponent() {
     };
 
     const handleDownloadKwitansi = (id: number) => {
-        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA || 'http://localhost:8001';
+        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
         window.open(`${baseURL}/api/download-kwitansi/${id}`, "_blank");
     };
 
     const handleDownloadNominatif = (id: number) => {
-        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA || 'http://localhost:8001';
+        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
         window.open(`${baseURL}/api/download-nominatif/${id}`, "_blank");
     };
 
@@ -224,7 +224,7 @@ export default function PerjadinComponent() {
             payload.transport_ket_luar = kets;
         }
 
-        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA || 'http://localhost:8001';
+        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
         const request = editId 
             ? api.put(`${baseURL}/api/perjadin/${editId}`, payload)
             : api.post(`${baseURL}/api/perjadin`, payload);

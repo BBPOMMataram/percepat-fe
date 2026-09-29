@@ -27,7 +27,7 @@ export default function DashboardESapa() {
         const fetchDashboardData = async () => {
             setIsLoading(true);
             try {
-                const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA || 'http://localhost:8001';
+                const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
                 
                 const [dashRes, stRes, perjadinRes] = await Promise.all([
                     api.get(`${baseURL}/api/dashboard`),
