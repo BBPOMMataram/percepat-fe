@@ -21,17 +21,6 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ChartTitle, Tooltip, Legend);
 
-const gradients = [
-    "from-indigo-500 to-purple-600",
-    "from-emerald-400 to-emerald-600",
-    "from-amber-400 to-orange-500",
-    "from-rose-400 to-rose-600",
-    "from-blue-500 to-indigo-600",
-    "from-sky-400 to-blue-600",
-    "from-teal-400 to-teal-600",
-    "from-lime-400 to-green-500",
-];
-
 export default function DashboardETamu() {
     const [callName, setCallName] = useState<string>("");
     const dispatch = useDispatch<AppDispatch>();
@@ -111,40 +100,38 @@ export default function DashboardETamu() {
     if (authLoading || !user) {
         return (
             <div className="flex flex-1 items-center justify-center min-h-[60vh]">
-                <span className="loading loading-spinner loading-lg text-emerald-600"></span>
+                <span className="loading loading-spinner loading-lg text-slate-800"></span>
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col gap-6 animate-in fade-in duration-500 pb-10 relative">
+        <div className="flex flex-col gap-6 animate-in fade-in duration-500 pb-10 relative text-slate-800">
             
-            <div className="flex justify-between items-end border-b border-slate-200 pb-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                        Dashboard
-                    </h1>
-                </div>
-                <div className="text-emerald-600 font-bold text-xl flex items-center gap-1.5">
-                    {dashboardData.total_guests} <span className="text-sm font-medium text-slate-500">Total Tamu</span>
+            {/* HEADER */}
+            <div className="flex justify-between items-center pb-2">
+                <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+                <div className="bg-white border border-slate-200 px-4 py-1.5 rounded-full shadow-sm flex items-center gap-2">
+                    <span className="text-emerald-600 font-bold text-base">{dashboardData.total_guests}</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Total Tamu</span>
                 </div>
             </div>
 
+            {/* TOP CARDS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-gradient-to-br from-lime-500 to-green-500 shadow-md rounded-2xl p-6 text-center text-white flex flex-col justify-center relative overflow-hidden">
-                    <div className="absolute right-0 top-0 opacity-10 transform translate-x-4 -translate-y-4">
-                        <span className="material-symbols-outlined text-[100px]">today</span>
-                    </div>
-                    <h2 className="text-lg font-bold uppercase tracking-wider mb-2 relative z-10">Tamu Hari Ini</h2>
-                    <p className="text-5xl font-black relative z-10">{dashboardData.today_guests}</p>
-                    <p className="text-sm text-green-100 font-medium relative z-10 mt-1">Pengunjung</p>
+                <div className="bg-white border-t-[4px] border-[#1e293b] shadow-sm rounded-xl p-6 text-center flex flex-col justify-center">
+                    <h2 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">Tamu Hari Ini</h2>
+                    <p className="text-5xl font-black text-slate-900">{dashboardData.today_guests}</p>
+                    <p className="text-[11px] text-slate-500 font-medium mt-3">Pengunjung</p>
                 </div>
 
-                <div className="md:col-span-2 bg-gradient-to-br from-blue-500 to-emerald-500 shadow-md rounded-2xl p-6 text-center text-white flex flex-col justify-center">
-                    <h2 className="text-xl font-bold uppercase tracking-wider mb-4">Selamat Datang di Balai Besar POM di Mataram</h2>
-                    <div className="flex justify-center gap-3">
+                <div className="md:col-span-2 bg-white border-t-[4px] border-[#1e293b] shadow-sm rounded-xl p-6 flex flex-col justify-center">
+                    <h2 className="text-sm sm:text-base font-bold text-slate-900 uppercase tracking-wider mb-4">
+                        Selamat Datang di Balai Besar POM di Mataram
+                    </h2>
+                    <div className="flex flex-wrap items-center gap-3">
                         <select 
-                            className="bg-white/20 border border-white/30 text-white placeholder-white rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-white/50 backdrop-blur-sm [&>option]:text-slate-800"
+                            className="bg-white border border-slate-200 text-slate-700 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 text-sm flex-1 sm:flex-none min-w-[150px]"
                             value={filterYear}
                             onChange={(e) => setFilterYear(e.target.value)}
                         >
@@ -155,7 +142,7 @@ export default function DashboardETamu() {
                             <option value="2027">2027</option>
                         </select>
                         <select 
-                            className="bg-white/20 border border-white/30 text-white placeholder-white rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-white/50 backdrop-blur-sm [&>option]:text-slate-800"
+                            className="bg-white border border-slate-200 text-slate-700 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 text-sm flex-1 sm:flex-none min-w-[150px]"
                             value={filterMonth}
                             onChange={(e) => setFilterMonth(e.target.value)}
                         >
@@ -164,43 +151,50 @@ export default function DashboardETamu() {
                                 <option key={i+1} value={i+1}>{new Date(0, i).toLocaleString('id-ID', { month: 'long' })}</option>
                             ))}
                         </select>
-                        <button onClick={fetchDashboardData} className="bg-white text-emerald-600 hover:bg-slate-50 font-bold px-6 py-2 rounded-xl shadow-sm transition-colors">
+                        <button onClick={fetchDashboardData} className="bg-[#0284c7] hover:bg-[#0369a1] text-white font-medium px-6 py-2.5 rounded-lg shadow-sm transition-colors text-sm">
                             Filter
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div className="bg-slate-800 rounded-xl p-4 text-center shadow-sm mt-2">
-                <h2 className="text-lg font-bold text-white tracking-wide">Total Tamu Berdasarkan Keperluan</h2>
+            {/* HEADER TOTAL TAMU */}
+            <div className="bg-[#1e293b] rounded-lg p-3.5 text-center shadow-sm mt-2">
+                <h2 className="text-sm font-bold text-white tracking-wide">Total Tamu Berdasarkan Keperluan</h2>
             </div>
             
+            {/* STATS CARDS */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {isLoading ? (
                     <div className="col-span-full py-10 text-center text-slate-400 flex flex-col items-center">
                         <span className="loading loading-spinner loading-md mb-2"></span> Memuat Data...
                     </div>
                 ) : (
-                    dashboardData.services_stats?.map((srv: any, idx: number) => (
-                        <div key={srv.id} className={`bg-gradient-to-br ${gradients[idx % gradients.length]} shadow-lg shadow-slate-200 rounded-2xl p-6 text-center text-white relative overflow-hidden transition-transform hover:-translate-y-1`}>
-                            <h2 className="text-base font-bold mb-3 min-h-[48px] flex items-center justify-center leading-tight">
+                    dashboardData.services_stats?.map((srv: any) => (
+                        <div key={srv.id} className="bg-white border border-slate-200 shadow-sm rounded-xl p-6 flex flex-col justify-between min-h-[120px] transition-transform hover:-translate-y-1">
+                            <h2 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider text-left line-clamp-2">
                                 {srv.name}
                             </h2>
-                            <p className="text-4xl font-black">{srv.count}</p>
-                            <p className="text-xs font-medium text-white/80 mt-1 uppercase tracking-wider">Tamu</p>
+                            <div className="flex justify-between items-end mt-4">
+                                <p className="text-3xl font-black text-slate-900 leading-none">{srv.count}</p>
+                            </div>
+                            <div className="flex justify-between items-end mt-4">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tamu</p>
+                            </div>
                         </div>
                     ))
                 )}
             </div>
 
-            <div className="bg-slate-800 rounded-xl p-4 text-center shadow-sm mt-4">
-                <h2 className="text-lg font-bold text-white tracking-wide">Statistik Tamu Per Tahun</h2>
+            {/* HEADER STATISTIK CHART */}
+            <div className="bg-[#1e293b] rounded-lg p-3.5 text-center shadow-sm mt-4">
+                <h2 className="text-sm font-bold text-white tracking-wide">Statistik Tamu Per Tahun</h2>
             </div>
 
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
                 <div className="relative h-[400px] w-full flex justify-center items-center">
                     {isLoading ? (
-                        <span className="loading loading-spinner loading-md text-emerald-600"></span>
+                        <span className="loading loading-spinner loading-md text-slate-800"></span>
                     ) : dashboardData.chart_data ? (
                         <Bar 
                             ref={chartRef}
@@ -217,27 +211,29 @@ export default function DashboardETamu() {
                     )}
                 </div>
                 <div className="mt-6 text-center">
-                    <button onClick={handleDownloadChart} className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition-colors text-sm">
-                        Download Gambar Bagan
+                    <button onClick={handleDownloadChart} className="bg-[#0284c7] hover:bg-[#0369a1] text-white font-medium py-2.5 px-6 rounded-lg shadow-sm transition-colors text-sm inline-flex items-center gap-2 mx-auto">
+                        <span className="material-symbols-outlined text-[18px]">download</span> Download Gambar Bagan
                     </button>
                 </div>
             </div>
 
-            <div className="bg-slate-800 rounded-xl p-4 text-center shadow-sm mt-4">
-                <h2 className="text-lg font-bold text-white tracking-wide">Tabel Data Tamu</h2>
+            {/* HEADER TABEL */}
+            <div className="bg-[#1e293b] rounded-lg p-3.5 text-center shadow-sm mt-4">
+                <h2 className="text-sm font-bold text-white tracking-wide">Tabel Data Tamu</h2>
             </div>
 
+            {/* TABEL */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-slate-100">
-                    <a href={`${baseURL}/security/guest-download`} target="_blank" className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-5 rounded-lg shadow-sm transition-colors text-sm inline-flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[18px]">download</span> Download xlsx
+                    <a href={`${baseURL}/security/guest-download`} target="_blank" className="bg-[#0284c7] hover:bg-[#0369a1] text-white font-medium py-2 px-5 rounded-lg shadow-sm transition-colors text-sm inline-flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[18px]">description</span> Download xlsx
                     </a>
                 </div>
                 
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider font-bold border-b border-slate-200">
+                            <tr className="bg-white text-slate-500 text-[11px] uppercase tracking-wider font-bold border-b border-slate-200">
                                 <th className="px-6 py-4">Nama</th>
                                 <th className="px-6 py-4">HP</th>
                                 <th className="px-6 py-4">Instansi</th>
@@ -256,18 +252,19 @@ export default function DashboardETamu() {
                             ) : dashboardData.table_data?.length > 0 ? (
                                 dashboardData.table_data.map((guest: any, i: number) => (
                                     <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                                        <td className="px-6 py-4 font-medium">{guest.name}</td>
+                                        <td className="px-6 py-4">{guest.name}</td>
                                         <td className="px-6 py-4">{guest.hp}</td>
                                         <td className="px-6 py-4">{guest.company || '-'}</td>
-                                        <td className="px-6 py-4">{guest.service_name || '-'}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {guest.date}<br/>
-                                            <span className="text-xs text-slate-400 font-mono">{guest.time}</span>
+                                        <td className="px-6 py-4">
+                                            <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs">{guest.service_name || '-'}</span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-slate-500">
+                                            {guest.date}, {guest.time} WITA
                                         </td>
                                         <td className="px-6 py-4">
                                             {guest.selfie ? (
                                                 <div 
-                                                    className="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 shadow-sm cursor-pointer group relative"
+                                                    className="w-10 h-10 rounded-full overflow-hidden border border-slate-200 shadow-sm cursor-pointer group relative"
                                                     onClick={() => setSelectedImage(`${baseURL}/storage/${guest.selfie}`)}
                                                     title="Klik untuk memperbesar gambar"
                                                 >
@@ -277,10 +274,14 @@ export default function DashboardETamu() {
                                                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
                                                     />
                                                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                                                        <span className="material-symbols-outlined text-white opacity-0 group-hover:opacity-100 drop-shadow-md">zoom_in</span>
+                                                        <span className="material-symbols-outlined text-white text-[16px] opacity-0 group-hover:opacity-100 drop-shadow-md">zoom_in</span>
                                                     </div>
                                                 </div>
-                                            ) : '-'}
+                                            ) : (
+                                                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-400 border border-slate-200">
+                                                    AF
+                                                </div>
+                                            )}
                                         </td>
                                     </tr>
                                 ))
@@ -302,7 +303,7 @@ export default function DashboardETamu() {
                 >
                     <div 
                         className="relative w-auto max-w-4xl max-h-[90vh] flex flex-col items-center" 
-                        onClick={e => e.stopPropagation()} // Mencegah klik di dalam gambar menutup modal
+                        onClick={e => e.stopPropagation()}
                     >
                         <button 
                             onClick={() => setSelectedImage(null)}
