@@ -1,0 +1,49 @@
+name: Deploy BBPOM Mataram
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production
+        run: npx next build
+        env:
+          NODE_OPTIONS: '>:::max-old-space-size=4096'
+
+      - name: Transfer build to VPS
+        uses: appleboy/scp-action@v0.1.10
+        with:
+          host: ${{ secrets.VPASHOST }}
+          username: ${{ secrets.VPSUSER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 56710
+          source: '.next/'
+          target: '/home/bbpommataram.id/PERCEPAT/.next/'
+
+      - name: Restart PM2 on VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPASHOST }}
+          username: ${{ secrets.VPSUSER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 56710
+          script: |
+            cd /home/bbpommataram.id/PERCEPAT
+            chown -R cyberpanel:cyberpanel .next
+            pm2 restart percepat
