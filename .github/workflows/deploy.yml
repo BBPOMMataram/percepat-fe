@@ -16,6 +16,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: 56710
+          command_timeout: 30m
           script: |
             cd /tmp/percepat-fe
             git pull origin main
