@@ -19,9 +19,18 @@ jobs:
           command_timeout: 30m
           script: |
             cd /tmp/percepat-fe
-            git pull origin main
+            
+            # Memaksa folder temporary sinkron dengan GitHub agar tidak ada error pull
+            git fetch origin main
+            git reset --hard origin/main
+            
             npm ci
+            
+            # Menjemput file .env.production agar terbaca oleh Next.js saat proses build
+            cp /home/bbpommataram.id/PERCEPAT/.env.production /tmp/percepat-fe/.env.production
+            
             NODE_OPTIONS="--max-old-space-size=8192" npx next build
+            
             cp -r .next /home/bbpommataram.id/PERCEPAT/.next
             chown -R cyberpanel:cyberpanel /home/bbpommataram.id/PERCEPAT/.next
             cd /home/bbpommataram.id/PERCEPAT
