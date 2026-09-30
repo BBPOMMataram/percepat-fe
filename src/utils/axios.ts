@@ -1,7 +1,13 @@
 import axios from "axios";
 
+const isProduction = process.env.NODE_ENV === "production";
+
+const targetBaseURL = isProduction 
+  ? "https://e-sapa.bbpommataram.id" 
+  : process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA;
+
 const apiBase = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ,
+  baseURL: targetBaseURL,
   headers: {
     'X-Requested-With': 'XMLHttpRequest',
   },
