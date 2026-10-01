@@ -1,4 +1,5 @@
-import axios from "@/config/axios";
+
+import apiBase from "@/utils/axios";
 import { Dispatch, createSlice } from "@reduxjs/toolkit";
 
 interface ISingleData {
@@ -40,7 +41,7 @@ export default atkSlice.reducer
 
 export const fetchData = (url = '/api/barang-atk?value_per_page=5') => {
     return async (dispatch: Dispatch) => {
-        axios(url)
+        apiBase(url)
             .then(({ data }) => {
                 dispatch(atkActions.setData(data));
             })
@@ -51,7 +52,7 @@ export const fetchData = (url = '/api/barang-atk?value_per_page=5') => {
 export const fetchSingleData = (id: string) => {
     return async (dispatch: Dispatch) => {
         id &&
-            axios(`/api/barang-atk/${id}`)
+            apiBase(`/api/barang-atk/${id}`)
                 .then(({ data }) => {
                     dispatch(atkActions.setSingleData(data.data));
                 })

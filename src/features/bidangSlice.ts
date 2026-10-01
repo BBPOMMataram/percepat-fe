@@ -1,4 +1,4 @@
-import axios from "@/config/axios";
+import apiBase from "@/utils/axios";
 import { Dispatch, createSlice } from "@reduxjs/toolkit";
 
 const initialState: { isFormOpen: boolean , data: any, singleData: any } = {
@@ -27,7 +27,7 @@ export default bidangSlice.reducer
 
 export const fetchData = (url = '/api/bidang?value_per_page=5') => {
     return async (dispatch: Dispatch) => {
-        axios(url)
+        apiBase(url)
             .then(({ data }) => {
                 dispatch(bidangActions.setDataBidang(data));
             })
@@ -39,7 +39,7 @@ export const fetchSingleData = (id: string) => {
     return async (dispatch: Dispatch) => {
 
         id &&
-            axios(`/api/bidang/${id}`)
+            apiBase(`/api/bidang/${id}`)
                 .then(({ data }) => {
                     dispatch(bidangActions.setData(data.data));
                 })

@@ -1,4 +1,4 @@
-import axios from "@/config/axios";
+import apiBase from "@/utils/axios";
 import { Dispatch, createSlice } from "@reduxjs/toolkit";
 import { toast } from "react-toastify";
 
@@ -71,7 +71,7 @@ export const fetchDataReagen = (
   url = "/api/permintaan-reagen?value_per_page=5",
 ) => {
   return async (dispatch: Dispatch) => {
-    axios(url)
+    apiBase(url)
       .then(({ data }) => {
         dispatch(permintaanActions.setDataReagen(data));
       })
@@ -81,7 +81,7 @@ export const fetchDataReagen = (
 
 export const fetchDataAtk = (url = "/api/permintaan-atk?value_per_page=5") => {
   return async (dispatch: Dispatch) => {
-    axios(url)
+    apiBase(url)
       .then(({ data }) => {
         dispatch(permintaanActions.setDataAtk(data));
       })
@@ -91,7 +91,7 @@ export const fetchDataAtk = (url = "/api/permintaan-atk?value_per_page=5") => {
 
 export const fetchListInventoryReagen = (idPermintaan: string) => {
   return async (dispatch: Dispatch) => {
-    axios(`/api/list-permintaan-reagen/${idPermintaan}`)
+    apiBase(`/api/list-permintaan-reagen/${idPermintaan}`)
       .then(({ data }) => {
         dispatch(permintaanActions.setListInventory(data.data));
       })
@@ -101,7 +101,7 @@ export const fetchListInventoryReagen = (idPermintaan: string) => {
 
 export const fetchListInventory = (idPermintaan: string) => {
   return async (dispatch: Dispatch) => {
-    axios(`/api/list-permintaan-atk/${idPermintaan}`)
+    apiBase(`/api/list-permintaan-atk/${idPermintaan}`)
       .then(({ data }) => {
         dispatch(permintaanActions.setListInventory(data.data));
       })
@@ -111,7 +111,7 @@ export const fetchListInventory = (idPermintaan: string) => {
 
 export const removeData = (idPermintaan: string) => {
   return async (dispatch: Dispatch) => {
-    axios
+    apiBase
       .delete(`/api/permintaan-reagen/${idPermintaan}`)
       .then(({ data }) => {
         toast.success(data.msg, {

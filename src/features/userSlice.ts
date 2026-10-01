@@ -1,4 +1,4 @@
-import axios from "@/config/axios";
+import apiBase from "@/utils/axios";
 import { Dispatch, createSlice } from "@reduxjs/toolkit";
 
 interface IUser {
@@ -56,7 +56,7 @@ export default userSlice.reducer
 
 export const fetchUsers = (url = '/api/users?value_per_page=5') => {
     return async (dispatch: Dispatch) => {
-        axios(url)
+        apiBase(url)
             .then(({ data }) => {
                 dispatch(userActions.setDataUsers(data));
             })
@@ -68,7 +68,7 @@ export const fetchUser = (id: string) => {
     return async (dispatch: Dispatch) => {
 
         id &&
-            axios(`/api/users/${id}`)
+            apiBase(`/api/users/${id}`)
                 .then(({ data }) => {
                     dispatch(userActions.setData(data.data));
                 })

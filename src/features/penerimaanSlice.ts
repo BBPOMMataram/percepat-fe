@@ -1,4 +1,4 @@
-import axios from "@/config/axios";
+import apiBase from "@/utils/axios";
 import { Dispatch, createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
@@ -34,7 +34,7 @@ export default penerimaanSlice.reducer
 
 export const fetchDataReagen = (url = '/api/penerimaan-reagen?value_per_page=5') => {
     return async (dispatch: Dispatch) => {
-        axios(url)
+        apiBase(url)
             .then(({ data }) => {
                 dispatch(penerimaanActions.setDataReagen(data));
             })
@@ -44,7 +44,7 @@ export const fetchDataReagen = (url = '/api/penerimaan-reagen?value_per_page=5')
 
 export const fetchDataAtk = (url = '/api/penerimaan-atk?value_per_page=5') => {
     return async (dispatch: Dispatch) => {
-        axios(url)
+        apiBase(url)
             .then(({ data }) => {
                 dispatch(penerimaanActions.setDataAtk(data));
             })
@@ -55,7 +55,7 @@ export const fetchDataAtk = (url = '/api/penerimaan-atk?value_per_page=5') => {
 export const fetchSingleData = (id: string) => {
     return async (dispatch: Dispatch) => {
         id &&
-            axios(`/api/penerimaan-reagen/${id}`)
+            apiBase(`/api/penerimaan-reagen/${id}`)
                 .then(({ data }) => {
                     dispatch(penerimaanActions.setSingleDataReagen(data.data));
                 })
@@ -66,7 +66,7 @@ export const fetchSingleData = (id: string) => {
 export const fetchSingleDataAtk = (id: string) => {
     return async (dispatch: Dispatch) => {
         id &&
-            axios(`/api/penerimaan-atk/${id}`)
+            apiBase(`/api/penerimaan-atk/${id}`)
                 .then(({ data }) => {
                     dispatch(penerimaanActions.setSingleDataAtk(data.data));
                 })

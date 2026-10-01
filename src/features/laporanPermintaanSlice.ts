@@ -1,4 +1,4 @@
-import axios from "@/config/axios";
+import apiBase from "@/utils/axios";
 import { Dispatch, createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
@@ -29,7 +29,7 @@ export default laporanPermintaanSlice.reducer
 
 export const fetchDataReagen = (url: string) => {
     return async (dispatch: Dispatch) => {
-        axios(url)
+        apiBase(url)
             .then(({ data }) => {
                 dispatch(laporanPermintaanActions.setDataReagen(data));
             })
@@ -39,7 +39,7 @@ export const fetchDataReagen = (url: string) => {
 
 export const fetchDataAtk = (url: string) => {
     return async (dispatch: Dispatch) => {
-        axios(url)
+        apiBase(url)
             .then(({ data }) => {
                 dispatch(laporanPermintaanActions.setDataAtk(data));
             })
