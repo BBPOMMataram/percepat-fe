@@ -28,9 +28,9 @@ export default function DashboardESapa() {
             setIsLoading(true);
             try {
                 const [dashRes, stRes, perjadinRes] = await Promise.all([
-                    api.get(`/api/dashboard`),
-                    api.get(`/api/st?limit=5`),
-                    api.get(`/api/perjadin?limit=5`).catch(() => ({ data: { data: [] } }))
+                    api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA}/api/dashboard`),
+                    api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA}/api/st?limit=5`),
+                    api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA}/api/perjadin?limit=5`).catch(() => ({ data: { data: [] } }))
                 ]);
 
                 if (dashRes.data && dashRes.data.data) {
