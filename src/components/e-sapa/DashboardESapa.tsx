@@ -51,7 +51,7 @@ export default function DashboardESapa() {
 
     return (
         <div className="py-8 px-4 sm:px-8 w-full max-w-full overflow-hidden">
-            <div className="max-w-[1400px] mx-auto">
+            <div className="max-w-1400px mx-auto">
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
                     <div>
                         <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500 mb-3">
