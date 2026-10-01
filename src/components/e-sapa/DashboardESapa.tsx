@@ -62,7 +62,7 @@ export default function DashboardESapa() {
                             <span className="bg-slate-200/60 px-3 py-1 rounded-full">T.A. {dayjs().format('YYYY')}</span>
                         </div>
                         <h1 className="text-2xl sm:text-3xl font-normal text-slate-800">
-                            Selamat Datang kembali, <span className="font-bold text-teal-700">{user?.name || 'Pengguna'}</span>.
+                            Selamat Datang, <span className="font-bold text-teal-700">{user?.name || 'Pengguna'}</span>.
                         </h1>
                     </div>
                 </div>
