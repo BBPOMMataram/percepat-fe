@@ -1,11 +1,11 @@
 "use client"
-import axios from "@/config/axios";
 import { showAlert } from "@/features/alertSlice";
 import { AppDispatch } from "@/redux/store";
 import { AppData } from "@/types/app-data";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import AppContainer from "./AppContainer";
+import apiBase from "@/utils/axios";
 
 // Skeleton card saat loading
 const CardSkeleton = () => (
@@ -41,7 +41,7 @@ export default function AppSection() {
 
         const fetchAppData = async () => {
             try {
-                const { data } = await axios(process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + '/api/site')
+                const { data } = await apiBase(process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + '/api/site')
                 if (isMounted) setDataApp(data.data)
             } catch (error) {
                 console.log("Error fetching app data:", error)
