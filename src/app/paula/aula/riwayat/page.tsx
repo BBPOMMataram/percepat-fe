@@ -1,4 +1,4 @@
-import RiwayatPengajuan from "@/components/paula/PaulaUserDashboard";
+import RiwayatPengajuan from "@/components/paula/aula/PaulaUserDashboard";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {

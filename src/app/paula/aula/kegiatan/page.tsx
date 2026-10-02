@@ -1,4 +1,4 @@
-import AulaKegiatan from "@/components/paula/AulaKegiatan";
+import AulaKegiatan from "@/components/paula/aula/AulaKegiatan";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {

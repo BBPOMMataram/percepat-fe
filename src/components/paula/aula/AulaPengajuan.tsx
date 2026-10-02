@@ -5,12 +5,17 @@ import { useState, useEffect } from "react";
 import api from "@/utils/api";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 
 export default function AulaPengajuan() {
     const router = useRouter();
+    
+    // Ambil data user yang sedang login dari Redux
+    const { user } = useSelector((state: RootState) => state.auth);
+    
     const [isLoading, setIsLoading] = useState(false);
     
-    // State dari Database Settings
     const [settings, setSettings] = useState({ max_booking_days: 7, max_peserta_besar: 100, max_peserta_kecil: 50 });
     
     const [formData, setFormData] = useState({
@@ -23,14 +28,12 @@ export default function AulaPengajuan() {
         pilihan: "", 
         peserta: "",
         jumlah_peserta: "",
-        penanggung_jawab: ""
+        // penanggung_jawab dihapus dari state karena akan disisipkan saat submit
     });
 
-    // State Peringatan Bentrok
     const [isTimeConflict, setIsTimeConflict] = useState(false);
     const [conflictMessage, setConflictMessage] = useState("");
 
-    // Form Custom Sarana
     const [sarana, setSarana] = useState<string[]>([]);
     const [customSaranaInput, setCustomSaranaInput] = useState("");
     const opsiSarana = ["Proyektor", "Kamera", "Zoom Meeting", "Sound System"];
@@ -48,7 +51,6 @@ export default function AulaPengajuan() {
         }
     };
 
-    // Fungsi Pengecekan Bentrok Waktu & Tempat
     const checkTimeAvailability = async (mulai: string, selesai: string, tanggal: string, aula: string) => {
         if (!mulai || !selesai || !tanggal || !aula) return;
         
@@ -95,7 +97,14 @@ export default function AulaPengajuan() {
         
         setIsLoading(true);
         try {
-            await api.post(`${baseURL}/api/paula/pengajuan`, { ...formData, sarana_prasarana: sarana });
+            // Sisipkan penanggung_jawab secara otomatis menggunakan nama user yang login
+            const payload = { 
+                ...formData, 
+                penanggung_jawab: user?.name || "User", 
+                sarana_prasarana: sarana 
+            };
+            
+            await api.post(`${baseURL}/api/paula/pengajuan`, payload);
             toast.success("Pengajuan berhasil dikirim!");
             router.push('/paula/aula'); 
         } catch (error) {
@@ -150,7 +159,6 @@ export default function AulaPengajuan() {
                     )}
                 </div>
 
-                {/* Banner Peringatan Bentrok */}
                 {isTimeConflict && (
                     <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-sm font-bold flex items-center gap-2">
                         <span className="material-symbols-outlined text-[20px]">error</span>
@@ -177,9 +185,8 @@ export default function AulaPengajuan() {
                         </datalist>
                     </div>
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Asal Peserta & Penanggung Jawab</label>
-                        <input type="text" required value={formData.peserta} onChange={e => setFormData({...formData, peserta: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 mb-3 outline-none focus:ring-2 focus:ring-blue-500" placeholder="Instansi/Asal Peserta..." />
-                        <input type="text" required value={formData.penanggung_jawab} onChange={e => setFormData({...formData, penanggung_jawab: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nama Penanggung Jawab..." />
+                        <label className="block text-sm font-bold text-slate-700 mb-2">Asal Peserta</label>
+                        <input type="text" required value={formData.peserta} onChange={e => setFormData({...formData, peserta: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500" placeholder="Instansi/Asal Peserta..." />
                     </div>
                 </div>
 

@@ -1,4 +1,4 @@
-import AulaDashboard from "@/components/paula/AulaDashboard";
+import AulaDashboard from "@/components/paula/aula/AulaDashboard";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {

@@ -1,4 +1,4 @@
-import AulaKalender from "@/components/paula/AulaKalender";
+import AulaKalender from "@/components/paula/aula/AulaKalender";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
