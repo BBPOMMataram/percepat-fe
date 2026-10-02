@@ -1,33 +1,92 @@
-name: Deploy BBPOM Mataram
+name: Deploy Next.js
 
 on:
   push:
-    branches: [main]
+    branches: ["main"]
 
 jobs:
-  deploy:
+  build_and_deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy ke VPS via SSH
-        uses: appleboy/ssh-action@v0.1.7
+      # 1️⃣ Checkout repo
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2️⃣ Detect perubahan dependency (Ganti ke bun.lockb)
+      - name: Check dependency changes
+        id: deps
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            deps:
+              - 'package.json'
+              - 'bun.lockb'
+
+      # 3️⃣ Setup Bun
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      # 4️⃣ Install dependencies (Pakai Bun)
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # 5️⃣ Build Next.js (Pakai Bun)
+      - name: Build project
+        run: bun run build
+        env:
+          NEXT_PUBLIC_BACKEND_URL_PERCEPAT: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_PERCEPAT }}
+          NEXT_PUBLIC_BACKEND_URL_AUTH: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_AUTH }}
+          NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_SIAP_MELAYANI }}
+          NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_SIMPEL_BMN }}
+          NEXT_PUBLIC_BACKEND_URL_BEST_EMPLOYEE: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_BEST_EMPLOYEE }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
+          NEXT_PUBLIC_BACKEND_URL_ESAPA: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_ESAPA }}
+          NEXT_PUBLIC_BACKEND_URL_ETAMU: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_ETAMU }}
+
+      # 6️⃣ Upload build ke VPS (Ganti package-lock ke bun.lockb)
+      - name: Upload build to VPS
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: 56710
-          command_timeout: 30m
+          source: ".next,public,package.json,bun.lockb,ecosystem.config.js,next.config.js"
+          target: "/home/bbpommataram.id/PERCEPAT"
+
+      # 7️⃣ Install dependency jika berubah + restart PM2
+      - name: Restart PM2
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 56710
           script: |
-            cd /tmp/percepat-fe
-            
-            git fetch origin main
-            git reset --hard origin/main
-            
-            npm ci
-            
-            NODE_OPTIONS="--max-old-space-size=8192" npx next build
-            
-            cp -r .next /home/bbpommataram.id/PERCEPAT/.next
-            chown -R cyberpanel:cyberpanel /home/bbpommataram.id/PERCEPAT/.next
+            # 1. Definisikan folder bin Node secara eksplisit
+            NODE_BIN="/root/.nvm/versions/node/v22.14.0/bin"
+            BUN_BIN="$HOME/.bun/bin"
+
+            # 2. Masukkan ke PATH agar sistem bisa menemukan 'node', 'pm2', dan 'bun'
+            export PATH="$NODE_BIN:$BUN_BIN:$PATH"
+
+            # 3. Verifikasi (opsional, untuk debug di log GitHub)
+            node -v
+            pm2 -v
+
             cd /home/bbpommataram.id/PERCEPAT
-            pm2 restart percepat
+
+            # 4. Install jika ada perubahan
+            if [ "${{ steps.deps.outputs.deps }}" = "true" ]; then
+              echo "Dependencies changed → installing"
+              bun install --production
+            else
+              echo "Dependencies unchanged → skip install"
+            fi
+
+            # 5. Restart PM2 (Sekarang bisa panggil langsung karena PATH sudah di-export)
+            pm2 startOrRestart ecosystem.config.js
