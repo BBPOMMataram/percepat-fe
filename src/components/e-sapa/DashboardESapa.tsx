@@ -100,7 +100,7 @@ export default function DashboardESapa() {
                         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
                             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
                                 <div>
-                                    <h3 className="text-lg font-bold text-slate-800">Daftar Surat Tugas Terbaru</h3>
+                                    <h3 className="text-lg font-bold text-slate-800">Surat Tugas Terbaru</h3>
                                     <p className="text-sm text-slate-500 mt-0.5">Berkas penugasan dinas yang terakhir kali ditambahkan</p>
                                 </div>
                             </div>
@@ -163,7 +163,7 @@ export default function DashboardESapa() {
                         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col mb-8">
                             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
                                 <div>
-                                    <h3 className="text-lg font-bold text-slate-800">Daftar Perjalanan Dinas Terbaru</h3>
+                                    <h3 className="text-lg font-bold text-slate-800">Perjalanan Dinas Terbaru</h3>
                                     <p className="text-sm text-slate-500 mt-0.5">Monitoring status laporan perjalanan dinas</p>
                                 </div>
                             </div>

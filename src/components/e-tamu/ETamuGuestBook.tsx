@@ -276,7 +276,7 @@ export default function ETamuGuestBook() {
                 <h1 className="text-black font-bold text-3xl">E Tamu - BBPOM di Mataram</h1>
             </header>
 
-            <div className="w-full max-w-[1400px] mx-auto px-4 md:px-8 flex-1 flex flex-col justify-center">
+            <div className="w-full max-w-1400px mx-auto px-4 md:px-8 flex-1 flex flex-col justify-center">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                     
                     <div className="lg:col-span-4 flex flex-col gap-6">

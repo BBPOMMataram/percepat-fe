@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect } from "react";
@@ -26,7 +27,7 @@ export default function DashboardESemu() {
     // FUNGSI LOGOUT DAN KEMBALI KE PORTAL UTAMA
     const handleLogout = async () => {
         try {
-            const authURL = process.env.NEXT_PUBLIC_BACKEND_URL_AUTH || 'http://localhost:8000';
+            const authURL = process.env.NEXT_PUBLIC_BACKEND_URL_AUTH;
             // Menembak endpoint logout pada Auth Central
             await api.post(`${authURL}/api/logout`);
         } catch (error) {
