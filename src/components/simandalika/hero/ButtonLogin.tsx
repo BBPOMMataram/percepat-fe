@@ -30,7 +30,7 @@ const ButtonLogin = () => {
     <StyledWrapper>
       {user ? (
         <div className="user-profile-box">
-          <span className="user-name">{user.name}</span>
+          <span className="user-name text-lg font-bold">Hai, {user.call_name}</span>
           <button onClick={handleLogout} className="logout-button" type="button">
             Logout
           </button>
@@ -64,8 +64,8 @@ const StyledWrapper = styled.div`
   }
 
   .user-name {
-    font-size: 13px;
-    font-weight: 800;
+    // font-size: 13px;
+    // font-weight: 800;
     color: #004281;
     text-align: center;
     width: 100%;
