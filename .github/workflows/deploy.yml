@@ -46,6 +46,7 @@ jobs:
           NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
           NEXT_PUBLIC_BACKEND_URL_ESAPA: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_ESAPA }}
           NEXT_PUBLIC_BACKEND_URL_ETAMU: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_ETAMU }}
+          NEXT_PUBLIC_BACKEND_URL_PAULA: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_PAULA }}
 
       # 6️⃣ Upload build ke VPS (Ganti package-lock ke bun.lockb)
       - name: Upload build to VPS
