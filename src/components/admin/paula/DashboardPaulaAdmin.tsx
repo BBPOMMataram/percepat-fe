@@ -126,7 +126,6 @@ export default function DashboardPaulaAdmin() {
         } catch (error) { toast.error("Gagal memberikan izin edit"); }
     };
 
-    // ================== LOGIKA MOBIL ==================
     const handleApproveMobil = async (id: number) => {
         try {
             await api.patch(`${baseURL}/api/paula/admin/mobil/approve-pengajuan/${id}`);
