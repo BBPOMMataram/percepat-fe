@@ -4,7 +4,7 @@ module.exports = {
             name: "percepat",
             script: "node_modules/next/dist/bin/next",
             args: "start -p 3002",
-            cwd: "/tmp/percepat-fe",
+            cwd: "/home/bbpommataram.id/PERCEPAT",
             instances: 1,
             exec_mode: "fork",
             autorestart: true,
