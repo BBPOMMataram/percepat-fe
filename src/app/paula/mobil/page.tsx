@@ -1,4 +1,4 @@
-import MobilDashboard from "@/components/paula/MobilDashboard";
+import MobilDashboard from "@/components/paula/mobil/MobilDashboard";
 import PaulaLayout from "@/components/paula/layout/PaulaAulaLayout";
 import { Metadata } from "next";
 

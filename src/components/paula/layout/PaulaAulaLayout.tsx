@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useRouter, usePathname } from "next/navigation";
 import { RootState, AppDispatch } from "@/redux/store";
 import { getUser } from "@/features/authSlice";
-import api from "@/utils/api";
+import api from "@/utils/axios";
 import PaulaSidebar from "./PaulaSidebar";
 import PaulaNavbar from "./PaulaNavbar";
 
@@ -33,9 +33,8 @@ export default function PaulaAulaLayout({ children }: { children: ReactNode }) {
         const syncDataToPaula = async () => {
             if (user) {
                 try {
-                    const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_PAULA || 'http://localhost:8000';
                     // Kirim payload data user dari Auth Central ke backend PAULA
-                    await api.post(`${baseURL}/api/paula/sync-user`, user);
+                    await api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_PAULA}/api/paula/sync-user`, user);
                 } catch (error) {
                     console.error("Gagal sinkronisasi user ke PAULA", error);
                 } finally {

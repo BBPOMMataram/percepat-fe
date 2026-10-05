@@ -30,33 +30,41 @@ export default function PerjadinComponent() {
     const [petugasList, setPetugasList] = useState<any[]>([]);
     const [editId, setEditId] = useState<number | null>(null);
 
-    const fetchData = useCallback((url?: string) => {
+    const fetchData = useCallback(async (url?: string) => {
         setLoading(true);
         const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
         let endpoint = url || `${baseURL}/api/perjadin?page=${currentPage}&value_per_page=${perPage}&name=${activeSearch}`;
 
-        api.get(endpoint)
-            .then((res) => {
-                const responseData = res.data;
-                if (Array.isArray(responseData)) {
-                    setPerjadinData(responseData);
-                } else if (Array.isArray(responseData?.data)) {
-                    setPerjadinData(responseData.data);
-                    setPaginationData(responseData);
-                }
-                setLoading(false);
-            })
-            .catch((err) => {
-                console.error("Gagal mengambil data:", err);
-                setPerjadinData([]);
-                setLoading(false);
-            });
+        try {
+            const res = await api.get(endpoint);
+            const responseData = res.data;
+            if (Array.isArray(responseData)) {
+                setPerjadinData(responseData);
+            } else if (Array.isArray(responseData?.data)) {
+                setPerjadinData(responseData.data);
+                setPaginationData(responseData);
+            }
+        } catch (err) {
+            console.error("Gagal mengambil data:", err);
+            setPerjadinData([]);
+        } finally {
+            setLoading(false);
+        }
     }, [currentPage, perPage, activeSearch]);
 
     useEffect(() => {
         fetchData();
         const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
-        api.get(`${baseURL}/api/st?limit=1000`).then(res => setOptSuratTugas(res.data?.data || res.data));
+        
+        const fetchOptSuratTugas = async () => {
+            try {
+                const res = await api.get(`${baseURL}/api/st?limit=1000`);
+                setOptSuratTugas(res.data?.data || res.data);
+            } catch (err) {
+                console.error("Gagal mengambil data ST opsi:", err);
+            }
+        };
+        fetchOptSuratTugas();
     }, [fetchData]);
 
     const handleSearchSubmit = (e: React.FormEvent) => {
@@ -132,15 +140,16 @@ export default function PerjadinComponent() {
         setIsFormOpen(true);
     };
 
-    const handleDelete = (id: number) => {
+    const handleDelete = async (id: number) => {
         if (window.confirm("Apakah Anda yakin ingin menghapus item ini?")) {
             const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
-            api.delete(`${baseURL}/api/perjadin/${id}`)
-                .then((res) => {
-                    toast.success(res.data?.msg || "Data berhasil dihapus");
-                    fetchData();
-                })
-                .catch((err) => toast.error("Gagal menghapus data"));
+            try {
+                const res = await api.delete(`${baseURL}/api/perjadin/${id}`);
+                toast.success(res.data?.msg || "Data berhasil dihapus");
+                fetchData();
+            } catch (err) {
+                toast.error("Gagal menghapus data");
+            }
         }
     };
 
@@ -178,7 +187,7 @@ export default function PerjadinComponent() {
         setPetugasList(arr);
     };
 
-    const handleFormSubmit = (e: React.FormEvent) => {
+    const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
         if (petugasList.length === 0) {
@@ -225,20 +234,21 @@ export default function PerjadinComponent() {
         }
 
         const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
-        const request = editId 
-            ? api.put(`${baseURL}/api/perjadin/${editId}`, payload)
-            : api.post(`${baseURL}/api/perjadin`, payload);
+        
+        try {
+            const request = editId 
+                ? api.put(`${baseURL}/api/perjadin/${editId}`, payload)
+                : api.post(`${baseURL}/api/perjadin`, payload);
 
-        request
-            .then((res) => {
-                toast.success(res.data?.msg || "Data berhasil disimpan");
-                setIsFormOpen(false);
-                fetchData();
-            })
-            .catch((err) => {
-                toast.error(err.response?.data?.message || "Gagal menyimpan data");
-            })
-            .finally(() => setIsSubmitting(false));
+            const res = await request;
+            toast.success(res.data?.msg || "Data berhasil disimpan");
+            setIsFormOpen(false);
+            fetchData();
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Gagal menyimpan data");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const getStartingNumber = () => {

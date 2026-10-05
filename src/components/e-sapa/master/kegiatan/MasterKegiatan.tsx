@@ -25,34 +25,32 @@ export default function MasterKegiatan() {
         maksud_tugas: ""
     });
 
-    const fetchData = useCallback((url?: string) => {
+    const fetchData = useCallback(async (url?: string) => {
         setLoading(true);
-        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
-        let endpoint = url || `${baseURL}/api/kegiatan?page=${currentPage}&value_per_page=${perPage}&name=${activeSearch}`;
+        const endpoint = url || `${process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA}/api/kegiatan?page=${currentPage}&value_per_page=${perPage}&name=${activeSearch}`;
 
-        api.get(endpoint)
-            .then((res) => {
-                const responseData = res.data;
-                if (Array.isArray(responseData)) {
-                    setKegiatan(responseData);
-                    setTotalData(responseData.length);
-                } else if (Array.isArray(responseData?.data)) {
-                    setKegiatan(responseData.data);
-                    setPaginationData(responseData);
-                    setTotalData(responseData?.meta?.total || responseData?.total || responseData.data.length);
-                } else if (Array.isArray(responseData?.data?.data)) {
-                    setKegiatan(responseData.data.data);
-                    setPaginationData(responseData.data);
-                    setTotalData(responseData.data?.meta?.total || responseData.data?.total || responseData.data.data.length);
-                }
-                setLoading(false);
-            })
-            .catch((err) => {
-                console.error("Gagal mengambil data kegiatan:", err);
-                toast.error("Gagal mengambil data kegiatan");
-                setKegiatan([]);
-                setLoading(false);
-            });
+        try {
+            const res = await api.get(endpoint);
+            const responseData = res.data;
+            if (Array.isArray(responseData)) {
+                setKegiatan(responseData);
+                setTotalData(responseData.length);
+            } else if (Array.isArray(responseData?.data)) {
+                setKegiatan(responseData.data);
+                setPaginationData(responseData);
+                setTotalData(responseData?.meta?.total || responseData?.total || responseData.data.length);
+            } else if (Array.isArray(responseData?.data?.data)) {
+                setKegiatan(responseData.data.data);
+                setPaginationData(responseData.data);
+                setTotalData(responseData.data?.meta?.total || responseData.data?.total || responseData.data.data.length);
+            }
+        } catch (err) {
+            console.error("Gagal mengambil data kegiatan:", err);
+            toast.error("Gagal mengambil data kegiatan");
+            setKegiatan([]);
+        } finally {
+            setLoading(false);
+        }
     }, [currentPage, perPage, activeSearch]);
 
     useEffect(() => {
@@ -86,22 +84,20 @@ export default function MasterKegiatan() {
         setIsFormOpen(true);
     };
 
-    const handleDelete = (id: number) => {
+    const handleDelete = async (id: number) => {
         if (window.confirm("Apakah Anda yakin ingin menghapus item ini?")) {
-            const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
-            api.delete(`${baseURL}/api/kegiatan/${id}`)
-                .then((res) => {
-                    toast.success(res.data?.msg || "Data berhasil dihapus");
-                    fetchData();
-                })
-                .catch((err) => {
-                    console.error(err);
-                    toast.error(err.response?.data?.message || "Gagal menghapus data");
-                });
+            try {
+                const res = await api.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA}/api/kegiatan/${id}`);
+                toast.success(res.data?.msg || "Data berhasil dihapus");
+                fetchData();
+            } catch (err: any) {
+                console.error(err);
+                toast.error(err.response?.data?.message || "Gagal menghapus data");
+            }
         }
     };
 
-    const handleFormSubmit = (e: React.FormEvent) => {
+    const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
 
@@ -111,24 +107,21 @@ export default function MasterKegiatan() {
             maksudTugas: formData.maksud_tugas
         };
 
-        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
-        const request = formData.id 
-            ? api.put(`${baseURL}/api/kegiatan/${formData.id}`, payload)
-            : api.post(`${baseURL}/api/kegiatan`, payload);
-
-        request
-            .then((res) => {
-                toast.success(res.data?.msg || "Data berhasil disimpan");
-                setIsFormOpen(false);
-                fetchData();
-            })
-            .catch((err) => {
-                console.error(err);
-                toast.error(err.response?.data?.message || "Gagal menyimpan data");
-            })
-            .finally(() => {
-                setIsSubmitting(false);
-            });
+        try {
+            const request = formData.id 
+                ? api.put(`${process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA}/api/kegiatan/${formData.id}`, payload)
+                : api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA}/api/kegiatan`, payload);
+            
+            const res = await request;
+            toast.success(res.data?.msg || "Data berhasil disimpan");
+            setIsFormOpen(false);
+            fetchData();
+        } catch (err: any) {
+            console.error(err);
+            toast.error(err.response?.data?.message || "Gagal menyimpan data");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const getStartingNumber = () => {

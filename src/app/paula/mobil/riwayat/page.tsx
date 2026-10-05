@@ -1,4 +1,4 @@
-import RiwayatMobil from "@/components/paula/mobil/RiwayatMobil";
+import MobilRiwayat from "@/components/paula/mobil/MobilRiwayat";
 import PaulaLayout from "@/components/paula/layout/PaulaAulaLayout";
 import { Metadata } from "next";
 
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function RiwayatMobilPage() {
     return (
         <PaulaLayout>
-            <RiwayatMobil />
+            <MobilRiwayat />
         </PaulaLayout>
     );
 }

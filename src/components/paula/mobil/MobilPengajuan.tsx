@@ -23,27 +23,28 @@ export default function MobilPengajuan() {
         kendaraan: "",
         driver: "",
         jumlah_penumpang: "",
-        daftar_penumpang: "",
-        penanggung_jawab: ""
     });
 
     const [isTimeConflict, setIsTimeConflict] = useState(false);
     const [conflictMessage, setConflictMessage] = useState("");
 
-    const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_PAULA;
 
     useEffect(() => {
-        api.get(`${baseURL}/api/paula/mobils`)
-            .then(res => setMobils(res.data.data || res.data))
-            .catch(() => {
+        const fetchMobils = async () => {
+            try {
+                const res = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PAULA}/api/paula/mobils`);
+                setMobils(res.data.data || res.data);
+            } catch (error) {
                 setMobils([
                     { nama: 'Toyota Innova Reborn (Hitam)', kapasitas: 7 },
                     { nama: 'Toyota Avanza Veloz (Putih)', kapasitas: 6 },
                     { nama: 'Mitsubishi Xpander (Silver)', kapasitas: 6 },
                     { nama: 'Toyota Hiace Commuter (Putih)', kapasitas: 15 }
                 ]);
-            });
-    }, [baseURL]);
+            }
+        };
+        fetchMobils();
+    }, []);
 
     const checkTimeAvailability = async (pinjam: string, kembali: string, kendaraan: string) => {
         if (!pinjam || !kendaraan) return;
@@ -58,7 +59,7 @@ export default function MobilPengajuan() {
         }
 
         try {
-            const res = await api.get(`${baseURL}/api/paula/mobil/check-time`, {
+            const res = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PAULA}/api/paula/mobil/check-time`, {
                 params: { tanggal_pinjam: pinjam, tanggal_kembali: tglKembali, kendaraan }
             });
             if (!res.data.valid) {
@@ -94,7 +95,9 @@ export default function MobilPengajuan() {
         
         setIsLoading(true);
         try {
-            await api.post(`${baseURL}/api/paula/mobil/pengajuan`, formData);
+            // Karena daftar_penumpang dihapus dari UI tapi required di backend, kirim string default
+            const payload = { ...formData, daftar_penumpang: '-' };
+            await api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_PAULA}/api/paula/mobil/pengajuan`, payload);
             toast.success("Pengajuan kendaraan berhasil dikirim!");
             router.push('/paula/mobil/riwayat'); 
         } catch (error) {
@@ -146,7 +149,7 @@ export default function MobilPengajuan() {
                         <input type="date" min={new Date().toISOString().split('T')[0]} required value={formData.tanggal_pinjam} onChange={e => setFormData({...formData, tanggal_pinjam: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500" />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Tanggal Kembali (Opsional)</label>
+                        <label className="block text-sm font-bold text-slate-700 mb-2">Tanggal Kembali (Kosongkan jika belum pasti)</label>
                         <input type="date" min={formData.tanggal_pinjam || new Date().toISOString().split('T')[0]} value={formData.tanggal_kembali} onChange={e => setFormData({...formData, tanggal_kembali: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500" />
                     </div>
                 </div>
@@ -169,25 +172,14 @@ export default function MobilPengajuan() {
                     </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-6">
-                    <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Jumlah Penumpang</label>
-                        <input type="number" min="1" required value={formData.jumlah_penumpang} onChange={e => setFormData({...formData, jumlah_penumpang: e.target.value})} className={`w-full bg-white border ${isOverCapacity ? 'border-red-500' : 'border-slate-200'} rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500`} />
-                        {isOverCapacity && <p className="text-red-500 text-xs mt-2 font-bold">Melebihi kapasitas mobil ({maxAllowedPenumpang} org)!</p>}
-                    </div>
-                    <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">Penanggung Jawab</label>
-                        <input type="text" required value={formData.penanggung_jawab} onChange={e => setFormData({...formData, penanggung_jawab: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Nama Penanggung Jawab..." />
-                    </div>
-                </div>
-
                 <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Daftar Penumpang</label>
-                    <textarea required value={formData.daftar_penumpang} onChange={e => setFormData({...formData, daftar_penumpang: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 min-h-[100px]" placeholder="1. Nama Penumpang 1&#10;2. Nama Penumpang 2"></textarea>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Jumlah Penumpang</label>
+                    <input type="number" min="1" required value={formData.jumlah_penumpang} onChange={e => setFormData({...formData, jumlah_penumpang: e.target.value})} className={`w-1/2 bg-white border ${isOverCapacity ? 'border-red-500' : 'border-slate-200'} rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500`} />
+                    {isOverCapacity && <p className="text-red-500 text-xs mt-2 font-bold">Melebihi kapasitas mobil ({maxAllowedPenumpang} org)!</p>}
                 </div>
 
                 <div className="pt-4 border-t flex justify-end">
-                    <button type="submit" disabled={isLoading || isTimeConflict || !!isOverCapacity} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-xl disabled:opacity-50 transition-colors">
+                    <button type="submit" disabled={isLoading || isTimeConflict || !!isOverCapacity} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-xl disabled:opacity-50 transition-colors cursor-pointer">
                         {isLoading ? 'Memproses...' : 'Kirim Pengajuan Mobil'}
                     </button>
                 </div>

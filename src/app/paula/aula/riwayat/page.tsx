@@ -1,4 +1,4 @@
-import RiwayatPengajuan from "@/components/paula/aula/PaulaUserDashboard";
+import AulaRiwayat from "@/components/paula/aula/AulaRiwayat";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -6,5 +6,5 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-    return <RiwayatPengajuan />;
+    return <AulaRiwayat />;
 }

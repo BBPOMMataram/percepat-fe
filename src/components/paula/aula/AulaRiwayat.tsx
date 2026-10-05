@@ -2,11 +2,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import api from "@/utils/api";
+import api from "@/utils/axios";
 import { toast } from "react-toastify";
 import Link from "next/link";
 
-export default function PaulaUserDashboard() {
+export default function AulaRiwayat() {
     const [pengajuans, setPengajuans] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -35,12 +35,11 @@ export default function PaulaUserDashboard() {
     const [customSaranaInput, setCustomSaranaInput] = useState("");
     const opsiSarana = ["Proyektor", "Kamera", "Zoom Meeting", "Sound System"];
 
-    const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_PAULA || 'http://localhost:8000';
 
     const fetchUserPengajuan = async () => {
         setIsLoading(true);
         try {
-            const res = await api.get(`${baseURL}/api/paula/user/dashboard`);
+            const res = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PAULA}/api/paula/user/dashboard`);
             setPengajuans(res.data.pengajuans);
         } catch (error) {
             toast.error("Gagal mengambil riwayat pengajuan");
@@ -50,14 +49,22 @@ export default function PaulaUserDashboard() {
     };
 
     useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const res = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PAULA}/api/paula/settings`);
+                setSettings(res.data);
+            } catch (error) {
+                console.error(error);
+            }
+        };
         fetchUserPengajuan();
-        api.get(`${baseURL}/api/paula/settings`).then(res => setSettings(res.data)).catch(console.error);
-    }, [baseURL]);
+        fetchSettings();
+    }, []);
 
     const handleRequestEdit = async (id: number) => {
         if (!confirm("Ajukan permintaan izin edit ke Admin?")) return;
         try {
-            await api.post(`${baseURL}/api/paula/user/edit-request/${id}`);
+            await api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_PAULA}/api/paula/user/edit-request/${id}`);
             toast.success("Permintaan edit berhasil dikirim ke Admin");
             fetchUserPengajuan();
         } catch (error) {
@@ -75,7 +82,7 @@ export default function PaulaUserDashboard() {
         }
 
         try {
-            const res = await api.get(`${baseURL}/api/paula/check-time`, {
+            const res = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PAULA}/api/paula/check-time`, {
                 params: { tanggal, waktu_mulai: mulai, waktu_selesai: selesai, aula, exclude_id: excludeId }
             });
             if (!res.data.valid) {
@@ -140,7 +147,7 @@ export default function PaulaUserDashboard() {
         setIsSaving(true);
         try {
             const payload = { ...formData, sarana_prasarana: sarana };
-            await api.put(`${baseURL}/api/paula/pengajuan/${selectedId}`, payload);
+            await api.put(`${process.env.NEXT_PUBLIC_BACKEND_URL_PAULA}/api/paula/pengajuan/${selectedId}`, payload);
             toast.success("Pengajuan berhasil diperbarui!");
             setEditModalOpen(false);
             fetchUserPengajuan();
@@ -153,7 +160,7 @@ export default function PaulaUserDashboard() {
 
     const handleDismissNotification = async (id: number) => {
         try {
-            await api.patch(`${baseURL}/api/paula/user/dismiss-notification/${id}`);
+            await api.patch(`${process.env.NEXT_PUBLIC_BACKEND_URL_PAULA}/api/paula/user/dismiss-notification/${id}`);
             fetchUserPengajuan();
         } catch (error) {
             toast.error("Gagal menghapus notifikasi");
@@ -163,7 +170,7 @@ export default function PaulaUserDashboard() {
     const handleDelete = async (id: number) => {
         if (!confirm("Batalkan/hapus pengajuan ini?")) return;
         try {
-            await api.delete(`${baseURL}/api/paula/user/pengajuan/${id}`);
+            await api.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL_PAULA}/api/paula/user/pengajuan/${id}`);
             toast.success("Pengajuan dihapus");
             fetchUserPengajuan();
         } catch (error) {

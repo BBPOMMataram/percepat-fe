@@ -37,15 +37,19 @@ export default function LayoutESapa({ children }: { children: React.ReactNode })
                 const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
                 
                 // Gunakan util 'api' agar Token JWT otomatis terlampir dan bisa lolos dari AuthenticateWithJwt
-                api.post(`${baseURL}/api/sync-user`, {
-                    name: user.name,
-                    email: user.email
-                })
-                .then(res => console.log("Berhasil sinkronisasi user:", res.data))
-                .catch(err => {
-                    console.error("Gagal sinkronisasi user:", err);
-                    isSyncedRef.current = false; // Buka kunci lagi jika gagal agar bisa dicoba ulang
-                });
+                const syncUser = async () => {
+                    try {
+                        const res = await api.post(`${baseURL}/api/sync-user`, {
+                            name: user.name,
+                            email: user.email
+                        });
+                        console.log("Berhasil sinkronisasi user:", res.data);
+                    } catch (err) {
+                        console.error("Gagal sinkronisasi user:", err);
+                        isSyncedRef.current = false; // Buka kunci lagi jika gagal agar bisa dicoba ulang
+                    }
+                };
+                syncUser();
             }
         }
     }, [user, loading, router, pathname]);

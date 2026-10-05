@@ -32,34 +32,33 @@ export default function MasterPetugas() {
         level: "Operator"
     });
 
-    const fetchData = useCallback((url?: string) => {
+    const fetchData = useCallback(async (url?: string) => {
         setLoading(true);
         const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
         let endpoint = url || `${baseURL}/api/petugas?page=${currentPage}&value_per_page=${perPage}&name=${activeSearch}`;
 
-        api.get(endpoint)
-            .then((res) => {
-                const responseData = res.data;
-                if (Array.isArray(responseData)) {
-                    setPetugas(responseData);
-                    setTotalData(responseData.length);
-                } else if (Array.isArray(responseData?.data)) {
-                    setPetugas(responseData.data);
-                    setPaginationData(responseData);
-                    setTotalData(responseData?.meta?.total || responseData?.total || responseData.data.length);
-                } else if (Array.isArray(responseData?.data?.data)) {
-                    setPetugas(responseData.data.data);
-                    setPaginationData(responseData.data);
-                    setTotalData(responseData.data?.meta?.total || responseData.data?.total || responseData.data.data.length);
-                }
-                setLoading(false);
-            })
-            .catch((err) => {
-                console.error("Gagal mengambil data petugas:", err);
-                toast.error("Gagal mengambil data petugas");
-                setPetugas([]);
-                setLoading(false);
-            });
+        try {
+            const res = await api.get(endpoint);
+            const responseData = res.data;
+            if (Array.isArray(responseData)) {
+                setPetugas(responseData);
+                setTotalData(responseData.length);
+            } else if (Array.isArray(responseData?.data)) {
+                setPetugas(responseData.data);
+                setPaginationData(responseData);
+                setTotalData(responseData?.meta?.total || responseData?.total || responseData.data.length);
+            } else if (Array.isArray(responseData?.data?.data)) {
+                setPetugas(responseData.data.data);
+                setPaginationData(responseData.data);
+                setTotalData(responseData.data?.meta?.total || responseData.data?.total || responseData.data.data.length);
+            }
+        } catch (err) {
+            console.error("Gagal mengambil data petugas:", err);
+            toast.error("Gagal mengambil data petugas");
+            setPetugas([]);
+        } finally {
+            setLoading(false);
+        }
     }, [currentPage, perPage, activeSearch]);
 
     useEffect(() => {
@@ -105,22 +104,21 @@ export default function MasterPetugas() {
         setIsShowOpen(true);
     };
 
-    const handleDelete = (id: number) => {
+    const handleDelete = async (id: number) => {
         if (window.confirm("Apakah Anda yakin ingin menghapus petugas ini?")) {
             const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
-            api.delete(`${baseURL}/api/petugas/${id}`)
-                .then((res) => {
-                    toast.success(res.data?.message || res.data?.msg || "Data berhasil dihapus");
-                    fetchData();
-                })
-                .catch((err) => {
-                    console.error(err);
-                    toast.error(err.response?.data?.message || "Gagal menghapus data");
-                });
+            try {
+                const res = await api.delete(`${baseURL}/api/petugas/${id}`);
+                toast.success(res.data?.message || res.data?.msg || "Data berhasil dihapus");
+                fetchData();
+            } catch (err: any) {
+                console.error(err);
+                toast.error(err.response?.data?.message || "Gagal menghapus data");
+            }
         }
     };
 
-    const handleFormSubmit = (e: React.FormEvent) => {
+    const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
 
@@ -135,23 +133,22 @@ export default function MasterPetugas() {
         };
 
         const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
-        const request = formData.id 
-            ? api.put(`${baseURL}/api/petugas/${formData.id}`, payload)
-            : api.post(`${baseURL}/api/petugas`, payload);
-
-        request
-            .then((res) => {
-                toast.success(res.data?.message || res.data?.msg || "Data berhasil disimpan");
-                setIsFormOpen(false);
-                fetchData();
-            })
-            .catch((err) => {
-                console.error(err);
-                toast.error(err.response?.data?.message || "Gagal menyimpan data");
-            })
-            .finally(() => {
-                setIsSubmitting(false);
-            });
+        
+        try {
+            const request = formData.id 
+                ? api.put(`${baseURL}/api/petugas/${formData.id}`, payload)
+                : api.post(`${baseURL}/api/petugas`, payload);
+            
+            const res = await request;
+            toast.success(res.data?.message || res.data?.msg || "Data berhasil disimpan");
+            setIsFormOpen(false);
+            fetchData();
+        } catch (err: any) {
+            console.error(err);
+            toast.error(err.response?.data?.message || "Gagal menyimpan data");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const getStartingNumber = () => {

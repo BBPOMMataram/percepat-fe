@@ -4,8 +4,8 @@
 import { useEffect, useState } from "react";
 import api from "@/utils/axios";
 
-export default function AulaKegiatan() {
-    const [kegiatans, setKegiatans] = useState<any[]>([]);
+export default function MobilJadwal() {
+    const [jadwals, setJadwals] = useState<any[]>([]);
     const [sort, setSort] = useState("tanggal_pengajuan");
     const [direction, setDirection] = useState("desc");
     const [page, setPage] = useState(1);
@@ -13,31 +13,29 @@ export default function AulaKegiatan() {
     const [isLoading, setIsLoading] = useState(true);
 
 
-    const fetchKegiatans = async () => {
+    const fetchJadwals = async () => {
         setIsLoading(true);
         try {
-            const res = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PAULA}/api/paula/kegiatan`, {
+            const res = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PAULA}/api/paula/mobil/jadwal`, {
                 params: { sort, direction, page }
             });
-            // Respons dari Laravel paginate() memiliki data di dalam property 'data'
-            setKegiatans(res.data.data);
+            setJadwals(res.data.data);
             setTotalPages(res.data.last_page);
         } catch (error) {
-            console.error("Gagal mengambil daftar kegiatan", error);
+            console.error("Gagal mengambil daftar jadwal mobil", error);
         } finally {
             setIsLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchKegiatans();
+        fetchJadwals();
     }, [sort, direction, page]);
 
     const toggleDirection = () => {
         setDirection(prev => prev === "desc" ? "asc" : "desc");
     };
 
-    // Fungsi format tanggal ke bahasa Indonesia
     const formatDate = (dateString: string) => {
         if (!dateString) return "-";
         const date = new Date(dateString);
@@ -50,10 +48,10 @@ export default function AulaKegiatan() {
     };
 
     return (
-        <div className="max-w-screen-xl mx-auto animate-in fade-in duration-500">
+        <div className="max-w-screen-xl mx-auto animate-in fade-in duration-500 pb-10">
             <div className="mb-6 md:mb-8">
-                <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">Daftar Kegiatan Aula</h1>
-                <p className="text-slate-500 mt-1 font-medium">Seluruh kegiatan peminjaman aula BBPOM Mataram yang telah disetujui.</p>
+                <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">Jadwal Peminjaman Mobil</h1>
+                <p className="text-slate-500 mt-1 font-medium">Daftar seluruh jadwal penggunaan kendaraan operasional yang telah disetujui.</p>
             </div>
 
             <div className="bg-white border border-slate-200 shadow-sm rounded-3xl overflow-hidden">
@@ -63,19 +61,19 @@ export default function AulaKegiatan() {
                     <div className="flex items-center gap-3 w-full sm:w-auto">
                         <label className="text-sm font-bold text-slate-500 uppercase tracking-wider hidden sm:block">Urutkan:</label>
                         <select 
-                            className="bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium shadow-sm flex-1 sm:flex-none cursor-pointer"
+                            className="bg-white border border-slate-200 text-slate-700 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium shadow-sm flex-1 sm:flex-none cursor-pointer"
                             value={sort}
                             onChange={(e) => {
                                 setSort(e.target.value);
-                                setPage(1); // Reset ke halaman 1 jika filter diubah
+                                setPage(1); 
                             }}
                         >
                             <option value="tanggal_pengajuan">Tanggal Pengajuan</option>
-                            <option value="tanggal_pinjam">Tanggal Pelaksanaan</option>
+                            <option value="tanggal_pinjam">Tanggal Berangkat</option>
                         </select>
                         <button 
                             onClick={toggleDirection}
-                            className="bg-white border border-slate-200 text-slate-700 rounded-xl w-10 h-10 flex items-center justify-center hover:bg-slate-50 hover:text-blue-600 transition-colors shadow-sm"
+                            className="bg-white border border-slate-200 text-slate-700 rounded-xl w-10 h-10 flex items-center justify-center hover:bg-slate-50 hover:text-indigo-600 transition-colors shadow-sm cursor-pointer"
                             title={direction === "desc" ? "Menurun (Terbaru)" : "Menaik (Terlama)"}
                         >
                             <span className="material-symbols-outlined text-[20px]">
@@ -85,51 +83,56 @@ export default function AulaKegiatan() {
                     </div>
                 </div>
 
-                {/* TABEL KEGIATAN */}
+                {/* TABEL JADWAL */}
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[800px]">
+                    <table className="w-full text-left border-collapse min-w-[1000px]">
                         <thead>
                             <tr className="bg-white text-slate-500 text-[11px] uppercase tracking-wider font-bold border-b border-slate-200">
                                 <th className="px-6 py-4">Tgl Pengajuan</th>
                                 <th className="px-6 py-4">Pelaksanaan</th>
                                 <th className="px-6 py-4">Waktu</th>
-                                <th className="px-6 py-4">Nama Kegiatan</th>
-                                <th className="px-6 py-4">Peserta</th>
-                                <th className="px-6 py-4 text-center">Jumlah</th>
+                                <th className="px-6 py-4">Tujuan & Lokasi</th>
+                                <th className="px-6 py-4">Kendaraan</th>
+                                <th className="px-6 py-4 text-center">Penumpang</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
                             {isLoading ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-12 text-center">
-                                        <span className="loading loading-spinner loading-lg text-blue-600"></span>
-                                        <p className="text-slate-400 mt-3 font-medium">Memuat data kegiatan...</p>
+                                        <span className="loading loading-spinner loading-lg text-indigo-600"></span>
+                                        <p className="text-slate-400 mt-3 font-medium">Memuat data jadwal...</p>
                                     </td>
                                 </tr>
-                            ) : kegiatans.length > 0 ? (
-                                kegiatans.map((keg: any) => (
-                                    <tr key={keg.id} className="hover:bg-blue-50/50 transition-colors group">
+                            ) : jadwals.length > 0 ? (
+                                jadwals.map((jadwal: any) => (
+                                    <tr key={jadwal.id} className="hover:bg-indigo-50/50 transition-colors group">
                                         <td className="px-6 py-4 whitespace-nowrap text-slate-500">
-                                            {formatDate(keg.tanggal_pengajuan)}
+                                            {formatDate(jadwal.tanggal_pengajuan)}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap font-semibold text-slate-800">
-                                            {formatDate(keg.tanggal_pinjam)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-blue-600 font-bold bg-blue-50/30">
-                                            {keg.waktu_mulai?.slice(0,5)} - {keg.waktu_selesai?.slice(0,5)}
-                                        </td>
-                                        <td className="px-6 py-4 font-medium text-slate-900">
-                                            {keg.nama_kegiatan}
-                                            {keg.aula === 'besar' ? (
-                                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 uppercase">Aula Besar</span>
-                                            ) : (
-                                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-pink-100 text-pink-700 uppercase">Aula Kecil</span>
+                                            <div className="text-slate-800">{formatDate(jadwal.tanggal_pinjam)}</div>
+                                            {jadwal.tanggal_kembali && jadwal.tanggal_kembali !== jadwal.tanggal_pinjam && (
+                                                <div className="text-xs text-slate-500 mt-1">s/d {formatDate(jadwal.tanggal_kembali)}</div>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4">{keg.peserta}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-indigo-600 font-bold bg-indigo-50/30">
+                                            {jadwal.waktu_mulai?.slice(0,5)} {jadwal.waktu_selesai ? `- ${jadwal.waktu_selesai?.slice(0,5)}` : ''}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="font-bold text-slate-900">{jadwal.tujuan_dinas}</div>
+                                            <div className="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                                                <span className="material-symbols-outlined text-[12px]">location_on</span>
+                                                {jadwal.tujuan_lokasi}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="text-sm font-semibold">{jadwal.kendaraan}</div>
+                                            {jadwal.driver && <div className="text-xs text-slate-500 mt-0.5">Driver: {jadwal.driver}</div>}
+                                        </td>
                                         <td className="px-6 py-4 text-center font-bold text-slate-800">
                                             <div className="bg-slate-100 px-3 py-1 rounded-full inline-block group-hover:bg-white border border-transparent group-hover:border-slate-200 transition-colors">
-                                                {keg.jumlah_peserta}
+                                                {jadwal.jumlah_penumpang} Org
                                             </div>
                                         </td>
                                     </tr>
@@ -137,7 +140,7 @@ export default function AulaKegiatan() {
                             ) : (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic font-medium">
-                                        Belum ada jadwal kegiatan yang disetujui.
+                                        Belum ada jadwal mobil yang disetujui.
                                     </td>
                                 </tr>
                             )}

@@ -2,7 +2,7 @@
 
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
-import api from "@/utils/api";
+import api from "@/utils/axios";
 
 export default function PaulaNavbar() {
     const { user } = useSelector((state: RootState) => state.auth);

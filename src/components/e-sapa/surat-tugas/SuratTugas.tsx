@@ -45,41 +45,50 @@ export default function MasterSuratTugas() {
     
     const [selectedPetugasId, setSelectedPetugasId] = useState("");
 
-    const fetchOptions = () => {
-        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
-        api.get(`${baseURL}/api/kegiatan?limit=1000`).then(res => setOptKegiatan(res.data?.data || res.data));
-        api.get(`${baseURL}/api/wilayah?limit=1000`).then(res => setOptWilayah(res.data?.data || res.data));
-        api.get(`${baseURL}/api/petugas?limit=1000`).then(res => setOptPetugas(res.data?.data || res.data));
+    const fetchOptions = async () => {
+        try {
+            const [kegiatanRes, wilayahRes, petugasRes] = await Promise.all([
+                api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA}/api/kegiatan?limit=1000`),
+                api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA}/api/wilayah?limit=1000`),
+                api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA}/api/petugas?limit=1000`)
+            ]);
+            
+            setOptKegiatan(kegiatanRes.data?.data || kegiatanRes.data || []);
+            setOptWilayah(wilayahRes.data?.data || wilayahRes.data || []);
+            setOptPetugas(petugasRes.data?.data || petugasRes.data || []);
+        } catch (err) {
+            console.error("Gagal mengambil data opsi:", err);
+            toast.error("Gagal memuat opsi form");
+        }
     };
 
-    const fetchData = useCallback((url?: string) => {
+    const fetchData = useCallback(async (url?: string) => {
         setLoading(true);
-        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
-        let endpoint = url || `${baseURL}/api/st?page=${currentPage}&value_per_page=${perPage}&name=${activeSearch}`;
+        let endpoint = url || `${process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA}/api/st?page=${currentPage}&value_per_page=${perPage}&name=${activeSearch}`;
 
-        api.get(endpoint)
-            .then((res) => {
-                const responseData = res.data;
-                if (Array.isArray(responseData)) {
-                    setSuratTugas(responseData);
-                    setTotalData(responseData.length);
-                } else if (Array.isArray(responseData?.data)) {
-                    setSuratTugas(responseData.data);
-                    setPaginationData(responseData);
-                    setTotalData(responseData?.meta?.total || responseData?.total || responseData.data.length);
-                } else if (Array.isArray(responseData?.data?.data)) {
-                    setSuratTugas(responseData.data.data);
-                    setPaginationData(responseData.data);
-                    setTotalData(responseData.data?.meta?.total || responseData.data?.total || responseData.data.data.length);
-                }
-                setLoading(false);
-            })
-            .catch((err) => {
-                console.error("Gagal mengambil data surat tugas:", err);
-                toast.error("Gagal mengambil data surat tugas");
-                setSuratTugas([]);
-                setLoading(false);
-            });
+        try {
+            const res = await api.get(endpoint);
+            const responseData = res.data;
+            
+            if (Array.isArray(responseData)) {
+                setSuratTugas(responseData);
+                setTotalData(responseData.length);
+            } else if (Array.isArray(responseData?.data)) {
+                setSuratTugas(responseData.data);
+                setPaginationData(responseData);
+                setTotalData(responseData?.meta?.total || responseData?.total || responseData.data.length);
+            } else if (Array.isArray(responseData?.data?.data)) {
+                setSuratTugas(responseData.data.data);
+                setPaginationData(responseData.data);
+                setTotalData(responseData.data?.meta?.total || responseData.data?.total || responseData.data.data.length);
+            }
+        } catch (err) {
+            console.error("Gagal mengambil data surat tugas:", err);
+            toast.error("Gagal mengambil data surat tugas");
+            setSuratTugas([]);
+        } finally {
+            setLoading(false);
+        }
     }, [currentPage, perPage, activeSearch]);
 
     useEffect(() => {
@@ -140,21 +149,18 @@ export default function MasterSuratTugas() {
     };
 
     const handleDownload = (id: number) => {
-        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
-        window.open(`${baseURL}/api/download-st/${id}`, "_blank");
+        window.open(`${process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA}/api/download-st/${id}`, "_blank");
     };
 
-    const handleDelete = (id: number) => {
+    const handleDelete = async (id: number) => {
         if (window.confirm("Apakah Anda yakin ingin menghapus item ini?")) {
-            const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
-            api.delete(`${baseURL}/api/st/${id}`)
-                .then((res) => {
-                    toast.success(res.data?.msg || "Data berhasil dihapus");
-                    fetchData();
-                })
-                .catch((err) => {
-                    toast.error(err.response?.data?.message || "Gagal menghapus data");
-                });
+            try {
+                const res = await api.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA}/api/st/${id}`);
+                toast.success(res.data?.msg || "Data berhasil dihapus");
+                fetchData();
+            } catch (err: any) {
+                toast.error(err.response?.data?.message || "Gagal menghapus data");
+            }
         }
     };
 
@@ -194,7 +200,7 @@ export default function MasterSuratTugas() {
         });
     };
 
-    const handleFormSubmit = (e: React.FormEvent) => {
+    const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
         if (formData.list_petugas.length === 0) {
@@ -217,33 +223,30 @@ export default function MasterSuratTugas() {
             "list-petugas": JSON.stringify(formData.list_petugas.map(p => ({ id: p.id })))
         };
 
-        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
-        const request = formData.id 
-            ? api.put(`${baseURL}/api/st/${formData.id}`, payload)
-            : api.post(`${baseURL}/api/st`, payload);
+        try {
+            const request = formData.id 
+                ? api.put(`${process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA}/api/st/${formData.id}`, payload)
+                : api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA}/api/st`, payload);
 
-        request
-            .then((res) => {
-                toast.success(res.data?.msg || "Data berhasil disimpan");
-                setIsFormOpen(false);
-                fetchData();
-            })
-            .catch((err) => {
-                if (err.response?.status === 422 && err.response?.data?.errors) {
-                    const errors = err.response.data.errors;
-                    if (errors['nomor-surat']) {
-                        toast.warning("Peringatan: Nomor Surat ini sudah digunakan! Silakan periksa kembali.");
-                    } else {
-                        const errorKeys = Object.keys(errors);
-                        toast.warning(errors[errorKeys[0]][0]);
-                    }
+            const res = await request;
+            toast.success(res.data?.msg || "Data berhasil disimpan");
+            setIsFormOpen(false);
+            fetchData();
+        } catch (err: any) {
+            if (err.response?.status === 422 && err.response?.data?.errors) {
+                const errors = err.response.data.errors;
+                if (errors['nomor-surat']) {
+                    toast.warning("Peringatan: Nomor Surat ini sudah digunakan! Silakan periksa kembali.");
                 } else {
-                    toast.error(err.response?.data?.message || "Gagal menyimpan data");
+                    const errorKeys = Object.keys(errors);
+                    toast.warning(errors[errorKeys[0]][0]);
                 }
-            })
-            .finally(() => {
-                setIsSubmitting(false);
-            });
+            } else {
+                toast.error(err.response?.data?.message || "Gagal menyimpan data");
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const getStartingNumber = () => {

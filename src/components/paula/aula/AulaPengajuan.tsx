@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import api from "@/utils/api";
+import api from "@/utils/axios";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
@@ -38,11 +38,18 @@ export default function AulaPengajuan() {
     const [customSaranaInput, setCustomSaranaInput] = useState("");
     const opsiSarana = ["Proyektor", "Kamera", "Zoom Meeting", "Sound System"];
 
-    const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_PAULA || 'http://localhost:8000';
 
     useEffect(() => {
-        api.get(`${baseURL}/api/paula/settings`).then(res => setSettings(res.data)).catch(console.error);
-    }, [baseURL]);
+        const fetchSettings = async () => {
+            try {
+                const res = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PAULA}/api/paula/settings`);
+                setSettings(res.data);
+            } catch (error) {
+                console.error(error);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     const handleAddCustomSarana = () => {
         if (customSaranaInput.trim() && !sarana.includes(customSaranaInput.trim())) {
@@ -62,7 +69,7 @@ export default function AulaPengajuan() {
         }
 
         try {
-            const res = await api.get(`${baseURL}/api/paula/check-time`, {
+            const res = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PAULA}/api/paula/check-time`, {
                 params: { tanggal, waktu_mulai: mulai, waktu_selesai: selesai, aula }
             });
             if (!res.data.valid) {
@@ -104,7 +111,7 @@ export default function AulaPengajuan() {
                 sarana_prasarana: sarana 
             };
             
-            await api.post(`${baseURL}/api/paula/pengajuan`, payload);
+            await api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_PAULA}/api/paula/pengajuan`, payload);
             toast.success("Pengajuan berhasil dikirim!");
             router.push('/paula/aula'); 
         } catch (error) {
