@@ -167,7 +167,6 @@ export default function DashboardPaulaAdmin() {
         } catch (error) { toast.error("Gagal menghapus mobil"); }
     };
 
-    // ================== LOGIKA UMUM ==================
     const submitReject = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!rejectModal || !rejectReason) return;
