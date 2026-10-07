@@ -62,6 +62,18 @@ export const refreshToken = createAsyncThunk<LoginOrRegisterResponse, void, { re
     }
 );
 
+// LOGOUT
+export const logout = createAsyncThunk<void, void>(
+    "auth/logout",
+    async () => {
+        try {
+            await axios.post(process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/api/logout", {});
+        } catch (error) {
+            console.log(error);
+        }
+    }
+);
+
 // GET USER (baru)
 export const getUser = createAsyncThunk<any, void, { rejectValue: string }>(
     "auth/me",
@@ -90,13 +102,7 @@ const initialState: AuthState = {
 const authSlice = createSlice({
     name: "auth",
     initialState,
-    reducers: {
-        logout: (state) => {
-            state.user = null;
-            axios.post(process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/api/logout", {})
-                .catch(err => console.log(err));
-        },
-    },
+    reducers: {},
     extraReducers: (builder) => {
         builder
             // REGISTER
@@ -142,9 +148,13 @@ const authSlice = createSlice({
             .addCase(getUser.rejected, (state) => {
                 state.user = null;
                 state.loading = false;
+            })
+            
+            // LOGOUT
+            .addCase(logout.fulfilled, (state) => {
+                state.user = null;
             });
     },
 });
 
-export const { logout } = authSlice.actions;
 export default authSlice.reducer;

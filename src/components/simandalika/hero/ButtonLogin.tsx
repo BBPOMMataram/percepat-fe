@@ -17,8 +17,8 @@ const ButtonLogin = () => {
     dispatch(getUser());
   }, [dispatch]);
 
-  const handleLogout = () => {
-    dispatch(logout());
+  const handleLogout = async () => {
+    await dispatch(logout());
     window.location.reload();
   };
 
