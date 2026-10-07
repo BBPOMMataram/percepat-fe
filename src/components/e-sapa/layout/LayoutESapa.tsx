@@ -1,21 +1,21 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react"; // Tambahkan useRef
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter, usePathname } from "next/navigation";
 import { RootState, AppDispatch } from "@/redux/store";
-import api from "@/utils/api"; // Kembalikan menggunakan util api
 import { getUser } from "@/features/authSlice";
+import api from "@/utils/api";
 import SidebarESapa from "./SidebarESapa";
 import NavbarESapa from "./NavbarESapa";
 import FooterESapa from "./FooterESapa";
 
+// Gunakan variabel global di luar komponen agar nilainya tetap dipertahankan
+// meskipun LayoutESapa di-unmount dan di-remount saat user berpindah halaman
+let isUserSynced = false;
+
 export default function LayoutESapa({ children }: { children: React.ReactNode }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-    
-    // Gunakan ref untuk melacak apakah sinkronisasi sudah dilakukan dalam sesi komponen ini
-    const isSyncedRef = useRef(false); 
-
     const dispatch = useDispatch<AppDispatch>();
     const { user, loading } = useSelector((state: RootState) => state.auth);
     
@@ -30,23 +30,22 @@ export default function LayoutESapa({ children }: { children: React.ReactNode })
         if (loading === false) {
             if (!user) {
                 router.push(`/login?redirectUrl=${pathname}`);
-            } else if (user.email && !isSyncedRef.current) {
-                // Eksekusi hanya JIKA user ada DAN belum pernah disinkronisasi sebelumnya
-                isSyncedRef.current = true; // Tandai sudah diproses agar tidak berulang kali dikirim
+            } else if (user.email && !isUserSynced) {
+                // Eksekusi hanya JIKA user ada DAN belum pernah disinkronisasi dalam sesi browser ini
+                isUserSynced = true; // Tandai agar tidak berulang saat pindah halaman
                 
-                const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
+                const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA;
                 
-                // Gunakan util 'api' agar Token JWT otomatis terlampir dan bisa lolos dari AuthenticateWithJwt
                 const syncUser = async () => {
                     try {
-                        const res = await api.post(`${baseURL}/api/sync-user`, {
+                        await api.post(`${baseURL}/api/sync-user`, {
                             name: user.name,
                             email: user.email
                         });
-                        console.log("Berhasil sinkronisasi user:", res.data);
+                        console.log("Sinkronisasi akun e-sapa berhasil.");
                     } catch (err) {
-                        console.error("Gagal sinkronisasi user:", err);
-                        isSyncedRef.current = false; // Buka kunci lagi jika gagal agar bisa dicoba ulang
+                        console.error("Sinkronisasi akun e-sapa gagal.");
+                        isUserSynced = false; // Buka kunci lagi jika gagal
                     }
                 };
                 syncUser();
