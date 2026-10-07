@@ -28,6 +28,9 @@ export default function MasterSuratTugas() {
     const [isShowOpen, setIsShowOpen] = useState(false);
     const [showData, setShowData] = useState<any>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // State for delete confirmation modal
+    const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
     const [formData, setFormData] = useState({
         id: null as null | number,
@@ -152,15 +155,21 @@ export default function MasterSuratTugas() {
         window.open(`${process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA}/api/download-st/${id}`, "_blank");
     };
 
-    const handleDelete = async (id: number) => {
-        if (window.confirm("Apakah Anda yakin ingin menghapus item ini?")) {
-            try {
-                const res = await api.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA}/api/st/${id}`);
-                toast.success(res.data?.msg || "Data berhasil dihapus");
-                fetchData();
-            } catch (err: any) {
-                toast.error(err.response?.data?.message || "Gagal menghapus data");
-            }
+    const handleDelete = (id: number) => {
+        setDeleteConfirmId(id);
+    };
+
+    const executeDelete = async () => {
+        if (!deleteConfirmId) return;
+        
+        try {
+            const res = await api.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA}/api/st/${deleteConfirmId}`);
+            toast.success(res.data?.msg || "Data berhasil dihapus");
+            fetchData();
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Gagal menghapus data");
+        } finally {
+            setDeleteConfirmId(null);
         }
     };
 
@@ -761,6 +770,37 @@ export default function MasterSuratTugas() {
                     </div>
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {deleteConfirmId && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl transform transition-all">
+                        <div className="text-center">
+                            <div className="w-16 h-16 rounded-full bg-red-100 mx-auto mb-4 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-red-500 text-3xl">warning</span>
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-800 mb-2">Hapus Data?</h3>
+                            <p className="text-slate-500 mb-6 text-sm">
+                                Data yang dihapus tidak dapat dikembalikan. Apakah Anda yakin ingin melanjutkan?
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setDeleteConfirmId(null)}
+                                    className="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    onClick={executeDelete}
+                                    className="flex-1 py-2.5 px-4 bg-red-500 hover:bg-red-600 text-white font-medium rounded-xl transition-colors"
+                                >
+                                    Ya, Hapus
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

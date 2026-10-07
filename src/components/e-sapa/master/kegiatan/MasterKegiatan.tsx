@@ -18,6 +18,7 @@ export default function MasterKegiatan() {
 
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
     const [formData, setFormData] = useState({
         id: null,
         kegiatan: "",
@@ -84,16 +85,20 @@ export default function MasterKegiatan() {
         setIsFormOpen(true);
     };
 
-    const handleDelete = async (id: number) => {
-        if (window.confirm("Apakah Anda yakin ingin menghapus item ini?")) {
-            try {
-                const res = await api.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA}/api/kegiatan/${id}`);
-                toast.success(res.data?.msg || "Data berhasil dihapus");
-                fetchData();
-            } catch (err: any) {
-                console.error(err);
-                toast.error(err.response?.data?.message || "Gagal menghapus data");
-            }
+    const handleDelete = (id: number) => {
+        setDeleteConfirmId(id);
+    };
+
+    const executeDelete = async (id: number) => {
+        try {
+            const res = await api.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA}/api/kegiatan/${id}`);
+            toast.success(res.data?.msg || "Data berhasil dihapus");
+            fetchData();
+        } catch (err: any) {
+            console.error(err);
+            toast.error(err.response?.data?.message || "Gagal menghapus data");
+        } finally {
+            setDeleteConfirmId(null);
         }
     };
 
@@ -385,6 +390,35 @@ export default function MasterKegiatan() {
                         )}
                     </div>
                 </div>
+
+                {/* Delete Confirmation Modal */}
+                {deleteConfirmId !== null && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                        <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl flex flex-col items-center text-center transform transition-all">
+                            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
+                                <span className="material-symbols-outlined text-3xl">warning</span>
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-800 mb-2">Hapus Kegiatan?</h3>
+                            <p className="text-sm text-slate-500 mb-6">
+                                Apakah Anda yakin ingin menghapus data ini?
+                            </p>
+                            <div className="flex items-center gap-3 w-full">
+                                <button 
+                                    onClick={() => setDeleteConfirmId(null)}
+                                    className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors text-sm"
+                                >
+                                    Batal
+                                </button>
+                                <button 
+                                    onClick={() => executeDelete(deleteConfirmId)}
+                                    className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors text-sm"
+                                >
+                                    Ya, Hapus
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

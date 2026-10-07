@@ -24,17 +24,9 @@ export default function DashboardESemu() {
         }
     }, [user, loading, router, pathname]);
 
-    // FUNGSI LOGOUT DAN KEMBALI KE PORTAL UTAMA
-    const handleLogout = async () => {
-        try {
-            const authURL = process.env.NEXT_PUBLIC_BACKEND_URL_AUTH;
-            // Menembak endpoint logout pada Auth Central
-            await api.post(`${authURL}/api/logout`);
-        } catch (error) {
-            console.error("Gagal logout:", error);
-        }
-        // Redirect paksa ke halaman utama / portal
-        window.location.href = '/';
+    // FUNGSI KEMBALI KE PORTAL UTAMA
+    const handleBackToMenu = () => {
+        router.push('/');
     };
 
     const integrations = [
@@ -89,12 +81,11 @@ export default function DashboardESemu() {
                     </div>
                     <div>
                         <button 
-                            onClick={handleLogout}
-                            className="flex items-center gap-2 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold py-2 md:py-2.5 px-4 md:px-6 rounded-xl transition-all duration-300 text-xs md:text-sm shadow-sm"
+                            onClick={handleBackToMenu}
+                            className="flex items-center justify-center bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white font-bold py-2 md:py-2.5 px-4 md:px-6 rounded-xl transition-all duration-300 text-xs md:text-sm shadow-sm cursor-pointer"
                         >
-                            <span className="material-symbols-outlined text-[18px] md:text-[20px]">logout</span>
-                            <span className="hidden md:inline">Keluar & Ke Portal</span>
-                            <span className="md:hidden">Keluar</span>
+                            <span className="hidden md:inline">Ke Menu Utama</span>
+                            <span className="md:hidden">Menu Utama</span>
                         </button>
                     </div>
                 </div>
@@ -119,9 +110,8 @@ export default function DashboardESemu() {
                         </div>
                         <div className="pt-2 flex justify-center md:justify-start">
                             <a href="#content"
-                                className="inline-flex items-center justify-center gap-x-2 py-3.5 px-8 text-white bg-blue-600 hover:bg-blue-700 font-bold rounded-full shadow-lg shadow-blue-600/30 transition-all hover:scale-105 hover:shadow-blue-600/50">
+                                className="inline-flex items-center justify-center py-3.5 px-8 text-white bg-blue-600 hover:bg-blue-700 font-bold rounded-full shadow-lg shadow-blue-600/30 transition-all hover:scale-105 hover:shadow-blue-600/50 cursor-pointer">
                                 Lihat Sertifikasi
-                                <span className="material-symbols-outlined text-[20px]">arrow_downward</span>
                             </a>
                         </div>
                     </div>

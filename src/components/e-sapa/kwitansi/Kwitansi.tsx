@@ -3,9 +3,6 @@ import Link from "next/link";
 export default function Kwitansi() {
     return (
         <div className="py-16 px-4 sm:px-8 w-full flex flex-col items-center justify-center min-h-[70vh]">
-            <div className="w-24 h-24 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center mb-6 border border-teal-100 shadow-sm">
-                <span className="material-symbols-outlined text-5xl">construction</span>
-            </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-4 text-center">Fitur Dalam Pengembangan</h1>
             <p className="text-slate-500 text-center max-w-md mb-8">
                 Halaman <span className="font-semibold text-slate-700">Kwitansi</span> saat ini sedang dalam tahap perancangan dan pengembangan. Fitur ini akan segera tersedia pada pembaruan sistem mendatang.
