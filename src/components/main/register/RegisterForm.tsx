@@ -73,7 +73,25 @@ export default function RegisterForm() {
             .catch((err) => {
                 setCaptchaKey(k => k + 1);
                 setCaptchaToken("");
-                dispatch(showAlert({ type: "error", message: err.response?.data?.message, description: err || "No Message from Backend" }));
+
+                let errorMessage = err?.message || "Registration failed";
+                let errorDescription = err?.error || "Terjadi kesalahan saat mendaftar.";
+
+                // Parse Laravel validation errors
+                if (err?.errors) {
+                    const validationMessages = Object.values(err.errors)
+                        .flat()
+                        .join(", ");
+                    errorDescription = validationMessages;
+                } else if (typeof err === "string") {
+                    errorDescription = err;
+                }
+
+                dispatch(showAlert({ 
+                    type: "error", 
+                    message: errorMessage, 
+                    description: errorDescription 
+                }));
                 console.log('Register failed', err);
             });
     };
