@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   ChevronRight,
   FileSpreadsheet,
@@ -16,7 +16,7 @@ import SidebarSiproval from "@/components/siproval/layout/SidebarSiproval";
 type SpreadsheetTab = {
   id: number;
   title: string;
-  google_sheet_id?: string | null;
+  google_sheet_id?: string | number | null;
 };
 
 type TabsResponse = {
@@ -32,8 +32,8 @@ type TabsResponse = {
 };
 
 export default function BudgetMappingTabsPage() {
-  const params = useParams<{ year: string }>();
-  const year = params.year;
+  const searchParams = useSearchParams();
+  const year = searchParams.get("year") || "2026";
 
   const [spreadsheetName, setSpreadsheetName] = useState(
     "Spreadsheet Budget Mapping",
@@ -43,54 +43,73 @@ export default function BudgetMappingTabsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!year) return;
-
     const controller = new AbortController();
+    let isMounted = true;
+
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 10000);
 
     async function fetchTabs() {
       setLoading(true);
       setError("");
+      setTabs([]);
 
       try {
-        const baseUrl =
-          process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL ??
-          "http://localhost:8000";
+        const baseUrl = (
+          process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL ||
+          "http://127.0.0.1:8000"
+        ).replace(/\/$/, "");
 
-        const response = await fetch(
-          `${baseUrl}/api/budget-mapping/${encodeURIComponent(year)}/tabs`,
-          {
-            method: "GET",
-            headers: {
-              Accept: "application/json",
-            },
-            signal: controller.signal,
-            cache: "no-store",
+        const apiUrl =
+          `${baseUrl}/api/budget-mapping/` + `${encodeURIComponent(year)}/tabs`;
+
+        console.log("Budget Mapping API URL:", apiUrl);
+
+        const response = await fetch(apiUrl, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
           },
-        );
+          cache: "no-store",
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`API gagal dengan status HTTP ${response.status}`);
+        }
 
         const result: TabsResponse = await response.json();
 
-        if (!response.ok || !result.success || !result.data) {
-          throw new Error(
-            result.message ?? "Gagal mengambil daftar tab spreadsheet.",
-          );
+        console.log("Budget Mapping API Response:", result);
+
+        if (!result.success || !result.data) {
+          throw new Error(result.message || "Respons API tidak valid.");
         }
 
+        if (!isMounted) return;
+
         setSpreadsheetName(
-          result.data.spreadsheet?.name ?? "Spreadsheet Budget Mapping",
+          result.data.spreadsheet?.name || "Spreadsheet Budget Mapping",
         );
 
         setTabs(result.data.tabs ?? []);
       } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") return;
+        if (!isMounted) return;
 
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Terjadi kesalahan saat mengambil data.",
-        );
+        if (err instanceof Error && err.name === "AbortError") {
+          setError(
+            "Request melewati batas waktu 10 detik. Periksa koneksi backend.",
+          );
+        } else {
+          setError(
+            err instanceof Error ? err.message : "Gagal mengambil daftar tab.",
+          );
+        }
       } finally {
-        if (!controller.signal.aborted) {
+        clearTimeout(timeoutId);
+
+        if (isMounted) {
           setLoading(false);
         }
       }
@@ -98,7 +117,11 @@ export default function BudgetMappingTabsPage() {
 
     fetchTabs();
 
-    return () => controller.abort();
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [year]);
 
   return (
@@ -131,10 +154,8 @@ export default function BudgetMappingTabsPage() {
           </div>
         </header>
 
-        {/* Content */}
         <section className="px-8 py-8">
           <div className="mx-auto max-w-6xl">
-            {/* Error */}
             {error && (
               <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
                 <AlertCircle className="mt-0.5 shrink-0" size={20} />
@@ -146,7 +167,6 @@ export default function BudgetMappingTabsPage() {
               </div>
             )}
 
-            {/* Spreadsheet information */}
             <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between gap-6">
                 <div className="flex items-start gap-4">
@@ -215,9 +235,11 @@ export default function BudgetMappingTabsPage() {
                 tabs.map((tab, index) => (
                   <Link
                     key={tab.id}
-                    href={`/siproval/budget-mapping/${encodeURIComponent(
-                      year,
-                    )}/tab/${tab.id}`}
+                    href={
+                      `/siproval/budget-mapping/year/tab` +
+                      `?year=${encodeURIComponent(year)}` +
+                      `&tab=${encodeURIComponent(String(tab.id))}`
+                    }
                     className="group flex items-center justify-between gap-5 border-b border-slate-100 px-6 py-5 transition last:border-b-0 hover:bg-slate-50"
                   >
                     <div className="flex min-w-0 items-center gap-4">
