@@ -287,29 +287,29 @@ export default function DashboardETamu() {
                 </div>
             </div>
 
-            {/* POPUP ZOOM GAMBAR TAMU DIPERBAIKI */}
+            {/* POPUP ZOOM GAMBAR TAMU */}
             {selectedImage && (
                 <div 
-                    className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[9999] animate-in fade-in duration-300 p-4 lg:p-10"
+                    className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[9999] animate-in fade-in duration-300 p-4 md:p-8"
                     onClick={() => setSelectedImage(null)}
                 >
                     <div 
-                        // Lebar kontainer diperbesar (max-w-4xl) dan di-set w-full
-                        className="relative w-full max-w-3xl flex flex-col items-center" 
+                        className="relative max-w-2xl max-h-[90vh] flex flex-col items-center justify-center" 
                         onClick={e => e.stopPropagation()}
                     >
                         <button 
                             onClick={() => setSelectedImage(null)}
-                            className="absolute -top-12 right-0 text-white/70 hover:text-white flex items-center gap-1 font-medium transition-colors bg-slate-800/50 hover:bg-slate-800 px-4 py-2 rounded-full backdrop-blur-md"
+                            className="absolute -top-12 right-0 text-white/80 hover:text-white flex items-center gap-1.5 font-medium transition-colors bg-slate-800/70 hover:bg-slate-800 px-4 py-1.5 rounded-full backdrop-blur-md shadow-md text-sm cursor-pointer z-10"
                         >
                             Tutup <span className="text-xl leading-none">&times;</span>
                         </button>
-                        <img 
-                            src={selectedImage} 
-                            alt="Zoomed Selfie" 
-                            // Diubah menjadi w-full agar gambar dipaksa meregang mengikuti ukuran container
-                            className="w-full h-auto max-h-[85vh] rounded-2xl shadow-2xl object-cover border-4 border-white"
-                        />
+                        <div className="rounded-2xl overflow-hidden shadow-2xl border-4 border-white bg-slate-950 flex items-center justify-center max-h-[82vh]">
+                            <img 
+                                src={selectedImage} 
+                                alt="Zoomed Selfie" 
+                                className="max-w-full max-h-[80vh] w-auto h-auto object-contain block"
+                            />
+                        </div>
                     </div>
                 </div>
             )}

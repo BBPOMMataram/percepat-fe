@@ -112,7 +112,9 @@ export default function ETamuGuestBook() {
         }
         try {
             const constraints = {
-                video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "user" }
+                video: deviceId 
+                    ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 960 } } 
+                    : { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 960 } }
             };
             const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
             streamRef.current = mediaStream;
@@ -137,12 +139,50 @@ export default function ETamuGuestBook() {
     }, [selectedCamera, startCamera, imageUri, locationStatus]);
 
     const handleSnap = () => {
-        if (videoRef.current && canvasRef.current) {
-            const context = canvasRef.current.getContext('2d');
-            canvasRef.current.width = 320;
-            canvasRef.current.height = 240;
-            context?.drawImage(videoRef.current, 0, 0, 320, 240);
-            setImageUri(canvasRef.current.toDataURL('image/jpeg', 0.9));
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        if (!video || !canvas) return;
+
+        const vWidth = video.videoWidth || 640;
+        const vHeight = video.videoHeight || 480;
+
+        // Dapatkan rasio aspek dari container preview video yang tampak di layar
+        const boxWidth = video.clientWidth || 4;
+        const boxHeight = video.clientHeight || 3;
+        const targetAspect = boxWidth / boxHeight;
+        const videoAspect = vWidth / vHeight;
+
+        let sx = 0;
+        let sy = 0;
+        let sWidth = vWidth;
+        let sHeight = vHeight;
+
+        // Simulasi CSS object-cover: hitung area video yang benar-benar terlihat di layar
+        if (videoAspect > targetAspect) {
+            // Video lebih lebar dari container (crop bagian kiri dan kanan)
+            sWidth = vHeight * targetAspect;
+            sx = (vWidth - sWidth) / 2;
+        } else {
+            // Video lebih tinggi dari container (crop bagian atas dan bawah, misal kamera portrait HP)
+            sHeight = vWidth / targetAspect;
+            sy = (vHeight - sHeight) / 2;
+        }
+
+        // Resolusi output canvas yang jernih dan proporsional (lebar standar 640px)
+        const outputWidth = Math.round(sWidth > 640 ? 640 : sWidth);
+        const outputHeight = Math.round(outputWidth / targetAspect);
+
+        canvas.width = outputWidth;
+        canvas.height = outputHeight;
+
+        const context = canvas.getContext('2d');
+        if (context) {
+            context.drawImage(
+                video,
+                sx, sy, sWidth, sHeight,
+                0, 0, outputWidth, outputHeight
+            );
+            setImageUri(canvas.toDataURL('image/jpeg', 0.85));
         }
     };
 
@@ -272,7 +312,7 @@ export default function ETamuGuestBook() {
         <div className="min-h-screen bg-[#f3f7f6] flex flex-col font-sans selection:bg-emerald-500 selection:text-white pb-10 relative">
             
             <header className="flex flex-col text-center items-center pt-5 mb-6">
-                <Image src="/assets/images/bpomri_without_label.png" alt="logo BPOM" width={70} height={70} className="mb-2" />
+                <Image src="/assets/images/bpomri_without_label.png" alt="logo BPOM" width={70} height={70} className="mb-2 w-auto h-auto" priority />
                 <h1 className="text-black font-bold text-3xl">E Tamu - BBPOM di Mataram</h1>
             </header>
 
@@ -317,7 +357,7 @@ export default function ETamuGuestBook() {
                                 </select>
                             </div>
 
-                            <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden border-[6px] border-slate-100 mb-4 group shadow-inner">
+                            <div className="relative w-full aspect-[4/3] bg-black rounded-xl overflow-hidden border-[6px] border-slate-100 mb-4 group shadow-inner">
                                 {!imageUri ? (
                                     <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover transform scale-x-[-1]" />
                                 ) : (
