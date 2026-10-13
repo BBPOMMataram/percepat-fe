@@ -1,3 +1,7 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+import LayoutSiproval from "@/components/siproval/layout/LayoutSiproval";
 import SidebarSiproval from "@/components/siproval/layout/SidebarSiproval";
 import HeaderSiproval from "@/components/siproval/layout/HeaderSiproval";
 
@@ -6,19 +10,23 @@ export default function SiprovalLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const isLanding = pathname === "/siproval";
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <SidebarSiproval actor="katim" />
+    <LayoutSiproval>
+      {isLanding ? (
+        children
+      ) : (
+        <div className="min-h-screen bg-slate-50">
+          <SidebarSiproval />
 
-      <main className="min-h-screen min-w-0 lg:ml-72">
-        <HeaderSiproval
-          title="Dashboard Evaluasi"
-          description="Monitoring dan review laporan IKSK"
-          userName="Kepala Balai"
-        />
-
-        <div className="p-6 lg:p-8">{children}</div>
-      </main>
-    </div>
+          <div className="min-h-screen min-w-0 lg:ml-72 flex flex-col">
+            <HeaderSiproval />
+            <main className="flex-1 p-6 lg:p-8">{children}</main>
+          </div>
+        </div>
+      )}
+    </LayoutSiproval>
   );
 }

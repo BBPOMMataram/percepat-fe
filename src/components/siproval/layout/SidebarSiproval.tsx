@@ -94,14 +94,36 @@ const menus = {
 >;
 
 type Props = {
-  actor: Actor;
+  actor?: Actor;
 };
 
 export default function SidebarSiproval({ actor }: Props) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const actorMenus = menus[actor] ?? [];
+  let resolvedActor: Actor = actor || "katim";
+  if (!actor) {
+    if (pathname.startsWith("/siproval/admin")) {
+      resolvedActor = "superadmin";
+    } else if (
+      pathname.startsWith("/siproval/tu") ||
+      pathname.startsWith("/siproval/budget-mapping")
+    ) {
+      resolvedActor = "tu";
+    } else if (
+      pathname.startsWith("/siproval/monev") ||
+      pathname.startsWith("/siproval/show-monev") ||
+      pathname.startsWith("/siproval/catatan") ||
+      pathname.startsWith("/siproval/arahan-pimpinan") ||
+      pathname.startsWith("/siproval/rhpk")
+    ) {
+      resolvedActor = "kabalai";
+    } else {
+      resolvedActor = "katim";
+    }
+  }
+
+  const actorMenus = menus[resolvedActor] ?? [];
 
   return (
     <>
@@ -149,7 +171,7 @@ export default function SidebarSiproval({ actor }: Props) {
           <p className="text-[10px] font-semibold uppercase tracking-widest text-white/50">
             Aktor
           </p>
-          <p className="mt-1 text-sm font-semibold capitalize">{actor}</p>
+          <p className="mt-1 text-sm font-semibold capitalize">{resolvedActor}</p>
         </div>
 
         <p className="mb-3 px-2 text-[10px] font-semibold uppercase tracking-widest text-white/40">

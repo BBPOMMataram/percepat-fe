@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 "use client";
 
 import { useEffect, useState } from "react";
@@ -89,4 +90,10 @@ export default function BudgetMappingTabPage() {
       </table>
     </main>
   );
+=======
+import BudgetMappingTable from "@/components/siproval/tu/BudgetMappingTable";
+
+export default function BudgetMappingTabTablePage() {
+  return <BudgetMappingTable />;
+>>>>>>> 953790a9883c73be17c4da717ac2bac6b0b74f53
 }
