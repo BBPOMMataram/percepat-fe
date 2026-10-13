@@ -21,6 +21,7 @@ export default function CatatanMonev() {
   const { user } = useSelector((state: RootState) => state.auth);
   const [spreadsheets, setSpreadsheets] = useState<SpreadsheetItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalCatatan, setTotalCatatan] = useState(12);
 
   useEffect(() => {
     async function fetchSpreadsheets() {
@@ -38,6 +39,9 @@ export default function CatatanMonev() {
                 ? data.data
                 : [];
           setSpreadsheets(list);
+          if (data.stats?.total_catatan !== undefined) {
+            setTotalCatatan(data.stats.total_catatan);
+          }
         } else {
           setSpreadsheets([]);
         }
@@ -118,8 +122,8 @@ export default function CatatanMonev() {
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Arahan Diberikan
             </p>
-            <p className="mt-2 text-3xl font-bold text-[#00a651]">12</p>
-            <span className="mt-1 inline-block text-xs text-slate-400">Catatan tindak lanjut aktif</span>
+            <p className="mt-2 text-3xl font-bold text-[#00a651]">{totalCatatan}</p>
+            <span className="mt-1 inline-block text-xs text-slate-400">Catatan tindak lanjut tersimpan</span>
           </div>
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-[#00a651]">
             <Icon icon="solar:chat-round-check-bold" width={26} />
