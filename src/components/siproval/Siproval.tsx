@@ -57,7 +57,6 @@ export default function Siproval() {
       links: [
         { label: "Dashboard Katim", url: "/siproval/katim" },
         { label: "Data Google Sheet", url: "/siproval/google-sheets" },
-        { label: "Edit Rekap RHPK", url: "/siproval/katim/rhpk" },
       ],
     },
     {

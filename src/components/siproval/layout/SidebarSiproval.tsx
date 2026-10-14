@@ -24,12 +24,12 @@ const menus = {
       url: "/siproval/google-sheets",
       active: "/siproval/google-sheets",
     },
-    {
-      name: "Edit Rekap RHPK",
-      icon: "solar:pen-new-square-bold",
-      url: "/siproval/katim/rhpk",
-      active: "/siproval/katim/rhpk",
-    },
+    // {
+    //   name: "Edit Rekap RHPK",
+    //   icon: "solar:pen-new-square-bold",
+    //   url: "/siproval/katim/rhpk",
+    //   active: "/siproval/katim/rhpk",
+    // },
     {
       name: "Arahan Pimpinan",
       icon: "solar:chat-round-line-bold",

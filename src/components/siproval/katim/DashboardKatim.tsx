@@ -236,15 +236,6 @@ export default function DashboardKatim() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href="/siproval/katim/rhpk"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-blue-300 bg-blue-50 px-3.5 py-2 text-xs font-semibold text-blue-800 shadow-2xs transition hover:bg-blue-100 hover:border-blue-400"
-              title="Input / Edit capaian data di Rekap Spreadsheet RHPK"
-            >
-              <Icon icon="solar:pen-new-square-bold" width={15} className="text-blue-700" />
-              <span>Edit Data RHPK</span>
-            </Link>
-
             <a
               href={spreadsheetUrl}
               target="_blank"
