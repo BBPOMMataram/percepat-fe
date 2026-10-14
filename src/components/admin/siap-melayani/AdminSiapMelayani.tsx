@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 "use client";
 
 import { useEffect, useState } from "react";
@@ -219,4 +217,3 @@ export default function AdminSiapMelayani() {
         </main>
     );
 }
->>>>>>> 51c15b5ae5503b85174c5e32672c39c7ee27f21f
