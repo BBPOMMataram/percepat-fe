@@ -33,14 +33,29 @@ export default function DashboardETamu() {
 
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-    const [filterYear, setFilterYear] = useState("");
-    const [filterMonth, setFilterMonth] = useState("");
+    const currentYearStr = new Date().getFullYear().toString();
+    const currentMonthStr = (new Date().getMonth() + 1).toString();
+
+    const [filterYear, setFilterYear] = useState<string>(currentYearStr);
+    const [filterMonth, setFilterMonth] = useState<string>(currentMonthStr);
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const [isTableLoading, setIsTableLoading] = useState<boolean>(false);
+    const [isDownloadingExcel, setIsDownloadingExcel] = useState<boolean>(false);
     const [dashboardData, setDashboardData] = useState<any>({
         total_guests: 0,
         today_guests: 0,
         services_stats: [],
         chart_data: null,
-        table_data: []
+        table_data: [],
+        available_years: [],
+        pagination: {
+            current_page: 1,
+            last_page: 1,
+            per_page: 10,
+            total: 0,
+            from: 0,
+            to: 0,
+        }
     });
 
     const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ETAMU || 'http://localhost:8002';
@@ -67,24 +82,87 @@ export default function DashboardETamu() {
         }
     }, [user, router]);
 
-    const fetchDashboardData = async () => {
+    const fetchDashboardData = async (page: number = currentPage, isPageOnly: boolean = false) => {
         if (!user) return;
-        setIsLoading(true);
+        if (isPageOnly) {
+            setIsTableLoading(true);
+        } else {
+            setIsLoading(true);
+        }
         try {
             const res = await api.get(`${baseURL}/api/e-tamu/dashboard`, {
-                params: { year: filterYear, month: filterMonth }
+                params: {
+                    year: filterYear,
+                    month: filterMonth,
+                    page: page,
+                    per_page: 10,
+                }
             });
             setDashboardData(res.data);
         } catch (error) {
             console.error("Gagal mengambil data dashboard E-Tamu", error);
         } finally {
             setIsLoading(false);
+            setIsTableLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchDashboardData();
+        setCurrentPage(1);
+        fetchDashboardData(1, false);
     }, [user, filterYear, filterMonth]);
+
+    const handlePageChange = (newPage: number) => {
+        if (newPage < 1) return;
+        const lastPage = dashboardData.pagination?.last_page || 1;
+        if (newPage > lastPage) return;
+        setCurrentPage(newPage);
+        fetchDashboardData(newPage, true);
+    };
+
+    const generatePaginationPages = (current: number, total: number) => {
+        if (total <= 7) {
+            return Array.from({ length: total }, (_, i) => i + 1);
+        }
+        if (current <= 3) {
+            return [1, 2, 3, 4, '...', total];
+        }
+        if (current >= total - 2) {
+            return [1, '...', total - 3, total - 2, total - 1, total];
+        }
+        return [1, '...', current - 1, current, current + 1, '...', total];
+    };
+
+    const handleDownloadExcel = async () => {
+        try {
+            setIsDownloadingExcel(true);
+            const params: any = {};
+            if (filterYear) params.year = filterYear;
+            if (filterMonth) params.month = filterMonth;
+
+            const response = await api.get(`${baseURL}/api/e-tamu/download-excel`, {
+                params,
+                responseType: 'blob',
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            const fileName = `data-tamu${filterYear ? `-${filterYear}` : ''}${filterMonth ? `-bulan-${filterMonth}` : ''}.xlsx`;
+            link.setAttribute('download', fileName);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Gagal mendownload data tamu Excel", error);
+            const queryParams = new URLSearchParams();
+            if (filterYear) queryParams.set('year', filterYear);
+            if (filterMonth) queryParams.set('month', filterMonth);
+            window.open(`${baseURL}/api/e-tamu/download-excel?${queryParams.toString()}`, '_blank');
+        } finally {
+            setIsDownloadingExcel(false);
+        }
+    };
 
     const handleDownloadChart = () => {
         if (chartRef.current) {
@@ -95,6 +173,10 @@ export default function DashboardETamu() {
             link.click();
         }
     };
+
+    const availableYears: number[] = dashboardData.available_years && dashboardData.available_years.length > 0
+        ? dashboardData.available_years
+        : [new Date().getFullYear()];
 
     if (authLoading || !user) {
         return (
@@ -133,10 +215,9 @@ export default function DashboardETamu() {
                             onChange={(e) => setFilterYear(e.target.value)}
                         >
                             <option value="">Pilih Tahun</option>
-                            <option value="2024">2024</option>
-                            <option value="2025">2025</option>
-                            <option value="2026">2026</option>
-                            <option value="2027">2027</option>
+                            {availableYears.map((yr: number) => (
+                                <option key={yr} value={yr.toString()}>{yr}</option>
+                            ))}
                         </select>
                         <select 
                             className="bg-white border border-slate-200 text-slate-700 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 text-sm flex-1 sm:flex-none min-w-[150px]"
@@ -148,7 +229,13 @@ export default function DashboardETamu() {
                                 <option key={i+1} value={i+1}>{new Date(0, i).toLocaleString('id-ID', { month: 'long' })}</option>
                             ))}
                         </select>
-                        <button onClick={fetchDashboardData} className="bg-[#0284c7] hover:bg-[#0369a1] text-white font-medium px-6 py-2.5 rounded-lg shadow-sm transition-colors text-sm">
+                        <button 
+                            onClick={() => {
+                                setCurrentPage(1);
+                                fetchDashboardData(1, false);
+                            }} 
+                            className="bg-[#0284c7] hover:bg-[#0369a1] text-white font-medium px-6 py-2.5 rounded-lg shadow-sm transition-colors text-sm"
+                        >
                             Filter
                         </button>
                     </div>
@@ -216,16 +303,37 @@ export default function DashboardETamu() {
             </div>
 
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-slate-100">
-                    <a href={`${baseURL}/security/guest-download`} target="_blank" className="bg-[#0284c7] hover:bg-[#0369a1] text-white font-medium py-2 px-5 rounded-lg shadow-sm transition-colors text-sm inline-flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[18px]">description</span> Download xlsx
-                    </a>
+                <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                    <button 
+                        type="button"
+                        onClick={handleDownloadExcel}
+                        disabled={isDownloadingExcel}
+                        className="bg-[#0284c7] hover:bg-[#0369a1] text-white font-medium py-2 px-5 rounded-lg shadow-sm transition-colors text-sm inline-flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                    >
+                        {isDownloadingExcel ? (
+                            <>
+                                <span className="loading loading-spinner loading-xs"></span>
+                                <span>Mendownload...</span>
+                            </>
+                        ) : (
+                            <>
+                                <span className="material-symbols-outlined text-[18px]">description</span>
+                                <span>Download xlsx</span>
+                            </>
+                        )}
+                    </button>
+
+                    {dashboardData.pagination && dashboardData.pagination.total > 0 && (
+                        <div className="text-xs text-slate-500 font-medium bg-slate-50 border border-slate-200/60 px-3 py-1.5 rounded-lg">
+                            Menampilkan <span className="font-bold text-slate-700">{dashboardData.pagination.from || 0}</span> - <span className="font-bold text-slate-700">{dashboardData.pagination.to || 0}</span> dari <span className="font-bold text-slate-700">{dashboardData.pagination.total}</span> data tamu
+                        </div>
+                    )}
                 </div>
                 
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto relative">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-white text-slate-500 text-[11px] uppercase tracking-wider font-bold border-b border-slate-200">
+                            <tr className="bg-slate-50/80 text-slate-500 text-[11px] uppercase tracking-wider font-bold border-b border-slate-200">
                                 <th className="px-6 py-4">Nama</th>
                                 <th className="px-6 py-4">HP</th>
                                 <th className="px-6 py-4">Instansi</th>
@@ -235,22 +343,25 @@ export default function DashboardETamu() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                            {isLoading ? (
+                            {isLoading || isTableLoading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center text-slate-400">
-                                        <span className="loading loading-spinner loading-md"></span>
+                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                                        <div className="flex flex-col items-center justify-center gap-2">
+                                            <span className="loading loading-spinner loading-md text-[#0284c7]"></span>
+                                            <span className="text-xs text-slate-500">Memuat data tamu...</span>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : dashboardData.table_data?.length > 0 ? (
                                 dashboardData.table_data.map((guest: any, i: number) => (
-                                    <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                                        <td className="px-6 py-4">{guest.name}</td>
-                                        <td className="px-6 py-4">{guest.hp}</td>
-                                        <td className="px-6 py-4">{guest.company || '-'}</td>
+                                    <tr key={i} className="hover:bg-slate-50/60 transition-colors">
+                                        <td className="px-6 py-4 font-medium text-slate-800">{guest.name}</td>
+                                        <td className="px-6 py-4 text-slate-600">{guest.hp}</td>
+                                        <td className="px-6 py-4 text-slate-600">{guest.company || '-'}</td>
                                         <td className="px-6 py-4">
-                                            <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs">{guest.service_name || '-'}</span>
+                                            <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md text-xs font-medium">{guest.service_name || '-'}</span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-slate-500">
+                                        <td className="px-6 py-4 whitespace-nowrap text-slate-500 text-xs">
                                             {guest.date}, {guest.time} WITA
                                         </td>
                                         <td className="px-6 py-4">
@@ -279,12 +390,74 @@ export default function DashboardETamu() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center text-slate-400 italic">Belum ada data tamu</td>
+                                    <td colSpan={6} className="px-6 py-10 text-center text-slate-400 italic">Belum ada data tamu</td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
+
+                {/* PAGINATION FOOTER */}
+                {dashboardData.pagination && dashboardData.pagination.total > 0 && (
+                    <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="text-xs text-slate-500 font-medium text-center sm:text-left">
+                            Halaman <span className="font-bold text-slate-700">{dashboardData.pagination.current_page}</span> dari <span className="font-bold text-slate-700">{dashboardData.pagination.last_page}</span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                            <button
+                                type="button"
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage <= 1 || isTableLoading}
+                                className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all inline-flex items-center gap-1 shadow-sm"
+                                title="Halaman Sebelumnya"
+                            >
+                                <span className="material-symbols-outlined text-[16px]">chevron_left</span>
+                                <span className="hidden sm:inline">Sebelumnya</span>
+                            </button>
+
+                            <div className="flex items-center gap-1">
+                                {generatePaginationPages(currentPage, dashboardData.pagination.last_page || 1).map((p, idx) => {
+                                    if (p === '...') {
+                                        return (
+                                            <span key={`ellipsis-${idx}`} className="px-2 py-1 text-slate-400 text-xs">
+                                                ...
+                                            </span>
+                                        );
+                                    }
+                                    const pageNum = Number(p);
+                                    const isActive = pageNum === currentPage;
+                                    return (
+                                        <button
+                                            key={`page-${pageNum}`}
+                                            type="button"
+                                            onClick={() => handlePageChange(pageNum)}
+                                            disabled={isTableLoading}
+                                            className={`min-w-[32px] h-8 px-2 text-xs font-semibold rounded-lg transition-all shadow-sm ${
+                                                isActive
+                                                    ? "bg-[#0284c7] text-white shadow-sky-500/20"
+                                                    : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                                            }`}
+                                        >
+                                            {pageNum}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage >= (dashboardData.pagination.last_page || 1) || isTableLoading}
+                                className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all inline-flex items-center gap-1 shadow-sm"
+                                title="Halaman Selanjutnya"
+                            >
+                                <span className="hidden sm:inline">Selanjutnya</span>
+                                <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* POPUP ZOOM GAMBAR TAMU */}
