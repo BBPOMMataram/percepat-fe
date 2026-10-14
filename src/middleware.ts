@@ -42,6 +42,57 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL("/unauthorized", req.url));
     }
 
+    // SIPROVAL role-based authorization
+    if (pathname.startsWith("/siproval") && pathname !== "/siproval") {
+      const isSuperadmin =
+        payload.role === "superadmin" ||
+        payload.email === "hilmi.khairan@pom.go.id" ||
+        (payload.role === "admin" &&
+          Array.isArray(payload.sites) &&
+          payload.sites.some(
+            (s: { id?: number; name?: string }) =>
+              Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval")
+          ));
+      const groupJabatanId =
+        payload.group_jabatan_id !== undefined && payload.group_jabatan_id !== null
+          ? Number(payload.group_jabatan_id)
+          : null;
+
+      if (!isSuperadmin && groupJabatanId !== null) {
+        if (groupJabatanId === 3) {
+          // Katim: hanya boleh akses fitur katim
+          const allowed =
+            pathname.startsWith("/siproval/katim") ||
+            pathname.startsWith("/siproval/google-sheets");
+          if (!allowed) {
+            return NextResponse.redirect(new URL("/siproval/katim", req.url));
+          }
+        } else if (groupJabatanId === 1) {
+          // Kabalai: hanya boleh akses fitur kabalai
+          const allowed =
+            pathname.startsWith("/siproval/monev") ||
+            pathname.startsWith("/siproval/show-monev") ||
+            pathname.startsWith("/siproval/catatan") ||
+            pathname.startsWith("/siproval/rhpk") ||
+            pathname.startsWith("/siproval/arahan-pimpinan");
+          if (!allowed) {
+            return NextResponse.redirect(new URL("/siproval/monev", req.url));
+          }
+        } else if (groupJabatanId === 2) {
+          // TU: hanya boleh akses fitur TU
+          const allowed =
+            pathname.startsWith("/siproval/tu") ||
+            pathname.startsWith("/siproval/budget-mapping");
+          if (!allowed) {
+            return NextResponse.redirect(new URL("/siproval/tu", req.url));
+          }
+        } else {
+          // Staf (4), OS (5), atau role non-aktor Siproval
+          return NextResponse.redirect(new URL("/unauthorized", req.url));
+        }
+      }
+    }
+
     return NextResponse.next();
   } catch (error) {
     console.log("Invalid token:", error);

@@ -4,11 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 import api from "@/utils/api";
 
 const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8006";
 
 export default function ArahanPimpinan() {
+  const { user } = useSelector((state: RootState) => state.auth);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -36,10 +39,11 @@ export default function ArahanPimpinan() {
     async function loadCurrentData() {
       try {
         setLoadingCurrent(true);
+        const query = user?.id ? `&user_id=${user.id}` : "";
         const res = await api.get(
           `${baseUrl}/api/kabalai/tambah-catatan?year=${year}&month=${encodeURIComponent(
             month,
-          )}&tab=${tab}&row=${row}&indikator=${encodeURIComponent(indikator)}`,
+          )}&tab=${tab}&row=${row}&indikator=${encodeURIComponent(indikator)}${query}`,
         );
         const data = res.data?.data || res.data;
         if (data) {
@@ -60,8 +64,10 @@ export default function ArahanPimpinan() {
       }
     }
 
-    loadCurrentData();
-  }, [year, month, tab, row, indikator]);
+    if (user?.id) {
+      loadCurrentData();
+    }
+  }, [year, month, tab, row, indikator, user?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,6 +85,7 @@ export default function ArahanPimpinan() {
       const endpoint = `${baseUrl}/api/kabalai/tambah-catatan`;
 
       const res = await api.post(endpoint, {
+        user_id: user?.id,
         year,
         month,
         tab,

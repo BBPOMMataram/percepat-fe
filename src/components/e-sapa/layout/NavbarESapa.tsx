@@ -1,7 +1,7 @@
 "use client";
 
 import { logout } from "@/features/authSlice";
-import { RootState } from "@/redux/store";
+import { RootState, AppDispatch } from "@/redux/store";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
@@ -12,7 +12,7 @@ interface NavbarProps {
 }
 
 export default function NavbarESapa({ isSidebarOpen, setIsSidebarOpen }: NavbarProps) {
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<AppDispatch>();
     const router = useRouter();
     const { user } = useSelector((state: RootState) => state.auth);
 

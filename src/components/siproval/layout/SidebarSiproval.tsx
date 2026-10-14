@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "@iconify/react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 
 type Actor = "katim" | "kabalai" | "tu" | "superadmin";
 
@@ -22,7 +24,20 @@ const menus = {
       url: "/siproval/google-sheets",
       active: "/siproval/google-sheets",
     },
+    {
+      name: "Arahan Pimpinan",
+      icon: "solar:chat-round-line-bold",
+      url: "/siproval/katim/arahan-pimpinan",
+      active: "/siproval/katim/arahan-pimpinan",
+    },
+    {
+      name: "Anggota Tim IKSK",
+      icon: "solar:users-group-two-rounded-bold",
+      url: "/siproval/katim/anggota",
+      active: "/siproval/katim/anggota",
+    },
   ],
+
   kabalai: [
     {
       name: "Monitoring & Evaluasi",
@@ -35,12 +50,6 @@ const menus = {
       icon: "solar:clipboard-text-bold",
       url: "/siproval/catatan",
       active: "/siproval/catatan",
-    },
-    {
-      name: "Arahan Pimpinan",
-      icon: "solar:notes-bold",
-      url: "/siproval/arahan-pimpinan",
-      active: "/siproval/arahan-pimpinan",
     },
     {
       name: "RHPK",
@@ -71,13 +80,7 @@ const menus = {
       active: "/siproval/admin/sinkronisasi-spreadsheet",
     },
     {
-      name: "Sinkronisasi Tab",
-      icon: "solar:layers-bold",
-      url: "/siproval/admin/sinkronisasi-tab",
-      active: "/siproval/admin/sinkronisasi-tab",
-    },
-    {
-      name: "Permission",
+      name: "Otorisasi & Kunci Bulan",
       icon: "solar:lock-keyhole-bold",
       url: "/siproval/admin/permission",
       active: "/siproval/admin/permission",
@@ -100,26 +103,64 @@ type Props = {
 export default function SidebarSiproval({ actor }: Props) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user } = useSelector((state: RootState) => state.auth);
 
   let resolvedActor: Actor = actor || "katim";
   if (!actor) {
-    if (pathname.startsWith("/siproval/admin")) {
-      resolvedActor = "superadmin";
-    } else if (
-      pathname.startsWith("/siproval/tu") ||
-      pathname.startsWith("/siproval/budget-mapping")
-    ) {
-      resolvedActor = "tu";
-    } else if (
-      pathname.startsWith("/siproval/monev") ||
-      pathname.startsWith("/siproval/show-monev") ||
-      pathname.startsWith("/siproval/catatan") ||
-      pathname.startsWith("/siproval/arahan-pimpinan") ||
-      pathname.startsWith("/siproval/rhpk")
-    ) {
+    const picEmails = [
+      "hilmi.khairan@pom.go.id",
+      "nanang.setyadi@pom.go.id",
+      "fatimah.wulandari@pom.go.id",
+      "fatimah.wulandari03@gmail.com",
+    ];
+    const picNames = ["hilmi khairan", "nanang setyadi santoso", "fatimah tri wulandari"];
+    const userNameLower = (user?.name || "").toLowerCase().trim();
+    const userEmailLower = (user?.email || "").toLowerCase().trim();
+
+    const isPic =
+      user?.role?.level === "superadmin" ||
+      picEmails.includes(userEmailLower) ||
+      picNames.some((n) => userNameLower.includes(n)) ||
+      (user?.role?.level === "admin" &&
+        Array.isArray(user?.sites) &&
+        user.sites.some(
+          (s: { id?: number; name?: string }) =>
+            Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval")
+        ));
+    const groupJabatanId = user?.employee?.group_jabatan_id;
+
+    if (isPic) {
+      if (
+        pathname.startsWith("/siproval/monev") ||
+        pathname.startsWith("/siproval/show-monev") ||
+        pathname.startsWith("/siproval/catatan") ||
+        pathname.startsWith("/siproval/arahan-pimpinan") ||
+        pathname.startsWith("/siproval/rhpk")
+      ) {
+        resolvedActor = "kabalai";
+      } else if (pathname.startsWith("/siproval/katim") || pathname.startsWith("/siproval/google-sheets")) {
+        resolvedActor = "katim";
+      } else {
+        resolvedActor = "superadmin";
+      }
+    } else if (groupJabatanId === 1) {
       resolvedActor = "kabalai";
-    } else {
+    } else if (groupJabatanId === 3) {
       resolvedActor = "katim";
+    } else {
+      if (pathname.startsWith("/siproval/admin")) {
+        resolvedActor = "superadmin";
+      } else if (
+        pathname.startsWith("/siproval/monev") ||
+        pathname.startsWith("/siproval/show-monev") ||
+        pathname.startsWith("/siproval/catatan") ||
+        pathname.startsWith("/siproval/arahan-pimpinan") ||
+        pathname.startsWith("/siproval/rhpk")
+      ) {
+        resolvedActor = "kabalai";
+      } else {
+        resolvedActor = "katim";
+      }
     }
   }
 
@@ -171,7 +212,13 @@ export default function SidebarSiproval({ actor }: Props) {
           <p className="text-[10px] font-semibold uppercase tracking-widest text-white/50">
             Aktor
           </p>
-          <p className="mt-1 text-sm font-semibold capitalize">{resolvedActor}</p>
+          <p className="mt-1 text-sm font-semibold">
+            {resolvedActor === "kabalai"
+              ? "Kepala Balai"
+              : resolvedActor === "katim"
+              ? "Ketua Tim (Katim)"
+              : "PIC (Pengelola Sistem)"}
+          </p>
         </div>
 
         <p className="mb-3 px-2 text-[10px] font-semibold uppercase tracking-widest text-white/40">

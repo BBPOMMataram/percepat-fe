@@ -4,6 +4,8 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 import api from "@/utils/api";
 
 const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8006";
@@ -48,6 +50,7 @@ type Props = {
 };
 
 export default function RecapTab({ year = "2026", tab = "154" }: Props) {
+  const { user } = useSelector((state: RootState) => state.auth);
   const searchParams = useSearchParams();
   const initialMonth = (searchParams.get("month") || "OKTOBER").toUpperCase();
 
@@ -74,8 +77,9 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
       setLoading(true);
       setApiNotice("");
       try {
+        const query = user?.id ? `&user_id=${user.id}` : "";
         const res = await api.get(
-          `${baseUrl}/api/kabalai/rhpk/${year}/tab/${tab}?month=${selectedMonth}`,
+          `${baseUrl}/api/kabalai/rhpk/${year}/tab/${tab}?month=${selectedMonth}${query}`,
         );
 
         if (res.data) {
@@ -112,8 +116,10 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
       }
     }
 
-    fetchMonitoringData();
-  }, [year, tab, selectedMonth]);
+    if (user?.id) {
+      fetchMonitoringData();
+    }
+  }, [year, tab, selectedMonth, user?.id]);
 
   // Filter & Search
   const filteredIndicators = useMemo(() => {
@@ -169,6 +175,7 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
     try {
       const endpoint = `${baseUrl}/api/kabalai/tambah-catatan`;
       const res = await api.post(endpoint, {
+        user_id: user?.id,
         year,
         month: selectedMonth,
         tab,
