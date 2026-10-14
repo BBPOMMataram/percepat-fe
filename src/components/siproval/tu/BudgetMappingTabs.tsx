@@ -4,6 +4,8 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 import api from "@/utils/api";
 
 const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8006";
@@ -29,6 +31,7 @@ type TabsResponse = {
 };
 
 export default function BudgetMappingTabs() {
+  const { user } = useSelector((state: RootState) => state.auth);
   const searchParams = useSearchParams();
   const year = searchParams.get("year") || "2026";
 
@@ -46,8 +49,9 @@ export default function BudgetMappingTabs() {
       setError("");
 
       try {
+        const query = user?.id ? `?user_id=${user.id}` : "";
         const response = await api.get(
-          `${baseUrl}/api/budget-mapping/${year}/tabs`
+          `${baseUrl}/api/budget-mapping/${year}/tabs${query}`
         );
 
         if (!isMounted) return;
@@ -83,11 +87,13 @@ export default function BudgetMappingTabs() {
       }
     }
 
-    fetchTabs();
+    if (user?.id) {
+      fetchTabs();
+    }
     return () => {
       isMounted = false;
     };
-  }, [year]);
+  }, [year, user?.id]);
 
   const filteredTabs = useMemo(() => {
     if (!searchQuery.trim()) return tabs;

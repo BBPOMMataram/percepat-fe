@@ -4,6 +4,8 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 import api from "@/utils/api";
 
 const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8006";
@@ -25,6 +27,7 @@ type RowData = {
 };
 
 export default function BudgetMappingTable() {
+  const { user } = useSelector((state: RootState) => state.auth);
   const searchParams = useSearchParams();
   const year = searchParams.get("year") || "2026";
   const tabId = searchParams.get("tab") || "1";
@@ -47,8 +50,9 @@ export default function BudgetMappingTable() {
       setErrorMsg("");
       setApiNotice("");
       try {
+        const query = user?.id ? `?user_id=${user.id}` : "";
         const res = await api.get(
-          `${baseUrl}/api/budget-mapping/${year}/tab/${tabId}`,
+          `${baseUrl}/api/budget-mapping/${year}/tab/${tabId}${query}`,
         );
 
         if (res.data) {
@@ -94,8 +98,10 @@ export default function BudgetMappingTable() {
       }
     }
 
-    loadTable();
-  }, [year, tabId]);
+    if (user?.id) {
+      loadTable();
+    }
+  }, [year, tabId, user?.id]);
 
   const maxColumnCount = useMemo(() => {
     let count = 0;
@@ -134,7 +140,7 @@ export default function BudgetMappingTable() {
     try {
       await api.post(
         `${baseUrl}/tu/budget-mapping/${year}/tab/${tabId}/update`,
-        { updates: updateList }
+        { user_id: user?.id, updates: updateList }
       );
 
       setSuccessMsg(

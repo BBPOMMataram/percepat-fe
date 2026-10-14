@@ -1,8 +1,11 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { useSelector } from "react-redux";
-import { RootState } from "@/redux/store";
+import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/redux/store";
+import { logout } from "@/features/authSlice";
+import { showAlert } from "@/features/alertSlice";
 import { Icon } from "@iconify/react";
 
 type HeaderSiprovalProps = {
@@ -17,9 +20,31 @@ export default function HeaderSiproval({
   userName,
 }: HeaderSiprovalProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
 
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
   const displayName = userName || user?.name || user?.call_name || "Pengguna";
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await dispatch(logout()).unwrap();
+      dispatch(
+        showAlert({
+          type: "success",
+          message: "Anda telah berhasil keluar dari akun SIPROVAL.",
+          description: "Sesi telah diakhiri. Silakan login kembali jika diperlukan.",
+        })
+      );
+    } catch {
+      // jika error, tetap redirect ke login
+    } finally {
+      router.push("/login");
+    }
+  };
 
   let computedTitle = title;
   let computedDesc = description;
@@ -75,18 +100,8 @@ export default function HeaderSiproval({
         )}
       </div>
 
-      {/* Pengguna dan notifikasi */}
+      {/* Pengguna dan Tombol Logout */}
       <div className="flex shrink-0 items-center gap-3">
-        <button
-          type="button"
-          aria-label="Notifikasi"
-          className="relative rounded-full border border-slate-200 bg-white p-2.5 text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-blue-700"
-        >
-          <Icon icon="solar:bell-bold" width={20} height={20} />
-
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full border border-white bg-emerald-500" />
-        </button>
-
         {displayName && (
           <div className="hidden items-center gap-2 sm:flex">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-700">
@@ -98,6 +113,30 @@ export default function HeaderSiproval({
             </span>
           </div>
         )}
+
+        {/* Tombol Logout (Menggantikan Tombol Notifikasi) */}
+        <button
+          type="button"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          aria-label="Keluar dari Aplikasi"
+          title="Keluar dari Akun SIPROVAL"
+          className="group flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50/70 px-3.5 py-2 text-xs font-semibold text-rose-700 shadow-sm transition-all hover:bg-rose-100 hover:border-rose-300 hover:text-rose-800 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isLoggingOut ? (
+            <span className="loading loading-spinner loading-xs text-rose-600"></span>
+          ) : (
+            <Icon
+              icon="solar:logout-2-bold"
+              width={18}
+              height={18}
+              className="text-rose-600 transition-transform group-hover:translate-x-0.5"
+            />
+          )}
+          <span className="inline">
+            {isLoggingOut ? "Keluar..." : "Keluar"}
+          </span>
+        </button>
       </div>
     </header>
   );

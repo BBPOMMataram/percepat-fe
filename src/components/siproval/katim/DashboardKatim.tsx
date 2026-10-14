@@ -63,16 +63,25 @@ export default function DashboardKatim() {
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [arahanList, setArahanList] = useState<any[]>([]);
+  const [spreadsheetUrl, setSpreadsheetUrl] = useState<string>(
+    "https://docs.google.com/spreadsheets/d/1KXN2ukZTcDUZ-9kfc3BbM-qi3VumvcHUSELK91nGqnU/edit#gid=180451485"
+  );
+  const [loadingArahan, setLoadingArahan] = useState<boolean>(true);
 
   const userName = user?.name || user?.call_name || "Ketua Tim (Katim)";
   const selectedMonthName = MONTHS[selectedMonthIdx - 1] || "Januari";
+
 
   useEffect(() => {
     const fetchDashboard = async () => {
       setLoading(true);
       setErrorMsg(null);
       try {
-        const res = await api.get(`${baseUrl}/api/katim/dashboard`);
+        const queryParams = new URLSearchParams();
+        if (user?.id) queryParams.set("user_id", String(user.id));
+        const url = `${baseUrl}/api/katim/dashboard${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
+        const res = await api.get(url);
         if (res.data?.status === "success" && res.data?.data) {
           setMetrics(res.data.data);
         }
@@ -85,7 +94,36 @@ export default function DashboardKatim() {
     };
 
     fetchDashboard();
-  }, []);
+  }, [user?.id]);
+
+  useEffect(() => {
+    const fetchArahan = async () => {
+      setLoadingArahan(true);
+      try {
+        const queryParams = new URLSearchParams();
+        if (user?.id) queryParams.set("user_id", String(user.id));
+        queryParams.set("month", selectedMonthName.toUpperCase());
+        const res = await api.get(
+          `${baseUrl}/api/katim/arahan-pimpinan?${queryParams.toString()}`
+        );
+        if (res.data?.status === "success" && res.data?.data) {
+          setArahanList(res.data.data.arahan_list || []);
+          if (res.data.data.spreadsheet_url) {
+            setSpreadsheetUrl(res.data.data.spreadsheet_url);
+          }
+        }
+      } catch (err) {
+        console.error("Gagal memuat arahan pimpinan di dashboard:", err);
+      } finally {
+        setLoadingArahan(false);
+      }
+    };
+
+    if (user?.id) {
+      fetchArahan();
+    }
+  }, [user?.id, selectedMonthName]);
+
 
   // IKU stats for selected month
   const currentIku = metrics?.counts_iku?.[selectedMonthIdx] || {
@@ -175,8 +213,116 @@ export default function DashboardKatim() {
         </div>
       </div>
 
+      {/* Leadership Directive Highlights */}
+      <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/40 p-6 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
+              <Icon icon="solar:chat-round-line-bold" width={22} />
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-slate-900">
+                  Arahan & Evaluasi Pimpinan (Kepala Balai)
+                </h3>
+                <span className="rounded-md bg-indigo-100 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+                  {selectedMonthName} {currentYear}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500">
+                Catatan evaluasi dan rekomendasi Kepala Balai terhadap IKSK yang Anda pimpin.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href={spreadsheetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-semibold text-emerald-800 shadow-2xs transition hover:bg-emerald-100 hover:border-emerald-400"
+              title="Buka dokumen Google Spreadsheet Rekap Data RHPK di tab baru"
+            >
+              <Icon icon="ri:file-excel-2-fill" width={15} className="text-emerald-700" />
+              <span>Spreadsheet Rekap RHPK</span>
+              <Icon icon="solar:arrow-right-up-linear" width={12} className="text-emerald-600" />
+            </a>
+
+            <Link
+              href="/siproval/katim/arahan-pimpinan"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-white px-3.5 py-2 text-xs font-semibold text-indigo-700 shadow-2xs transition hover:bg-indigo-50"
+            >
+              <span>Buka Semua Arahan</span>
+              <Icon icon="solar:arrow-right-linear" width={14} />
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          {loadingArahan ? (
+            <div className="flex items-center justify-center py-6 text-xs text-slate-400">
+              <Icon icon="solar:refresh-circle-bold" width={20} className="animate-spin text-indigo-600 mr-2" />
+              <span>Memuat arahan pimpinan...</span>
+            </div>
+          ) : (() => {
+            const withDirectives = arahanList.filter((a) => a.has_arahan);
+            if (withDirectives.length > 0) {
+              return (
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {withDirectives.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="rounded-xl border border-indigo-200/90 bg-white p-4 shadow-2xs"
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-indigo-800">
+                          IKSK {item.iksk_id}: {item.indikator.length > 50 ? `${item.indikator.substring(0, 50)}...` : item.indikator}
+                        </span>
+                        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                          {item.capaian_persen}%
+                        </span>
+                      </div>
+                      <p className="mt-2 text-xs italic font-medium text-slate-800 bg-indigo-50/60 p-2.5 rounded-lg border-l-4 border-indigo-600">
+                        &ldquo;{item.arahan_pimpinan}&rdquo;
+                      </p>
+                      <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
+                        <span>Pemberi: {item.pemberi_arahan}</span>
+                        <Link
+                          href={`/siproval/google-sheets?iksk_id=${item.iksk_id}`}
+                          className="font-semibold text-indigo-600 hover:underline"
+                        >
+                          Buka di Sheet →
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            }
+
+            return (
+              <div className="flex items-center justify-between rounded-xl border border-dashed border-slate-200 bg-white/70 px-4 py-3 text-xs text-slate-600">
+                <div className="flex items-center gap-2">
+                  <Icon icon="solar:info-circle-linear" width={16} className="text-slate-400" />
+                  <span>
+                    Belum ada arahan khusus dari Kepala Balai untuk bulan {selectedMonthName}.
+                  </span>
+                </div>
+                <Link
+                  href="/siproval/katim/arahan-pimpinan"
+                  className="font-semibold text-indigo-600 hover:underline text-[11px]"
+                >
+                  Lihat Riwayat Arahan Lengkap
+                </Link>
+              </div>
+            );
+          })()}
+        </div>
+      </div>
+
       {/* 4 Metric Boxes (IKU, Output/Caput, Anggaran, NPSS) */}
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+
         {/* Box 1: IKU */}
         <div className="flex flex-col justify-between rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-cyan-100/60 p-6 shadow-sm">
           <div>

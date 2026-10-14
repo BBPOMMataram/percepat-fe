@@ -1,10 +1,11 @@
 import { showAlert } from "@/features/alertSlice"
 import { logout } from "@/features/authSlice"
 import { useRouter } from "next/navigation"
+import { AppDispatch } from "@/redux/store"
 import { useDispatch } from "react-redux"
 
 export default function LogoutBtn() {
-    const dispatch = useDispatch()
+    const dispatch = useDispatch<AppDispatch>()
     const router = useRouter()
 
     const handleClick = () => {

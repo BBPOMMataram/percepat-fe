@@ -3,6 +3,8 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 import api from "@/utils/api";
 
 const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8006";
@@ -19,6 +21,7 @@ type Props = {
 };
 
 export default function RhpkList({ year = "2026" }: Props) {
+  const { user } = useSelector((state: RootState) => state.auth);
   const [tabs, setTabs] = useState<RhpkTab[]>([]);
   const [spreadsheetName, setSpreadsheetName] = useState("Google Sheets RHPK");
   const [loading, setLoading] = useState(true);
@@ -28,7 +31,8 @@ export default function RhpkList({ year = "2026" }: Props) {
     async function fetchRhpkTabs() {
       setLoading(true);
       try {
-        const res = await api.get(`${baseUrl}/api/kabalai/rhpk/${year}`);
+        const query = user?.id ? `?user_id=${user.id}` : "";
+        const res = await api.get(`${baseUrl}/api/kabalai/rhpk/${year}${query}`);
 
         if (res.data) {
           const data = res.data;
@@ -53,8 +57,10 @@ export default function RhpkList({ year = "2026" }: Props) {
       }
     }
 
-    fetchRhpkTabs();
-  }, [year]);
+    if (user?.id) {
+      fetchRhpkTabs();
+    }
+  }, [year, user?.id]);
 
   const filteredTabs = useMemo(() => {
     if (!searchQuery.trim()) return tabs;

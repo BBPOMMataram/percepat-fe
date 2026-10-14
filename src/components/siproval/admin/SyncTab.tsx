@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 import api from "@/utils/api";
 
 const baseUrl = (
-  process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8006"
+  process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000"
 ).replace(/\/+$/, "");
 
 type SpreadsheetOption = {
@@ -27,6 +29,7 @@ type TabItem = {
 };
 
 export default function SyncTab() {
+  const { user } = useSelector((state: RootState) => state.auth);
   const [spreadsheets, setSpreadsheets] = useState<SpreadsheetOption[]>([]);
   const [selectedSpreadsheetId, setSelectedSpreadsheetId] = useState<number | null>(null);
   const [tabs, setTabs] = useState<TabItem[]>([]);
@@ -35,11 +38,17 @@ export default function SyncTab() {
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Load available spreadsheets on mount
+  // Load available spreadsheets when user is available
   useEffect(() => {
+    if (!user?.id) return;
+
     async function loadSpreadsheets() {
+      setLoading(true);
+      setErrorMsg("");
       try {
-        const res = await api.get(`${baseUrl}/superadmin/sinkronisasi-spreadsheet`);
+        const query = user?.id ? `?user_id=${user.id}` : "";
+        const res = await api.get(`${baseUrl}/api/superadmin/sinkronisasi-spreadsheet${query}`);
+
         const data = res.data;
         const list: SpreadsheetOption[] = Array.isArray(data)
           ? data
@@ -64,7 +73,7 @@ export default function SyncTab() {
     }
 
     loadSpreadsheets();
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     if (selectedSpreadsheetId) {
@@ -76,8 +85,9 @@ export default function SyncTab() {
     setLoading(true);
     setErrorMsg("");
     try {
+      const query = user?.id ? `&user_id=${user.id}` : "";
       const res = await api.get(
-        `${baseUrl}/superadmin/sinkronisasi-tab?spreadsheet_id=${spreadsheetId}`
+        `${baseUrl}/api/superadmin/sinkronisasi-tab?spreadsheet_id=${spreadsheetId}${query}`
       );
       const data = res.data;
       if (Array.isArray(data)) {
@@ -109,7 +119,8 @@ export default function SyncTab() {
     setErrorMsg("");
 
     try {
-      const res = await api.post(`${baseUrl}/superadmin/sinkronisasi-tab`, {
+      const res = await api.post(`${baseUrl}/api/superadmin/sinkronisasi-tab`, {
+        user_id: user?.id,
         google_spreadsheet_id: selectedSpreadsheetId,
       });
 

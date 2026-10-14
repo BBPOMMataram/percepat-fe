@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 import api from "@/utils/api";
 
 const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8006";
@@ -65,6 +67,7 @@ function normalizeYears(rawInput: unknown): BudgetYear[] {
 }
 
 export default function BudgetMapping() {
+  const { user } = useSelector((state: RootState) => state.auth);
   const [years, setYears] = useState<BudgetYear[]>([]);
   const [spreadsheetName, setSpreadsheetName] = useState<string>("Spreadsheet Terintegrasi");
   const [loading, setLoading] = useState(true);
@@ -78,7 +81,8 @@ export default function BudgetMapping() {
         setLoading(true);
         setError("");
 
-        const response = await api.get(`${baseUrl}/api/budget-mapping/years`);
+        const query = user?.id ? `?user_id=${user.id}` : "";
+        const response = await api.get(`${baseUrl}/api/budget-mapping/years${query}`);
 
         if (!isMounted) return;
 
@@ -102,11 +106,13 @@ export default function BudgetMapping() {
       }
     }
 
-    fetchYears();
+    if (user?.id) {
+      fetchYears();
+    }
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [user?.id]);
 
   return (
     <div className="space-y-8">
