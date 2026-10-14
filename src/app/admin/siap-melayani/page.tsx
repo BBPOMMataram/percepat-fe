@@ -1,5 +1,5 @@
-import AdminAreaSiapMelayani from "@/components/admin/admin-area/AdminAreaSiapMelayani";
+import AdminSiapMelayani from "@/components/admin/siap-melayani/AdminSiapMelayani";
 
 export default function ProfilePage() {
-    return <AdminAreaSiapMelayani />
+    return <AdminSiapMelayani />;
 }
