@@ -50,7 +50,16 @@ export default function HeaderSiproval({
   let computedDesc = description;
 
   if (!computedTitle) {
-    if (pathname.startsWith("/siproval/katim")) {
+    if (pathname.startsWith("/siproval/katim/rhpk")) {
+      computedTitle = "Pengisian Data RHPK";
+      computedDesc = computedDesc || "Pengisian capaian realisasi, target bulanan, kendala, dan tindak lanjut RHPK";
+    } else if (pathname.startsWith("/siproval/katim/arahan-pimpinan")) {
+      computedTitle = "Arahan Pimpinan";
+      computedDesc = computedDesc || "Daftar arahan dan evaluasi Kepala Balai untuk tim Anda";
+    } else if (pathname.startsWith("/siproval/katim/anggota")) {
+      computedTitle = "Anggota Tim IKSK";
+      computedDesc = computedDesc || "Daftar staf dan pelaksana yang bertugas pada IKSK Anda";
+    } else if (pathname.startsWith("/siproval/katim")) {
       computedTitle = "Dashboard Ketua Tim";
       computedDesc = computedDesc || "Monitoring capaian dan realisasi kegiatan tim";
     } else if (pathname.startsWith("/siproval/google-sheets")) {
