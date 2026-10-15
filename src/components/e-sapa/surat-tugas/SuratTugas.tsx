@@ -2,6 +2,8 @@
 
 import api from "@/utils/api";
 import { useEffect, useState, useCallback } from "react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
 import 'dayjs/locale/id';
@@ -9,6 +11,7 @@ import 'dayjs/locale/id';
 dayjs.locale('id');
 
 export default function MasterSuratTugas() {
+    const { user } = useSelector((state: RootState) => state.auth);
     const [suratTugas, setSuratTugas] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     
@@ -229,6 +232,7 @@ export default function MasterSuratTugas() {
             "wilayah-tugas": formData.wilayah_tugas,
             "tanggal-dari": formData.tanggal_dari,
             "tanggal-sampai": formData.tanggal_sampai,
+            "user_id": user?.id,
             "list-petugas": JSON.stringify(formData.list_petugas.map(p => ({ id: p.id })))
         };
 
