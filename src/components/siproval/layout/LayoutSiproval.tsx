@@ -49,7 +49,9 @@ export default function LayoutSiproval({ children }: { children: React.ReactNode
                 if (groupJabatanId === 3) {
                     const isAllowed =
                         pathname.startsWith("/siproval/katim") ||
-                        pathname.startsWith("/siproval/google-sheets");
+                        pathname.startsWith("/siproval/google-sheets") ||
+                        pathname.startsWith("/siproval/tu") ||
+                        pathname.startsWith("/siproval/budget-mapping");
                     if (!isAllowed) {
                         router.push("/siproval/katim");
                     }
@@ -61,7 +63,9 @@ export default function LayoutSiproval({ children }: { children: React.ReactNode
                         pathname.startsWith("/siproval/show-monev") ||
                         pathname.startsWith("/siproval/catatan") ||
                         pathname.startsWith("/siproval/rhpk") ||
-                        pathname.startsWith("/siproval/arahan-pimpinan");
+                        pathname.startsWith("/siproval/arahan-pimpinan") ||
+                        pathname.startsWith("/siproval/tu") ||
+                        pathname.startsWith("/siproval/budget-mapping");
                     if (!isAllowed) {
                         router.push("/siproval/monev");
                     }

@@ -39,8 +39,9 @@ export default function Siproval() {
 
   const canAccess = (id: string) => {
     if (isPic) return true;
-    if (id === "katim") return groupJabatanId === 3;
-    if (id === "kabalai") return groupJabatanId === 1;
+    if (id === "tu") return true; // Munculkan dan izinkan akses ke menu TU
+    if (id === "katim") return groupJabatanId === 3 || isPic;
+    if (id === "kabalai") return groupJabatanId === 1 || isPic;
     if (id === "pic") return false;
     return false;
   };
@@ -74,6 +75,20 @@ export default function Siproval() {
       ],
     },
     {
+      id: "tu",
+      role: "Bagian Tata Usaha (TU)",
+      badge: "Perencanaan & Anggaran",
+      badgeColor: "bg-teal-100 text-teal-700",
+      icon: "solar:pie-chart-2-bold",
+      iconBg: "from-[#003d73] via-[#005baa] to-[#00a651]",
+      description: "Pengelolaan alokasi perencanaan anggaran, rincian belanja bulanan, dan pemetaan budget mapping.",
+      links: [
+        { label: "Dashboard Tata Usaha", url: "/siproval/tu" },
+        { label: "Budget Mapping 2026", url: "/siproval/budget-mapping/year?year=2026" },
+        { label: "Daftar Tahun Anggaran", url: "/siproval/budget-mapping" },
+      ],
+    },
+    {
       id: "pic",
       role: "PIC (Pengelola Sistem)",
       badge: "Integrasi & Akses",
@@ -92,6 +107,8 @@ export default function Siproval() {
     ? "PIC SIPROVAL"
     : groupJabatanId === 1
     ? "Kepala Balai (Kabalai)"
+    : groupJabatanId === 2
+    ? "Bagian Tata Usaha (TU)"
     : groupJabatanId === 3
     ? "Ketua Tim (Katim)"
     : "Pegawai BBPOM di Mataram";

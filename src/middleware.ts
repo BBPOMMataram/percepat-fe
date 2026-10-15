@@ -60,21 +60,25 @@ export async function middleware(req: NextRequest) {
 
       if (!isSuperadmin && groupJabatanId !== null) {
         if (groupJabatanId === 3) {
-          // Katim: hanya boleh akses fitur katim
+          // Katim: boleh akses fitur katim dan menu TU
           const allowed =
             pathname.startsWith("/siproval/katim") ||
-            pathname.startsWith("/siproval/google-sheets");
+            pathname.startsWith("/siproval/google-sheets") ||
+            pathname.startsWith("/siproval/tu") ||
+            pathname.startsWith("/siproval/budget-mapping");
           if (!allowed) {
             return NextResponse.redirect(new URL("/siproval/katim", req.url));
           }
         } else if (groupJabatanId === 1) {
-          // Kabalai: hanya boleh akses fitur kabalai
+          // Kabalai: boleh akses fitur kabalai dan menu TU
           const allowed =
             pathname.startsWith("/siproval/monev") ||
             pathname.startsWith("/siproval/show-monev") ||
             pathname.startsWith("/siproval/catatan") ||
             pathname.startsWith("/siproval/rhpk") ||
-            pathname.startsWith("/siproval/arahan-pimpinan");
+            pathname.startsWith("/siproval/arahan-pimpinan") ||
+            pathname.startsWith("/siproval/tu") ||
+            pathname.startsWith("/siproval/budget-mapping");
           if (!allowed) {
             return NextResponse.redirect(new URL("/siproval/monev", req.url));
           }
