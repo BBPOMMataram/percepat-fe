@@ -39,8 +39,13 @@ export default function LayoutESapa({ children }: { children: React.ReactNode })
                 const syncUser = async () => {
                     try {
                         await api.post(`${baseURL}/api/sync-user`, {
+                            id: user.id,
                             name: user.name,
-                            email: user.email
+                            email: user.email,
+                            fungsi: user.employee?.fungsi?.name || (user as any).fungsi,
+                            jabatan: user.employee?.jabatan || (user as any).jabatan,
+                            nip: user.employee?.nip || (user as any).nip,
+                            unit_kerja: user.employee?.unit_kerja || (user as any).unit_kerja,
                         });
                         console.log("Sinkronisasi akun e-sapa berhasil.");
                     } catch (err) {
