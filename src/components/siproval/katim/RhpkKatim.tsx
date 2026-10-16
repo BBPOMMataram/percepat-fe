@@ -210,7 +210,7 @@ export default function RhpkKatim() {
                 rekomendasi: formData.rekomendasi,
                 rtl: formData.rtl,
                 capaian_persen: isNaN(capPercent) ? ind.capaian_persen : capPercent,
-                status_capaian: (!isNaN(capPercent) && capPercent >= 100) ? "tercapai" : "belum",
+                status_capaian: (!isNaN(capPercent) && capPercent >= 100) ? ("tercapai" as const) : ("belum" as const),
               };
             }
             return ind;

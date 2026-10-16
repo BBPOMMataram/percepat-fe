@@ -45,13 +45,26 @@ export default function LayoutSiproval({ children }: { children: React.ReactNode
                     return;
                 }
 
+                // Sembunyikan fitur/rute TU untuk sekarang
+                if (
+                    pathname.startsWith("/siproval/tu") ||
+                    pathname.startsWith("/siproval/budget-mapping")
+                ) {
+                    if (groupJabatanId === 3) {
+                        router.push("/siproval/katim");
+                    } else if (groupJabatanId === 1) {
+                        router.push("/siproval/monev");
+                    } else {
+                        router.push("/siproval");
+                    }
+                    return;
+                }
+
                 // Katim (group_jabatan_id == 3)
                 if (groupJabatanId === 3) {
                     const isAllowed =
                         pathname.startsWith("/siproval/katim") ||
-                        pathname.startsWith("/siproval/google-sheets") ||
-                        pathname.startsWith("/siproval/tu") ||
-                        pathname.startsWith("/siproval/budget-mapping");
+                        pathname.startsWith("/siproval/google-sheets");
                     if (!isAllowed) {
                         router.push("/siproval/katim");
                     }
@@ -63,21 +76,14 @@ export default function LayoutSiproval({ children }: { children: React.ReactNode
                         pathname.startsWith("/siproval/show-monev") ||
                         pathname.startsWith("/siproval/catatan") ||
                         pathname.startsWith("/siproval/rhpk") ||
-                        pathname.startsWith("/siproval/arahan-pimpinan") ||
-                        pathname.startsWith("/siproval/tu") ||
-                        pathname.startsWith("/siproval/budget-mapping");
+                        pathname.startsWith("/siproval/arahan-pimpinan");
                     if (!isAllowed) {
                         router.push("/siproval/monev");
                     }
                 }
-                // TU (group_jabatan_id == 2)
+                // TU (group_jabatan_id == 2) - fitur TU sementara disembunyikan
                 else if (groupJabatanId === 2) {
-                    const isAllowed =
-                        pathname.startsWith("/siproval/tu") ||
-                        pathname.startsWith("/siproval/budget-mapping");
-                    if (!isAllowed) {
-                        router.push("/siproval/tu");
-                    }
+                    router.push("/siproval");
                 }
                 // Staf (4), OS (5), dll
                 else {

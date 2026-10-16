@@ -42,12 +42,6 @@ const menus = {
       url: "/siproval/katim/anggota",
       active: "/siproval/katim/anggota",
     },
-    {
-      name: "Menu Tata Usaha",
-      icon: "solar:pie-chart-2-bold",
-      url: "/siproval/tu",
-      active: "/siproval/tu",
-    },
   ],
 
   kabalai: [
@@ -68,12 +62,6 @@ const menus = {
       icon: "solar:chart-2-bold",
       url: "/siproval/rhpk/2026",
       active: "/siproval/rhpk",
-    },
-    {
-      name: "Menu Tata Usaha",
-      icon: "solar:pie-chart-2-bold",
-      url: "/siproval/tu",
-      active: "/siproval/tu",
     },
   ],
   tu: [
