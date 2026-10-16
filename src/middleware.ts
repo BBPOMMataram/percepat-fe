@@ -53,10 +53,15 @@ export async function middleware(req: NextRequest) {
             (s: { id?: number; name?: string }) =>
               Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval")
           ));
-      const groupJabatanId =
-        payload.group_jabatan_id !== undefined && payload.group_jabatan_id !== null
-          ? Number(payload.group_jabatan_id)
-          : null;
+      const isBasukiKatim =
+        payload.sub === "019ab8b3-4a06-7007-8337-2794c43cea4f" ||
+        String(payload.email || "").toLowerCase() === "al.el.dul79@gmail.com" ||
+        String(payload.name || "").toLowerCase().trim() === "basuki murdi hartono";
+      const groupJabatanId = isBasukiKatim
+        ? 3
+        : payload.group_jabatan_id !== undefined && payload.group_jabatan_id !== null
+        ? Number(payload.group_jabatan_id)
+        : null;
 
       if (!isSuperadmin && groupJabatanId !== null) {
         // Sembunyikan rute TU untuk saat ini
