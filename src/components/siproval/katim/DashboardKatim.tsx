@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { Icon } from "@iconify/react";
@@ -27,6 +28,8 @@ const MONTHS = [
 interface IndicatorItem {
   row_number: number;
   iksk_id: number;
+  spreadsheet_id?: number | null;
+  tab_id?: number | null;
   label: string;
   sasaran: string;
   target_tahunan: string;
@@ -76,6 +79,7 @@ interface DashboardMetrics {
 }
 
 export default function DashboardKatim() {
+  const router = useRouter();
   const { user } = useSelector((state: RootState) => state.auth);
   const currentMonthIdx = new Date().getMonth(); // 0-indexed
   const currentYear = new Date().getFullYear();
@@ -455,129 +459,7 @@ export default function DashboardKatim() {
         </div>
       </div>
 
-      {/* 2 Detail Breakdown Boxes (IKU & Caput) with BBPOM Blue & Green Gradient Accents */}
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        {/* Box 1: IKU Real Distribution */}
-        <div className="flex flex-col justify-between rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/80 via-white to-blue-100/50 p-6 shadow-2xs">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="rounded-lg bg-[#005baa] px-2.5 py-1 text-xs font-bold text-white">
-                IKU
-              </span>
-              <Icon icon="solar:chart-2-bold" width={22} className="text-[#005baa]" />
-            </div>
-            <h3 className="mt-3 text-base font-bold text-slate-900">
-              Distribusi Kategori IKU Tim
-            </h3>
-            <p className="mt-1 text-xs text-slate-600">
-              Klasifikasi capaian riil indikator pada bulan <strong>{selectedMonthName}</strong>:
-            </p>
 
-            {loading ? (
-              <div className="mt-4 flex items-center justify-center py-6 text-slate-400">
-                <Icon icon="solar:restart-linear" width={24} className="animate-spin text-[#005baa]" />
-              </div>
-            ) : (
-              <ul className="mt-3 space-y-2 text-xs text-slate-700">
-                <li className="flex items-center justify-between border-b border-blue-100 pb-1.5">
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                    Sangat Baik (&gt; 100%):
-                  </span>
-                  <span className="font-bold text-emerald-700">{currentIku.sangat_baik} Indikator</span>
-                </li>
-                <li className="flex items-center justify-between border-b border-blue-100 pb-1.5">
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-blue-500" />
-                    Baik (= 100%):
-                  </span>
-                  <span className="font-bold text-blue-700">{currentIku.baik} Indikator</span>
-                </li>
-                <li className="flex items-center justify-between border-b border-blue-100 pb-1.5">
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-amber-500" />
-                    Cukup (&lt; 100%):
-                  </span>
-                  <span className="font-bold text-amber-700">{currentIku.cukup} Indikator</span>
-                </li>
-                <li className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-slate-400" />
-                    Belum Ada Data / 0:
-                  </span>
-                  <span className="font-bold text-slate-600">{currentIku.tidak_dapat_disimpulkan} Indikator</span>
-                </li>
-              </ul>
-            )}
-          </div>
-
-          <div className="mt-5 border-t border-blue-100 pt-3">
-            <Link
-              href="/siproval/google-sheets"
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#005baa] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#004785]"
-            >
-              <span>Perbarui Capaian di Google Sheet</span>
-              <Icon icon="solar:arrow-right-linear" width={14} />
-            </Link>
-          </div>
-        </div>
-
-        {/* Box 2: Capaian Output (Caput) */}
-        <div className="flex flex-col justify-between rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/80 via-white to-emerald-100/50 p-6 shadow-2xs">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="rounded-lg bg-[#00a651] px-2.5 py-1 text-xs font-bold text-white">
-                OUTPUT
-              </span>
-              <Icon icon="solar:box-bold" width={22} className="text-[#00a651]" />
-            </div>
-            <h3 className="mt-3 text-base font-bold text-slate-900">
-              Evaluasi Target Output (Caput)
-            </h3>
-            <p className="mt-1 text-xs text-slate-600">
-              Pengukuran realisasi s/d bulan <strong>{selectedMonthName}</strong>:
-            </p>
-
-            {loading ? (
-              <div className="mt-4 flex items-center justify-center py-6 text-slate-400">
-                <Icon icon="solar:restart-linear" width={24} className="animate-spin text-[#00a651]" />
-              </div>
-            ) : (
-              <div className="mt-3 space-y-3">
-                <div className="flex items-center justify-between rounded-xl bg-white/80 border border-emerald-100 p-3 text-xs">
-                  <div>
-                    <span className="font-semibold text-emerald-800 block">Output Memenuhi Target:</span>
-                    <span className="text-[11px] text-slate-500">Realisasi kumulatif sesuai sasaran</span>
-                  </div>
-                  <span className="text-xl font-bold text-emerald-700">
-                    {currentCaput.caput_mencapai_target}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between rounded-xl bg-white/80 border border-amber-100 p-3 text-xs">
-                  <div>
-                    <span className="font-semibold text-amber-800 block">Belum Memenuhi Target:</span>
-                    <span className="text-[11px] text-slate-500">Perlu akselerasi pelaksanaan</span>
-                  </div>
-                  <span className="text-xl font-bold text-amber-700">
-                    {currentCaput.caput_tidak_mencapai_target}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-5 border-t border-emerald-100 pt-3">
-            <Link
-              href="/siproval/google-sheets"
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#00a651] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#008c44]"
-            >
-              <span>Lihat Detail Pelaksanaan</span>
-              <Icon icon="solar:arrow-right-linear" width={14} />
-            </Link>
-          </div>
-        </div>
-      </div>
 
       {/* Real Indicators Table for This Katim */}
       {currentMonthIndicators.length > 0 && (
@@ -593,7 +475,7 @@ export default function DashboardKatim() {
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                Nilai capaian riil yang tersimpan di Google Spreadsheet RHPK Balai.
+                Nilai capaian riil yang tersimpan di Google Spreadsheet RHPK Balai. Klik indikator untuk langsung mengisi di Google Sheet.
               </p>
             </div>
 
@@ -624,17 +506,35 @@ export default function DashboardKatim() {
                 {currentMonthIndicators.map((ind) => {
                   const isTercapai = ind.status === "tercapai";
                   const hasReal = ind.realisasi_bulan && ind.realisasi_bulan !== "#DIV/0!" && ind.realisasi_bulan !== "";
+                  const queryParts: string[] = [];
+                  if (ind.iksk_id) queryParts.push(`iksk_id=${ind.iksk_id}`);
+                  if (ind.spreadsheet_id) queryParts.push(`spreadsheet=${ind.spreadsheet_id}`);
+                  if (ind.tab_id) queryParts.push(`tab=${ind.tab_id}`);
+                  const targetSheetUrl = `/siproval/google-sheets${queryParts.length > 0 ? `?${queryParts.join("&")}` : ""}`;
 
                   return (
-                    <tr key={ind.row_number} className="hover:bg-blue-50/30 transition">
+                    <tr
+                      key={ind.row_number}
+                      onClick={() => router.push(targetSheetUrl)}
+                      className="hover:bg-blue-50/50 cursor-pointer transition group"
+                      title="Klik untuk membuka data Google Sheet indikator ini"
+                    >
                       <td className="px-4 py-3.5 text-center font-bold text-slate-600 align-top">
-                        <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-blue-50 font-bold text-blue-700 text-[11px]">
+                        <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-blue-50 font-bold text-blue-700 text-[11px] group-hover:bg-[#005baa] group-hover:text-white transition shadow-2xs">
                           {ind.iksk_id}
                         </span>
                       </td>
 
                       <td className="px-4 py-3.5 align-top">
-                        <div className="font-bold text-slate-900">{ind.label}</div>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="font-bold text-slate-900 group-hover:text-[#005baa] transition">
+                            {ind.label}
+                          </div>
+                          <span className="inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition text-[#005baa] shrink-0 pt-0.5 text-[11px] font-semibold">
+                            <span>Buka Sheet</span>
+                            <Icon icon="solar:arrow-right-up-linear" width={14} />
+                          </span>
+                        </div>
                         {ind.sasaran && (
                           <div className="mt-0.5 text-[11px] text-slate-500 line-clamp-2">
                             {ind.sasaran}

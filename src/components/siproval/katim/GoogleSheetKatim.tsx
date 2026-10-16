@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
@@ -39,6 +40,8 @@ type SpreadsheetOption = {
   name: string;
   spreadsheet_id: string;
   iksk_id?: number;
+  iksk_ids?: number[];
+  tabs?: TabOption[];
 };
 
 type TabOption = {
@@ -136,6 +139,7 @@ type RowMeta = {
 
 export default function GoogleSheetKatim() {
   const { user } = useSelector((state: RootState) => state.auth);
+  const searchParams = useSearchParams();
 
   const [iksks, setIksks] = useState<IkskOption[]>([]);
   const [selectedIksk, setSelectedIksk] = useState<number | null>(null);
@@ -280,22 +284,67 @@ export default function GoogleSheetKatim() {
 
   useEffect(() => {
     if (user?.id) {
-      fetchSheetData();
+      const qIksk = searchParams?.get("iksk_id") ? Number(searchParams.get("iksk_id")) : null;
+      const qSp = searchParams?.get("spreadsheet") ? Number(searchParams.get("spreadsheet")) : null;
+      const qTab = searchParams?.get("tab") ? Number(searchParams.get("tab")) : null;
+      fetchSheetData(qIksk, qSp, qTab);
     }
-  }, [user?.id]);
+  }, [user?.id, searchParams]);
+
+  // Filter spreadsheet yang terhubung secara spesifik ke IKSK terpilih
+  const availableSpreadsheets = useMemo(() => {
+    if (!selectedIksk) return spreadsheets;
+    const filtered = spreadsheets.filter((s) => {
+      if (Array.isArray(s.iksk_ids) && s.iksk_ids.length > 0) {
+        return s.iksk_ids.map(Number).includes(Number(selectedIksk));
+      }
+      if (s.iksk_id && Number(s.iksk_id) === Number(selectedIksk)) {
+        return true;
+      }
+      if (s.tabs && Array.isArray(s.tabs)) {
+        if (s.tabs.some((t: any) => t.iksk_id && Number(t.iksk_id) === Number(selectedIksk))) {
+          return true;
+        }
+      }
+      const matchNum = s.name.trim().match(/^(?:IKSK\s*)?0*(\d+)/i);
+      if (matchNum && Number(matchNum[1]) === Number(selectedIksk)) {
+        return true;
+      }
+      return false;
+    });
+    return filtered;
+  }, [spreadsheets, selectedIksk]);
+
+  const activeSpreadsheets = availableSpreadsheets.length > 0
+    ? availableSpreadsheets
+    : (selectedSpreadsheet ? spreadsheets.filter((s) => s.id === selectedSpreadsheet) : spreadsheets);
+
+  const isSingleSpreadsheet = activeSpreadsheets.length <= 1;
+  const singleSpreadsheetName = activeSpreadsheets[0]?.name || (selectedSpreadsheet ? spreadsheets.find((s) => s.id === selectedSpreadsheet)?.name : "") || "Dokumen Spreadsheet";
 
   const handleIkskChange = (newIkskId: number) => {
     setSelectedIksk(newIkskId);
     setSelectedTab(null);
     setEditedCells({});
-    // Temukan spreadsheet yang cocok dengan IKSK ini (via iksk_id atau angka depan nama)
-    const matchedSp = spreadsheets.find(
-      (s) =>
-        s.iksk_id === newIkskId ||
-        s.name.trim().startsWith(`${newIkskId}.`) ||
-        s.name.trim().startsWith(`${newIkskId} `)
-    );
-    const targetSpId = matchedSp ? matchedSp.id : null;
+
+    // Temukan spreadsheet yang cocok dengan IKSK ini
+    const matched = spreadsheets.filter((s) => {
+      if (Array.isArray(s.iksk_ids) && s.iksk_ids.length > 0) {
+        return s.iksk_ids.map(Number).includes(Number(newIkskId));
+      }
+      if (s.iksk_id && Number(s.iksk_id) === Number(newIkskId)) {
+        return true;
+      }
+      if (s.tabs && Array.isArray(s.tabs)) {
+        if (s.tabs.some((t: any) => t.iksk_id && Number(t.iksk_id) === Number(newIkskId))) {
+          return true;
+        }
+      }
+      const match = s.name.trim().match(/^(?:IKSK\s*)?0*(\d+)/i);
+      return match && Number(match[1]) === Number(newIkskId);
+    });
+
+    const targetSpId = matched.length > 0 ? matched[0].id : null;
     if (targetSpId) {
       setSelectedSpreadsheet(targetSpId);
     }
@@ -785,24 +834,46 @@ export default function GoogleSheetKatim() {
 
         {/* Spreadsheet Selector */}
         <div>
-          <label className="block text-xs font-bold text-slate-700 mb-1.5">
-            2. Dokumen Spreadsheet
-          </label>
-          <select
-            value={selectedSpreadsheet ?? ""}
-            onChange={(e) => handleSpreadsheetChange(Number(e.target.value))}
-            disabled={spreadsheets.length === 0}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-800 transition focus:border-[#005baa] focus:bg-white focus:outline-none"
-          >
-            {spreadsheets.length === 0 && (
-              <option value="">Tidak ada spreadsheet</option>
+          <label className="flex items-center justify-between text-xs font-bold mb-1.5">
+            <span className={isSingleSpreadsheet ? "text-slate-500" : "text-slate-700"}>
+              2. Dokumen Spreadsheet
+            </span>
+            {isSingleSpreadsheet ? (
+              <span className="rounded-md bg-slate-100 border border-slate-200/80 px-1.5 py-0.5 text-[10px] font-medium text-slate-400 select-none">
+                Dokumen Tunggal
+              </span>
+            ) : (
+              <span className="rounded-md bg-blue-50 border border-blue-200/60 px-1.5 py-0.5 text-[10px] font-semibold text-[#005baa] select-none">
+                {activeSpreadsheets.length} Dokumen
+              </span>
             )}
-            {spreadsheets.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+          </label>
+
+          {isSingleSpreadsheet ? (
+            <div
+              className="w-full rounded-xl border border-slate-200/70 bg-slate-100/70 px-3.5 py-2 text-xs font-medium text-slate-500 opacity-60 cursor-default select-none shadow-none flex items-center justify-between gap-2"
+              title="IKSK ini hanya memiliki 1 dokumen spreadsheet"
+            >
+              <span className="truncate">{singleSpreadsheetName}</span>
+              <Icon icon="solar:document-text-linear" width={16} className="text-slate-400 shrink-0" />
+            </div>
+          ) : (
+            <select
+              value={selectedSpreadsheet ?? ""}
+              onChange={(e) => handleSpreadsheetChange(Number(e.target.value))}
+              disabled={activeSpreadsheets.length === 0}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-800 transition focus:border-[#005baa] focus:bg-white focus:outline-none"
+            >
+              {activeSpreadsheets.length === 0 && (
+                <option value="">Tidak ada spreadsheet</option>
+              )}
+              {activeSpreadsheets.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         {/* Tab Selector */}
