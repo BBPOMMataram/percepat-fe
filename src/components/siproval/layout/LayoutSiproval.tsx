@@ -37,7 +37,7 @@ export default function LayoutSiproval({ children }: { children: React.ReactNode
                     )) ||
                 user.email === "hilmi.khairan@pom.go.id";
             const isBasukiKatim =
-                user.id === "019ab8b3-4a06-7007-8337-2794c43cea4f" ||
+                String(user.id) === "019ab8b3-4a06-7007-8337-2794c43cea4f" ||
                 (user.email || "").toLowerCase() === "al.el.dul79@gmail.com" ||
                 (user.name || "").toLowerCase().trim() === "basuki murdi hartono";
             const groupJabatanId = isBasukiKatim ? 3 : user.employee?.group_jabatan_id;

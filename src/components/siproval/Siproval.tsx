@@ -1,10 +1,12 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
+import SiprovalDocumentHub from "./SiprovalDocumentHub";
 
 export default function Siproval() {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -36,14 +38,14 @@ export default function Siproval() {
       ));
 
   const isBasukiKatim =
-    user?.id === "019ab8b3-4a06-7007-8337-2794c43cea4f" ||
+    String(user?.id) === "019ab8b3-4a06-7007-8337-2794c43cea4f" ||
     userEmail === "al.el.dul79@gmail.com" ||
     userNameClean === "basuki murdi hartono";
   const groupJabatanId = isBasukiKatim ? 3 : user?.employee?.group_jabatan_id;
 
   const canAccess = (id: string) => {
     if (isPic) return true;
-    if (id === "tu") return false; // Sembunyikan fitur untuk aktor TU untuk sekarang
+    if (id === "tu") return groupJabatanId === 2 || isPic;
     if (id === "katim") return groupJabatanId === 3 || isPic;
     if (id === "kabalai") return groupJabatanId === 1 || isPic;
     if (id === "pic") return false;
@@ -78,20 +80,20 @@ export default function Siproval() {
         { label: "Rekap RHPK 2026", url: "/siproval/rhpk/2026" },
       ],
     },
-    // {
-    //   id: "tu",
-    //   role: "Bagian Tata Usaha (TU)",
-    //   badge: "Perencanaan & Anggaran",
-    //   badgeColor: "bg-teal-100 text-teal-700",
-    //   icon: "solar:pie-chart-2-bold",
-    //   iconBg: "from-[#003d73] via-[#005baa] to-[#00a651]",
-    //   description: "Pengelolaan alokasi perencanaan anggaran, rincian belanja bulanan, dan pemetaan budget mapping.",
-    //   links: [
-    //     { label: "Dashboard Tata Usaha", url: "/siproval/tu" },
-    //     { label: "Budget Mapping 2026", url: "/siproval/budget-mapping/year?year=2026" },
-    //     { label: "Daftar Tahun Anggaran", url: "/siproval/budget-mapping" },
-    //   ],
-    // },
+    {
+      id: "tu",
+      role: "Bagian Tata Usaha (TU)",
+      badge: "Perencanaan & Anggaran",
+      badgeColor: "bg-teal-100 text-teal-700",
+      icon: "solar:pie-chart-2-bold",
+      iconBg: "from-[#003d73] via-[#005baa] to-[#00a651]",
+      description: "Pengelolaan alokasi perencanaan anggaran, rincian belanja bulanan, dan pemetaan budget mapping.",
+      links: [
+        { label: "Dashboard Tata Usaha", url: "/siproval/tu" },
+        { label: "Budget Mapping 2026", url: "/siproval/budget-mapping/year?year=2026" },
+        { label: "Daftar Tahun Anggaran", url: "/siproval/budget-mapping" },
+      ],
+    },
     {
       id: "pic",
       role: "PIC (Pengelola Sistem)",
@@ -144,6 +146,13 @@ export default function Siproval() {
                 {user.name} ({userActorTitle})
               </span>
             )}
+            <a
+              href="#dokumen-kinerja"
+              className="inline-flex items-center gap-1.5 bg-white/90 hover:bg-white text-slate-700 hover:text-[#005baa] border border-slate-200/90 text-xs font-semibold px-3 py-1.5 rounded-full transition-all shadow-2xs"
+            >
+              <span>Dokumen Kinerja</span>
+              <Icon icon="solar:arrow-down-linear" width={12} height={12} />
+            </a>
           </div>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-4">
@@ -221,6 +230,11 @@ export default function Siproval() {
             );
           })}
         </div>
+
+        {/* Scrolling Part: Unified Document Hub & Performance Information */}
+        <Suspense fallback={null}>
+          <SiprovalDocumentHub />
+        </Suspense>
       </div>
 
       <footer className="text-center text-xs text-slate-400 py-4 border-t border-slate-200/60 mt-auto">
