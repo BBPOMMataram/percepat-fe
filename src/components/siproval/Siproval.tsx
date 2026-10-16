@@ -36,7 +36,7 @@ export default function Siproval() {
       ));
 
   const isBasukiKatim =
-    user?.id === "019ab8b3-4a06-7007-8337-2794c43cea4f" ||
+    String(user?.id) === "019ab8b3-4a06-7007-8337-2794c43cea4f" ||
     userEmail === "al.el.dul79@gmail.com" ||
     userNameClean === "basuki murdi hartono";
   const groupJabatanId = isBasukiKatim ? 3 : user?.employee?.group_jabatan_id;
@@ -78,20 +78,21 @@ export default function Siproval() {
         { label: "Rekap RHPK 2026", url: "/siproval/rhpk/2026" },
       ],
     },
-    // {
-    //   id: "tu",
-    //   role: "Bagian Tata Usaha (TU)",
-    //   badge: "Perencanaan & Anggaran",
-    //   badgeColor: "bg-teal-100 text-teal-700",
-    //   icon: "solar:pie-chart-2-bold",
-    //   iconBg: "from-[#003d73] via-[#005baa] to-[#00a651]",
-    //   description: "Pengelolaan alokasi perencanaan anggaran, rincian belanja bulanan, dan pemetaan budget mapping.",
-    //   links: [
-    //     { label: "Dashboard Tata Usaha", url: "/siproval/tu" },
-    //     { label: "Budget Mapping 2026", url: "/siproval/budget-mapping/year?year=2026" },
-    //     { label: "Daftar Tahun Anggaran", url: "/siproval/budget-mapping" },
-    //   ],
-    // },
+    {
+      id: "tu",
+      role: "Bagian Tata Usaha (TU)",
+      badge: "Perencanaan & Anggaran",
+      badgeColor: "bg-teal-100 text-teal-700",
+      icon: "solar:pie-chart-2-bold",
+      iconBg: "from-[#003d73] via-[#005baa] to-[#00a651]",
+      description: "Pengelolaan alokasi perencanaan anggaran, rincian belanja bulanan, dan pemetaan budget mapping.",
+      links: [
+        { label: "Dashboard Tata Usaha", url: "/siproval/tu" },
+        { label: "Realisasi RO 2026", url: "/siproval/tu/realisasi-ro" },
+        { label: "Budget Mapping 2026", url: "/siproval/budget-mapping/year?year=2026" },
+        { label: "Daftar Tahun Anggaran", url: "/siproval/budget-mapping" },
+      ],
+    },
     {
       id: "pic",
       role: "PIC (Pengelola Sistem)",

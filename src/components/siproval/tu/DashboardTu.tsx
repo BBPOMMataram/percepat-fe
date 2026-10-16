@@ -32,18 +32,18 @@ export default function DashboardTu() {
 
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
-              href="/siproval/budget-mapping"
+              href="/siproval/tu/realisasi-ro"
               className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-[#005baa] shadow-sm transition hover:bg-blue-50"
             >
-              <Icon icon="solar:pie-chart-2-bold" width={16} />
-              Buka Mapping Anggaran
+              <Icon icon="solar:document-medicine-bold" width={16} />
+              Buka Realisasi RO (Live)
             </Link>
             <Link
-              href={`/siproval/budget-mapping/year?year=${currentYear}`}
-              className="inline-flex items-center gap-2 rounded-xl bg-white/15 px-4 py-2.5 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-white/25"
+              href="/siproval/budget-mapping"
+              className="inline-flex items-center gap-2 rounded-xl bg-white/20 px-4 py-2.5 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-white/30"
             >
-              <Icon icon="solar:calendar-bold" width={16} />
-              Tahun {currentYear}
+              <Icon icon="solar:pie-chart-2-bold" width={16} />
+              Budget Mapping
             </Link>
           </div>
         </div>
@@ -135,7 +135,27 @@ export default function DashboardTu() {
           Akses langsung ke modul pemetaan anggaran dan tabel rincian kegiatan.
         </p>
 
-        <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-3">
+          <Link
+            href="/siproval/tu/realisasi-ro"
+            className="group block rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50/50 via-white to-indigo-50/30 p-6 shadow-sm transition hover:-translate-y-1 hover:border-blue-400 hover:shadow-md"
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#005baa] text-white shadow-sm">
+                <Icon icon="solar:document-medicine-bold" width={26} />
+              </div>
+              <span className="inline-flex items-center gap-1 text-sm font-semibold text-[#005baa] group-hover:underline">
+                Buka Menu <Icon icon="solar:arrow-right-linear" width={16} />
+              </span>
+            </div>
+            <h3 className="mt-4 text-lg font-bold text-slate-900 group-hover:text-[#005baa]">
+              Realisasi RO (Tab 155)
+            </h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Pantau target tahunan, target bulanan, realisasi, capaian serta perbarui data langsung ke Google Sheets.
+            </p>
+          </Link>
+
           <Link
             href="/siproval/budget-mapping"
             className="group block rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-md"

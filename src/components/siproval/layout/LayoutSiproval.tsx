@@ -37,7 +37,7 @@ export default function LayoutSiproval({ children }: { children: React.ReactNode
                     )) ||
                 user.email === "hilmi.khairan@pom.go.id";
             const isBasukiKatim =
-                user.id === "019ab8b3-4a06-7007-8337-2794c43cea4f" ||
+                String(user.id) === "019ab8b3-4a06-7007-8337-2794c43cea4f" ||
                 (user.email || "").toLowerCase() === "al.el.dul79@gmail.com" ||
                 (user.name || "").toLowerCase().trim() === "basuki murdi hartono";
             const groupJabatanId = isBasukiKatim ? 3 : user.employee?.group_jabatan_id;
@@ -49,26 +49,15 @@ export default function LayoutSiproval({ children }: { children: React.ReactNode
                     return;
                 }
 
-                // Sembunyikan fitur/rute TU untuk sekarang
-                if (
-                    pathname.startsWith("/siproval/tu") ||
-                    pathname.startsWith("/siproval/budget-mapping")
-                ) {
-                    if (groupJabatanId === 3) {
-                        router.push("/siproval/katim");
-                    } else if (groupJabatanId === 1) {
-                        router.push("/siproval/monev");
-                    } else {
-                        router.push("/siproval");
-                    }
-                    return;
-                }
+                // Rute Realisasi RO TU terbuka untuk seluruh aktor Siproval (TU, Kabalai, Katim)
+                const isRealisasiRoPath = pathname.startsWith("/siproval/tu/realisasi-ro");
 
                 // Katim (group_jabatan_id == 3)
                 if (groupJabatanId === 3) {
                     const isAllowed =
                         pathname.startsWith("/siproval/katim") ||
-                        pathname.startsWith("/siproval/google-sheets");
+                        pathname.startsWith("/siproval/google-sheets") ||
+                        isRealisasiRoPath;
                     if (!isAllowed) {
                         router.push("/siproval/katim");
                     }
@@ -80,18 +69,27 @@ export default function LayoutSiproval({ children }: { children: React.ReactNode
                         pathname.startsWith("/siproval/show-monev") ||
                         pathname.startsWith("/siproval/catatan") ||
                         pathname.startsWith("/siproval/rhpk") ||
-                        pathname.startsWith("/siproval/arahan-pimpinan");
+                        pathname.startsWith("/siproval/arahan-pimpinan") ||
+                        isRealisasiRoPath;
                     if (!isAllowed) {
                         router.push("/siproval/monev");
                     }
                 }
-                // TU (group_jabatan_id == 2) - fitur TU sementara disembunyikan
+                // TU (group_jabatan_id == 2)
                 else if (groupJabatanId === 2) {
-                    router.push("/siproval");
+                    const isAllowed =
+                        pathname.startsWith("/siproval/tu") ||
+                        pathname.startsWith("/siproval/budget-mapping") ||
+                        pathname === "/siproval";
+                    if (!isAllowed) {
+                        router.push("/siproval/tu");
+                    }
                 }
                 // Staf (4), OS (5), dll
                 else {
-                    router.push("/unauthorized");
+                    if (!isRealisasiRoPath) {
+                        router.push("/unauthorized");
+                    }
                 }
             }
         }

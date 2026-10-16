@@ -64,47 +64,44 @@ export async function middleware(req: NextRequest) {
         : null;
 
       if (!isSuperadmin && groupJabatanId !== null) {
-        // Sembunyikan rute TU untuk saat ini
-        if (
-          pathname.startsWith("/siproval/tu") ||
-          pathname.startsWith("/siproval/budget-mapping")
-        ) {
-          if (groupJabatanId === 3) {
-            return NextResponse.redirect(new URL("/siproval/katim", req.url));
-          } else if (groupJabatanId === 1) {
-            return NextResponse.redirect(new URL("/siproval/monev", req.url));
-          } else {
-            return NextResponse.redirect(new URL("/siproval", req.url));
-          }
-        }
+        // Rute Realisasi RO TU terbuka untuk semua aktor (TU, Kabalai, Katim) sesuai kebutuhan pengisian
+        const isRealisasiRoPath = pathname.startsWith("/siproval/tu/realisasi-ro");
 
         if (groupJabatanId === 3) {
-          // Katim: hanya boleh akses fitur katim
+          // Katim: boleh akses fitur katim dan realisasi-ro
           const allowed =
             pathname.startsWith("/siproval/katim") ||
-            pathname.startsWith("/siproval/google-sheets");
+            pathname.startsWith("/siproval/google-sheets") ||
+            isRealisasiRoPath;
           if (!allowed) {
             return NextResponse.redirect(new URL("/siproval/katim", req.url));
           }
         } else if (groupJabatanId === 1) {
-          // Kabalai: hanya boleh akses fitur kabalai
+          // Kabalai: boleh akses fitur kabalai dan realisasi-ro
           const allowed =
             pathname.startsWith("/siproval/monev") ||
             pathname.startsWith("/siproval/show-monev") ||
             pathname.startsWith("/siproval/catatan") ||
             pathname.startsWith("/siproval/rhpk") ||
-            pathname.startsWith("/siproval/arahan-pimpinan");
+            pathname.startsWith("/siproval/arahan-pimpinan") ||
+            isRealisasiRoPath;
           if (!allowed) {
             return NextResponse.redirect(new URL("/siproval/monev", req.url));
           }
         } else if (groupJabatanId === 2) {
-          // TU: sementara diarahkan ke landing portal siproval
-          if (pathname !== "/siproval") {
-            return NextResponse.redirect(new URL("/siproval", req.url));
+          // TU: boleh akses seluruh fitur TU dan budget-mapping
+          const allowed =
+            pathname.startsWith("/siproval/tu") ||
+            pathname.startsWith("/siproval/budget-mapping") ||
+            pathname === "/siproval";
+          if (!allowed) {
+            return NextResponse.redirect(new URL("/siproval/tu", req.url));
           }
         } else {
           // Staf (4), OS (5), atau role non-aktor Siproval
-          return NextResponse.redirect(new URL("/unauthorized", req.url));
+          if (!isRealisasiRoPath) {
+            return NextResponse.redirect(new URL("/unauthorized", req.url));
+          }
         }
       }
     }

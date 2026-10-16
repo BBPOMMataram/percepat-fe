@@ -63,10 +63,44 @@ type ColumnPermission = {
   is_editable: boolean;
   is_formula: boolean;
   is_collaborative?: boolean;
+  is_kendala?: boolean;
+  is_rtl?: boolean;
   user_count?: number;
   user_names?: string[];
   header_name?: string;
+  start_row?: number | null;
+  end_row?: number | null;
   has_access: boolean;
+};
+
+function isKendalaCol(perm?: ColumnPermission, headerName?: string): boolean {
+  if (perm?.is_kendala !== undefined) return Boolean(perm.is_kendala);
+  const h = (headerName || perm?.header_name || "").toLowerCase();
+  return h.includes("kendala");
+}
+
+function isRtlCol(perm?: ColumnPermission, headerName?: string): boolean {
+  if (perm?.is_rtl !== undefined) return Boolean(perm.is_rtl);
+  const h = (headerName || perm?.header_name || "").toLowerCase();
+  if (h.includes("rencana tindak lanjut") || /\brtl\b/i.test(h)) return true;
+  if (h.includes("tindak lanjut") && !/(%|persen|bobot|jumlah|sampel|surat|sesuai)/i.test(h)) return true;
+  return false;
+}
+
+function isCellContentFilled(raw: unknown): boolean {
+  if (raw === undefined || raw === null) return false;
+  const s = String(raw).trim();
+  return s !== "" && s !== "-" && s !== "/";
+}
+
+type IncompleteValidationModal = {
+  isOpen: boolean;
+  rowNumber: number;
+  monthName: string;
+  isKendalaMissing: boolean;
+  isRtlMissing: boolean;
+  kendalaCoord?: string;
+  rtlCoord?: string;
 };
 
 type NoteItem = {
@@ -169,6 +203,8 @@ export default function GoogleSheetKatim() {
 
   const [editedCells, setEditedCells] = useState<Record<string, string>>({});
   const [collabModal, setCollabModal] = useState<CollabModalState | null>(null);
+  const [validationModal, setValidationModal] = useState<IncompleteValidationModal | null>(null);
+  const [highlightedIncompleteRows, setHighlightedIncompleteRows] = useState<number[]>([]);
   const [savingCollab, setSavingCollab] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -341,6 +377,8 @@ export default function GoogleSheetKatim() {
     setSelectedIksk(newIkskId);
     setSelectedTab(null);
     setEditedCells({});
+    setHighlightedIncompleteRows([]);
+    setValidationModal(null);
 
     // Temukan spreadsheet yang cocok dengan IKSK ini
     const matched = spreadsheets.filter((s) => {
@@ -370,6 +408,8 @@ export default function GoogleSheetKatim() {
     setSelectedSpreadsheet(newSpId);
     setSelectedTab(null);
     setEditedCells({});
+    setHighlightedIncompleteRows([]);
+    setValidationModal(null);
     // Temukan IKSK terkait dari spreadsheet yang dipilih
     const chosenSp = spreadsheets.find((s) => s.id === newSpId);
     let targetIkskId = chosenSp?.iksk_id;
@@ -390,6 +430,8 @@ export default function GoogleSheetKatim() {
   const handleTabChange = (newTabId: number) => {
     setSelectedTab(newTabId);
     setEditedCells({});
+    setHighlightedIncompleteRows([]);
+    setValidationModal(null);
     fetchSheetData(selectedIksk, selectedSpreadsheet, newTabId);
   };
 
@@ -542,6 +584,36 @@ export default function GoogleSheetKatim() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 1. Validasi Kendala & RTL:
+    // Jika user sudah isi semua kolomnya pada baris tertentu namun belum mengisi kendala dan RTL, blokir simpan dengan MODAL POPUP!
+    if (invalidRows.length > 0) {
+      const first = invalidRows[0];
+
+      // Buka popup dialog modal (bukan banner inline)
+      setValidationModal({
+        isOpen: true,
+        rowNumber: first.rowNumber,
+        monthName: first.monthName,
+        isKendalaMissing: first.isKendalaMissing,
+        isRtlMissing: first.isRtlMissing,
+        kendalaCoord: first.kendalaCoord,
+        rtlCoord: first.rtlCoord,
+      });
+
+      // Tandai baris ini agar di-highlight di tabel
+      setHighlightedIncompleteRows((prev) =>
+        Array.from(new Set([...prev, first.rowNumber]))
+      );
+
+      // Scroll ke baris yang bersangkutan
+      const rowElem = document.getElementById(`sheet-row-${first.rowNumber}`);
+      if (rowElem) {
+        rowElem.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      return;
+    }
+
     const updateList = Object.entries(editedCells).map(([cell, value]) => {
       const match = cell.match(/^([A-Z]+)([0-9]+)$/);
       let existingVal = "";
@@ -585,13 +657,32 @@ export default function GoogleSheetKatim() {
           `${updateList.length} sel berhasil disimpan ke Google Spreadsheet!`
       );
       setEditedCells({});
+      setHighlightedIncompleteRows([]);
       fetchSheetData(selectedIksk, selectedSpreadsheet, selectedTab);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
-      setErrorMsg(
-        e.response?.data?.message ||
-          "Gagal menyimpan perubahan ke Google Sheet. Pastikan sel bukan pada bulan lampau atau formula."
-      );
+      const msg = e.response?.data?.message || "";
+      if (msg.includes("Kendala") || msg.includes("RTL")) {
+        const m = msg.match(/Baris\s*([0-9]+)/i);
+        const rNum = m ? parseInt(m[1], 10) : (invalidRows[0]?.rowNumber || 1);
+        const foundRow = rows.find((r) => r.row_number === rNum);
+        const evalRes = foundRow ? evaluateRowKendalaRtl(foundRow) : null;
+        setValidationModal({
+          isOpen: true,
+          rowNumber: rNum,
+          monthName: evalRes?.monthName || `Baris ${rNum}`,
+          isKendalaMissing: evalRes?.isKendalaMissing ?? true,
+          isRtlMissing: evalRes?.isRtlMissing ?? true,
+          kendalaCoord: evalRes?.kendalaCoord,
+          rtlCoord: evalRes?.rtlCoord,
+        });
+        setHighlightedIncompleteRows((prev) => Array.from(new Set([...prev, rNum])));
+      } else {
+        setErrorMsg(
+          msg ||
+            "Gagal menyimpan perubahan ke Google Sheet. Pastikan sel bukan pada bulan lampau atau formula."
+        );
+      }
     } finally {
       setSaving(false);
     }
@@ -646,6 +737,136 @@ export default function GoogleSheetKatim() {
 
   const pendingChanges = Object.keys(editedCells).length;
 
+  // Deteksi kolom Kendala, RTL, dan Kolom Data Pengisian User
+  const { kendalaCols, rtlCols, editableDataCols } = useMemo(() => {
+    const kCols: string[] = [];
+    const rCols: string[] = [];
+    const dCols: string[] = [];
+
+    Object.entries(columnPermissions).forEach(([colLetter, perm]) => {
+      const headerName =
+        perm.header_name ||
+        (headerRows[0] ? headerRows[0][columnLetterToNumber(colLetter) - 1] : "");
+
+      if (isKendalaCol(perm, headerName)) {
+        if (!kCols.includes(colLetter)) kCols.push(colLetter);
+      } else if (isRtlCol(perm, headerName)) {
+        if (!rCols.includes(colLetter)) rCols.push(colLetter);
+      } else if (perm.is_editable && !perm.is_formula && !perm.is_collaborative) {
+        const cIdx = columnLetterToNumber(colLetter) - 1;
+        if (cIdx >= 5 && !dCols.includes(colLetter)) {
+          dCols.push(colLetter);
+        }
+      }
+    });
+
+    // Fallback: cek headerRows jika belum terdeteksi dari permissions
+    if (headerRows[0]) {
+      headerRows[0].forEach((h, idx) => {
+        const colLetter = columnNumberToLetter(idx + 1);
+        if (idx >= 5) {
+          if (isKendalaCol(undefined, h) && !kCols.includes(colLetter)) {
+            kCols.push(colLetter);
+          } else if (isRtlCol(undefined, h) && !rCols.includes(colLetter)) {
+            rCols.push(colLetter);
+          }
+        }
+      });
+    }
+
+    return { kendalaCols: kCols, rtlCols: rCols, editableDataCols: dCols };
+  }, [columnPermissions, headerRows]);
+
+  // Evaluasi kelengkapan Kendala & RTL untuk suatu baris
+  const evaluateRowKendalaRtl = (row: SheetRow) => {
+    const rowMeta = rowMetadata[row.row_number];
+    const monthName = rowMeta?.month_name || `Baris ${row.row_number}`;
+
+    // Kolom data pengisian user yang berlaku untuk baris ini
+    const applicableDataCols = editableDataCols.filter((colLetter) => {
+      const perm = columnPermissions[colLetter];
+      if (perm?.start_row !== null && perm?.start_row !== undefined && row.row_number < perm.start_row) {
+        return false;
+      }
+      if (perm?.end_row !== null && perm?.end_row !== undefined && row.row_number > perm.end_row) {
+        return false;
+      }
+      return true;
+    });
+
+    const getVal = (colL: string) => {
+      const coord = `${colL}${row.row_number}`;
+      if (editedCells[coord] !== undefined) return editedCells[coord];
+      const idx = columnLetterToNumber(colL) - 1;
+      return row.values[idx] !== undefined && row.values[idx] !== null ? String(row.values[idx]) : "";
+    };
+
+    const hasDataCols = applicableDataCols.length > 0;
+    const allDataFilled =
+      hasDataCols &&
+      applicableDataCols.every((colL) => isCellContentFilled(getVal(colL)));
+
+    const anyDataFilled =
+      hasDataCols &&
+      applicableDataCols.some((colL) => isCellContentFilled(getVal(colL)));
+
+    let isKendalaMissing = false;
+    let kendalaCoord: string | undefined;
+    if (kendalaCols.length > 0) {
+      kendalaCoord = `${kendalaCols[0]}${row.row_number}`;
+      isKendalaMissing = !isCellContentFilled(getVal(kendalaCols[0]));
+    }
+
+    let isRtlMissing = false;
+    let rtlCoord: string | undefined;
+    if (rtlCols.length > 0) {
+      rtlCoord = `${rtlCols[0]}${row.row_number}`;
+      isRtlMissing = !isCellContentFilled(getVal(rtlCols[0]));
+    }
+
+    const isInvalid =
+      (kendalaCols.length > 0 || rtlCols.length > 0) &&
+      allDataFilled &&
+      (isKendalaMissing || isRtlMissing);
+
+    return {
+      rowNumber: row.row_number,
+      monthName,
+      allDataFilled,
+      anyDataFilled,
+      isKendalaMissing,
+      isRtlMissing,
+      isInvalid,
+      kendalaCoord,
+      rtlCoord,
+    };
+  };
+
+  // Baris-baris yang terkena editedCells dan melanggar aturan Kendala & RTL
+  const invalidRows = useMemo(() => {
+    const editedRowNums = Array.from(
+      new Set(
+        Object.keys(editedCells).map((coord) => {
+          const m = coord.match(/^([A-Z]+)([0-9]+)$/);
+          return m ? parseInt(m[2], 10) : null;
+        }).filter((n): n is number => n !== null)
+      )
+    );
+
+    if (editedRowNums.length === 0) return [];
+
+    const result = [];
+    for (const rNum of editedRowNums) {
+      const foundRow = rows.find((r) => r.row_number === rNum);
+      if (foundRow) {
+        const evalRes = evaluateRowKendalaRtl(foundRow);
+        if (evalRes.isInvalid) {
+          result.push(evalRes);
+        }
+      }
+    }
+    return result;
+  }, [editedCells, rows, editableDataCols, kendalaCols, rtlCols, rowMetadata, columnPermissions]);
 
   const maxCols = useMemo(() => {
     let count = 0;
@@ -768,22 +989,38 @@ export default function GoogleSheetKatim() {
           </button>
 
 
+          {invalidRows.length > 0 && (
+            <div
+              className="inline-flex items-center gap-1.5 rounded-xl border border-rose-300 bg-rose-50 px-3.5 py-2 text-xs font-bold text-rose-700 shadow-2xs"
+              title={`${invalidRows.length} baris memiliki data lengkap namun belum mengisi Kendala dan/atau RTL`}
+            >
+              <Icon icon="solar:danger-circle-bold" width={16} className="text-rose-600 animate-pulse shrink-0" />
+              <span>Kendala & RTL Wajib Diisi ({invalidRows.length} Baris)</span>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={handleSave}
             disabled={saving || pendingChanges === 0}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#005baa] px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#004b8d] disabled:cursor-not-allowed disabled:opacity-50"
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${
+              invalidRows.length > 0
+                ? "bg-rose-600 hover:bg-rose-700 text-white ring-2 ring-rose-300"
+                : "bg-[#005baa] hover:bg-[#004b8d] text-white"
+            }`}
           >
             <Icon
-              icon={saving ? "solar:refresh-circle-linear" : "solar:disk-bold"}
+              icon={saving ? "solar:refresh-circle-linear" : invalidRows.length > 0 ? "solar:danger-triangle-bold" : "solar:disk-bold"}
               width={16}
               className={saving ? "animate-spin" : ""}
             />
             {saving
               ? "Menyimpan..."
-              : pendingChanges > 0
-                ? `Simpan (${pendingChanges} Perubahan)`
-                : "Simpan ke Google Sheet"}
+              : invalidRows.length > 0
+                ? `Lengkapi Kendala & RTL (${pendingChanges} Perubahan)`
+                : pendingChanges > 0
+                  ? `Simpan (${pendingChanges} Perubahan)`
+                  : "Simpan ke Google Sheet"}
           </button>
         </div>
       </div>
@@ -1114,6 +1351,7 @@ export default function GoogleSheetKatim() {
                   return (
                     <tr
                       key={row.row_number}
+                      id={`sheet-row-${row.row_number}`}
                       className={`transition ${
                         isRowLocked
                           ? "bg-slate-50/80 hover:bg-slate-100/70"
@@ -1187,19 +1425,35 @@ export default function GoogleSheetKatim() {
                         // 3. Hanya bisa diedit jika baris TIDAK TERKUNCI (bulan berjalan / mendatang) DAN kolom bertipe editable milik user
                         const canEditCell = !isRowLocked && isColEditable && !isColFormula;
 
+                        const rowEval = evaluateRowKendalaRtl(row);
+                        const hasRowEdits = Object.keys(editedCells).some((coord) =>
+                          coord.endsWith(String(row.row_number))
+                        );
+                        // Highlight hanya aktif jika user sedang mengisi/mengedit baris ini atau baris ditolak saat simpan
+                        const isRowIncomplete =
+                          rowEval.allDataFilled &&
+                          (hasRowEdits || highlightedIncompleteRows.includes(row.row_number));
+
+                        const isThisCellMissing =
+                          isRowIncomplete &&
+                          ((isKendalaCol(colPerm, colPerm?.header_name) && rowEval.isKendalaMissing) ||
+                            (isRtlCol(colPerm, colPerm?.header_name) && rowEval.isRtlMissing));
+
                         return (
                           <td
                             key={cIdx}
                             className={`min-w-36 border-r border-slate-200 p-0 ${
-                              isEdited
-                                ? "bg-amber-100/70"
-                                : isRowLocked
-                                  ? "bg-slate-100/50"
-                                  : isColFormula
-                                    ? "bg-amber-50/20"
-                                    : isCellCollaborative
-                                      ? "bg-blue-50/15"
-                                      : ""
+                              isThisCellMissing
+                                ? "bg-rose-50/70 ring-2 ring-inset ring-rose-400"
+                                : isEdited
+                                  ? "bg-amber-100/70"
+                                  : isRowLocked
+                                    ? "bg-slate-100/50"
+                                    : isColFormula
+                                      ? "bg-amber-50/20"
+                                      : isCellCollaborative
+                                        ? "bg-blue-50/15"
+                                        : ""
                             }`}
                           >
                             {isCellCollaborative ? (
@@ -1215,7 +1469,11 @@ export default function GoogleSheetKatim() {
                                     rowMeta
                                   )
                                 }
-                                title={`Klik untuk melihat & mengedit catatan PIC (${colPerm?.header_name || "Kendala/RTL"})`}
+                                title={
+                                  isThisCellMissing
+                                    ? `PERHATIAN: Kolom ${colPerm?.header_name || "Kendala/RTL"} wajib diisi sebelum menyimpan data!`
+                                    : `Klik untuk melihat & mengedit catatan PIC (${colPerm?.header_name || "Kendala/RTL"})`
+                                }
                               >
                                 <div className="flex-1 overflow-hidden pr-2">
                                   {valTrimmed !== "" && valTrimmed !== "-" && valTrimmed !== "/" ? (
@@ -1230,6 +1488,11 @@ export default function GoogleSheetKatim() {
                                         <span>• Klik untuk kelola</span>
                                       </div>
                                     </div>
+                                  ) : isThisCellMissing ? (
+                                    <span className="inline-flex items-center gap-1.5 rounded-md bg-rose-100 border border-rose-300 px-2 py-0.5 text-[11px] font-bold text-rose-700 animate-pulse shadow-2xs">
+                                      <Icon icon="solar:danger-triangle-bold" width={13} className="text-rose-600 shrink-0" />
+                                      <span>Wajib diisi!</span>
+                                    </span>
                                   ) : (
                                     <span className="text-[11px] italic text-slate-400 flex items-center gap-1">
                                       <Icon icon="solar:chat-round-line-linear" width={13} className="text-slate-300" />
@@ -1241,7 +1504,11 @@ export default function GoogleSheetKatim() {
                                 <button
                                   type="button"
                                   title={`Kelola Catatan PIC (${colPerm?.header_name || "Kendala/RTL"})`}
-                                  className="shrink-0 flex h-6 w-6 items-center justify-center rounded-md bg-white border border-slate-200 text-[#005baa] shadow-2xs hover:bg-[#005baa] hover:text-white transition"
+                                  className={`shrink-0 flex h-6 w-6 items-center justify-center rounded-md border shadow-2xs transition ${
+                                    isThisCellMissing
+                                      ? "bg-rose-600 text-white border-rose-600 hover:bg-rose-700 animate-pulse"
+                                      : "bg-white border-slate-200 text-[#005baa] hover:bg-[#005baa] hover:text-white"
+                                  }`}
                                 >
                                   <Icon icon="solar:pen-new-square-bold" width={12} />
                                 </button>
@@ -1558,6 +1825,150 @@ export default function GoogleSheetKatim() {
                   </>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal Popup Peringatan Kendala & RTL Wajib Diisi */}
+      {validationModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="relative flex w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl border border-rose-100">
+            {/* Header Modal */}
+            <div className="flex items-start justify-between border-b border-rose-100 bg-gradient-to-r from-rose-50/80 via-white to-amber-50/50 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600 shadow-xs">
+                  <Icon icon="solar:danger-triangle-bold" width={22} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Peringatan: Kendala & RTL Belum Diisi
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Periode {validationModal.monthName} (Baris {validationModal.rowNumber})
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setValidationModal(null)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+              >
+                <Icon icon="solar:close-circle-bold" width={22} />
+              </button>
+            </div>
+
+            {/* Isi Modal */}
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Penyimpanan data realisasi ke Google Sheet <strong>belum dapat diproses</strong> karena seluruh kolom data telah terisi, namun kolom <strong>Kendala</strong> dan/atau <strong>Rencana Tindak Lanjut (RTL)</strong> belum diisi.
+              </p>
+
+              {/* Status Checklist Box */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-slate-600">Kolom Data Pengisian</span>
+                  <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md text-[11px]">
+                    <Icon icon="solar:check-circle-bold" width={14} className="text-emerald-600" />
+                    Sudah Terisi Lengkap
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs border-t border-slate-200/60 pt-2">
+                  <span className="font-medium text-slate-700">Kolom Kendala</span>
+                  {validationModal.isKendalaMissing ? (
+                    <span className="inline-flex items-center gap-1 font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md text-[11px] animate-pulse">
+                      <Icon icon="solar:close-circle-bold" width={14} className="text-rose-600" />
+                      Belum Diisi (Wajib)
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md text-[11px]">
+                      <Icon icon="solar:check-circle-bold" width={14} className="text-emerald-600" />
+                      Sudah Terisi
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between text-xs border-t border-slate-200/60 pt-2">
+                  <span className="font-medium text-slate-700">Kolom Rencana Tindak Lanjut (RTL)</span>
+                  {validationModal.isRtlMissing ? (
+                    <span className="inline-flex items-center gap-1 font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md text-[11px] animate-pulse">
+                      <Icon icon="solar:close-circle-bold" width={14} className="text-rose-600" />
+                      Belum Diisi (Wajib)
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md text-[11px]">
+                      <Icon icon="solar:check-circle-bold" width={14} className="text-emerald-600" />
+                      Sudah Terisi
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-900">
+                <Icon icon="solar:info-circle-bold" width={16} className="text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-[11px] leading-relaxed">
+                  Sesuai ketentuan pelaporan IKSK, setiap pelaporan capaian realisasi wajib disertai uraian kendala yang dihadapi serta rencana tindak lanjut (RTL) penyelesaiannya.
+                </p>
+              </div>
+            </div>
+
+            {/* Footer Modal */}
+            <div className="flex items-center justify-end gap-2.5 border-t border-slate-200 bg-slate-50/60 px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setValidationModal(null)}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+              >
+                Tutup
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const rowNum = validationModal.rowNumber;
+                  const targetCoord = validationModal.isKendalaMissing
+                    ? validationModal.kendalaCoord
+                    : validationModal.rtlCoord;
+                  setValidationModal(null);
+
+                  // Scroll ke baris tabel
+                  const rowElem = document.getElementById(`sheet-row-${rowNum}`);
+                  if (rowElem) {
+                    rowElem.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }
+
+                  // Langsung buka modal catatan untuk sel yang bersangkutan
+                  if (targetCoord) {
+                    const match = targetCoord.match(/^([A-Z]+)([0-9]+)$/);
+                    if (match) {
+                      const colLetter = match[1];
+                      const foundRow = rows.find((r) => r.row_number === rowNum);
+                      const colPerm = columnPermissions[colLetter];
+                      const rowMeta = rowMetadata[rowNum];
+                      const colIdx = columnLetterToNumber(colLetter) - 1;
+                      const rawVal =
+                        editedCells[targetCoord] !== undefined
+                          ? editedCells[targetCoord]
+                          : foundRow && foundRow.values[colIdx] !== undefined
+                            ? foundRow.values[colIdx]
+                            : "";
+                      handleOpenCollabModal(
+                        targetCoord,
+                        colLetter,
+                        rowNum,
+                        String(rawVal ?? ""),
+                        colPerm,
+                        rowMeta
+                      );
+                    }
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#005baa] px-4 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-[#004785] transition"
+              >
+                <Icon icon="solar:pen-new-square-bold" width={15} />
+                <span>Lengkapi {validationModal.isKendalaMissing ? "Kendala" : "RTL"} Sekarang</span>
+              </button>
             </div>
           </div>
         </div>
