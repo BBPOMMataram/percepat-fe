@@ -1023,12 +1023,16 @@ export default function SyncPermission() {
                   key={m.month}
                   className={`relative flex flex-col justify-between rounded-xl border p-4 transition ${
                     isCurrent
-                      ? "border-emerald-300 bg-emerald-50/30"
+                      ? m.is_unlocked
+                        ? "border-emerald-300 bg-emerald-50/30"
+                        : "border-red-300 bg-red-50/20"
                       : m.is_unlocked && isPast
                         ? "border-sky-300 bg-sky-50/30"
                         : isPast
                           ? "border-slate-200 bg-slate-50/50"
-                          : "border-slate-200 bg-white"
+                          : !m.is_unlocked
+                            ? "border-red-200 bg-red-50/20"
+                            : "border-slate-200 bg-white"
                   }`}
                 >
                   <div>
@@ -1037,13 +1041,29 @@ export default function SyncPermission() {
                         {String(m.month).padStart(2, "0")}
                       </span>
                       {isCurrent ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
-                          Bulan Ini
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                            m.is_unlocked
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              m.is_unlocked ? "bg-emerald-600" : "bg-red-600"
+                            }`}
+                          />
+                          {m.is_unlocked ? "Bulan Ini (Terbuka)" : "Bulan Ini (Dikunci Admin)"}
                         </span>
                       ) : isFuture ? (
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                          Mendatang
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            m.is_unlocked
+                              ? "bg-slate-100 text-slate-600"
+                              : "bg-red-100 text-red-800 font-bold"
+                          }`}
+                        >
+                          {m.is_unlocked ? "Mendatang" : "Terkunci Admin"}
                         </span>
                       ) : m.is_unlocked ? (
                         <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-800">
@@ -1062,9 +1082,13 @@ export default function SyncPermission() {
 
                     <p className="mt-1 text-[11px] text-slate-500">
                       {isCurrent
-                        ? "Bulan berjalan (dapat diisi Katim)"
+                        ? m.is_unlocked
+                          ? "Bulan berjalan (dapat diisi Katim)"
+                          : "Bulan berjalan dikunci oleh Admin (hanya baca untuk Katim)"
                         : isFuture
-                          ? "Bulan mendatang (dapat diisi)"
+                          ? m.is_unlocked
+                            ? "Bulan mendatang (dapat diisi)"
+                            : "Bulan mendatang dikunci oleh Admin"
                           : m.is_unlocked
                             ? universalUnlocked
                               ? "Terbuka melalui status Universal"
@@ -1074,41 +1098,43 @@ export default function SyncPermission() {
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-slate-100">
-                    {isPast ? (
-                      <button
-                        type="button"
-                        disabled={togglingMonth === m.month || universalUnlocked}
-                        onClick={() => handleToggleMonthLock(m.month, m.is_unlocked)}
-                        className={`w-full inline-flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-3 text-xs font-bold transition ${
-                          m.is_unlocked
-                            ? "border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
-                            : "border border-[#005baa] bg-white text-[#005baa] hover:bg-blue-50"
-                        } disabled:opacity-50`}
-                      >
-                        <Icon
-                          icon={
-                            togglingMonth === m.month
-                              ? "solar:refresh-circle-linear"
-                              : m.is_unlocked
-                                ? "solar:lock-bold"
-                                : "solar:lock-unlocked-bold"
-                          }
-                          width={14}
-                          className={togglingMonth === m.month ? "animate-spin" : ""}
-                        />
-                        <span>
-                          {togglingMonth === m.month
-                            ? "Menyimpan..."
+                    <button
+                      type="button"
+                      disabled={togglingMonth === m.month || (isPast && universalUnlocked)}
+                      onClick={() => handleToggleMonthLock(m.month, m.is_unlocked)}
+                      className={`w-full inline-flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-3 text-xs font-bold transition ${
+                        m.is_unlocked
+                          ? "border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+                          : "border border-[#005baa] bg-white text-[#005baa] hover:bg-blue-50"
+                      } disabled:opacity-50`}
+                    >
+                      <Icon
+                        icon={
+                          togglingMonth === m.month
+                            ? "solar:refresh-circle-linear"
                             : m.is_unlocked
+                              ? "solar:lock-bold"
+                              : "solar:lock-unlocked-bold"
+                        }
+                        width={14}
+                        className={togglingMonth === m.month ? "animate-spin" : ""}
+                      />
+                      <span>
+                        {togglingMonth === m.month
+                          ? "Menyimpan..."
+                          : m.is_unlocked
+                            ? isCurrent
                               ? "Kunci Bulan Ini"
-                              : "Buka Bulan Ini"}
-                        </span>
-                      </button>
-                    ) : (
-                      <div className="text-center text-[10px] font-medium text-slate-400 py-1.5">
-                        Terbuka otomatis
-                      </div>
-                    )}
+                              : isPast
+                                ? "Kunci Kembali"
+                                : "Kunci Bulan Ini"
+                            : isCurrent
+                              ? "Buka Bulan Ini"
+                              : isPast
+                                ? "Buka Akses"
+                                : "Buka Bulan Ini"}
+                      </span>
+                    </button>
                   </div>
                 </div>
               );

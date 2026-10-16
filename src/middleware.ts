@@ -59,6 +59,20 @@ export async function middleware(req: NextRequest) {
           : null;
 
       if (!isSuperadmin && groupJabatanId !== null) {
+        // Sembunyikan rute TU untuk saat ini
+        if (
+          pathname.startsWith("/siproval/tu") ||
+          pathname.startsWith("/siproval/budget-mapping")
+        ) {
+          if (groupJabatanId === 3) {
+            return NextResponse.redirect(new URL("/siproval/katim", req.url));
+          } else if (groupJabatanId === 1) {
+            return NextResponse.redirect(new URL("/siproval/monev", req.url));
+          } else {
+            return NextResponse.redirect(new URL("/siproval", req.url));
+          }
+        }
+
         if (groupJabatanId === 3) {
           // Katim: hanya boleh akses fitur katim
           const allowed =
@@ -79,12 +93,9 @@ export async function middleware(req: NextRequest) {
             return NextResponse.redirect(new URL("/siproval/monev", req.url));
           }
         } else if (groupJabatanId === 2) {
-          // TU: hanya boleh akses fitur TU
-          const allowed =
-            pathname.startsWith("/siproval/tu") ||
-            pathname.startsWith("/siproval/budget-mapping");
-          if (!allowed) {
-            return NextResponse.redirect(new URL("/siproval/tu", req.url));
+          // TU: sementara diarahkan ke landing portal siproval
+          if (pathname !== "/siproval") {
+            return NextResponse.redirect(new URL("/siproval", req.url));
           }
         } else {
           // Staf (4), OS (5), atau role non-aktor Siproval

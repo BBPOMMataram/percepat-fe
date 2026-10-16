@@ -25,7 +25,15 @@ type StatDirective = {
   pemberi: string;
 };
 
+type IkskItem = {
+  id: number;
+  name: string;
+};
+
 type KabalaiStats = {
+  total_iksk?: number;
+  total_iksk_connected?: number;
+  iksks?: IkskItem[];
   total_spreadsheets?: number;
   total_indikator?: number;
   total_catatan?: number;
@@ -69,6 +77,9 @@ export default function CatatanMonev() {
   const [selectedMonth, setSelectedMonth] = useState<string>(MONTHS[currentMonthIdx] || "OKTOBER");
   const [spreadsheets, setSpreadsheets] = useState<SpreadsheetItem[]>([]);
   const [stats, setStats] = useState<KabalaiStats | null>(null);
+  const [ikskList, setIkskList] = useState<IkskItem[]>([]);
+  const [showIkskModal, setShowIkskModal] = useState<boolean>(false);
+  const [searchIksk, setSearchIksk] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -93,8 +104,13 @@ export default function CatatanMonev() {
           if (data.stats) {
             setStats(data.stats);
           }
+          const iksks = data.iksks || data.stats?.iksks || [];
+          if (Array.isArray(iksks)) {
+            setIkskList(iksks);
+          }
         } else {
           setSpreadsheets([]);
+          setIkskList([]);
         }
       } catch {
         setSpreadsheets([]);
@@ -192,23 +208,39 @@ export default function CatatanMonev() {
 
       {/* 4 Stats Cards with BBPOM Blue & Green Gradients */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Card 1: BBPOM Deep Blue Gradient */}
-        <div className="flex flex-col justify-between rounded-2xl border border-blue-200/80 bg-gradient-to-br from-blue-50/90 via-white to-blue-100/50 p-5 shadow-2xs transition hover:shadow-sm">
+        {/* Card 1: BBPOM Deep Blue Gradient - Data IKSK */}
+        <div
+          onClick={() => setShowIkskModal(true)}
+          className="group relative flex flex-col justify-between rounded-2xl border border-blue-200/80 bg-gradient-to-br from-blue-50/90 via-white to-blue-100/50 p-5 shadow-2xs transition hover:shadow-md hover:border-[#005baa]/50 cursor-pointer"
+          title="Klik untuk melihat rincian seluruh IKSK"
+        >
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-[#005baa]">
-                Laporan Terhubung
-              </p>
-              <p className="mt-2 text-3xl font-bold text-slate-900">
-                {loading ? "..." : (stats?.total_spreadsheets ?? spreadsheets.length)}
+              <div className="flex items-center gap-1.5">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[#005baa]">
+                  Total IKSK
+                </p>
+                <span className="inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-[#005baa]">
+                  Aktif
+                </span>
+              </div>
+              <p className="mt-2 text-3xl font-bold text-slate-900 group-hover:text-[#005baa] transition">
+                {loading ? "..." : (stats?.total_iksk ?? ikskList.length ?? 29)}
               </p>
               <span className="mt-1 inline-block text-xs text-slate-500">
-                Spreadsheet Google Sheets aktif
+                Indikator Sasaran Kegiatan ({stats?.total_iksk_connected ?? 25} terhubung sheet)
               </span>
             </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-500/10 text-[#005baa]">
-              <Icon icon="solar:documents-bold" width={24} />
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-500/10 text-[#005baa] transition group-hover:bg-[#005baa] group-hover:text-white">
+              <Icon icon="solar:target-bold" width={24} />
             </div>
+          </div>
+
+          <div className="mt-3 flex items-center justify-between border-t border-blue-100/60 pt-2.5 text-[11px] text-[#005baa] font-medium">
+            <span>Rincian Indikator</span>
+            <span className="inline-flex items-center gap-1 group-hover:translate-x-0.5 transition font-semibold">
+              Lihat daftar <Icon icon="solar:arrow-right-linear" width={12} />
+            </span>
           </div>
         </div>
 
@@ -384,6 +416,107 @@ export default function CatatanMonev() {
           </div>
         )}
       </div>
+
+      {/* Modal Rincian IKSK */}
+      {showIkskModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+          <div className="relative flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-[#005baa]">
+                  <Icon icon="solar:target-bold" width={20} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Daftar Indikator Kinerja Sasaran Kegiatan (IKSK)
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Total {stats?.total_iksk ?? ikskList.length ?? 29} IKSK aktif dalam sistem SIPROVAL
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowIkskModal(false);
+                  setSearchIksk("");
+                }}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+              >
+                <Icon icon="solar:close-circle-bold" width={20} />
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="border-b border-slate-100 bg-white px-6 py-3">
+              <div className="relative">
+                <Icon
+                  icon="solar:magnifer-linear"
+                  width={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  type="text"
+                  value={searchIksk}
+                  onChange={(e) => setSearchIksk(e.target.value)}
+                  placeholder="Cari berdasarkan nomor atau nama indikator IKSK..."
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-4 text-xs text-slate-800 transition focus:border-[#005baa] focus:bg-white focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* List */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-2.5">
+              {ikskList.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-500">
+                  Memuat data IKSK...
+                </div>
+              ) : (
+                ikskList
+                  .filter((item) => {
+                    if (!searchIksk.trim()) return true;
+                    const q = searchIksk.toLowerCase();
+                    return (
+                      String(item.id).includes(q) ||
+                      item.name.toLowerCase().includes(q)
+                    );
+                  })
+                  .map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/50 p-3.5 transition hover:border-blue-200 hover:bg-blue-50/30"
+                    >
+                      <span className="shrink-0 rounded-lg bg-blue-100 px-2 py-1 text-[11px] font-bold text-[#005baa]">
+                        IKSK #{item.id}
+                      </span>
+                      <div className="flex-1 text-xs font-medium text-slate-800 leading-relaxed">
+                        {item.name}
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-6 py-3">
+              <span className="text-[11px] text-slate-500">
+                {stats?.total_iksk_connected ?? 25} dari {stats?.total_iksk ?? 29} IKSK terhubung lembar kerja
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowIkskModal(false);
+                  setSearchIksk("");
+                }}
+                className="rounded-xl bg-[#005baa] px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-[#004885]"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

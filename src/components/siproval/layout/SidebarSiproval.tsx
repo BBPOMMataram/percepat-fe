@@ -66,7 +66,7 @@ const menus = {
   ],
   tu: [
     {
-      name: "Dashboard",
+      name: "Dashboard TU",
       icon: "solar:widget-5-bold",
       url: "/siproval/tu",
       active: "/siproval/tu",
@@ -76,6 +76,12 @@ const menus = {
       icon: "solar:pie-chart-2-bold",
       url: "/siproval/budget-mapping",
       active: "/siproval/budget-mapping",
+    },
+    {
+      name: "Mapping Tahun 2026",
+      icon: "solar:calendar-bold",
+      url: "/siproval/budget-mapping/year?year=2026",
+      active: "/siproval/budget-mapping/year",
     },
   ],
   superadmin: [
@@ -135,7 +141,12 @@ export default function SidebarSiproval({ actor }: Props) {
         ));
     const groupJabatanId = user?.employee?.group_jabatan_id;
 
-    if (isPic) {
+    if (
+      pathname.startsWith("/siproval/tu") ||
+      pathname.startsWith("/siproval/budget-mapping")
+    ) {
+      resolvedActor = "tu";
+    } else if (isPic) {
       if (
         pathname.startsWith("/siproval/monev") ||
         pathname.startsWith("/siproval/show-monev") ||
@@ -151,6 +162,8 @@ export default function SidebarSiproval({ actor }: Props) {
       }
     } else if (groupJabatanId === 1) {
       resolvedActor = "kabalai";
+    } else if (groupJabatanId === 2) {
+      resolvedActor = "tu";
     } else if (groupJabatanId === 3) {
       resolvedActor = "katim";
     } else {
@@ -223,6 +236,8 @@ export default function SidebarSiproval({ actor }: Props) {
               ? "Kepala Balai"
               : resolvedActor === "katim"
               ? "Ketua Tim (Katim)"
+              : resolvedActor === "tu"
+              ? "Bagian Tata Usaha (TU)"
               : "PIC (Pengelola Sistem)"}
           </p>
         </div>
@@ -261,6 +276,17 @@ export default function SidebarSiproval({ actor }: Props) {
             </li>
           )}
         </ul>
+
+        <div className="mt-auto pt-4 border-t border-white/10">
+          <Link
+            href="/siproval"
+            onClick={() => setSidebarOpen(false)}
+            className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+          >
+            <Icon icon="solar:arrow-left-bold" width={20} height={20} />
+            <span className="text-sm font-medium">Portal SIPROVAL</span>
+          </Link>
+        </div>
       </nav>
     </>
   );

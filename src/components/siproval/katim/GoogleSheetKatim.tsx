@@ -141,14 +141,24 @@ export default function GoogleSheetKatim() {
   const { user } = useSelector((state: RootState) => state.auth);
   const searchParams = useSearchParams();
 
+  const paramIkskId = searchParams?.get("iksk_id") || searchParams?.get("iksk");
+  const paramSpreadsheetId = searchParams?.get("spreadsheet") || searchParams?.get("spreadsheet_id");
+  const paramTabId = searchParams?.get("tab") || searchParams?.get("tab_id");
+
   const [iksks, setIksks] = useState<IkskOption[]>([]);
-  const [selectedIksk, setSelectedIksk] = useState<number | null>(null);
+  const [selectedIksk, setSelectedIksk] = useState<number | null>(
+    paramIkskId ? Number(paramIkskId) : null
+  );
 
   const [spreadsheets, setSpreadsheets] = useState<SpreadsheetOption[]>([]);
-  const [selectedSpreadsheet, setSelectedSpreadsheet] = useState<number | null>(null);
+  const [selectedSpreadsheet, setSelectedSpreadsheet] = useState<number | null>(
+    paramSpreadsheetId ? Number(paramSpreadsheetId) : null
+  );
 
   const [tabs, setTabs] = useState<TabOption[]>([]);
-  const [selectedTab, setSelectedTab] = useState<number | null>(null);
+  const [selectedTab, setSelectedTab] = useState<number | null>(
+    paramTabId ? Number(paramTabId) : null
+  );
 
   const [headerRows, setHeaderRows] = useState<string[][]>([]);
   const [rows, setRows] = useState<SheetRow[]>([]);
@@ -284,12 +294,17 @@ export default function GoogleSheetKatim() {
 
   useEffect(() => {
     if (user?.id) {
-      const qIksk = searchParams?.get("iksk_id") ? Number(searchParams.get("iksk_id")) : null;
-      const qSp = searchParams?.get("spreadsheet") ? Number(searchParams.get("spreadsheet")) : null;
-      const qTab = searchParams?.get("tab") ? Number(searchParams.get("tab")) : null;
-      fetchSheetData(qIksk, qSp, qTab);
+      const initialIksk = paramIkskId ? Number(paramIkskId) : null;
+      const initialSpreadsheet = paramSpreadsheetId ? Number(paramSpreadsheetId) : null;
+      const initialTab = paramTabId ? Number(paramTabId) : null;
+
+      if (initialIksk) setSelectedIksk(initialIksk);
+      if (initialSpreadsheet) setSelectedSpreadsheet(initialSpreadsheet);
+      if (initialTab) setSelectedTab(initialTab);
+
+      fetchSheetData(initialIksk, initialSpreadsheet, initialTab);
     }
-  }, [user?.id, searchParams]);
+  }, [user?.id, paramIkskId, paramSpreadsheetId, paramTabId]);
 
   // Filter spreadsheet yang terhubung secara spesifik ke IKSK terpilih
   const availableSpreadsheets = useMemo(() => {
