@@ -1,10 +1,12 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
+import SiprovalDocumentHub from "./SiprovalDocumentHub";
 
 export default function Siproval() {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -43,7 +45,7 @@ export default function Siproval() {
 
   const canAccess = (id: string) => {
     if (isPic) return true;
-    if (id === "tu") return false; // Sembunyikan fitur untuk aktor TU untuk sekarang
+    if (id === "tu") return groupJabatanId === 2 || isPic;
     if (id === "katim") return groupJabatanId === 3 || isPic;
     if (id === "kabalai") return groupJabatanId === 1 || isPic;
     if (id === "pic") return false;
@@ -145,6 +147,13 @@ export default function Siproval() {
                 {user.name} ({userActorTitle})
               </span>
             )}
+            <a
+              href="#dokumen-kinerja"
+              className="inline-flex items-center gap-1.5 bg-white/90 hover:bg-white text-slate-700 hover:text-[#005baa] border border-slate-200/90 text-xs font-semibold px-3 py-1.5 rounded-full transition-all shadow-2xs"
+            >
+              <span>Dokumen Kinerja</span>
+              <Icon icon="solar:arrow-down-linear" width={12} height={12} />
+            </a>
           </div>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-4">
@@ -222,6 +231,11 @@ export default function Siproval() {
             );
           })}
         </div>
+
+        {/* Scrolling Part: Unified Document Hub & Performance Information */}
+        <Suspense fallback={null}>
+          <SiprovalDocumentHub />
+        </Suspense>
       </div>
 
       <footer className="text-center text-xs text-slate-400 py-4 border-t border-slate-200/60 mt-auto">
