@@ -36,7 +36,11 @@ export default function LayoutSiproval({ children }: { children: React.ReactNode
                             Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval")
                     )) ||
                 user.email === "hilmi.khairan@pom.go.id";
-            const groupJabatanId = user.employee?.group_jabatan_id;
+            const isBasukiKatim =
+                user.id === "019ab8b3-4a06-7007-8337-2794c43cea4f" ||
+                (user.email || "").toLowerCase() === "al.el.dul79@gmail.com" ||
+                (user.name || "").toLowerCase().trim() === "basuki murdi hartono";
+            const groupJabatanId = isBasukiKatim ? 3 : user.employee?.group_jabatan_id;
 
             // Jika bukan superadmin / PIC Siproval, batasi akses berdasarkan group_jabatan
             if (!isSuperadmin) {

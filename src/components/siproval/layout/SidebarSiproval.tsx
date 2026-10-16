@@ -139,7 +139,11 @@ export default function SidebarSiproval({ actor }: Props) {
           (s: { id?: number; name?: string }) =>
             Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval")
         ));
-    const groupJabatanId = user?.employee?.group_jabatan_id;
+    const isBasukiKatim =
+      user?.id === "019ab8b3-4a06-7007-8337-2794c43cea4f" ||
+      userEmailLower === "al.el.dul79@gmail.com" ||
+      userNameLower === "basuki murdi hartono";
+    const groupJabatanId = isBasukiKatim ? 3 : user?.employee?.group_jabatan_id;
 
     if (
       pathname.startsWith("/siproval/tu") ||
