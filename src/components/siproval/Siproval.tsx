@@ -3,9 +3,16 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import SiprovalDocumentHub from "./SiprovalDocumentHub";
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+});
 
 export default function Siproval() {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -60,7 +67,7 @@ export default function Siproval() {
     return false;
   };
 
-  // Nama sapaan singkat + peran saat ini (contoh: "Hai, Yogi — Kabalai")
+  // Nama sapaan singkat dan peran aktif tanpa tanda strip
   const firstName = user?.name ? user.name.trim().split(/\s+/)[0] : "";
   const shortRole = isPic
     ? "PIC"
@@ -79,10 +86,7 @@ export default function Siproval() {
       badge: "PIC IKSK",
       description:
         "Pengisian, sinkronisasi, dan pelaporan capaian IKSK via Google Sheets sesuai penugasan.",
-      links: [
-        { label: "Dashboard Katim", url: "/siproval/katim" },
-        { label: "Data Google Sheet", url: "/siproval/google-sheets" },
-      ],
+      url: "/siproval/katim",
     },
     {
       id: "kabalai",
@@ -90,11 +94,7 @@ export default function Siproval() {
       badge: "Pimpinan & Evaluasi",
       description:
         "Monitoring pelaksanaan kegiatan, evaluasi capaian, dan rekapitulasi RHPK.",
-      links: [
-        { label: "Data RHPK (Monev)", url: "/siproval/monev" },
-        { label: "Catatan Monev", url: "/siproval/catatan" },
-        { label: "Rekap RHPK 2026", url: "/siproval/rhpk/2026" },
-      ],
+      url: "/siproval/monev",
     },
     {
       id: "tu",
@@ -102,15 +102,7 @@ export default function Siproval() {
       badge: "Perencanaan & Anggaran",
       description:
         "Pengelolaan alokasi perencanaan anggaran, rincian belanja bulanan, dan pemetaan budget mapping.",
-      links: [
-        { label: "Dashboard Tata Usaha", url: "/siproval/tu" },
-        { label: "Realisasi RO 2026", url: "/siproval/tu/realisasi-ro" },
-        {
-          label: "Budget Mapping 2026",
-          url: "/siproval/budget-mapping/year?year=2026",
-        },
-        { label: "Daftar Tahun Anggaran", url: "/siproval/budget-mapping" },
-      ],
+      url: "/siproval/tu",
     },
     {
       id: "pic",
@@ -118,21 +110,14 @@ export default function Siproval() {
       badge: "Integrasi & Akses",
       description:
         "Pembaruan dokumen spreadsheet, pengaturan periode pengisian, dan manajemen hak akses pengguna.",
-      links: [
-        {
-          label: "Pembaruan Spreadsheet",
-          url: "/siproval/admin/sinkronisasi-spreadsheet",
-        },
-        {
-          label: "Otorisasi & Kunci Bulan",
-          url: "/siproval/admin/permission",
-        },
-      ],
+      url: "/siproval/admin/sinkronisasi-spreadsheet",
     },
   ];
 
   return (
-    <div className="min-h-screen w-full bg-white text-[#001d3d] flex flex-col justify-between overflow-x-hidden selection:bg-[#005baa] selection:text-white">
+    <div
+      className={`${plusJakartaSans.className} min-h-screen w-full bg-white text-[#001d3d] flex flex-col justify-between overflow-x-hidden antialiased selection:bg-[#005baa] selection:text-white`}
+    >
       {/* Minimalist Top Header */}
       <header
         className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 px-6 sm:px-10 lg:px-16 ${
@@ -183,15 +168,24 @@ export default function Siproval() {
           </nav>
 
           {user ? (
-            <span
-              className={`text-xs font-semibold px-4 py-1.5 rounded-full transition-colors ${
-                scrolled
-                  ? "bg-slate-100 text-[#003d73]"
-                  : "bg-white/15 text-white backdrop-blur-xs"
-              }`}
-            >
-              Hai, {firstName} &mdash; {shortRole}
-            </span>
+            <div className="flex items-center gap-2">
+              <span
+                className={`text-xs font-semibold transition-colors ${
+                  scrolled ? "text-[#001d3d]" : "text-white"
+                }`}
+              >
+                Hai, {firstName}
+              </span>
+              <span
+                className={`text-[11px] font-bold px-3 py-1 rounded-full transition-colors ${
+                  scrolled
+                    ? "bg-[#005baa]/10 text-[#005baa]"
+                    : "bg-white/20 text-white backdrop-blur-xs"
+                }`}
+              >
+                {shortRole}
+              </span>
+            </div>
           ) : (
             <a
               href="#entry-data"
@@ -225,13 +219,13 @@ export default function Siproval() {
           aria-hidden="true"
           className="pointer-events-none select-none absolute left-1/2 top-[14vh] -translate-x-1/2 w-full text-center overflow-hidden"
         >
-          <span className="block text-[16vw] font-black uppercase tracking-[-0.04em] leading-none text-white/[0.07]">
+          <span className="block text-[16vw] font-extrabold uppercase tracking-[-0.04em] leading-none text-white/[0.07]">
             SIPROVAL
           </span>
         </div>
 
         <div className="relative z-10 max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 items-center gap-12 pt-6">
-          {/* Left Column: Agent Inges (Clean without box/card, just like Kyntra mockup) */}
+          {/* Left Column: Agent Inges (Clean without box/card) */}
           <div className="lg:col-span-5 flex justify-center order-2 lg:order-1">
             <div className="relative w-[220px] sm:w-[260px] lg:w-[290px]">
               <Image
@@ -247,12 +241,18 @@ export default function Siproval() {
 
           {/* Right Column: Clean Editorial Welcome Text */}
           <div className="lg:col-span-7 flex flex-col items-start text-left order-1 lg:order-2">
-            <p className="text-xs sm:text-sm font-semibold uppercase tracking-widest text-blue-100 mb-3">
-              SI MANDALIKA &bull;{" "}
-              {user ? `Hai, ${firstName} — ${shortRole}` : "SIPROVAL"}
-            </p>
+            <div className="flex flex-wrap items-center gap-2.5 mb-4">
+              <span className="text-xs font-bold uppercase tracking-widest text-blue-100">
+                SI MANDALIKA
+              </span>
+              {user && (
+                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-white/15 text-white backdrop-blur-xs">
+                  Hai, {firstName} &bull; {shortRole}
+                </span>
+              )}
+            </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-bold text-white tracking-[-0.02em] leading-[1.12] mb-5">
+            <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-extrabold text-white tracking-[-0.025em] leading-[1.12] mb-5">
               SIPROVAL BBPOM di Mataram
             </h1>
 
@@ -354,26 +354,22 @@ export default function Siproval() {
                     </p>
                   </div>
 
-                  {/* Clean Action Buttons */}
-                  <div className="flex flex-wrap gap-2.5 pt-2">
-                    {card.links.map((link) =>
-                      hasAccess ? (
-                        <Link
-                          key={link.url}
-                          href={link.url}
-                          className="px-4 py-2 rounded-full bg-slate-100 hover:bg-[#005baa] text-[#001d3d] hover:text-white text-xs font-semibold transition-colors"
-                        >
-                          {link.label}
-                        </Link>
-                      ) : (
-                        <span
-                          key={link.url}
-                          className="px-4 py-2 rounded-full bg-slate-100 text-slate-400 text-xs font-medium cursor-not-allowed"
-                          title="Akses terbatas untuk peran Anda saat ini"
-                        >
-                          {link.label}
-                        </span>
-                      )
+                  {/* Single Clean Masuk Button */}
+                  <div className="pt-2">
+                    {hasAccess ? (
+                      <Link
+                        href={card.url}
+                        className="inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-[#003d73] hover:bg-[#005baa] text-white text-xs font-semibold transition-colors"
+                      >
+                        Masuk
+                      </Link>
+                    ) : (
+                      <span
+                        className="inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-slate-100 text-slate-400 text-xs font-medium cursor-not-allowed"
+                        title="Akses terbatas untuk peran Anda saat ini"
+                      >
+                        Masuk
+                      </span>
                     )}
                   </div>
                 </div>
@@ -394,7 +390,7 @@ export default function Siproval() {
       <footer className="bg-slate-50 text-slate-500 py-8 px-6 sm:px-10 lg:px-16 border-t border-slate-200/80">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
           <span className="font-semibold text-[#001d3d]">
-            SIPROVAL &mdash; Balai Besar POM di Mataram
+            SIPROVAL &bull; Balai Besar POM di Mataram
           </span>
           <span>
             &copy; {new Date().getFullYear()} BBPOM di Mataram. Seluruh hak
