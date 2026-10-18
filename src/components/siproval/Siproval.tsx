@@ -42,7 +42,7 @@ export default function Siproval() {
       Array.isArray(user?.sites) &&
       user.sites.some(
         (s: { id?: number; name?: string }) =>
-          Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval"),
+          Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval")
       ));
 
   const isBasukiKatim =
@@ -65,12 +65,12 @@ export default function Siproval() {
   const shortRole = isPic
     ? "PIC"
     : groupJabatanId === 1
-      ? "Kabalai"
-      : groupJabatanId === 2
-        ? "Tata Usaha"
-        : groupJabatanId === 3
-          ? "Katim"
-          : "Pegawai";
+    ? "Kabalai"
+    : groupJabatanId === 2
+    ? "Tata Usaha"
+    : groupJabatanId === 3
+    ? "Katim"
+    : "Pegawai";
 
   const roleCards = [
     {
@@ -196,7 +196,9 @@ export default function Siproval() {
             <a
               href="#entry-data"
               className={`text-xs font-semibold px-4 py-2 rounded-full transition-colors ${
-                scrolled ? "bg-[#003d73] text-white" : "bg-white text-[#001d3d]"
+                scrolled
+                  ? "bg-[#003d73] text-white"
+                  : "bg-white text-[#001d3d]"
               }`}
             >
               Masuk &amp; Entry Data
@@ -371,7 +373,7 @@ export default function Siproval() {
                         >
                           {link.label}
                         </span>
-                      ),
+                      )
                     )}
                   </div>
                 </div>

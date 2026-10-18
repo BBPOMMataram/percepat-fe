@@ -15,12 +15,7 @@ export interface DocumentItem {
   category: "perencanaan" | "penganggaran" | "monitoring" | "laporan";
 }
 
-type TabKey =
-  | "perencanaan"
-  | "penganggaran"
-  | "monitoring"
-  | "laporan"
-  | "profil";
+type TabKey = "perencanaan" | "penganggaran" | "monitoring" | "laporan" | "profil";
 
 interface TabMeta {
   key: TabKey;
@@ -92,25 +87,25 @@ export default function SiprovalDocumentHub() {
             (data.perencanaan || []).map((item: any) => ({
               ...item,
               category: "perencanaan",
-            })),
+            }))
           );
           setPenganggaran(
             (data.penganggaran || []).map((item: any) => ({
               ...item,
               category: "penganggaran",
-            })),
+            }))
           );
           setMonitoring(
             (data.monitoring || []).map((item: any) => ({
               ...item,
               category: "monitoring",
-            })),
+            }))
           );
           setLaporan(
             (data.laporan || []).map((item: any) => ({
               ...item,
               category: "laporan",
-            })),
+            }))
           );
           setProfilContent(data.profil || null);
           setBerandaContent(data.beranda || null);
@@ -151,7 +146,7 @@ export default function SiprovalDocumentHub() {
     return pool.filter(
       (doc) =>
         (doc.name && doc.name.toLowerCase().includes(q)) ||
-        (doc.desc && doc.desc.toLowerCase().includes(q)),
+        (doc.desc && doc.desc.toLowerCase().includes(q))
     );
   }, [activeTab, perencanaan, penganggaran, monitoring, laporan, searchQuery]);
 
@@ -313,8 +308,7 @@ export default function SiprovalDocumentHub() {
                 </h4>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                   Penetapan target kinerja, Rencana Strategis (Renstra), Plan of
-                  Action (PoA), Definisi Operasional, dan Petunjuk Cascading
-                  UPT.
+                  Action (PoA), Definisi Operasional, dan Petunjuk Cascading UPT.
                 </p>
               </div>
 
@@ -323,9 +317,8 @@ export default function SiprovalDocumentHub() {
                   Penganggaran &amp; Perbendaharaan
                 </h4>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Sinkronisasi alokasi anggaran, pemetaan rincian belanja
-                  (budget mapping), dan pelacakan penyerapan dana belanja
-                  berkala.
+                  Sinkronisasi alokasi anggaran, pemetaan rincian belanja (budget
+                  mapping), dan pelacakan penyerapan dana belanja berkala.
                 </p>
               </div>
 
@@ -345,8 +338,7 @@ export default function SiprovalDocumentHub() {
                 </h4>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                   Penyusunan data terverifikasi untuk pelaporan SAKTI, monev
-                  Bappenas, BPOM Operational Center (BOC), dan aplikasi
-                  SIMETRIS.
+                  Bappenas, BPOM Operational Center (BOC), dan aplikasi SIMETRIS.
                 </p>
               </div>
             </div>
@@ -410,9 +402,7 @@ export default function SiprovalDocumentHub() {
                       </h3>
 
                       <p className="text-xs text-slate-500 leading-relaxed mb-6 line-clamp-2">
-                        {item.desc &&
-                        item.desc.trim() !== "" &&
-                        item.desc !== "-"
+                        {item.desc && item.desc.trim() !== "" && item.desc !== "-"
                           ? item.desc
                           : "Dokumen rujukan program, evaluasi, dan akuntabilitas kinerja Balai."}
                       </p>
