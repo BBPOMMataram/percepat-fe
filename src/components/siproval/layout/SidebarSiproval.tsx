@@ -129,6 +129,39 @@ export default function SidebarSiproval({ actor }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user } = useSelector((state: RootState) => state.auth);
 
+  const picEmails = [
+    "hilmi.khairan@pom.go.id",
+    "nanang.setyadi@pom.go.id",
+    "fatimah.wulandari@pom.go.id",
+    "fatimah.wulandari03@gmail.com",
+  ];
+  const picNames = [
+    "hilmi khairan",
+    "nanang setyadi santoso",
+    "fatimah tri wulandari",
+    "fatimah t. wulandari",
+  ];
+  const allowedTuIds = [
+    "019ab8b3-2885-7125-857c-ee07c4febdc0", // Fatimah Tri Wulandari
+    "019ab8b3-493b-71d8-abd5-01c8ebcaf50e", // Fatimah T. Wulandari
+    "019ab8b3-2fca-71ee-ba81-e33f70548c10", // Hilmi Khairan
+    "019ab8b3-1fb0-73ef-af89-ad09ef30f76f", // Nanang Setyadi Santoso
+  ];
+
+  const userIdLower = String(user?.id || "").toLowerCase().trim();
+  const userNameLower = (user?.name || "").toLowerCase().trim();
+  const userEmailLower = (user?.email || "").toLowerCase().trim();
+
+  const hasFungsiTu =
+    Number(user?.employee?.fungsi_id) === 1 ||
+    (user?.employee?.fungsi?.name || "").toLowerCase().trim() === "tata usaha";
+
+  const hasTuAccess =
+    hasFungsiTu &&
+    (allowedTuIds.includes(userIdLower) ||
+      picEmails.includes(userEmailLower) ||
+      picNames.includes(userNameLower));
+
   let resolvedActor: Actor = actor || "katim";
   if (!actor) {
     const picEmails = [
@@ -158,6 +191,9 @@ export default function SidebarSiproval({ actor }: Props) {
     if (
       pathname.startsWith("/siproval/tu") ||
       pathname.startsWith("/siproval/budget-mapping")
+      hasTuAccess &&
+      (pathname.startsWith("/siproval/tu") ||
+        pathname.startsWith("/siproval/budget-mapping"))
     ) {
       resolvedActor = "tu";
     } else if (isPic) {
@@ -179,6 +215,7 @@ export default function SidebarSiproval({ actor }: Props) {
     } else if (isKatim) {
       resolvedActor = "katim";
     } else if (groupJabatanId === 2) {
+    } else if (hasTuAccess) {
       resolvedActor = "tu";
     } else {
       if (pathname.startsWith("/siproval/admin")) {
@@ -301,6 +338,7 @@ export default function SidebarSiproval({ actor }: Props) {
           </div>
 
           {resolvedActor !== "tu" && (
+          {hasTuAccess && resolvedActor !== "tu" && (
             <div className="pt-3 border-t border-white/10">
               <p className="mb-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-white/40">
                 Menu Tata Usaha (TU)
