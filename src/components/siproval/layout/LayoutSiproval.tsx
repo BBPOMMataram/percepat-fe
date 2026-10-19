@@ -49,15 +49,17 @@ export default function LayoutSiproval({ children }: { children: React.ReactNode
                     return;
                 }
 
-                // Rute Realisasi RO TU terbuka untuk seluruh aktor Siproval (TU, Kabalai, Katim)
-                const isRealisasiRoPath = pathname.startsWith("/siproval/tu/realisasi-ro");
+                // Rute fitur TU (Dashboard TU, Realisasi RO, Budget Mapping) terbuka di local
+                const isTuPath =
+                    pathname.startsWith("/siproval/tu") ||
+                    pathname.startsWith("/siproval/budget-mapping");
 
                 // Katim (group_jabatan_id == 3)
                 if (groupJabatanId === 3) {
                     const isAllowed =
                         pathname.startsWith("/siproval/katim") ||
                         pathname.startsWith("/siproval/google-sheets") ||
-                        isRealisasiRoPath;
+                        isTuPath;
                     if (!isAllowed) {
                         router.push("/siproval/katim");
                     }
@@ -70,7 +72,7 @@ export default function LayoutSiproval({ children }: { children: React.ReactNode
                         pathname.startsWith("/siproval/catatan") ||
                         pathname.startsWith("/siproval/rhpk") ||
                         pathname.startsWith("/siproval/arahan-pimpinan") ||
-                        isRealisasiRoPath;
+                        isTuPath;
                     if (!isAllowed) {
                         router.push("/siproval/monev");
                     }
@@ -78,8 +80,7 @@ export default function LayoutSiproval({ children }: { children: React.ReactNode
                 // TU (group_jabatan_id == 2)
                 else if (groupJabatanId === 2) {
                     const isAllowed =
-                        pathname.startsWith("/siproval/tu") ||
-                        pathname.startsWith("/siproval/budget-mapping") ||
+                        isTuPath ||
                         pathname === "/siproval";
                     if (!isAllowed) {
                         router.push("/siproval/tu");
@@ -87,7 +88,7 @@ export default function LayoutSiproval({ children }: { children: React.ReactNode
                 }
                 // Staf (4), OS (5), dll
                 else {
-                    if (!isRealisasiRoPath) {
+                    if (!isTuPath) {
                         router.push("/unauthorized");
                     }
                 }

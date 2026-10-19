@@ -8,7 +8,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import api from "@/utils/api";
 
-const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8006";
+const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000";
 
 function columnNumberToLetter(columnNumber: number): string {
   let temp = columnNumber;
@@ -30,7 +30,7 @@ export default function BudgetMappingTable() {
   const { user } = useSelector((state: RootState) => state.auth);
   const searchParams = useSearchParams();
   const year = searchParams.get("year") || "2026";
-  const tabId = searchParams.get("tab") || "1";
+  const tabId = searchParams.get("tab") || "171";
 
   const [tabTitle, setTabTitle] = useState("Budget Mapping Bulanan");
   const [spreadsheetName, setSpreadsheetName] = useState("Spreadsheet Budget Mapping");
@@ -139,7 +139,7 @@ export default function BudgetMappingTable() {
 
     try {
       await api.post(
-        `${baseUrl}/tu/budget-mapping/${year}/tab/${tabId}/update`,
+        `${baseUrl}/api/budget-mapping/${year}/tab/${tabId}/update`,
         { user_id: user?.id, updates: updateList }
       );
 

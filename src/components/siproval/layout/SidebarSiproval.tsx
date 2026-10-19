@@ -194,6 +194,14 @@ export default function SidebarSiproval({ actor }: Props) {
   }
 
   const actorMenus = menus[resolvedActor] ?? [];
+  const tuMenus = menus.tu;
+
+  const isMenuActive = (activePath: string) => {
+    if (activePath === "/siproval/tu" || activePath === "/siproval/budget-mapping") {
+      return pathname === activePath || pathname === `${activePath}/dashboard`;
+    }
+    return pathname === activePath || pathname.startsWith(`${activePath}/`);
+  };
 
   return (
     <>
@@ -252,40 +260,72 @@ export default function SidebarSiproval({ actor }: Props) {
           </p>
         </div>
 
-        <p className="mb-3 px-2 text-[10px] font-semibold uppercase tracking-widest text-white/40">
-          Menu
-        </p>
+        <div className="flex-1 overflow-y-auto space-y-5 pr-1">
+          <div>
+            <p className="mb-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-white/40">
+              Menu Utama
+            </p>
 
-        <ul className="flex-1 space-y-2 overflow-y-auto">
-          {actorMenus.length > 0 ? (
-            actorMenus.map((menu) => {
-              const active =
-                pathname === menu.active ||
-                pathname.startsWith(`${menu.active}/`);
+            <ul className="space-y-1.5">
+              {actorMenus.length > 0 ? (
+                actorMenus.map((menu) => {
+                  const active = isMenuActive(menu.active);
 
-              return (
-                <li key={menu.url}>
-                  <Link
-                    href={menu.url}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-colors ${
-                      active
-                        ? "bg-white/15 text-white"
-                        : "text-white/75 hover:bg-white/10 hover:text-white"
-                    }`}
-                  >
-                    <Icon icon={menu.icon} width={24} height={24} />
-                    <span className="text-sm font-medium">{menu.name}</span>
-                  </Link>
+                  return (
+                    <li key={menu.url}>
+                      <Link
+                        href={menu.url}
+                        onClick={() => setSidebarOpen(false)}
+                        className={`flex items-center gap-3 rounded-xl px-4 py-2.5 transition-colors ${
+                          active
+                            ? "bg-white/15 text-white font-semibold"
+                            : "text-white/75 hover:bg-white/10 hover:text-white"
+                        }`}
+                      >
+                        <Icon icon={menu.icon} width={22} height={22} />
+                        <span className="text-sm font-medium">{menu.name}</span>
+                      </Link>
+                    </li>
+                  );
+                })
+              ) : (
+                <li className="rounded-xl bg-white/5 px-4 py-3 text-xs text-white/50">
+                  Belum ada menu untuk aktor ini.
                 </li>
-              );
-            })
-          ) : (
-            <li className="rounded-xl bg-white/5 px-4 py-3 text-xs text-white/50">
-              Belum ada menu untuk aktor ini.
-            </li>
+              )}
+            </ul>
+          </div>
+
+          {resolvedActor !== "tu" && (
+            <div className="pt-3 border-t border-white/10">
+              <p className="mb-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-white/40">
+                Menu Tata Usaha (TU)
+              </p>
+              <ul className="space-y-1.5">
+                {tuMenus.map((menu) => {
+                  const active = isMenuActive(menu.active);
+
+                  return (
+                    <li key={menu.url}>
+                      <Link
+                        href={menu.url}
+                        onClick={() => setSidebarOpen(false)}
+                        className={`flex items-center gap-3 rounded-xl px-4 py-2.5 transition-colors ${
+                          active
+                            ? "bg-white/15 text-white font-semibold"
+                            : "text-white/75 hover:bg-white/10 hover:text-white"
+                        }`}
+                      >
+                        <Icon icon={menu.icon} width={22} height={22} />
+                        <span className="text-sm font-medium">{menu.name}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           )}
-        </ul>
+        </div>
 
         <div className="mt-auto pt-4 border-t border-white/10">
           <Link

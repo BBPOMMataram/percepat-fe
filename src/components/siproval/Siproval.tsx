@@ -60,7 +60,7 @@ export default function Siproval() {
 
   const canAccess = (id: string) => {
     if (isPic) return true;
-    if (id === "tu") return groupJabatanId === 2 || isPic;
+    if (id === "tu") return true;
     if (id === "katim") return groupJabatanId === 3 || isPic;
     if (id === "kabalai") return groupJabatanId === 1 || isPic;
     if (id === "pic") return false;
