@@ -90,15 +90,16 @@ export default function SyncTab() {
         `${baseUrl}/api/superadmin/sinkronisasi-tab?spreadsheet_id=${spreadsheetId}${query}`
       );
       const data = res.data;
-      if (Array.isArray(data)) {
-        setTabs(data);
-      } else if (Array.isArray(data?.tabs)) {
-        setTabs(data.tabs);
-      } else if (Array.isArray(data?.data)) {
-        setTabs(data.data);
-      } else {
-        setTabs([]);
-      }
+      const rawTabs: TabItem[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.tabs)
+          ? data.tabs
+          : Array.isArray(data?.data)
+            ? data.data
+            : [];
+      setTabs(
+        rawTabs.filter((t) => !String(t.title || "").toLowerCase().includes("salinan"))
+      );
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       setErrorMsg(

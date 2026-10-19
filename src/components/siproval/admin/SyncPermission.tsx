@@ -179,13 +179,16 @@ export default function SyncPermission() {
           `${baseUrl}/api/superadmin/sinkronisasi-tab?spreadsheet_id=${selectedSpreadsheet}${query}`
         );
         const data = res.data;
-        const list: TabOption[] = Array.isArray(data?.tabs)
+        const rawList: TabOption[] = Array.isArray(data?.tabs)
           ? data.tabs
           : Array.isArray(data?.data)
             ? data.data
             : Array.isArray(data)
               ? data
               : [];
+        const list = rawList.filter(
+          (t) => !String(t.title || "").toLowerCase().includes("salinan")
+        );
         setTabs(list);
         if (list.length > 0) {
           setSelectedTab(list[0].id);
@@ -211,13 +214,16 @@ export default function SyncPermission() {
             `${baseUrl}/api/superadmin/sinkronisasi-tab?spreadsheet_id=${syncSpreadsheetId}${query}`
           );
           const data = res.data;
-          const list: TabOption[] = Array.isArray(data?.tabs)
+          const rawList: TabOption[] = Array.isArray(data?.tabs)
             ? data.tabs
             : Array.isArray(data?.data)
               ? data.data
               : Array.isArray(data)
                 ? data
                 : [];
+          const list = rawList.filter(
+            (t) => !String(t.title || "").toLowerCase().includes("salinan")
+          );
           setSyncTabsList(list);
           setSyncTabId("all");
         } catch {

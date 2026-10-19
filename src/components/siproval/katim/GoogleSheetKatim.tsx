@@ -248,7 +248,13 @@ export default function GoogleSheetKatim() {
       }
 
       // 2. Spreadsheets
-      const spList: SpreadsheetOption[] = payload.spreadsheets || [];
+      const rawSpList: SpreadsheetOption[] = payload.spreadsheets || [];
+      const spList: SpreadsheetOption[] = rawSpList.map((sp) => ({
+        ...sp,
+        tabs: Array.isArray(sp.tabs)
+          ? sp.tabs.filter((t) => !String(t.title || "").toLowerCase().includes("salinan"))
+          : sp.tabs,
+      }));
       setSpreadsheets(spList);
       const chosenSp = payload.selectedSpreadsheet || payload.spreadsheet;
       if (chosenSp) {
@@ -257,11 +263,14 @@ export default function GoogleSheetKatim() {
         setSelectedSpreadsheet(spList[0].id);
       }
 
-      // 3. Tabs
-      const tabList: TabOption[] = payload.tabs || [];
+      // 3. Tabs (sembunyikan tab yang mengandung kata 'salinan')
+      const rawTabList: TabOption[] = payload.tabs || [];
+      const tabList: TabOption[] = rawTabList.filter(
+        (t) => !String(t.title || "").toLowerCase().includes("salinan")
+      );
       setTabs(tabList);
       const chosenTab = payload.targetTab || payload.tab;
-      if (chosenTab) {
+      if (chosenTab && !String(chosenTab.title || "").toLowerCase().includes("salinan")) {
         setSelectedTab(chosenTab.id);
       } else if (tabList.length > 0 && !tabId) {
         setSelectedTab(tabList[0].id);
