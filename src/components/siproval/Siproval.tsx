@@ -67,9 +67,7 @@ export default function Siproval() {
     "019ab8b3-1fb0-73ef-af89-ad09ef30f76f", // Nanang Setyadi Santoso
   ];
 
-  const userId = String(user?.id || "")
-    .toLowerCase()
-    .trim();
+  const userId = String(user?.id || "").toLowerCase().trim();
   const userEmail = (user?.email || "").toLowerCase().trim();
   const userNameClean = (user?.name || "").toLowerCase().trim();
 
