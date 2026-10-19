@@ -69,8 +69,6 @@ export default function LayoutSiproval({ children }: { children: React.ReactNode
                     user.sites.some(
                         (s: { id?: number; name?: string }) =>
                             Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval")
-                    )) ||
-                user.email === "hilmi.khairan@pom.go.id";
                     ));
             const groupJabatanId = user.employee?.group_jabatan_id;
             const isKatimFromTable = Array.isArray(user.katims) && user.katims.length > 0;
@@ -102,22 +100,11 @@ export default function LayoutSiproval({ children }: { children: React.ReactNode
 
             // Jika bukan superadmin / PIC Siproval, batasi akses berdasarkan group_jabatan & tabel katims
             if (!isSuperadmin) {
-                // Di landing portal /siproval tetap diizinkan
-                if (pathname === "/siproval") {
-                    return;
-                }
-
-                // Rute fitur TU (Dashboard TU, Realisasi RO, Budget Mapping) terbuka di local
-                const isTuPath =
-                    pathname.startsWith("/siproval/tu") ||
-                    pathname.startsWith("/siproval/budget-mapping");
-
                 // Katim (group_jabatan_id == 3 atau terdaftar di tabel katims)
                 if (isKatim) {
                     const isAllowed =
                         pathname.startsWith("/siproval/katim") ||
                         pathname.startsWith("/siproval/google-sheets") ||
-                        isTuPath;
                         (hasTuAccess && isTuPath);
                     if (!isAllowed) {
                         router.push("/siproval/katim");
@@ -131,14 +118,11 @@ export default function LayoutSiproval({ children }: { children: React.ReactNode
                         pathname.startsWith("/siproval/catatan") ||
                         pathname.startsWith("/siproval/rhpk") ||
                         pathname.startsWith("/siproval/arahan-pimpinan") ||
-                        isTuPath;
                         (hasTuAccess && isTuPath);
                     if (!isAllowed) {
                         router.push("/siproval/monev");
                     }
                 }
-                // TU (group_jabatan_id == 2)
-                else if (groupJabatanId === 2) {
                 // User dengan akses TU
                 else if (hasTuAccess) {
                     const isAllowed =
@@ -148,12 +132,8 @@ export default function LayoutSiproval({ children }: { children: React.ReactNode
                         router.push("/siproval/tu");
                     }
                 }
-                // Staf (4), OS (5), dll
                 // Staf (4), OS (5), dll yang tidak memiliki akses
                 else {
-                    if (!isTuPath) {
-                        router.push("/unauthorized");
-                    }
                     router.push("/unauthorized");
                 }
             }

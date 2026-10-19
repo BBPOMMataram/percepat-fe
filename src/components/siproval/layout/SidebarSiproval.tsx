@@ -164,16 +164,6 @@ export default function SidebarSiproval({ actor }: Props) {
 
   let resolvedActor: Actor = actor || "katim";
   if (!actor) {
-    const picEmails = [
-      "hilmi.khairan@pom.go.id",
-      "nanang.setyadi@pom.go.id",
-      "fatimah.wulandari@pom.go.id",
-      "fatimah.wulandari03@gmail.com",
-    ];
-    const picNames = ["hilmi khairan", "nanang setyadi santoso", "fatimah tri wulandari"];
-    const userNameLower = (user?.name || "").toLowerCase().trim();
-    const userEmailLower = (user?.email || "").toLowerCase().trim();
-
     const isPic =
       user?.role?.level === "superadmin" ||
       picEmails.includes(userEmailLower) ||
@@ -189,8 +179,6 @@ export default function SidebarSiproval({ actor }: Props) {
     const isKatim = groupJabatanId === 3 || isKatimFromTable;
 
     if (
-      pathname.startsWith("/siproval/tu") ||
-      pathname.startsWith("/siproval/budget-mapping")
       hasTuAccess &&
       (pathname.startsWith("/siproval/tu") ||
         pathname.startsWith("/siproval/budget-mapping"))
@@ -214,7 +202,6 @@ export default function SidebarSiproval({ actor }: Props) {
       resolvedActor = "kabalai";
     } else if (isKatim) {
       resolvedActor = "katim";
-    } else if (groupJabatanId === 2) {
     } else if (hasTuAccess) {
       resolvedActor = "tu";
     } else {
@@ -337,7 +324,6 @@ export default function SidebarSiproval({ actor }: Props) {
             </ul>
           </div>
 
-          {resolvedActor !== "tu" && (
           {hasTuAccess && resolvedActor !== "tu" && (
             <div className="pt-3 border-t border-white/10">
               <p className="mb-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-white/40">
