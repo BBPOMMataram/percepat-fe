@@ -80,6 +80,14 @@ export interface Sites {
     created_at: string;
 }
 
+export interface KatimRelation {
+    id: number;
+    user_id: string;
+    iksk_id: number;
+    created_at?: string | null;
+    updated_at?: string | null;
+}
+
 export interface User {
     id: number;
     name: string;
@@ -94,6 +102,7 @@ export interface User {
     employee?: Employee | null;
     student?: Student | null;
     sites?: Sites[] | [];
+    katims?: KatimRelation[];
     created_at: string;
     updated_at: string;
 }

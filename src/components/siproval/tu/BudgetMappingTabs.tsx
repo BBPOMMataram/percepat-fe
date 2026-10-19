@@ -117,13 +117,23 @@ export default function BudgetMappingTabs() {
           <span className="font-semibold text-slate-800">Tahun {year}</span>
         </div>
 
-        <Link
-          href="/siproval/budget-mapping"
-          className="inline-flex w-fit items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-        >
-          <Icon icon="solar:arrow-left-linear" width={16} />
-          Kembali ke Daftar Tahun
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/siproval/tu/laporan-evaluasi?month=APRIL"
+            className="inline-flex w-fit items-center gap-2 rounded-xl bg-[#005baa] px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#004b8d]"
+          >
+            <Icon icon="solar:printer-bold" width={16} />
+            Eksport Laporan (Bulan April)
+          </Link>
+
+          <Link
+            href="/siproval/budget-mapping"
+            className="inline-flex w-fit items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+          >
+            <Icon icon="solar:arrow-left-linear" width={16} />
+            Kembali ke Daftar Tahun
+          </Link>
+        </div>
       </div>
 
       {/* Spreadsheet info banner */}

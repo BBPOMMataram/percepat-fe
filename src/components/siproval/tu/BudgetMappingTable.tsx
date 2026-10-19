@@ -8,7 +8,8 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import api from "@/utils/api";
 
-const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000";
+const baseUrl =
+  process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000";
 
 function columnNumberToLetter(columnNumber: number): string {
   let temp = columnNumber;
@@ -33,7 +34,9 @@ export default function BudgetMappingTable() {
   const tabId = searchParams.get("tab") || "171";
 
   const [tabTitle, setTabTitle] = useState("Budget Mapping Bulanan");
-  const [spreadsheetName, setSpreadsheetName] = useState("Spreadsheet Budget Mapping");
+  const [spreadsheetName, setSpreadsheetName] = useState(
+    "Spreadsheet Budget Mapping",
+  );
   const [range, setRange] = useState("'JANUARI'!A1:ZZ200");
   const [headerRows, setHeaderRows] = useState<string[][]>([]);
   const [rows, setRows] = useState<RowData[]>([]);
@@ -89,7 +92,8 @@ export default function BudgetMappingTable() {
       } catch (err: unknown) {
         const e = err as { response?: { data?: { message?: string } } };
         setErrorMsg(
-          e.response?.data?.message || "Gagal memuat rincian tabel anggaran dari backend."
+          e.response?.data?.message ||
+            "Gagal memuat rincian tabel anggaran dari backend.",
         );
         setRows([]);
         setHeaderRows([]);
@@ -140,11 +144,11 @@ export default function BudgetMappingTable() {
     try {
       await api.post(
         `${baseUrl}/api/budget-mapping/${year}/tab/${tabId}/update`,
-        { user_id: user?.id, updates: updateList }
+        { user_id: user?.id, updates: updateList },
       );
 
       setSuccessMsg(
-        `${updateList.length} sel berhasil diperbarui dan disinkronkan ke Google Sheet!`
+        `${updateList.length} sel berhasil diperbarui dan disinkronkan ke Google Sheet!`,
       );
       setEditedCells({});
     } catch {
@@ -220,7 +224,11 @@ export default function BudgetMappingTable() {
       {successMsg && (
         <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
           <div className="flex items-center gap-2">
-            <Icon icon="solar:check-circle-bold" width={20} className="text-emerald-600" />
+            <Icon
+              icon="solar:check-circle-bold"
+              width={20}
+              className="text-emerald-600"
+            />
             <span>{successMsg}</span>
           </div>
           <button
@@ -235,7 +243,11 @@ export default function BudgetMappingTable() {
       {errorMsg && (
         <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
           <div className="flex items-center gap-2">
-            <Icon icon="solar:danger-triangle-bold" width={20} className="text-red-600" />
+            <Icon
+              icon="solar:danger-triangle-bold"
+              width={20}
+              className="text-red-600"
+            />
             <span>{errorMsg}</span>
           </div>
           <button
@@ -280,7 +292,11 @@ export default function BudgetMappingTable() {
       {/* Table Editor */}
       {apiNotice && (
         <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
-          <Icon icon="solar:info-circle-bold" width={18} className="text-amber-600 shrink-0" />
+          <Icon
+            icon="solar:info-circle-bold"
+            width={18}
+            className="text-amber-600 shrink-0"
+          />
           <span>{apiNotice}</span>
         </div>
       )}
@@ -292,8 +308,8 @@ export default function BudgetMappingTable() {
               Data Tabel Spreadsheet
             </h2>
             <p className="text-xs text-slate-500">
-              Edit nilai di dalam kotak sel dan klik Simpan Perubahan untuk sinkronisasi ke
-              Google Sheets.
+              Edit nilai di dalam kotak sel dan klik Simpan Perubahan untuk
+              sinkronisasi ke Google Sheets.
             </p>
           </div>
 
@@ -314,9 +330,19 @@ export default function BudgetMappingTable() {
           </div>
         ) : rows.length === 0 && headerRows.length === 0 ? (
           <div className="p-12 text-center text-xs text-slate-500">
-            <Icon icon="solar:document-text-linear" width={32} className="mx-auto text-slate-400 mb-2" />
-            <p className="font-semibold text-slate-700">Belum ada baris data pada tab Google Sheet ini</p>
-            <p className="mt-1">Pastikan file kredensial Service Account terpasang di storage/app/credentials.json dan dokumen Google Sheet sudah dibagikan.</p>
+            <Icon
+              icon="solar:document-text-linear"
+              width={32}
+              className="mx-auto text-slate-400 mb-2"
+            />
+            <p className="font-semibold text-slate-700">
+              Belum ada baris data pada tab Google Sheet ini
+            </p>
+            <p className="mt-1">
+              Pastikan file kredensial Service Account terpasang di
+              storage/app/credentials.json dan dokumen Google Sheet sudah
+              dibagikan.
+            </p>
           </div>
         ) : (
           <div className="w-full overflow-x-auto">

@@ -52,16 +52,14 @@ export default function Siproval() {
           Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval")
       ));
 
-  const isBasukiKatim =
-    String(user?.id) === "019ab8b3-4a06-7007-8337-2794c43cea4f" ||
-    userEmail === "al.el.dul79@gmail.com" ||
-    userNameClean === "basuki murdi hartono";
-  const groupJabatanId = isBasukiKatim ? 3 : user?.employee?.group_jabatan_id;
+  const groupJabatanId = user?.employee?.group_jabatan_id;
+  const isKatimFromTable = Array.isArray(user?.katims) && user.katims.length > 0;
+  const isKatim = groupJabatanId === 3 || isKatimFromTable;
 
   const canAccess = (id: string) => {
     if (isPic) return true;
     if (id === "tu") return true;
-    if (id === "katim") return groupJabatanId === 3 || isPic;
+    if (id === "katim") return isKatim || isPic;
     if (id === "kabalai") return groupJabatanId === 1 || isPic;
     if (id === "pic") return false;
     return false;
@@ -73,10 +71,10 @@ export default function Siproval() {
     ? "PIC"
     : groupJabatanId === 1
     ? "Kabalai"
+    : isKatim
+    ? "Katim"
     : groupJabatanId === 2
     ? "Tata Usaha"
-    : groupJabatanId === 3
-    ? "Katim"
     : "Pegawai";
 
   const roleCards = [

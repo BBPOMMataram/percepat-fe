@@ -89,6 +89,12 @@ const menus = {
       url: "/siproval/budget-mapping/year?year=2026",
       active: "/siproval/budget-mapping/year",
     },
+    {
+      name: "Eksport Laporan",
+      icon: "solar:printer-bold",
+      url: "/siproval/tu/laporan-evaluasi?month=APRIL",
+      active: "/siproval/tu/laporan-evaluasi",
+    },
   ],
   superadmin: [
     {
@@ -145,11 +151,9 @@ export default function SidebarSiproval({ actor }: Props) {
           (s: { id?: number; name?: string }) =>
             Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval")
         ));
-    const isBasukiKatim =
-      String(user?.id) === "019ab8b3-4a06-7007-8337-2794c43cea4f" ||
-      userEmailLower === "al.el.dul79@gmail.com" ||
-      userNameLower === "basuki murdi hartono";
-    const groupJabatanId = isBasukiKatim ? 3 : user?.employee?.group_jabatan_id;
+    const groupJabatanId = user?.employee?.group_jabatan_id;
+    const isKatimFromTable = Array.isArray(user?.katims) && user.katims.length > 0;
+    const isKatim = groupJabatanId === 3 || isKatimFromTable;
 
     if (
       pathname.startsWith("/siproval/tu") ||
@@ -172,10 +176,10 @@ export default function SidebarSiproval({ actor }: Props) {
       }
     } else if (groupJabatanId === 1) {
       resolvedActor = "kabalai";
+    } else if (isKatim) {
+      resolvedActor = "katim";
     } else if (groupJabatanId === 2) {
       resolvedActor = "tu";
-    } else if (groupJabatanId === 3) {
-      resolvedActor = "katim";
     } else {
       if (pathname.startsWith("/siproval/admin")) {
         resolvedActor = "superadmin";

@@ -45,6 +45,13 @@ export default function DashboardTu() {
               <Icon icon="solar:pie-chart-2-bold" width={16} />
               Budget Mapping
             </Link>
+            <Link
+              href="/siproval/tu/laporan-evaluasi?month=APRIL"
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-600"
+            >
+              <Icon icon="solar:printer-bold" width={16} />
+              Eksport Laporan (Bulan April)
+            </Link>
           </div>
         </div>
 
@@ -135,7 +142,7 @@ export default function DashboardTu() {
           Akses langsung ke modul pemetaan anggaran dan tabel rincian kegiatan.
         </p>
 
-        <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
           <Link
             href="/siproval/tu/realisasi-ro"
             className="group block rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50/50 via-white to-indigo-50/30 p-6 shadow-sm transition hover:-translate-y-1 hover:border-blue-400 hover:shadow-md"
@@ -195,6 +202,26 @@ export default function DashboardTu() {
             <p className="mt-1 text-sm text-slate-500">
               Kelola tab-tab rincian anggaran bulanan dan perbarui data sel secara langsung
               ke Google Sheets.
+            </p>
+          </Link>
+
+          <Link
+            href="/siproval/tu/laporan-evaluasi?month=APRIL"
+            className="group block rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/50 via-white to-teal-50/30 p-6 shadow-sm transition hover:-translate-y-1 hover:border-emerald-400 hover:shadow-md"
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#00a651] text-white shadow-sm">
+                <Icon icon="solar:printer-bold" width={26} />
+              </div>
+              <span className="inline-flex items-center gap-1 text-sm font-semibold text-[#00a651] group-hover:underline">
+                Eksport <Icon icon="solar:arrow-right-linear" width={16} />
+              </span>
+            </div>
+            <h3 className="mt-4 text-lg font-bold text-slate-900 group-hover:text-[#00a651]">
+              Eksport Laporan Evaluasi
+            </h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Cetak atau unduh Berita Acara Evaluasi Internal (Bulan April 2026) gabungan Volume RO &amp; Anggaran.
             </p>
           </Link>
         </div>

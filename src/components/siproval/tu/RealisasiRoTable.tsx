@@ -290,6 +290,16 @@ export default function RealisasiRoTable() {
 
         {/* Action Buttons Top */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Tombol Eksport Laporan Berita Acara */}
+          <Link
+            href={`/siproval/tu/laporan-evaluasi?month=${encodeURIComponent(selectedMonth || "APRIL")}`}
+            title="Eksport Laporan Berita Acara Evaluasi Internal"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#005baa] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#004b8d] transition shadow-2xs"
+          >
+            <Icon icon="solar:printer-bold" width={16} />
+            Eksport Laporan
+          </Link>
+
           {/* Tombol Langsung ke Google Sheet */}
           <a
             href={googleSheetUrl}

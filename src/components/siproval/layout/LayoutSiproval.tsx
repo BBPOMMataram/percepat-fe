@@ -36,13 +36,11 @@ export default function LayoutSiproval({ children }: { children: React.ReactNode
                             Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval")
                     )) ||
                 user.email === "hilmi.khairan@pom.go.id";
-            const isBasukiKatim =
-                String(user.id) === "019ab8b3-4a06-7007-8337-2794c43cea4f" ||
-                (user.email || "").toLowerCase() === "al.el.dul79@gmail.com" ||
-                (user.name || "").toLowerCase().trim() === "basuki murdi hartono";
-            const groupJabatanId = isBasukiKatim ? 3 : user.employee?.group_jabatan_id;
+            const groupJabatanId = user.employee?.group_jabatan_id;
+            const isKatimFromTable = Array.isArray(user.katims) && user.katims.length > 0;
+            const isKatim = groupJabatanId === 3 || isKatimFromTable;
 
-            // Jika bukan superadmin / PIC Siproval, batasi akses berdasarkan group_jabatan
+            // Jika bukan superadmin / PIC Siproval, batasi akses berdasarkan group_jabatan & tabel katims
             if (!isSuperadmin) {
                 // Di landing portal /siproval tetap diizinkan
                 if (pathname === "/siproval") {
@@ -54,8 +52,8 @@ export default function LayoutSiproval({ children }: { children: React.ReactNode
                     pathname.startsWith("/siproval/tu") ||
                     pathname.startsWith("/siproval/budget-mapping");
 
-                // Katim (group_jabatan_id == 3)
-                if (groupJabatanId === 3) {
+                // Katim (group_jabatan_id == 3 atau terdaftar di tabel katims)
+                if (isKatim) {
                     const isAllowed =
                         pathname.startsWith("/siproval/katim") ||
                         pathname.startsWith("/siproval/google-sheets") ||

@@ -78,6 +78,9 @@ export default function HeaderSiproval({
     } else if (pathname.startsWith("/siproval/rhpk")) {
       computedTitle = "Rekapitulasi RHPK";
       computedDesc = computedDesc || "Data pemantauan dan evaluasi tab RHPK";
+    } else if (pathname.startsWith("/siproval/tu/laporan-evaluasi")) {
+      computedTitle = "Eksport Laporan Evaluasi Internal";
+      computedDesc = computedDesc || "Berita Acara Evaluasi Internal gabungan Volume (Realisasi RO) dan Anggaran (Budget Mapping)";
     } else if (pathname.startsWith("/siproval/tu/realisasi-ro")) {
       computedTitle = "Realisasi RO";
       computedDesc = computedDesc || "Pemantauan target tahunan, bulanan, realisasi, dan capaian Rincian Output";
