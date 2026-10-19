@@ -1,0 +1,569 @@
+"use client";
+
+import api from "@/utils/api";
+import { useEffect, useState, useCallback } from "react";
+import { toast } from "react-toastify";
+import dayjs from "@/utils/dayjs";
+
+export default function MasterPetugas() {
+    const [petugas, setPetugas] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState("10");
+    const [searchInput, setSearchInput] = useState("");
+    const [activeSearch, setActiveSearch] = useState("");
+    const [paginationData, setPaginationData] = useState<any>(null);
+    const [totalData, setTotalData] = useState(0);
+
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [isShowOpen, setIsShowOpen] = useState(false);
+    const [showData, setShowData] = useState<any>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+    const [formData, setFormData] = useState({
+        id: null,
+        nm_petugas: "",
+        NIP: "",
+        username: "",
+        Pangkat: "",
+        Jabatan: "",
+        ket: "",
+        level: "Operator"
+    });
+
+    const fetchData = useCallback(async (url?: string) => {
+        setLoading(true);
+        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
+        let endpoint = url || `${baseURL}/api/petugas?page=${currentPage}&value_per_page=${perPage}&name=${activeSearch}`;
+
+        try {
+            const res = await api.get(endpoint);
+            const responseData = res.data;
+            if (Array.isArray(responseData)) {
+                setPetugas(responseData);
+                setTotalData(responseData.length);
+            } else if (Array.isArray(responseData?.data)) {
+                setPetugas(responseData.data);
+                setPaginationData(responseData);
+                setTotalData(responseData?.meta?.total || responseData?.total || responseData.data.length);
+            } else if (Array.isArray(responseData?.data?.data)) {
+                setPetugas(responseData.data.data);
+                setPaginationData(responseData.data);
+                setTotalData(responseData.data?.meta?.total || responseData.data?.total || responseData.data.data.length);
+            }
+        } catch (err) {
+            console.error("Gagal mengambil data petugas:", err);
+            toast.error("Gagal mengambil data petugas");
+            setPetugas([]);
+        } finally {
+            setLoading(false);
+        }
+    }, [currentPage, perPage, activeSearch]);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setCurrentPage(1);
+        setActiveSearch(searchInput);
+    };
+
+    const handleResetSearch = () => {
+        setSearchInput("");
+        setActiveSearch("");
+        setCurrentPage(1);
+    };
+
+    const handleOpenAdd = () => {
+        setFormData({ id: null, nm_petugas: "", NIP: "", username: "", Pangkat: "", Jabatan: "", ket: "", level: "Operator" });
+        setIsShowOpen(false);
+        setIsFormOpen(true);
+    };
+
+    const handleOpenEdit = (item: any) => {
+        setFormData({
+            id: item.id,
+            nm_petugas: item.nm_petugas || "",
+            NIP: item.NIP || "",
+            username: item.username || "",
+            Pangkat: item.Pangkat || "",
+            Jabatan: item.Jabatan || "",
+            ket: item.ket || "",
+            level: item.level || "Operator"
+        });
+        setIsShowOpen(false);
+        setIsFormOpen(true);
+    };
+
+    const handleOpenShow = (item: any) => {
+        setShowData(item);
+        setIsFormOpen(false);
+        setIsShowOpen(true);
+    };
+
+    const handleDelete = (id: number) => {
+        setDeleteConfirmId(id);
+    };
+
+    const executeDelete = async (id: number) => {
+        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
+        try {
+            const res = await api.delete(`${baseURL}/api/petugas/${id}`);
+            toast.success(res.data?.message || res.data?.msg || "Data berhasil dihapus");
+            fetchData();
+        } catch (err: any) {
+            console.error(err);
+            toast.error(err.response?.data?.message || "Gagal menghapus data");
+        } finally {
+            setDeleteConfirmId(null);
+        }
+    };
+
+    const handleFormSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+
+        const payload = {
+            name: formData.nm_petugas,
+            nip: formData.NIP,
+            username: formData.username,
+            pangkat: formData.Pangkat,
+            jabatan: formData.Jabatan,
+            ket: formData.ket,
+            level: formData.level
+        };
+
+        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
+        
+        try {
+            const request = formData.id 
+                ? api.put(`${baseURL}/api/petugas/${formData.id}`, payload)
+                : api.post(`${baseURL}/api/petugas`, payload);
+            
+            const res = await request;
+            toast.success(res.data?.message || res.data?.msg || "Data berhasil disimpan");
+            setIsFormOpen(false);
+            fetchData();
+        } catch (err: any) {
+            console.error(err);
+            toast.error(err.response?.data?.message || "Gagal menyimpan data");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const getStartingNumber = () => {
+        if (!paginationData?.meta?.current_page && !paginationData?.current_page) return 1;
+        const page = paginationData?.meta?.current_page || paginationData?.current_page;
+        return (page - 1) * parseInt(perPage) + 1;
+    };
+
+    const currentTampilDari = getStartingNumber();
+    const currentTampilSampai = currentTampilDari + petugas.length - 1;
+    const isPaginationValid = (paginationData?.meta?.links || paginationData?.links) && (paginationData?.meta?.last_page > 1 || paginationData?.last_page > 1);
+
+    if (isShowOpen && showData) {
+        return (
+            <div className="py-6 px-2 sm:px-4 w-full max-w-full overflow-hidden animate-in fade-in duration-200">
+                <div className="max-w-[1400px] mx-auto">
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-800">Detail Petugas</h1>
+                            <p className="text-xs text-slate-500 mt-1">Informasi lengkap data pegawai dan akses penugasan</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden max-w-3xl">
+                        <div className="p-6 md:p-8">
+                            <div className="flex items-center gap-6 mb-6 pb-6 border-b border-slate-100">
+                                <div className="w-16 h-16 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-200 shrink-0">
+                                    <span className="material-symbols-outlined text-[32px]">badge</span>
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-900">{showData.nm_petugas}</h2>
+                                    <p className="text-sm text-slate-500 font-medium">{showData.Jabatan || 'Tidak ada jabatan'}</p>
+                                    <span className="inline-block mt-2 bg-teal-50 text-teal-700 px-3 py-0.5 rounded-full text-xs font-bold border border-teal-200">
+                                        Level: {showData.level || 'Operator'}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
+                                <div>
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Nomor Induk Pegawai (NIP)</p>
+                                    <p className="text-slate-800 font-medium text-sm">{showData.NIP || '-'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Username Login</p>
+                                    <p className="text-slate-800 font-medium text-sm">{showData.username}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Pangkat / Golongan</p>
+                                    <p className="text-slate-800 font-medium text-sm">{showData.Pangkat || '-'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Keterangan Khusus</p>
+                                    <p className="text-slate-800 font-medium text-sm">{showData.ket || '-'}</p>
+                                </div>
+                            </div>
+
+                            <div className="mt-8 pt-6 border-t border-slate-100">
+                                <button 
+                                    onClick={() => setIsShowOpen(false)} 
+                                    className="py-2.5 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors text-sm"
+                                >
+                                    Kembali ke Daftar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (isFormOpen) {
+        return (
+            <div className="py-6 px-2 sm:px-4 w-full max-w-full overflow-hidden animate-in fade-in duration-200">
+                <div className="max-w-[1400px] mx-auto">
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-800">
+                                {formData.id ? 'Ubah' : 'Tambah'} Master Petugas
+                            </h1>
+                            <p className="text-xs text-slate-500 mt-1">Kelola data personil yang bertugas dalam perjalanan dinas</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div className="p-6 md:p-8">
+                            <form onSubmit={handleFormSubmit} id="main">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                                    <div className="flex flex-col">
+                                        <label htmlFor="nm_petugas" className="mb-2 text-sm font-semibold text-slate-700">Nama Lengkap</label>
+                                        <input 
+                                            type="text" 
+                                            id="nm_petugas" 
+                                            className="bg-slate-50 rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 focus:outline-none py-3 px-4 text-slate-700 w-full" 
+                                            value={formData.nm_petugas}
+                                            onChange={(e) => setFormData({...formData, nm_petugas: e.target.value})}
+                                            required 
+                                            autoFocus 
+                                        />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <label htmlFor="NIP" className="mb-2 text-sm font-semibold text-slate-700">NIP</label>
+                                        <input 
+                                            type="text" 
+                                            id="NIP" 
+                                            className="bg-slate-50 rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 focus:outline-none py-3 px-4 text-slate-700 w-full" 
+                                            value={formData.NIP}
+                                            onChange={(e) => setFormData({...formData, NIP: e.target.value})}
+                                            required 
+                                        />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <label htmlFor="username" className="mb-2 text-sm font-semibold text-slate-700">Username Login</label>
+                                        <input 
+                                            type="text" 
+                                            id="username" 
+                                            className="bg-slate-50 rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 focus:outline-none py-3 px-4 text-slate-700 w-full" 
+                                            value={formData.username}
+                                            onChange={(e) => setFormData({...formData, username: e.target.value})}
+                                            required 
+                                        />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <label htmlFor="Pangkat" className="mb-2 text-sm font-semibold text-slate-700">Pangkat / Golongan</label>
+                                        <input 
+                                            type="text" 
+                                            id="Pangkat" 
+                                            className="bg-slate-50 rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 focus:outline-none py-3 px-4 text-slate-700 w-full" 
+                                            value={formData.Pangkat}
+                                            onChange={(e) => setFormData({...formData, Pangkat: e.target.value})}
+                                            required 
+                                        />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <label htmlFor="Jabatan" className="mb-2 text-sm font-semibold text-slate-700">Jabatan</label>
+                                        <input 
+                                            type="text" 
+                                            id="Jabatan" 
+                                            className="bg-slate-50 rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 focus:outline-none py-3 px-4 text-slate-700 w-full" 
+                                            value={formData.Jabatan}
+                                            onChange={(e) => setFormData({...formData, Jabatan: e.target.value})}
+                                            required 
+                                        />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <label htmlFor="level" className="mb-2 text-sm font-semibold text-slate-700">Level Akses</label>
+                                        <select 
+                                            id="level" 
+                                            className="bg-slate-50 rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 focus:outline-none py-3 px-4 text-slate-700 w-full" 
+                                            value={formData.level}
+                                            onChange={(e) => setFormData({...formData, level: e.target.value})}
+                                            required 
+                                        >
+                                            <option value="Operator">Operator</option>
+                                            <option value="Administrator">Administrator</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col mb-8">
+                                    <label htmlFor="ket" className="mb-2 text-sm font-semibold text-slate-700">Keterangan Khusus</label>
+                                    <textarea 
+                                        id="ket" 
+                                        rows={2} 
+                                        className="bg-slate-50 rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 focus:outline-none py-3 px-4 text-slate-700 w-full resize-none"
+                                        value={formData.ket}
+                                        onChange={(e) => setFormData({...formData, ket: e.target.value})}
+                                    ></textarea>
+                                </div>
+
+                                <div className="flex items-center gap-4 pt-4 border-t border-slate-100">
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setIsFormOpen(false)} 
+                                        className="py-2.5 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors text-sm"
+                                    >
+                                        Batal & Kembali
+                                    </button>
+                                    <button 
+                                        type="submit" 
+                                        disabled={isSubmitting}
+                                        className="py-2.5 px-8 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-xl transition-all flex items-center justify-center min-w-[120px] text-sm shadow-sm"
+                                    >
+                                        {isSubmitting ? <span className="loading loading-spinner loading-sm"></span> : "Simpan Data"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="py-6 px-2 sm:px-4 w-full max-w-full overflow-hidden animate-in fade-in duration-200">
+            <div className="max-w-[1400px] mx-auto">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4 pb-4 border-b border-slate-200">
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Master Petugas</h1>
+                        <p className="text-xs text-slate-500 mt-1">Daftar personil dan pegawai penugasan dinas E-SAPA</p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                        <button 
+                            onClick={handleOpenAdd}
+                            className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-all shadow-sm"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">add</span>
+                            Tambah Petugas
+                        </button>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col mb-8">
+                    
+                    {/* Toolbar Search & Filter */}
+                    <div className="p-4 border-b border-slate-100 bg-white flex flex-col xl:flex-row gap-4 justify-between items-center">
+                        <form onSubmit={handleSearchSubmit} className="flex items-center w-full xl:w-auto flex-1 max-w-2xl bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 transition-all">
+                            <span className="material-symbols-outlined text-slate-400 text-[20px]">search</span>
+                            <input 
+                                type="text" 
+                                placeholder="Cari berdasarkan nama petugas..."
+                                className="bg-transparent border-none focus:outline-none focus:ring-0 text-sm w-full ml-3 text-slate-700 placeholder:text-slate-400"
+                                value={searchInput}
+                                onChange={(e) => setSearchInput(e.target.value)}
+                            />
+                            <button type="submit" className="hidden">Submit</button>
+                        </form>
+
+                        <div className="flex items-center gap-3 w-full xl:w-auto">
+                            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
+                                <span className="text-xs text-slate-500 font-medium">Baris:</span>
+                                <select 
+                                    className="bg-transparent border-none focus:outline-none text-xs font-semibold text-slate-700 cursor-pointer pr-1" 
+                                    value={perPage} 
+                                    onChange={(e) => {
+                                        setPerPage(e.target.value);
+                                        setCurrentPage(1);
+                                    }}
+                                >
+                                    <option value="5">5</option>
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                            
+                            <button 
+                                type="button"
+                                onClick={handleResetSearch}
+                                className="bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl p-2.5 text-slate-600 transition-colors flex items-center justify-center"
+                                title="Muat Ulang"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">refresh</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Table */}
+                    <div className="overflow-x-auto w-full">
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                            <thead className="bg-slate-50 border-b border-slate-100 text-slate-700 font-bold text-[11px] uppercase tracking-wider">
+                                <tr>
+                                    <th className="px-6 py-4 text-center w-16">No</th>
+                                    <th className="px-6 py-4">Nama Pegawai</th>
+                                    <th className="px-6 py-4">NIP</th>
+                                    <th className="px-6 py-4">Jabatan / Pangkat</th>
+                                    <th className="px-6 py-4">Username</th>
+                                    <th className="px-6 py-4 text-center w-32">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 text-slate-700">
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                                            <span className="loading loading-spinner loading-lg text-teal-600"></span>
+                                            <p className="mt-3 text-xs font-medium">Memuat data petugas...</p>
+                                        </td>
+                                    </tr>
+                                ) : petugas.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                                            <div className="flex flex-col items-center justify-center">
+                                                <span className="material-symbols-outlined text-4xl mb-3 opacity-50">search_off</span>
+                                                <p className="text-sm font-medium">Data petugas tidak ditemukan.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    petugas.map((item: any, index: number) => {
+                                        return (
+                                            <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                                                <td className="px-6 py-4 text-center font-medium text-slate-400 text-xs">{getStartingNumber() + index}</td>
+                                                <td className="px-6 py-4">
+                                                    <div className="font-bold text-slate-800 capitalize max-w-[250px] truncate" title={item.nm_petugas}>
+                                                        {item.nm_petugas}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-slate-600 font-mono text-xs">
+                                                    {item.NIP || '-'}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="font-medium text-slate-700 max-w-[250px] truncate">{item.Jabatan || '-'}</div>
+                                                    <div className="text-[11px] text-slate-400">{item.Pangkat || '-'}</div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className="bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-lg border border-slate-200">
+                                                        {item.username}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <div className="flex justify-center items-center gap-2">
+                                                        <button 
+                                                            onClick={() => handleOpenShow(item)}
+                                                            className="p-1.5 rounded-lg text-slate-400 hover:text-teal-600 hover:bg-teal-50 transition-colors"
+                                                            title="Detail Petugas"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">visibility</span>
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleOpenEdit(item)}
+                                                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                                            title="Edit Petugas"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">edit_square</span>
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleDelete(item.id)}
+                                                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                                            title="Hapus Petugas"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Pagination Footer */}
+                    <div className="p-4 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center bg-white gap-4">
+                        <span className="text-xs font-medium text-slate-500">
+                            Menampilkan <span className="font-bold text-slate-800">{petugas.length > 0 ? currentTampilDari : 0}</span> s/d <span className="font-bold text-slate-800">{petugas.length > 0 ? currentTampilSampai : 0}</span> dari <span className="font-bold text-slate-800">{totalData}</span> petugas
+                        </span>
+
+                        {isPaginationValid && (
+                            <div className="flex items-center gap-1">
+                                {(paginationData?.meta?.links || paginationData?.links).map((link: any, i: number) => {
+                                    const isPrev = link.label.includes('Previous') || link.label.includes('Sebelumnya');
+                                    const isNext = link.label.includes('Next') || link.label.includes('Berikutnya');
+                                    
+                                    let displayLabel = link.label;
+                                    if (isPrev) displayLabel = '<';
+                                    if (isNext) displayLabel = '>';
+
+                                    return (
+                                        <button
+                                            key={i}
+                                            onClick={() => {
+                                                if (link.url) fetchData(link.url);
+                                            }}
+                                            disabled={!link.url}
+                                            className={`min-w-[32px] h-8 px-2 rounded-lg text-xs font-medium transition-colors ${
+                                                link.active 
+                                                    ? 'bg-teal-600 text-white shadow-sm' 
+                                                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
+                                            } ${!link.url ? 'opacity-40 cursor-not-allowed' : ''}`}
+                                            dangerouslySetInnerHTML={{ __html: displayLabel }}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Delete Confirmation Modal */}
+                {deleteConfirmId !== null && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                        <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl flex flex-col items-center text-center">
+                            <div className="w-14 h-14 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-3">
+                                <span className="material-symbols-outlined text-2xl">warning</span>
+                            </div>
+                            <h3 className="text-base font-bold text-slate-800 mb-1">Hapus Petugas?</h3>
+                            <p className="text-xs text-slate-500 mb-6">
+                                Apakah Anda yakin ingin menghapus data petugas ini dari sistem?
+                            </p>
+                            <div className="flex items-center gap-3 w-full">
+                                <button 
+                                    onClick={() => setDeleteConfirmId(null)}
+                                    className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors text-xs"
+                                >
+                                    Batal
+                                </button>
+                                <button 
+                                    onClick={() => executeDelete(deleteConfirmId)}
+                                    className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors text-xs shadow-sm"
+                                >
+                                    Ya, Hapus
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}

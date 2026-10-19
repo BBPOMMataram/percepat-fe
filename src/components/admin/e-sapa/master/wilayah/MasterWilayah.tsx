@@ -1,0 +1,390 @@
+"use client";
+
+import api from "@/utils/api";
+import { useEffect, useState, useCallback } from "react";
+import { toast } from "react-toastify";
+import dayjs from "@/utils/dayjs";
+
+export default function MasterWilayah() {
+    const [wilayah, setWilayah] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState("10");
+    const [searchInput, setSearchInput] = useState("");
+    const [activeSearch, setActiveSearch] = useState("");
+    const [paginationData, setPaginationData] = useState<any>(null);
+    const [totalData, setTotalData] = useState(0);
+
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+    const [formData, setFormData] = useState({
+        id: null,
+        name: ""
+    });
+
+    const fetchData = useCallback(async (url?: string) => {
+        setLoading(true);
+        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
+        let endpoint = url || `${baseURL}/api/wilayah?page=${currentPage}&value_per_page=${perPage}&name=${activeSearch}`;
+
+        try {
+            const res = await api.get(endpoint);
+            const responseData = res.data;
+            if (Array.isArray(responseData)) {
+                setWilayah(responseData);
+                setTotalData(responseData.length);
+            } else if (Array.isArray(responseData?.data)) {
+                setWilayah(responseData.data);
+                setPaginationData(responseData);
+                setTotalData(responseData?.meta?.total || responseData?.total || responseData.data.length);
+            } else if (Array.isArray(responseData?.data?.data)) {
+                setWilayah(responseData.data.data);
+                setPaginationData(responseData.data);
+                setTotalData(responseData.data?.meta?.total || responseData.data?.total || responseData.data.data.length);
+            }
+        } catch (err) {
+            console.error("Gagal mengambil data wilayah:", err);
+            toast.error("Gagal mengambil data wilayah");
+            setWilayah([]);
+        } finally {
+            setLoading(false);
+        }
+    }, [currentPage, perPage, activeSearch]);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setCurrentPage(1);
+        setActiveSearch(searchInput);
+    };
+
+    const handleResetSearch = () => {
+        setSearchInput("");
+        setActiveSearch("");
+        setCurrentPage(1);
+    };
+
+    const handleOpenAdd = () => {
+        setFormData({ id: null, name: "" });
+        setIsFormOpen(true);
+    };
+
+    const handleOpenEdit = (item: any) => {
+        setFormData({
+            id: item.id,
+            name: item.name || ""
+        });
+        setIsFormOpen(true);
+    };
+
+    const handleDelete = (id: number) => {
+        setDeleteConfirmId(id);
+    };
+
+    const executeDelete = async (id: number) => {
+        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
+        try {
+            const res = await api.delete(`${baseURL}/api/wilayah/${id}`);
+            toast.success(res.data?.msg || "Data berhasil dihapus");
+            fetchData();
+        } catch (err: any) {
+            console.error(err);
+            toast.error(err.response?.data?.message || "Gagal menghapus data");
+        } finally {
+            setDeleteConfirmId(null);
+        }
+    };
+
+    const handleFormSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+
+        const payload = {
+            name: formData.name
+        };
+
+        const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ESAPA ;
+        
+        try {
+            const request = formData.id 
+                ? api.put(`${baseURL}/api/wilayah/${formData.id}`, payload)
+                : api.post(`${baseURL}/api/wilayah`, payload);
+            
+            const res = await request;
+            toast.success(res.data?.msg || "Data berhasil disimpan");
+            setIsFormOpen(false);
+            fetchData();
+        } catch (err: any) {
+            console.error(err);
+            toast.error(err.response?.data?.message || "Gagal menyimpan data");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const getStartingNumber = () => {
+        if (!paginationData?.meta?.current_page && !paginationData?.current_page) return 1;
+        const page = paginationData?.meta?.current_page || paginationData?.current_page;
+        return (page - 1) * parseInt(perPage) + 1;
+    };
+
+    const currentTampilDari = getStartingNumber();
+    const currentTampilSampai = currentTampilDari + wilayah.length - 1;
+    const isPaginationValid = (paginationData?.meta?.links || paginationData?.links) && (paginationData?.meta?.last_page > 1 || paginationData?.last_page > 1);
+
+    if (isFormOpen) {
+        return (
+            <div className="py-6 px-2 sm:px-4 w-full max-w-full overflow-hidden animate-in fade-in duration-200">
+                <div className="max-w-[1400px] mx-auto">
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-800">
+                                {formData.id ? 'Ubah' : 'Tambah'} Master Wilayah
+                            </h1>
+                            <p className="text-xs text-slate-500 mt-1">Kelola data daerah penugasan dinas E-SAPA</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden max-w-3xl">
+                        <div className="p-6 md:p-8">
+                            <form onSubmit={handleFormSubmit} id="main">
+                                <div className="flex flex-col mb-8">
+                                    <label htmlFor="name" className="mb-2 text-sm font-semibold text-slate-700">Nama Wilayah</label>
+                                    <input 
+                                        type="text" 
+                                        id="name" 
+                                        className="bg-slate-50 rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 focus:outline-none py-3 px-4 text-slate-700 w-full" 
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                        required 
+                                        autoFocus 
+                                        placeholder="Cth: Kota Mataram, Kab. Lombok Barat..."
+                                    />
+                                </div>
+
+                                <div className="flex items-center gap-4 pt-4 border-t border-slate-100">
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setIsFormOpen(false)} 
+                                        className="py-2.5 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors text-sm"
+                                    >
+                                        Batal & Kembali
+                                    </button>
+                                    <button 
+                                        type="submit" 
+                                        disabled={isSubmitting}
+                                        className="py-2.5 px-8 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-xl transition-all flex items-center justify-center min-w-[120px] text-sm shadow-sm"
+                                    >
+                                        {isSubmitting ? <span className="loading loading-spinner loading-sm"></span> : "Simpan Data"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="py-6 px-2 sm:px-4 w-full max-w-full overflow-hidden animate-in fade-in duration-200">
+            <div className="max-w-[1400px] mx-auto">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4 pb-4 border-b border-slate-200">
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Master Wilayah</h1>
+                        <p className="text-xs text-slate-500 mt-1">Daftar wilayah dan tujuan perjalanan dinas E-SAPA</p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                        <button 
+                            onClick={handleOpenAdd}
+                            className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-all shadow-sm"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">add</span>
+                            Tambah Wilayah
+                        </button>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col mb-8">
+                    
+                    {/* Toolbar Search & Filter */}
+                    <div className="p-4 border-b border-slate-100 bg-white flex flex-col xl:flex-row gap-4 justify-between items-center">
+                        <form onSubmit={handleSearchSubmit} className="flex items-center w-full xl:w-auto flex-1 max-w-2xl bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 transition-all">
+                            <span className="material-symbols-outlined text-slate-400 text-[20px]">search</span>
+                            <input 
+                                type="text" 
+                                placeholder="Cari berdasarkan nama wilayah..."
+                                className="bg-transparent border-none focus:outline-none focus:ring-0 text-sm w-full ml-3 text-slate-700 placeholder:text-slate-400"
+                                value={searchInput}
+                                onChange={(e) => setSearchInput(e.target.value)}
+                            />
+                            <button type="submit" className="hidden">Submit</button>
+                        </form>
+
+                        <div className="flex items-center gap-3 w-full xl:w-auto">
+                            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
+                                <span className="text-xs text-slate-500 font-medium">Baris:</span>
+                                <select 
+                                    className="bg-transparent border-none focus:outline-none text-xs font-semibold text-slate-700 cursor-pointer pr-1" 
+                                    value={perPage} 
+                                    onChange={(e) => {
+                                        setPerPage(e.target.value);
+                                        setCurrentPage(1);
+                                    }}
+                                >
+                                    <option value="5">5</option>
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                            
+                            <button 
+                                type="button"
+                                onClick={handleResetSearch}
+                                className="bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl p-2.5 text-slate-600 transition-colors flex items-center justify-center"
+                                title="Muat Ulang"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">refresh</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Table */}
+                    <div className="overflow-x-auto w-full">
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                            <thead className="bg-slate-50 border-b border-slate-100 text-slate-700 font-bold text-[11px] uppercase tracking-wider">
+                                <tr>
+                                    <th className="px-6 py-4 text-center w-24">No</th>
+                                    <th className="px-6 py-4">Nama Wilayah</th>
+                                    <th className="px-6 py-4 text-center w-36">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 text-slate-700">
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={3} className="px-6 py-12 text-center text-slate-400">
+                                            <span className="loading loading-spinner loading-lg text-teal-600"></span>
+                                            <p className="mt-3 text-xs font-medium">Memuat data wilayah...</p>
+                                        </td>
+                                    </tr>
+                                ) : wilayah.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={3} className="px-6 py-12 text-center text-slate-400">
+                                            <div className="flex flex-col items-center justify-center">
+                                                <span className="material-symbols-outlined text-4xl mb-3 opacity-50">search_off</span>
+                                                <p className="text-sm font-medium">Data wilayah tidak ditemukan.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    wilayah.map((item: any, index: number) => {
+                                        return (
+                                            <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                                                <td className="px-6 py-4 text-center font-medium text-slate-400 text-xs">{getStartingNumber() + index}</td>
+                                                <td className="px-6 py-4">
+                                                    <div className="font-bold text-slate-800 capitalize max-w-[400px] truncate" title={item.name}>
+                                                        {item.name}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <div className="flex justify-center items-center gap-2">
+                                                        <button 
+                                                            onClick={() => handleOpenEdit(item)}
+                                                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                                            title="Edit Wilayah"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">edit_square</span>
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleDelete(item.id)}
+                                                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                                            title="Hapus Wilayah"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Pagination Footer */}
+                    <div className="p-4 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center bg-white gap-4">
+                        <span className="text-xs font-medium text-slate-500">
+                            Menampilkan <span className="font-bold text-slate-800">{wilayah.length > 0 ? currentTampilDari : 0}</span> s/d <span className="font-bold text-slate-800">{wilayah.length > 0 ? currentTampilSampai : 0}</span> dari <span className="font-bold text-slate-800">{totalData}</span> wilayah
+                        </span>
+
+                        {isPaginationValid && (
+                            <div className="flex items-center gap-1">
+                                {(paginationData?.meta?.links || paginationData?.links).map((link: any, i: number) => {
+                                    const isPrev = link.label.includes('Previous') || link.label.includes('Sebelumnya');
+                                    const isNext = link.label.includes('Next') || link.label.includes('Berikutnya');
+                                    
+                                    let displayLabel = link.label;
+                                    if (isPrev) displayLabel = '<';
+                                    if (isNext) displayLabel = '>';
+
+                                    return (
+                                        <button
+                                            key={i}
+                                            onClick={() => {
+                                                if (link.url) fetchData(link.url);
+                                            }}
+                                            disabled={!link.url}
+                                            className={`min-w-[32px] h-8 px-2 rounded-lg text-xs font-medium transition-colors ${
+                                                link.active 
+                                                    ? 'bg-teal-600 text-white shadow-sm' 
+                                                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
+                                            } ${!link.url ? 'opacity-40 cursor-not-allowed' : ''}`}
+                                            dangerouslySetInnerHTML={{ __html: displayLabel }}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Delete Confirmation Modal */}
+                {deleteConfirmId !== null && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                        <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl flex flex-col items-center text-center">
+                            <div className="w-14 h-14 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-3">
+                                <span className="material-symbols-outlined text-2xl">warning</span>
+                            </div>
+                            <h3 className="text-base font-bold text-slate-800 mb-1">Hapus Wilayah?</h3>
+                            <p className="text-xs text-slate-500 mb-6">
+                                Apakah Anda yakin ingin menghapus data wilayah ini dari sistem?
+                            </p>
+                            <div className="flex items-center gap-3 w-full">
+                                <button 
+                                    onClick={() => setDeleteConfirmId(null)}
+                                    className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors text-xs"
+                                >
+                                    Batal
+                                </button>
+                                <button 
+                                    onClick={() => executeDelete(deleteConfirmId)}
+                                    className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors text-xs shadow-sm"
+                                >
+                                    Ya, Hapus
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}

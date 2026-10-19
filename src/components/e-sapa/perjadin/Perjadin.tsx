@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
 import 'dayjs/locale/id';
+import SearchableSelect from "@/components/e-sapa/common/SearchableSelect";
 
 dayjs.locale('id');
 
@@ -90,8 +91,8 @@ export default function PerjadinComponent() {
         setIsFormOpen(true);
     };
 
-    const handleStChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const id = e.target.value;
+    const handleStChange = async (val: string | React.ChangeEvent<HTMLSelectElement>) => {
+        const id = typeof val === "string" ? val : val.target.value;
         setSelectedStId(id);
         
         if (!id) {
@@ -292,20 +293,22 @@ export default function PerjadinComponent() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 pb-8 border-b border-slate-100">
                                         <div className="flex flex-col">
                                             <label className="mb-2 text-sm font-semibold text-slate-700">Pilih Surat Tugas</label>
-                                            {/* PENGAMAN NULL: || "" */}
-                                            <select 
-                                                className="bg-slate-50 rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 focus:outline-none py-3 px-4 text-slate-700 w-full"
+                                            <SearchableSelect 
+                                                options={optSuratTugas.map((st: any) => ({
+                                                    value: String(st.id),
+                                                    label: `${st.nomor_surat}`,
+                                                    sublabel: [
+                                                        st.nama_kegiatan ? `Kegiatan: ${st.nama_kegiatan}` : "",
+                                                        st.mak_kegiatan ? `MAK: ${st.mak_kegiatan}` : "",
+                                                        st.wilayah_tugas ? `Wilayah: ${st.wilayah_tugas}` : ""
+                                                    ].filter(Boolean).join(" | ") || undefined
+                                                }))}
                                                 value={selectedStId || ""}
                                                 onChange={handleStChange}
+                                                placeholder="-- Cari Surat Tugas --"
+                                                searchPlaceholder="Ketik nomor surat, kegiatan, atau wilayah..."
                                                 required={!editId}
-                                            >
-                                                <option value="">-- Cari Surat Tugas --</option>
-                                                {optSuratTugas.map((st: any) => (
-                                                    <option key={st.id} value={st.id}>
-                                                        {st.nomor_surat} (MAK: {st.mak_kegiatan})
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            />
                                         </div>
                                     </div>
                                 )}
@@ -368,13 +371,20 @@ export default function PerjadinComponent() {
                                                                     <div className="flex flex-col min-w-0 relative">
                                                                         <label className="text-[11px] font-bold text-slate-500 uppercase mb-1">Kendaraan</label>
                                                                         <div className="flex gap-2 w-full">
-                                                                            {/* PENGAMAN NULL: || "" */}
-                                                                            <select className="bg-white rounded-lg border border-slate-200 py-2 px-3 focus:outline-none w-full text-sm truncate" value={tl.transport_ket_luar || ""} onChange={e => updateTransportLuar(idx, tIdx, "transport_ket_luar", e.target.value)}>
-                                                                                <option value="">-- Pilih --</option>
-                                                                                <option value="Kendaraan Dinas">Kendaraan Dinas</option>
-                                                                                <option value="Kendaraan Umum">Kendaraan Umum</option>
-                                                                                <option value="Kendaraan Dinas dan Umum">K. Dinas & Umum</option>
-                                                                            </select>
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <SearchableSelect
+                                                                                    compact
+                                                                                    options={[
+                                                                                        { value: "Kendaraan Dinas", label: "Kendaraan Dinas" },
+                                                                                        { value: "Kendaraan Umum", label: "Kendaraan Umum" },
+                                                                                        { value: "Kendaraan Dinas dan Umum", label: "K. Dinas & Umum" },
+                                                                                    ]}
+                                                                                    value={tl.transport_ket_luar || ""}
+                                                                                    onChange={(val) => updateTransportLuar(idx, tIdx, "transport_ket_luar", val)}
+                                                                                    placeholder="-- Pilih --"
+                                                                                    searchPlaceholder="Cari..."
+                                                                                />
+                                                                            </div>
                                                                             {p.transports_luar.length > 1 && (
                                                                                 <button type="button" onClick={() => removeTransportLuarRow(idx, tIdx)} className="bg-red-50 text-red-500 hover:bg-red-100 rounded-lg px-2 flex items-center justify-center shrink-0 border border-red-100 transition-colors">
                                                                                     <span className="material-symbols-outlined text-[16px]">close</span>
@@ -393,13 +403,17 @@ export default function PerjadinComponent() {
                                                             </div>
                                                             <div className="flex flex-col min-w-0">
                                                                 <label className="mb-2 text-xs font-bold text-slate-500 uppercase">Jenis Kendaraan</label>
-                                                                {/* PENGAMAN NULL: || "" */}
-                                                                <select className="bg-white rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 focus:outline-none py-2.5 px-4 text-slate-700 w-full" value={p.transport_ket || ""} onChange={e => updateField(idx, "transport_ket", e.target.value)}>
-                                                                    <option value="">-- Pilih Kendaraan --</option>
-                                                                    <option value="Kendaraan Dinas">Kendaraan Dinas</option>
-                                                                    <option value="Kendaraan Umum">Kendaraan Umum</option>
-                                                                    <option value="Kendaraan Dinas dan Umum">Kendaraan Dinas dan Umum</option>
-                                                                </select>
+                                                                <SearchableSelect
+                                                                    options={[
+                                                                        { value: "Kendaraan Dinas", label: "Kendaraan Dinas" },
+                                                                        { value: "Kendaraan Umum", label: "Kendaraan Umum" },
+                                                                        { value: "Kendaraan Dinas dan Umum", label: "Kendaraan Dinas dan Umum" },
+                                                                    ]}
+                                                                    value={p.transport_ket || ""}
+                                                                    onChange={(val) => updateField(idx, "transport_ket", val)}
+                                                                    placeholder="-- Pilih Kendaraan --"
+                                                                    searchPlaceholder="Cari jenis kendaraan..."
+                                                                />
                                                             </div>
                                                         </div>
                                                     )}

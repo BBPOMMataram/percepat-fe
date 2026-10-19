@@ -7,7 +7,6 @@ import { useState } from "react";
 
 export default function SidebarESapa({ isSidebarOpen }: { isSidebarOpen: boolean }) {
     const pathname = usePathname();
-    const [isMasterOpen, setIsMasterOpen] = useState(false);
 
     const isActive = (path: string) => pathname === path || pathname.startsWith(path + '/');
 
@@ -41,32 +40,6 @@ export default function SidebarESapa({ isSidebarOpen }: { isSidebarOpen: boolean
                     Dashboard
                 </Link>
 
-                <div className="pt-2">
-                    <button
-                        onClick={() => setIsMasterOpen(!isMasterOpen)}
-                        className={`flex w-full items-center justify-between px-3 py-3 text-sm font-medium rounded-lg transition-colors ${
-                            isMasterOpen || isActive('/e-sapa/kegiatan') || isActive('/e-sapa/petugas') || isActive('/e-sapa/wilayah') 
-                            ? "text-slate-900" 
-                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                        }`}
-                    >
-                        <div className="flex items-center">
-                            Master
-                        </div>
-                        <span className={`material-symbols-outlined text-[18px] transition-transform duration-200 ${isMasterOpen || isActive('/e-sapa/kegiatan') || isActive('/e-sapa/petugas') || isActive('/e-sapa/wilayah') ? "rotate-180" : ""}`}>
-                            expand_more
-                        </span>
-                    </button>
-
-                    {(isMasterOpen || isActive('/e-sapa/kegiatan') || isActive('/e-sapa/petugas') || isActive('/e-sapa/wilayah')) && (
-                        <div className="mt-1 mb-2 space-y-1 relative before:absolute before:inset-y-0 before:left-[21px] before:w-px before:bg-slate-200">
-                            <Link href="/e-sapa/kegiatan" className={`block px-3 py-2 pl-11 text-[13px] rounded-lg transition-colors ${isActive('/e-sapa/kegiatan') ? 'text-teal-600 font-bold bg-teal-50/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}>Kegiatan</Link>
-                            <Link href="/e-sapa/petugas" className={`block px-3 py-2 pl-11 text-[13px] rounded-lg transition-colors ${isActive('/e-sapa/petugas') ? 'text-teal-600 font-bold bg-teal-50/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}>Petugas</Link>
-                            <Link href="/e-sapa/wilayah" className={`block px-3 py-2 pl-11 text-[13px] rounded-lg transition-colors ${isActive('/e-sapa/wilayah') ? 'text-teal-600 font-bold bg-teal-50/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}>Wilayah</Link>
-                        </div>
-                    )}
-                </div>
-
                 <Link href="/e-sapa/surat-tugas" className={`flex items-center justify-between px-3 py-3 text-sm font-medium rounded-lg transition-colors ${isActive('/e-sapa/surat-tugas') ? 'bg-[#0f172a] text-white shadow-md shadow-slate-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
                     <div className="flex items-center">
                         Surat Tugas 
@@ -77,13 +50,23 @@ export default function SidebarESapa({ isSidebarOpen }: { isSidebarOpen: boolean
                     Perjadin
                 </Link>
 
-                <Link href="/e-sapa/kwitansi" className={`flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors ${isActive('/e-sapa/kwitansi') ? 'bg-[#0f172a] text-white shadow-md shadow-slate-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
-                    Kwitansi
-                </Link>
+                {/* Kwitansi - Belum dikerjakan (Redup/Disabled) */}
+                <div 
+                    className="flex items-center justify-between px-3 py-3 text-sm font-medium rounded-lg text-slate-400 opacity-40 cursor-not-allowed select-none"
+                    title="Menu Kwitansi sedang dalam pengembangan"
+                >
+                    <span>Kwitansi</span>
+                    <span className="text-[10px] font-normal bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full border border-slate-200">Segera Hadir</span>
+                </div>
 
-                <Link href="/e-sapa/spd" className={`flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors ${isActive('/e-sapa/spd') ? 'bg-[#0f172a] text-white shadow-md shadow-slate-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
-                    SPD
-                </Link>
+                {/* SPD - Belum dikerjakan (Redup/Disabled) */}
+                <div 
+                    className="flex items-center justify-between px-3 py-3 text-sm font-medium rounded-lg text-slate-400 opacity-40 cursor-not-allowed select-none"
+                    title="Menu SPD sedang dalam pengembangan"
+                >
+                    <span>SPD</span>
+                    <span className="text-[10px] font-normal bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full border border-slate-200">Segera Hadir</span>
+                </div>
             </nav>
 
             <div className="p-4 border-t border-slate-100 mt-auto bg-slate-50/50 m-3 rounded-xl">
