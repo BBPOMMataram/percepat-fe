@@ -7,7 +7,8 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import api from "@/utils/api";
 
-const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000";
+const baseUrl =
+  process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000";
 
 const MONTHS = [
   "JANUARI",
@@ -70,19 +71,23 @@ export default function RealisasiRoTable() {
   const [rows, setRows] = useState<RowItem[]>([]);
   const [editedCells, setEditedCells] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"all" | "tercapai" | "belum" | "edited">("all");
+  const [filterStatus, setFilterStatus] = useState<
+    "all" | "tercapai" | "belum" | "edited"
+  >("all");
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [apiNotice, setApiNotice] = useState("");
   const [googleSheetUrl, setGoogleSheetUrl] = useState(
-    "https://docs.google.com/spreadsheets/d/1KXN2ukZTcDUZ-9kfc3BbM-qi3VumvcHUSELK91nGqnU/edit#gid=17060817"
+    "https://docs.google.com/spreadsheets/d/1KXN2ukZTcDUZ-9kfc3BbM-qi3VumvcHUSELK91nGqnU/edit#gid=17060817",
   );
 
   const fetchData = async (month: string) => {
     setLoading(true);
     setApiNotice("");
     try {
-      const query = user?.id ? `?month=${month}&user_id=${user.id}` : `?month=${month}`;
+      const query = user?.id
+        ? `?month=${month}&user_id=${user.id}`
+        : `?month=${month}`;
       const res = await api.get(`${baseUrl}/api/tu/realisasi-ro/2026${query}`);
 
       if (res.data && res.data.data) {
@@ -99,7 +104,8 @@ export default function RealisasiRoTable() {
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       setErrorMsg(
-        e.response?.data?.message || "Gagal memuat data Realisasi RO dari server."
+        e.response?.data?.message ||
+          "Gagal memuat data Realisasi RO dari server.",
       );
     } finally {
       setLoading(false);
@@ -150,7 +156,7 @@ export default function RealisasiRoTable() {
       const matchedRow = rows.find(
         (r) =>
           r.target_tahunan.cell === cell ||
-          Object.values(r.month_columns || {}).some((c) => c.cell === cell)
+          Object.values(r.month_columns || {}).some((c) => c.cell === cell),
       );
 
       const isTargetTahunan = matchedRow?.target_tahunan.cell === cell;
@@ -158,7 +164,9 @@ export default function RealisasiRoTable() {
       return {
         cell,
         value,
-        previous_value: isTargetTahunan ? matchedRow?.target_tahunan.value : undefined,
+        previous_value: isTargetTahunan
+          ? matchedRow?.target_tahunan.value
+          : undefined,
         kode_ro: matchedRow?.kode_ro,
       };
     });
@@ -182,7 +190,8 @@ export default function RealisasiRoTable() {
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       setErrorMsg(
-        e.response?.data?.message || "Gagal menyimpan perubahan ke Google Sheet."
+        e.response?.data?.message ||
+          "Gagal menyimpan perubahan ke Google Sheet.",
       );
     } finally {
       setSaving(false);
@@ -191,7 +200,11 @@ export default function RealisasiRoTable() {
 
   // Batalkan seluruh perubahan lokal
   const handleReset = () => {
-    if (confirm("Apakah Anda yakin ingin membatalkan semua perubahan yang belum disimpan?")) {
+    if (
+      confirm(
+        "Apakah Anda yakin ingin membatalkan semua perubahan yang belum disimpan?",
+      )
+    ) {
       setEditedCells({});
       setSuccessMsg("");
       setErrorMsg("");
@@ -205,8 +218,12 @@ export default function RealisasiRoTable() {
         const q = searchQuery.toLowerCase();
         const matchKode = (r.kode_ro || "").toLowerCase().includes(q);
         const matchNama = (r.nama_ro || "").toLowerCase().includes(q);
-        const matchKendala = (getCellValue(r.month_columns?.kendala) || "").toLowerCase().includes(q);
-        const matchRtl = (getCellValue(r.month_columns?.rtl) || "").toLowerCase().includes(q);
+        const matchKendala = (getCellValue(r.month_columns?.kendala) || "")
+          .toLowerCase()
+          .includes(q);
+        const matchRtl = (getCellValue(r.month_columns?.rtl) || "")
+          .toLowerCase()
+          .includes(q);
         if (!matchKode && !matchNama && !matchKendala && !matchRtl) {
           return false;
         }
@@ -217,7 +234,7 @@ export default function RealisasiRoTable() {
       if (filterStatus === "edited") {
         const hasEditedTarget = isCellEdited(r.target_tahunan?.cell);
         const hasEditedMonth = Object.values(r.month_columns || {}).some((c) =>
-          isCellEdited(c.cell)
+          isCellEdited(c.cell),
         );
         return hasEditedTarget || hasEditedMonth;
       }
@@ -237,13 +254,27 @@ export default function RealisasiRoTable() {
       {/* Top Header Ringkas */}
       <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs md:flex-row md:items-center md:justify-between">
         <div>
-          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-slate-500">
-            <Link href="/siproval/tu" className="hover:text-[#005baa] transition">
+          <nav
+            aria-label="Breadcrumb"
+            className="flex items-center gap-2 text-xs text-slate-500"
+          >
+            <Link
+              href="/siproval/tu"
+              className="hover:text-[#005baa] transition"
+            >
               Tata Usaha
             </Link>
-            <Icon icon="solar:alt-arrow-right-linear" width={14} className="text-slate-400" />
+            <Icon
+              icon="solar:alt-arrow-right-linear"
+              width={14}
+              className="text-slate-400"
+            />
             <span className="font-semibold text-slate-800">Realisasi RO</span>
-            <Icon icon="solar:alt-arrow-right-linear" width={14} className="text-slate-400" />
+            <Icon
+              icon="solar:alt-arrow-right-linear"
+              width={14}
+              className="text-slate-400"
+            />
             <span className="font-bold text-[#005baa]">Tahun 2026</span>
           </nav>
           <div className="mt-1 flex items-center gap-3">
@@ -267,9 +298,17 @@ export default function RealisasiRoTable() {
             title="Buka Spreadsheet Tab Realisasi RO di tab baru"
             className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition shadow-2xs"
           >
-            <Icon icon="solar:document-text-bold" width={16} className="text-[#00a651]" />
+            <Icon
+              icon="solar:document-text-bold"
+              width={16}
+              className="text-[#00a651]"
+            />
             Buka Google Sheet
-            <Icon icon="solar:arrow-right-up-linear" width={14} className="text-emerald-600" />
+            <Icon
+              icon="solar:arrow-right-up-linear"
+              width={14}
+              className="text-emerald-600"
+            />
           </a>
 
           {/* Tombol Refresh Data */}
@@ -283,7 +322,9 @@ export default function RealisasiRoTable() {
             <Icon
               icon="solar:refresh-linear"
               width={16}
-              className={loading ? "animate-spin text-[#005baa]" : "text-[#005baa]"}
+              className={
+                loading ? "animate-spin text-[#005baa]" : "text-[#005baa]"
+              }
             />
             <span>{loading ? "Memuat..." : "Refresh Data"}</span>
           </button>
@@ -314,13 +355,18 @@ export default function RealisasiRoTable() {
           >
             {saving ? (
               <>
-                <Icon icon="solar:restart-bold" className="animate-spin" width={16} />
+                <Icon
+                  icon="solar:restart-bold"
+                  className="animate-spin"
+                  width={16}
+                />
                 Menyimpan...
               </>
             ) : (
               <>
                 <Icon icon="solar:diskette-bold" width={16} />
-                Simpan {pendingCount > 0 ? `(${pendingCount} Perubahan)` : "Perubahan"}
+                Simpan{" "}
+                {pendingCount > 0 ? `(${pendingCount} Perubahan)` : "Perubahan"}
               </>
             )}
           </button>
@@ -331,8 +377,12 @@ export default function RealisasiRoTable() {
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         <div className="flex items-center justify-between rounded-xl border border-blue-200/70 bg-blue-50/40 px-3.5 py-2 shadow-2xs">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[#005baa]">Total RO</p>
-            <p className="text-xl font-extrabold text-slate-900 leading-tight">{totalRO}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#005baa]">
+              Total RO
+            </p>
+            <p className="text-xl font-extrabold text-slate-900 leading-tight">
+              {totalRO}
+            </p>
           </div>
           <div className="rounded-lg bg-blue-100/70 p-1.5 text-[#005baa]">
             <Icon icon="solar:folder-with-files-bold" width={20} />
@@ -343,7 +393,9 @@ export default function RealisasiRoTable() {
             <p className="text-[10px] font-bold uppercase tracking-wider text-[#00a651]">
               Tercapai ({selectedMonth})
             </p>
-            <p className="text-xl font-extrabold text-[#00a651] leading-tight">{tercapaiCount}</p>
+            <p className="text-xl font-extrabold text-[#00a651] leading-tight">
+              {tercapaiCount}
+            </p>
           </div>
           <div className="rounded-lg bg-emerald-100/70 p-1.5 text-[#00a651]">
             <Icon icon="solar:check-circle-bold" width={20} />
@@ -354,7 +406,9 @@ export default function RealisasiRoTable() {
             <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">
               Belum ({selectedMonth})
             </p>
-            <p className="text-xl font-extrabold text-amber-600 leading-tight">{belumTercapaiCount}</p>
+            <p className="text-xl font-extrabold text-amber-600 leading-tight">
+              {belumTercapaiCount}
+            </p>
           </div>
           <div className="rounded-lg bg-amber-100/70 p-1.5 text-amber-600">
             <Icon icon="solar:clock-circle-bold" width={20} />
@@ -370,7 +424,9 @@ export default function RealisasiRoTable() {
           <div>
             <p
               className={`text-[10px] font-bold uppercase tracking-wider ${
-                pendingCount > 0 ? "text-amber-800 font-extrabold" : "text-slate-500"
+                pendingCount > 0
+                  ? "text-amber-800 font-extrabold"
+                  : "text-slate-500"
               }`}
             >
               Pending Simpan
@@ -385,7 +441,9 @@ export default function RealisasiRoTable() {
           </div>
           <div
             className={`rounded-lg p-1.5 ${
-              pendingCount > 0 ? "bg-amber-200/70 text-amber-800" : "bg-slate-200/60 text-slate-500"
+              pendingCount > 0
+                ? "bg-amber-200/70 text-amber-800"
+                : "bg-slate-200/60 text-slate-500"
             }`}
           >
             <Icon icon="solar:diskette-bold" width={20} />
@@ -396,7 +454,11 @@ export default function RealisasiRoTable() {
       {/* Notifications */}
       {apiNotice && (
         <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-          <Icon icon="solar:info-circle-bold" width={18} className="shrink-0 text-amber-600" />
+          <Icon
+            icon="solar:info-circle-bold"
+            width={18}
+            className="shrink-0 text-amber-600"
+          />
           <span>{apiNotice}</span>
         </div>
       )}
@@ -404,10 +466,18 @@ export default function RealisasiRoTable() {
       {successMsg && (
         <div className="flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
           <div className="flex items-center gap-2">
-            <Icon icon="solar:check-circle-bold" width={18} className="shrink-0 text-[#00a651]" />
+            <Icon
+              icon="solar:check-circle-bold"
+              width={18}
+              className="shrink-0 text-[#00a651]"
+            />
             <span>{successMsg}</span>
           </div>
-          <button type="button" onClick={() => setSuccessMsg("")} className="text-emerald-600">
+          <button
+            type="button"
+            onClick={() => setSuccessMsg("")}
+            className="text-emerald-600"
+          >
             <Icon icon="solar:close-circle-bold" width={16} />
           </button>
         </div>
@@ -416,10 +486,18 @@ export default function RealisasiRoTable() {
       {errorMsg && (
         <div className="flex items-center justify-between gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
           <div className="flex items-center gap-2">
-            <Icon icon="solar:danger-triangle-bold" width={18} className="shrink-0 text-rose-600" />
+            <Icon
+              icon="solar:danger-triangle-bold"
+              width={18}
+              className="shrink-0 text-rose-600"
+            />
             <span>{errorMsg}</span>
           </div>
-          <button type="button" onClick={() => setErrorMsg("")} className="text-rose-600">
+          <button
+            type="button"
+            onClick={() => setErrorMsg("")}
+            className="text-rose-600"
+          >
             <Icon icon="solar:close-circle-bold" width={16} />
           </button>
         </div>
@@ -431,7 +509,11 @@ export default function RealisasiRoTable() {
         <div className="border-b border-slate-200 bg-slate-50/70 p-3 sm:px-4">
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
-              <Icon icon="solar:calendar-bold" className="text-[#005baa]" width={18} />
+              <Icon
+                icon="solar:calendar-bold"
+                className="text-[#005baa]"
+                width={18}
+              />
               <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
                 Pilih Bulan:
               </span>
@@ -538,17 +620,29 @@ export default function RealisasiRoTable() {
         {/* Tabel Data (Kolom NO Dihilangkan, Kode RO, Nama RO & Target Tahunan Beku/Sticky) */}
         {loading ? (
           <div className="flex flex-col items-center justify-center p-16 text-center">
-            <Icon icon="solar:restart-bold" className="animate-spin text-[#005baa]" width={34} />
+            <Icon
+              icon="solar:restart-bold"
+              className="animate-spin text-[#005baa]"
+              width={34}
+            />
             <p className="mt-2 text-xs font-semibold text-slate-700">
               Memuat data Realisasi RO dari Google Sheet...
             </p>
           </div>
         ) : filteredRows.length === 0 ? (
           <div className="p-16 text-center">
-            <Icon icon="solar:document-medicine-bold" className="mx-auto text-slate-300" width={32} />
-            <h3 className="mt-2 text-xs font-bold text-slate-700">Tidak ada data indikator RO</h3>
+            <Icon
+              icon="solar:document-medicine-bold"
+              className="mx-auto text-slate-300"
+              width={32}
+            />
+            <h3 className="mt-2 text-xs font-bold text-slate-700">
+              Tidak ada data indikator RO
+            </h3>
             <p className="text-[11px] text-slate-400">
-              {searchQuery ? `Tidak ada hasil untuk "${searchQuery}".` : "Belum ada baris data di tab ini."}
+              {searchQuery
+                ? `Tidak ada hasil untuk "${searchQuery}".`
+                : "Belum ada baris data di tab ini."}
             </p>
           </div>
         ) : (
@@ -630,13 +724,15 @@ export default function RealisasiRoTable() {
                           isCap
                             ? "bg-emerald-50 text-emerald-800 text-center"
                             : isReal
-                            ? "bg-blue-50 text-blue-800 text-center"
-                            : isTgt
-                            ? "bg-slate-50 text-slate-700 text-center"
-                            : "bg-[#f8fafc] text-slate-700"
+                              ? "bg-blue-50 text-blue-800 text-center"
+                              : isTgt
+                                ? "bg-slate-50 text-slate-700 text-center"
+                                : "bg-[#f8fafc] text-slate-700"
                         }`}
                       >
-                        <div className={`flex items-center ${isCap || isReal || isTgt ? "justify-center" : "justify-between"}`}>
+                        <div
+                          className={`flex items-center ${isCap || isReal || isTgt ? "justify-center" : "justify-between"}`}
+                        >
                           <span>{col.label}</span>
                           {isCap && (
                             <span className="ml-1 text-[10px] lowercase font-normal text-emerald-600 bg-white px-1 rounded border border-emerald-200">
@@ -687,7 +783,9 @@ export default function RealisasiRoTable() {
                       {/* 3. TARGET TAHUNAN (Sticky Left: 410px, w: 140px) - Solid Opaque Background + Divider Shadow */}
                       <td
                         className={`sticky left-[410px] z-20 bg-white group-hover:bg-[#f8fafc] px-3 py-2 border-r-2 border-slate-300 shadow-[4px_0_12px_rgba(0,0,0,0.12)] align-top w-[140px] min-w-[140px] max-w-[140px] transition ${
-                          isTgtTahunanEdited ? "!bg-amber-50 ring-1 ring-amber-400" : ""
+                          isTgtTahunanEdited
+                            ? "!bg-amber-50 ring-1 ring-amber-400"
+                            : ""
                         }`}
                       >
                         <div className="flex flex-col gap-1">
@@ -695,14 +793,17 @@ export default function RealisasiRoTable() {
                             type="text"
                             value={tgtTahunanVal}
                             onChange={(e) =>
-                              handleCellChange(tgtTahunanCellCoord, e.target.value)
+                              handleCellChange(
+                                tgtTahunanCellCoord,
+                                e.target.value,
+                              )
                             }
                             className={`w-full rounded-lg border px-2 py-1 text-center text-xs font-bold transition focus:outline-none focus:ring-1 ${
                               isTgtTahunanEdited
                                 ? "border-amber-400 bg-amber-50 text-amber-900 focus:ring-amber-500"
                                 : isTargetChanged
-                                ? "border-blue-300 bg-blue-50/50 text-[#005baa] focus:border-[#005baa] focus:ring-[#005baa]"
-                                : "border-slate-200 bg-slate-50/40 text-slate-800 hover:border-slate-300 focus:border-[#005baa] focus:bg-white focus:ring-[#005baa]"
+                                  ? "border-blue-300 bg-blue-50/50 text-[#005baa] focus:border-[#005baa] focus:ring-[#005baa]"
+                                  : "border-slate-200 bg-slate-50/40 text-slate-800 hover:border-slate-300 focus:border-[#005baa] focus:bg-white focus:ring-[#005baa]"
                             }`}
                             placeholder="0"
                           />
@@ -710,8 +811,14 @@ export default function RealisasiRoTable() {
                           {/* Penanda jika sedang diubah (belum disimpan) */}
                           {isTgtTahunanEdited ? (
                             <div className="flex items-center gap-1 text-[10px] font-semibold text-amber-700">
-                              <Icon icon="solar:pen-new-square-bold" width={11} className="shrink-0" />
-                              <span className="truncate">Semula: {row.target_tahunan.value || "0"}</span>
+                              <Icon
+                                icon="solar:pen-new-square-bold"
+                                width={11}
+                                className="shrink-0"
+                              />
+                              <span className="truncate">
+                                Semula: {row.target_tahunan.value || "0"}
+                              </span>
                             </div>
                           ) : isTargetChanged ? (
                             /* Penanda jika sudah pernah diganti (menampilkan nilai semula & akun yang mengubahnya) */
@@ -728,7 +835,10 @@ export default function RealisasiRoTable() {
                                 className="truncate text-slate-500 text-[9px]"
                                 title={`Diubah oleh ${row.target_tahunan.changed_by || "User"} (${row.target_tahunan.changed_at || ""})`}
                               >
-                                Oleh: <strong className="text-slate-700">{row.target_tahunan.changed_by || "User"}</strong>
+                                Oleh:{" "}
+                                <strong className="text-slate-700">
+                                  {row.target_tahunan.changed_by || "User"}
+                                </strong>
                               </span>
                             </div>
                           ) : null}
@@ -738,10 +848,13 @@ export default function RealisasiRoTable() {
                       {/* 4. Kolom-kolom Dinamis Bulan (Scrollable) */}
                       {monthHeaders.map((col) => {
                         const cellData = row.month_columns[col.key];
-                        const cellCoord = cellData?.cell || `${col.col_letter}${row.row_number}`;
+                        const cellCoord =
+                          cellData?.cell ||
+                          `${col.col_letter}${row.row_number}`;
                         const cellVal = getCellValue(cellData);
                         const isEdited = isCellEdited(cellCoord);
-                        const isFormula = cellData?.is_formula || col.key === "capaian";
+                        const isFormula =
+                          cellData?.is_formula || col.key === "capaian";
 
                         const isNumericCol =
                           col.key === "target" ||
@@ -781,7 +894,9 @@ export default function RealisasiRoTable() {
                           <td
                             key={col.col_index}
                             className={`px-2 py-1.5 border-r border-slate-200 align-top transition bg-white group-hover:bg-[#f8fafc] ${
-                              isEdited ? "!bg-amber-50 ring-1 ring-amber-400" : ""
+                              isEdited
+                                ? "!bg-amber-50 ring-1 ring-amber-400"
+                                : ""
                             }`}
                           >
                             {isLongText ? (
@@ -807,7 +922,9 @@ export default function RealisasiRoTable() {
                                 }
                                 placeholder="0"
                                 className={`w-full rounded-lg border px-2 py-1 text-xs transition focus:outline-none focus:ring-1 ${
-                                  isNumericCol ? "text-center font-semibold" : ""
+                                  isNumericCol
+                                    ? "text-center font-semibold"
+                                    : ""
                                 } ${
                                   isEdited
                                     ? "border-amber-400 bg-amber-50 text-amber-900 focus:ring-amber-500 font-bold"
@@ -828,7 +945,9 @@ export default function RealisasiRoTable() {
 
         {/* Footer info */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-slate-200 bg-slate-50/80 px-4 py-2.5 text-xs text-slate-500">
-          <span>Menampilkan {filteredRows.length} dari {totalRO} Rincian Output</span>
+          <span>
+            Menampilkan {filteredRows.length} dari {totalRO} Rincian Output
+          </span>
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1.5 text-slate-600">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
