@@ -83,12 +83,12 @@ const menus = {
       url: "/siproval/budget-mapping",
       active: "/siproval/budget-mapping",
     },
-    {
+    /*  {
       name: "Mapping Tahun 2026",
       icon: "solar:calendar-bold",
       url: "/siproval/budget-mapping/year?year=2026",
       active: "/siproval/budget-mapping/year",
-    },
+    }, */
     {
       name: "Eksport Laporan",
       icon: "solar:printer-bold",
@@ -129,18 +129,43 @@ export default function SidebarSiproval({ actor }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user } = useSelector((state: RootState) => state.auth);
 
+  const picEmails = [
+    "hilmi.khairan@pom.go.id",
+    "nanang.setyadi@pom.go.id",
+    "fatimah.wulandari@pom.go.id",
+    "fatimah.wulandari03@gmail.com",
+  ];
+  const picNames = [
+    "hilmi khairan",
+    "nanang setyadi santoso",
+    "fatimah tri wulandari",
+    "fatimah t. wulandari",
+  ];
+  const allowedTuIds = [
+    "019ab8b3-2885-7125-857c-ee07c4febdc0", // Fatimah Tri Wulandari
+    "019ab8b3-493b-71d8-abd5-01c8ebcaf50e", // Fatimah T. Wulandari
+    "019ab8b3-2fca-71ee-ba81-e33f70548c10", // Hilmi Khairan
+    "019ab8b3-1fb0-73ef-af89-ad09ef30f76f", // Nanang Setyadi Santoso
+  ];
+
+  const userIdLower = String(user?.id || "")
+    .toLowerCase()
+    .trim();
+  const userNameLower = (user?.name || "").toLowerCase().trim();
+  const userEmailLower = (user?.email || "").toLowerCase().trim();
+
+  const hasFungsiTu =
+    Number(user?.employee?.fungsi_id) === 1 ||
+    (user?.employee?.fungsi?.name || "").toLowerCase().trim() === "tata usaha";
+
+  const hasTuAccess =
+    hasFungsiTu &&
+    (allowedTuIds.includes(userIdLower) ||
+      picEmails.includes(userEmailLower) ||
+      picNames.includes(userNameLower));
+
   let resolvedActor: Actor = actor || "katim";
   if (!actor) {
-    const picEmails = [
-      "hilmi.khairan@pom.go.id",
-      "nanang.setyadi@pom.go.id",
-      "fatimah.wulandari@pom.go.id",
-      "fatimah.wulandari03@gmail.com",
-    ];
-    const picNames = ["hilmi khairan", "nanang setyadi santoso", "fatimah tri wulandari"];
-    const userNameLower = (user?.name || "").toLowerCase().trim();
-    const userEmailLower = (user?.email || "").toLowerCase().trim();
-
     const isPic =
       user?.role?.level === "superadmin" ||
       picEmails.includes(userEmailLower) ||
@@ -149,15 +174,17 @@ export default function SidebarSiproval({ actor }: Props) {
         Array.isArray(user?.sites) &&
         user.sites.some(
           (s: { id?: number; name?: string }) =>
-            Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval")
+            Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval"),
         ));
     const groupJabatanId = user?.employee?.group_jabatan_id;
-    const isKatimFromTable = Array.isArray(user?.katims) && user.katims.length > 0;
+    const isKatimFromTable =
+      Array.isArray(user?.katims) && user.katims.length > 0;
     const isKatim = groupJabatanId === 3 || isKatimFromTable;
 
     if (
-      pathname.startsWith("/siproval/tu") ||
-      pathname.startsWith("/siproval/budget-mapping")
+      hasTuAccess &&
+      (pathname.startsWith("/siproval/tu") ||
+        pathname.startsWith("/siproval/budget-mapping"))
     ) {
       resolvedActor = "tu";
     } else if (isPic) {
@@ -169,7 +196,10 @@ export default function SidebarSiproval({ actor }: Props) {
         pathname.startsWith("/siproval/rhpk")
       ) {
         resolvedActor = "kabalai";
-      } else if (pathname.startsWith("/siproval/katim") || pathname.startsWith("/siproval/google-sheets")) {
+      } else if (
+        pathname.startsWith("/siproval/katim") ||
+        pathname.startsWith("/siproval/google-sheets")
+      ) {
         resolvedActor = "katim";
       } else {
         resolvedActor = "superadmin";
@@ -178,7 +208,7 @@ export default function SidebarSiproval({ actor }: Props) {
       resolvedActor = "kabalai";
     } else if (isKatim) {
       resolvedActor = "katim";
-    } else if (groupJabatanId === 2) {
+    } else if (hasTuAccess) {
       resolvedActor = "tu";
     } else {
       if (pathname.startsWith("/siproval/admin")) {
@@ -198,10 +228,12 @@ export default function SidebarSiproval({ actor }: Props) {
   }
 
   const actorMenus = menus[resolvedActor] ?? [];
-  const tuMenus = menus.tu;
 
   const isMenuActive = (activePath: string) => {
-    if (activePath === "/siproval/tu" || activePath === "/siproval/budget-mapping") {
+    if (
+      activePath === "/siproval/tu" ||
+      activePath === "/siproval/budget-mapping"
+    ) {
       return pathname === activePath || pathname === `${activePath}/dashboard`;
     }
     return pathname === activePath || pathname.startsWith(`${activePath}/`);
@@ -257,10 +289,10 @@ export default function SidebarSiproval({ actor }: Props) {
             {resolvedActor === "kabalai"
               ? "Kepala Balai"
               : resolvedActor === "katim"
-              ? "Ketua Tim (Katim)"
-              : resolvedActor === "tu"
-              ? "Bagian Tata Usaha (TU)"
-              : "PIC (Pengelola Sistem)"}
+                ? "Ketua Tim (Katim)"
+                : resolvedActor === "tu"
+                  ? "Bagian Tata Usaha (TU)"
+                  : "PIC (Pengelola Sistem)"}
           </p>
         </div>
 
@@ -299,36 +331,6 @@ export default function SidebarSiproval({ actor }: Props) {
               )}
             </ul>
           </div>
-
-          {resolvedActor !== "tu" && (
-            <div className="pt-3 border-t border-white/10">
-              <p className="mb-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-white/40">
-                Menu Tata Usaha (TU)
-              </p>
-              <ul className="space-y-1.5">
-                {tuMenus.map((menu) => {
-                  const active = isMenuActive(menu.active);
-
-                  return (
-                    <li key={menu.url}>
-                      <Link
-                        href={menu.url}
-                        onClick={() => setSidebarOpen(false)}
-                        className={`flex items-center gap-3 rounded-xl px-4 py-2.5 transition-colors ${
-                          active
-                            ? "bg-white/15 text-white font-semibold"
-                            : "text-white/75 hover:bg-white/10 hover:text-white"
-                        }`}
-                      >
-                        <Icon icon={menu.icon} width={22} height={22} />
-                        <span className="text-sm font-medium">{menu.name}</span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
         </div>
 
         <div className="mt-auto pt-4 border-t border-white/10">

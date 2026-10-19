@@ -1,12 +1,22 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { useSelector } from "react-redux";
+import { Icon } from "@iconify/react";
 import { RootState } from "@/redux/store";
 import SiprovalDocumentHub from "./SiprovalDocumentHub";
+import {
+  SIPROVAL_EASE,
+  SiprovalFadeUp,
+  SiprovalLineDraw,
+  SiprovalNavLink,
+  SiprovalPillButton,
+  SiprovalWordScrub,
+} from "./SiprovalMotion";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -14,9 +24,37 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   display: "swap",
 });
 
+interface AvailableRole {
+  id: string;
+  role: string;
+  badge: string;
+  url: string;
+  icon: string;
+  desc: string;
+}
+
 export default function Siproval() {
   const { user } = useSelector((state: RootState) => state.auth);
   const [scrolled, setScrolled] = useState(false);
+
+  // Dropdown states for multi-role users
+  const [headerDropdownOpen, setHeaderDropdownOpen] = useState(false);
+  const [heroDropdownOpen, setHeroDropdownOpen] = useState(false);
+
+  const headerDropdownRef = useRef<HTMLDivElement>(null);
+  const heroDropdownRef = useRef<HTMLDivElement>(null);
+
+  const heroRef = useRef<HTMLElement>(null);
+  const { scrollYProgress: heroScroll } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"],
+  });
+
+  // Scroll-Linked Hero Parallax
+  const watermarkY = useTransform(heroScroll, [0, 1], ["0%", "38%"]);
+  const watermarkOpacity = useTransform(heroScroll, [0, 0.85], [1, 0]);
+  const ingesY = useTransform(heroScroll, [0, 1], ["0%", "14%"]);
+  const heroTextY = useTransform(heroScroll, [0, 1], ["0%", "20%"]);
 
   useEffect(() => {
     const onScroll = () => {
@@ -24,6 +62,26 @@ export default function Siproval() {
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        headerDropdownRef.current &&
+        !headerDropdownRef.current.contains(event.target as Node)
+      ) {
+        setHeaderDropdownOpen(false);
+      }
+      if (
+        heroDropdownRef.current &&
+        !heroDropdownRef.current.contains(event.target as Node)
+      ) {
+        setHeroDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const picEmails = [
@@ -36,97 +94,147 @@ export default function Siproval() {
     "hilmi khairan",
     "nanang setyadi santoso",
     "fatimah tri wulandari",
+    "fatimah t. wulandari",
+  ];
+  const allowedTuIds = [
+    "019ab8b3-2885-7125-857c-ee07c4febdc0", // Fatimah Tri Wulandari
+    "019ab8b3-493b-71d8-abd5-01c8ebcaf50e", // Fatimah T. Wulandari
+    "019ab8b3-2fca-71ee-ba81-e33f70548c10", // Hilmi Khairan
+    "019ab8b3-1fb0-73ef-af89-ad09ef30f76f", // Nanang Setyadi Santoso
   ];
 
-  const userEmail = (user?.email || "").toLowerCase();
+  const userId = String(user?.id || "").toLowerCase().trim();
+  const userEmail = (user?.email || "").toLowerCase().trim();
   const userNameClean = (user?.name || "").toLowerCase().trim();
 
-  const isPic =
+  const hasFungsiTu =
+    Number(user?.employee?.fungsi_id) === 1 ||
+    (user?.employee?.fungsi?.name || "").toLowerCase().trim() === "tata usaha";
+
+  const hasTuAccess =
+    hasFungsiTu &&
+    (allowedTuIds.includes(userId) ||
+      picEmails.includes(userEmail) ||
+      picNames.includes(userNameClean));
+
+  const isPicAdmin =
     user?.role?.level === "superadmin" ||
-    picEmails.includes(userEmail) ||
-    picNames.includes(userNameClean) ||
     (user?.role?.level === "admin" &&
       Array.isArray(user?.sites) &&
       user.sites.some(
         (s: { id?: number; name?: string }) =>
-          Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval")
-      ));
+          Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval"),
+      )) ||
+    userEmail === "hilmi.khairan@pom.go.id";
 
   const groupJabatanId = user?.employee?.group_jabatan_id;
-  const isKatimFromTable = Array.isArray(user?.katims) && user.katims.length > 0;
+  const isKatimFromTable =
+    Array.isArray(user?.katims) && user.katims.length > 0;
   const isKatim = groupJabatanId === 3 || isKatimFromTable;
 
-  const canAccess = (id: string) => {
-    if (isPic) return true;
-    if (id === "tu") return true;
-    if (id === "katim") return isKatim || isPic;
-    if (id === "kabalai") return groupJabatanId === 1 || isPic;
-    if (id === "pic") return false;
-    return false;
-  };
-
-  // Nama sapaan singkat dan peran aktif tanpa tanda strip
+  // Nama sapaan singkat dan peran aktif
   const firstName = user?.name ? user.name.trim().split(/\s+/)[0] : "";
-  const shortRole = isPic
+  const shortRole = isPicAdmin
     ? "PIC"
     : groupJabatanId === 1
-    ? "Kabalai"
-    : isKatim
-    ? "Katim"
-    : groupJabatanId === 2
-    ? "Tata Usaha"
-    : "Pegawai";
+      ? "Kabalai"
+      : hasTuAccess
+        ? "Tata Usaha"
+        : isKatim
+          ? "Katim"
+          : "Pegawai";
 
-  const roleCards = [
-    {
-      id: "katim",
-      role: "Ketua Tim (Katim)",
-      badge: "PIC IKSK",
-      description:
-        "Pengisian, sinkronisasi, dan pelaporan capaian IKSK via Google Sheets sesuai penugasan.",
-      url: "/siproval/katim",
-    },
-    {
-      id: "kabalai",
-      role: "Kepala Balai (Kabalai)",
-      badge: "Pimpinan & Evaluasi",
-      description:
-        "Monitoring pelaksanaan kegiatan, evaluasi capaian, dan rekapitulasi RHPK.",
-      url: "/siproval/monev",
-    },
-    {
-      id: "tu",
-      role: "Bagian Tata Usaha (TU)",
-      badge: "Perencanaan & Anggaran",
-      description:
-        "Pengelolaan alokasi perencanaan anggaran, rincian belanja bulanan, dan pemetaan budget mapping.",
-      url: "/siproval/tu",
-    },
-    {
-      id: "pic",
-      role: "PIC (Pengelola Sistem)",
-      badge: "Integrasi & Akses",
-      description:
-        "Pembaruan dokumen spreadsheet, pengaturan periode pengisian, dan manajemen hak akses pengguna.",
-      url: "/siproval/admin/sinkronisasi-spreadsheet",
-    },
-  ];
+  // Hitung daftar ruang kerja yang dapat diakses oleh user ini
+  const getAvailableRoles = (): AvailableRole[] => {
+    if (!user) return [];
+
+    const roles: AvailableRole[] = [];
+
+    // Jika PIC / Admin Siproval
+    if (isPicAdmin) {
+      roles.push({
+        id: "pic",
+        role: "PIC (Pengelola Sistem)",
+        badge: "Admin",
+        url: "/siproval/admin/sinkronisasi-spreadsheet",
+        icon: "solar:settings-bold",
+        desc: "Sinkronisasi spreadsheet & permission",
+      });
+    }
+
+    // Jika memiliki akses TU
+    if (hasTuAccess) {
+      roles.push({
+        id: "tu",
+        role: "Bagian Tata Usaha (TU)",
+        badge: "Tata Usaha",
+        url: "/siproval/tu",
+        icon: "solar:pie-chart-2-bold",
+        desc: "Realisasi RO & budget mapping",
+      });
+    }
+
+    // Jika memiliki peran Katim
+    if (isKatim) {
+      roles.push({
+        id: "katim",
+        role: "Ketua Tim (Katim)",
+        badge: "PIC IKSK",
+        url: "/siproval/katim",
+        icon: "solar:widget-5-bold",
+        desc: "Pengisian capaian IKSK tim",
+      });
+    }
+
+    // Jika Kepala Balai
+    if (groupJabatanId === 1) {
+      roles.push({
+        id: "kabalai",
+        role: "Kepala Balai (Kabalai)",
+        badge: "Pimpinan",
+        url: "/siproval/monev",
+        icon: "solar:chart-2-bold",
+        desc: "Evaluasi capaian & rekap RHPK",
+      });
+    }
+
+    // Jika belum ada role terdaftar sama sekali (staf umum)
+    if (roles.length === 0) {
+      roles.push({
+        id: "default",
+        role: "Portal SIPROVAL",
+        badge: "Pegawai",
+        url: "/siproval/katim",
+        icon: "solar:login-2-bold",
+        desc: "Masuk ke halaman operasional",
+      });
+    }
+
+    return roles;
+  };
+
+  const availableRoles = getAvailableRoles();
+  const hasMultipleRoles = availableRoles.length > 1;
+  const singleRoleUrl = availableRoles[0]?.url || "/siproval/katim";
 
   return (
     <div
       className={`${plusJakartaSans.className} min-h-screen w-full bg-white text-[#001d3d] flex flex-col justify-between overflow-x-hidden antialiased selection:bg-[#005baa] selection:text-white`}
     >
-      {/* Minimalist Top Header */}
-      <header
+      {/* Animated Top Header */}
+      <motion.header
+        initial={{ y: "-100%", opacity: 0 }}
+        animate={{ y: "0%", opacity: 1 }}
+        transition={{ duration: 0.85, ease: SIPROVAL_EASE }}
         className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 px-6 sm:px-10 lg:px-16 ${
           scrolled
-            ? "py-3.5 bg-white/95 backdrop-blur-md border-b border-slate-200/80"
+            ? "py-3.5 bg-white/90 backdrop-blur-xl border-b border-slate-200/80 shadow-[0_8px_30px_rgba(0,29,61,0.06)]"
             : "py-6 bg-transparent"
         }`}
       >
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link href="/siproval" className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-white p-1 flex items-center justify-center shadow-2xs">
+          <Link href="/siproval" className="flex items-center gap-3 group">
+            <div className="h-9 w-9 rounded-lg bg-white p-1 flex items-center justify-center shadow-2xs transition-transform duration-300 group-hover:scale-105">
               <Image
                 src="/assets/images/bpom.webp"
                 alt="Logo BBPOM"
@@ -148,98 +256,208 @@ export default function Siproval() {
           <nav className="hidden md:flex items-center gap-8">
             {[
               { label: "Beranda", href: "#beranda" },
-              { label: "Masuk & Entry Data", href: "#entry-data" },
               { label: "Dokumen Kinerja", href: "#dokumen-kinerja" },
             ].map((item) => (
-              <a
+              <SiprovalNavLink
                 key={item.href}
                 href={item.href}
-                className={`text-sm font-medium transition-colors ${
+                label={item.label}
+                className={`text-sm font-medium ${
                   scrolled
-                    ? "text-slate-600 hover:text-[#003d73]"
-                    : "text-white/85 hover:text-white"
+                    ? "text-slate-700 hover:text-[#003d73]"
+                    : "text-white/90 hover:text-white"
                 }`}
-              >
-                {item.label}
-              </a>
+              />
             ))}
           </nav>
 
           {user ? (
-            <div className="flex items-center gap-2">
-              <span
-                className={`text-xs font-semibold transition-colors ${
-                  scrolled ? "text-[#001d3d]" : "text-white"
-                }`}
-              >
-                Hai, {firstName}
-              </span>
-              <span
-                className={`text-[11px] font-bold px-3 py-1 rounded-full transition-colors ${
-                  scrolled
-                    ? "bg-[#005baa]/10 text-[#005baa]"
-                    : "bg-white/20 text-white backdrop-blur-xs"
-                }`}
-              >
-                {shortRole}
-              </span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-xs font-semibold transition-colors ${
+                    scrolled ? "text-[#001d3d]" : "text-white"
+                  }`}
+                >
+                  Hai, {firstName}
+                </span>
+                <span
+                  className={`text-[11px] font-bold px-3 py-1 rounded-full transition-colors ${
+                    scrolled
+                      ? "bg-[#005baa]/10 text-[#005baa]"
+                      : "bg-white/20 text-white backdrop-blur-xs"
+                  }`}
+                >
+                  {shortRole}
+                </span>
+              </div>
+
+              {/* Header Button: Jika Single Role -> Link Langsung, Jika Multi-Role -> Hover/Click Dropdown */}
+              {hasMultipleRoles ? (
+                <div
+                  ref={headerDropdownRef}
+                  className="relative"
+                  onMouseEnter={() => setHeaderDropdownOpen(true)}
+                  onMouseLeave={() => setHeaderDropdownOpen(false)}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setHeaderDropdownOpen((prev) => !prev)}
+                    className={`inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full shadow-sm transition-all duration-200 ${
+                      scrolled
+                        ? "bg-[#003d73] text-white hover:bg-[#00284d]"
+                        : "bg-white text-[#001d3d] hover:bg-slate-100"
+                    }`}
+                  >
+                    <span>Masuk ke Sistem</span>
+                    <Icon
+                      icon="solar:alt-arrow-down-linear"
+                      width={14}
+                      className={`transition-transform duration-200 ${
+                        headerDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  <AnimatePresence>
+                    {headerDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 6, scale: 0.95 }}
+                        transition={{ duration: 0.18, ease: "easeOut" }}
+                        className="absolute right-0 top-full mt-2 w-72 rounded-2xl bg-white p-2 shadow-2xl border border-slate-200/90 z-50 text-slate-800"
+                      >
+                        <div className="px-3 py-2 border-b border-slate-100">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Pilih Ruang Kerja
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Akses peran yang tersedia untuk Anda
+                          </p>
+                        </div>
+                        <div className="py-1 space-y-1">
+                          {availableRoles.map((roleItem) => (
+                            <Link
+                              key={roleItem.id}
+                              href={roleItem.url}
+                              onClick={() => setHeaderDropdownOpen(false)}
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-blue-50/80 transition-colors group"
+                            >
+                              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-[#005baa] group-hover:bg-[#005baa] group-hover:text-white transition-colors">
+                                <Icon icon={roleItem.icon} width={18} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs font-bold text-slate-800 group-hover:text-[#005baa] truncate">
+                                    {roleItem.role}
+                                  </p>
+                                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                                    {roleItem.badge}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-slate-400 truncate">
+                                  {roleItem.desc}
+                                </p>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <SiprovalPillButton
+                  href={singleRoleUrl}
+                  useNextLink={true}
+                  label="Masuk ke Sistem"
+                  className={`text-xs font-semibold px-4 py-2 ${
+                    scrolled ? "bg-[#003d73] text-white" : "bg-white text-[#001d3d]"
+                  }`}
+                />
+              )}
             </div>
           ) : (
-            <a
-              href="#entry-data"
-              className={`text-xs font-semibold px-4 py-2 rounded-full transition-colors ${
-                scrolled
-                  ? "bg-[#003d73] text-white"
-                  : "bg-white text-[#001d3d]"
+            <SiprovalPillButton
+              href="/login?redirectUrl=/siproval"
+              useNextLink={true}
+              label="Masuk"
+              className={`text-xs font-semibold px-4 py-2 ${
+                scrolled ? "bg-[#003d73] text-white" : "bg-white text-[#001d3d]"
               }`}
-            >
-              Masuk &amp; Entry Data
-            </a>
+            />
           )}
         </div>
-      </header>
+      </motion.header>
 
       {/* =====================================================================
-          SECTION 1: FULL WELCOME HERO (Kyntra Clean Layout)
+          SECTION 1: FULL WELCOME HERO
       ====================================================================== */}
       <section
         id="beranda"
+        ref={heroRef}
         className="relative min-h-screen w-full flex items-center pt-28 pb-16 px-6 sm:px-10 lg:px-16 overflow-hidden"
       >
-        {/* Kyntra Smooth Vertical Gradient (BBPOM Navy -> Blue -> White) */}
-        <div
+        {/* Smooth Vertical Gradient (BBPOM Navy -> Blue -> White) */}
+        <motion.div
           aria-hidden="true"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.1, ease: SIPROVAL_EASE }}
           className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,#001226_0%,#00254d_24%,#003d73_46%,#005baa_64%,#5ca0db_82%,#ffffff_100%)]"
         />
 
-        {/* Subtle Watermark Wordmark */}
-        <div
+        {/* Parallax Watermark Wordmark */}
+        <motion.div
           aria-hidden="true"
-          className="pointer-events-none select-none absolute left-1/2 top-[14vh] -translate-x-1/2 w-full text-center overflow-hidden"
+          style={{ y: watermarkY, opacity: watermarkOpacity }}
+          className="pointer-events-none select-none absolute left-1/2 top-[13vh] -translate-x-1/2 w-full text-center overflow-hidden"
         >
-          <span className="block text-[16vw] font-extrabold uppercase tracking-[-0.04em] leading-none text-white/[0.07]">
+          <motion.span
+            initial={{ opacity: 0, scale: 0.94 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1.2, ease: SIPROVAL_EASE }}
+            className="block text-[16vw] font-extrabold uppercase tracking-[-0.04em] leading-none text-white/[0.08]"
+          >
             SIPROVAL
-          </span>
-        </div>
+          </motion.span>
+        </motion.div>
 
         <div className="relative z-10 max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 items-center gap-12 pt-6">
-          {/* Left Column: Agent Inges (Clean without box/card) */}
-          <div className="lg:col-span-5 flex justify-center order-2 lg:order-1">
-            <div className="relative w-[220px] sm:w-[260px] lg:w-[290px]">
+          {/* Left Column: Agent Inges */}
+          <motion.div
+            style={{ y: ingesY }}
+            className="lg:col-span-5 flex justify-center order-2 lg:order-1"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 95, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 1.1, delay: 0.15, ease: SIPROVAL_EASE }}
+              className="relative w-[220px] sm:w-[260px] lg:w-[290px]"
+            >
               <Image
                 src="/assets/images/agent-inges.png"
                 alt="Agent Inges"
                 width={396}
                 height={942}
                 priority
-                className="w-full h-auto object-contain drop-shadow-[0_24px_36px_rgba(0,30,68,0.28)]"
+                className="w-full h-auto object-contain drop-shadow-[0_28px_42px_rgba(0,30,68,0.32)]"
               />
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
           {/* Right Column: Clean Editorial Welcome Text */}
-          <div className="lg:col-span-7 flex flex-col items-start text-left order-1 lg:order-2">
-            <div className="flex flex-wrap items-center gap-2.5 mb-4">
+          <motion.div
+            style={{ y: heroTextY }}
+            className="lg:col-span-7 flex flex-col items-start text-left order-1 lg:order-2"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 28 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.85, delay: 0.1, ease: SIPROVAL_EASE }}
+              className="flex flex-wrap items-center gap-2.5 mb-4"
+            >
               <span className="text-xs font-bold uppercase tracking-widest text-blue-100">
                 SI MANDALIKA
               </span>
@@ -248,152 +466,220 @@ export default function Siproval() {
                   Hai, {firstName} &bull; {shortRole}
                 </span>
               )}
-            </div>
+            </motion.div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-extrabold text-white tracking-[-0.025em] leading-[1.12] mb-5">
+            <motion.h1
+              initial={{ opacity: 0, y: 36 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.95, delay: 0.2, ease: SIPROVAL_EASE }}
+              className="text-4xl sm:text-5xl lg:text-[56px] font-extrabold text-white tracking-[-0.025em] leading-[1.12] mb-5"
+            >
               SIPROVAL BBPOM di Mataram
-            </h1>
+            </motion.h1>
 
-            <p className="text-base sm:text-lg text-white/90 leading-relaxed max-w-xl mb-9 font-normal">
+            <motion.p
+              initial={{ opacity: 0, y: 36 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.95, delay: 0.3, ease: SIPROVAL_EASE }}
+              className="text-base sm:text-lg text-white/90 leading-relaxed max-w-xl mb-9 font-normal"
+            >
               Sistem Informasi Program dan Evaluasi terpadu untuk monitoring,
               evaluasi, anggaran, dan pelaporan kinerja Balai Besar POM di
               Mataram.
-            </p>
+            </motion.p>
 
-            <div className="flex flex-wrap items-center gap-3.5">
-              <a
-                href="#entry-data"
-                className="px-7 py-3.5 rounded-full bg-[#003d73] hover:bg-[#00284d] text-white text-sm font-semibold transition-all shadow-md"
-              >
-                Masuk &amp; Entry Data
-              </a>
-              <a
-                href="#dokumen-kinerja"
-                className="px-7 py-3.5 rounded-full bg-white hover:bg-slate-50 text-[#001d3d] text-sm font-semibold transition-all shadow-md"
-              >
-                Dokumen Kinerja
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* =====================================================================
-          SECTION 2: MASUK & ENTRY DATA (Clean, Uniform 2x2 Grid Cards)
-      ====================================================================== */}
-      <section
-        id="entry-data"
-        className="w-full bg-white py-20 sm:py-24 px-6 sm:px-10 lg:px-16 scroll-mt-14"
-      >
-        <div className="max-w-6xl mx-auto">
-          {/* Clean Section Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-10 border-b border-slate-200 mb-10">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-[#005baa] mb-2">
-                Ruang Kerja Sistem
-              </p>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#001d3d] tracking-tight">
-                Masuk &amp; Entry Data
-              </h2>
-            </div>
-            <p className="text-sm text-slate-500 max-w-md md:text-right leading-relaxed">
-              Pilih menu operasional di bawah ini untuk melakukan pengisian data
-              capaian, pemantauan evaluasi, maupun pengelolaan anggaran.
-            </p>
-          </div>
-
-          {/* Neat 2x2 Grid of Cards (No icons, clean lines) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {roleCards.map((card) => {
-              const hasAccess = canAccess(card.id);
-
-              return (
+            <motion.div
+              initial={{ opacity: 0, y: 32 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.95, delay: 0.4, ease: SIPROVAL_EASE }}
+              className="flex flex-wrap items-center gap-3.5"
+            >
+              {/* Hero Masuk Button: Jika Multi-Role -> Dropdown, jika Single Role -> Direct Link */}
+              {hasMultipleRoles ? (
                 <div
-                  key={card.id}
-                  className={`rounded-3xl border p-7 sm:p-8 flex flex-col justify-between transition-all ${
-                    hasAccess
-                      ? "bg-white border-slate-200 hover:border-[#005baa] shadow-xs hover:shadow-md"
-                      : "bg-slate-50/70 border-slate-200/70"
-                  }`}
+                  ref={heroDropdownRef}
+                  className="relative"
+                  onMouseEnter={() => setHeroDropdownOpen(true)}
+                  onMouseLeave={() => setHeroDropdownOpen(false)}
                 >
-                  <div>
-                    {/* Top Row: Role Title & Badge */}
-                    <div className="flex items-start justify-between gap-4 mb-4">
-                      <h3
-                        className={`text-lg sm:text-xl font-bold tracking-tight ${
-                          hasAccess ? "text-[#001d3d]" : "text-slate-500"
-                        }`}
+                  <button
+                    type="button"
+                    onClick={() => setHeroDropdownOpen((prev) => !prev)}
+                    className="inline-flex items-center gap-2.5 px-7 py-3.5 bg-[#003d73] hover:bg-[#00284d] text-white text-sm font-semibold rounded-full shadow-lg shadow-[#001d3d]/25 transition-all duration-200 active:scale-[0.98]"
+                  >
+                    <span>Masuk ke Sistem</span>
+                    <Icon
+                      icon="solar:alt-arrow-down-linear"
+                      width={16}
+                      className={`transition-transform duration-200 ${
+                        heroDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  <AnimatePresence>
+                    {heroDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                        transition={{ duration: 0.18, ease: "easeOut" }}
+                        className="absolute left-0 top-full mt-2 w-80 rounded-2xl bg-white p-2.5 shadow-2xl border border-slate-200/90 z-50 text-slate-800"
                       >
-                        {card.role}
-                      </h3>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        {!hasAccess && (
-                          <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-slate-200/80 text-slate-600">
-                            Akses Terbatas
-                          </span>
-                        )}
-                        <span
-                          className={`text-[11px] font-semibold px-3 py-0.5 rounded-full ${
-                            hasAccess
-                              ? "bg-[#005baa]/10 text-[#005baa]"
-                              : "bg-slate-200/60 text-slate-500"
-                          }`}
-                        >
-                          {card.badge}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="h-px w-full bg-slate-100 mb-4" />
-
-                    <p className="text-sm text-slate-600 leading-relaxed mb-6">
-                      {card.description}
-                    </p>
-                  </div>
-
-                  {/* Single Clean Masuk Button */}
-                  <div className="pt-2">
-                    {hasAccess ? (
-                      <Link
-                        href={card.url}
-                        className="inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-[#003d73] hover:bg-[#005baa] text-white text-xs font-semibold transition-colors"
-                      >
-                        Masuk
-                      </Link>
-                    ) : (
-                      <span
-                        className="inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-slate-100 text-slate-400 text-xs font-medium cursor-not-allowed"
-                        title="Akses terbatas untuk peran Anda saat ini"
-                      >
-                        Masuk
-                      </span>
+                        <div className="px-3.5 py-2.5 border-b border-slate-100">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Pilih Ruang Kerja Operasional
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Silakan pilih modul peran yang ingin dibuka:
+                          </p>
+                        </div>
+                        <div className="py-1.5 space-y-1">
+                          {availableRoles.map((roleItem) => (
+                            <Link
+                              key={roleItem.id}
+                              href={roleItem.url}
+                              onClick={() => setHeroDropdownOpen(false)}
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-blue-50/80 transition-colors group"
+                            >
+                              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-[#005baa] group-hover:bg-[#005baa] group-hover:text-white transition-colors shrink-0">
+                                <Icon icon={roleItem.icon} width={20} />
+                              </div>
+                              <div className="flex-1 min-w-0 text-left">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs font-bold text-slate-800 group-hover:text-[#005baa] truncate">
+                                    {roleItem.role}
+                                  </p>
+                                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 shrink-0">
+                                    {roleItem.badge}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-slate-400 truncate">
+                                  {roleItem.desc}
+                                </p>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      </motion.div>
                     )}
-                  </div>
+                  </AnimatePresence>
                 </div>
-              );
-            })}
-          </div>
+              ) : (
+                <SiprovalPillButton
+                  href={user ? singleRoleUrl : "/login?redirectUrl=/siproval"}
+                  useNextLink={true}
+                  label="Masuk ke Sistem"
+                  className="px-7 py-3.5 bg-[#003d73] hover:bg-[#00284d] text-white text-sm font-semibold shadow-lg shadow-[#001d3d]/25"
+                />
+              )}
+
+              <SiprovalPillButton
+                href="#dokumen-kinerja"
+                label="Dokumen Kinerja"
+                className="px-7 py-3.5 bg-white hover:bg-slate-50 text-[#001d3d] text-sm font-semibold shadow-lg shadow-[#001d3d]/15"
+              />
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* =====================================================================
-          SECTION 3: REPOSITORI KINERJA BALAI (Pusat Dokumen & Informasi Kinerja)
+          SCROLL-SCRUBBED STATEMENT BRIDGE (Transition to Dokumen Kinerja)
+      ====================================================================== */}
+      <SiprovalWordScrub
+        badge="Ekosistem Kinerja Terpadu"
+        text="Setiap capaian kinerja harus terukur dan terdokumentasi secara akurat. SIPROVAL menyatukan target perencanaan, realisasi anggaran, dan evaluasi bulanan dalam satu ekosistem terpadu."
+        highlightWords={[
+          "terukur",
+          "akurat",
+          "siproval",
+          "perencanaan",
+          "anggaran",
+          "evaluasi",
+          "terpadu",
+        ]}
+      />
+
+      {/* =====================================================================
+          REPOSITORI KINERJA BALAI (Pusat Dokumen & Informasi Kinerja)
       ====================================================================== */}
       <Suspense fallback={null}>
         <SiprovalDocumentHub />
       </Suspense>
 
-      {/* Clean Minimal Footer */}
-      <footer className="bg-slate-50 text-slate-500 py-8 px-6 sm:px-10 lg:px-16 border-t border-slate-200/80">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-          <span className="font-semibold text-[#001d3d]">
-            SIPROVAL &bull; Balai Besar POM di Mataram
+      {/* =====================================================================
+          DEEP BLUE ARCHITECTURAL FOOTER
+      ====================================================================== */}
+      <footer className="relative overflow-hidden bg-[linear-gradient(180deg,#002855_0%,#001226_100%)] text-white pt-16 pb-10 px-6 sm:px-10 lg:px-16">
+        {/* Subtle Giant Watermark at Bottom */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none select-none absolute left-1/2 -bottom-[3vw] -translate-x-1/2 w-full text-center overflow-hidden"
+        >
+          <span className="block text-[15vw] font-extrabold uppercase tracking-[-0.04em] leading-none text-white/[0.04]">
+            SIPROVAL
           </span>
-          <span>
-            &copy; {new Date().getFullYear()} BBPOM di Mataram. Seluruh hak
-            cipta dilindungi.
-          </span>
+        </div>
+
+        <div className="relative z-10 max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 pb-10">
+            <SiprovalFadeUp>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-9 w-9 rounded-lg bg-white p-1 flex items-center justify-center">
+                  <Image
+                    src="/assets/images/bpom.webp"
+                    alt="Logo BBPOM"
+                    width={36}
+                    height={36}
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+                <span className="text-base font-extrabold tracking-tight text-white">
+                  SIPROVAL &bull; BBPOM di Mataram
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-blue-100/80 max-w-md leading-relaxed">
+                Sistem Informasi Program dan Evaluasi terpadu Balai Besar
+                Pengawas Obat dan Makanan di Mataram.
+              </p>
+            </SiprovalFadeUp>
+
+            <SiprovalFadeUp delay={0.1}>
+              <div className="flex flex-wrap items-center gap-6">
+                <SiprovalNavLink
+                  href="#beranda"
+                  label="Beranda"
+                  className="text-xs sm:text-sm text-blue-100 hover:text-white"
+                />
+                <SiprovalNavLink
+                  href="#dokumen-kinerja"
+                  label="Dokumen Kinerja"
+                  className="text-xs sm:text-sm text-blue-100 hover:text-white"
+                />
+              </div>
+            </SiprovalFadeUp>
+          </div>
+
+          <SiprovalLineDraw className="bg-white/15" />
+
+          <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-blue-100/75">
+            <span>
+              &copy; {new Date().getFullYear()} Balai Besar POM di Mataram.
+              Seluruh hak cipta dilindungi.
+            </span>
+
+            <SiprovalPillButton
+              href="#beranda"
+              label="Kembali ke Atas"
+              arrowDirection="up"
+              onClick={(e) => {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/15"
+            />
+          </div>
         </div>
       </footer>
     </div>
