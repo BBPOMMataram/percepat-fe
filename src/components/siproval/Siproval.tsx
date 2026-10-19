@@ -4,8 +4,9 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Plus_Jakarta_Sans } from "next/font/google";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { useSelector } from "react-redux";
+import { Icon } from "@iconify/react";
 import { RootState } from "@/redux/store";
 import SiprovalDocumentHub from "./SiprovalDocumentHub";
 import {
@@ -14,7 +15,6 @@ import {
   SiprovalLineDraw,
   SiprovalNavLink,
   SiprovalPillButton,
-  SiprovalSpotlightCard,
   SiprovalWordScrub,
 } from "./SiprovalMotion";
 
@@ -24,9 +24,25 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   display: "swap",
 });
 
+interface AvailableRole {
+  id: string;
+  role: string;
+  badge: string;
+  url: string;
+  icon: string;
+  desc: string;
+}
+
 export default function Siproval() {
   const { user } = useSelector((state: RootState) => state.auth);
   const [scrolled, setScrolled] = useState(false);
+
+  // Dropdown states for multi-role users
+  const [headerDropdownOpen, setHeaderDropdownOpen] = useState(false);
+  const [heroDropdownOpen, setHeroDropdownOpen] = useState(false);
+
+  const headerDropdownRef = useRef<HTMLDivElement>(null);
+  const heroDropdownRef = useRef<HTMLDivElement>(null);
 
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress: heroScroll } = useScroll({
@@ -46,6 +62,26 @@ export default function Siproval() {
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        headerDropdownRef.current &&
+        !headerDropdownRef.current.contains(event.target as Node)
+      ) {
+        setHeaderDropdownOpen(false);
+      }
+      if (
+        heroDropdownRef.current &&
+        !heroDropdownRef.current.contains(event.target as Node)
+      ) {
+        setHeroDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const picEmails = [
@@ -81,85 +117,105 @@ export default function Siproval() {
       picEmails.includes(userEmail) ||
       picNames.includes(userNameClean));
 
-  const isPic =
+  const isPicAdmin =
     user?.role?.level === "superadmin" ||
-    picEmails.includes(userEmail) ||
-    picNames.includes(userNameClean) ||
     (user?.role?.level === "admin" &&
       Array.isArray(user?.sites) &&
       user.sites.some(
         (s: { id?: number; name?: string }) =>
           Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval"),
-      ));
+      )) ||
+    userEmail === "hilmi.khairan@pom.go.id";
 
   const groupJabatanId = user?.employee?.group_jabatan_id;
   const isKatimFromTable =
     Array.isArray(user?.katims) && user.katims.length > 0;
   const isKatim = groupJabatanId === 3 || isKatimFromTable;
 
-  const canAccess = (id: string) => {
-    if (id === "tu") return hasTuAccess;
-    if (isPic) return true;
-    if (id === "katim") return isKatim || isPic;
-    if (id === "kabalai") return groupJabatanId === 1 || isPic;
-    if (id === "pic") return false;
-    return false;
-  };
-
-  // Nama sapaan singkat dan peran aktif tanpa tanda strip
+  // Nama sapaan singkat dan peran aktif
   const firstName = user?.name ? user.name.trim().split(/\s+/)[0] : "";
-  const shortRole = isPic
+  const shortRole = isPicAdmin
     ? "PIC"
     : groupJabatanId === 1
       ? "Kabalai"
-      : isKatim
-        ? "Katim"
-        : hasTuAccess
-          ? "Tata Usaha"
+      : hasTuAccess
+        ? "Tata Usaha"
+        : isKatim
+          ? "Katim"
           : "Pegawai";
 
-  const roleCards = [
-    {
-      id: "katim",
-      index: "01",
-      role: "Ketua Tim (Katim)",
-      badge: "PIC IKSK",
-      variant: "royal" as const,
-      description:
-        "Pengisian, sinkronisasi, dan pelaporan capaian IKSK via Google Sheets sesuai penugasan.",
-      url: "/siproval/katim",
-    },
-    {
-      id: "kabalai",
-      index: "02",
-      role: "Kepala Balai (Kabalai)",
-      badge: "Pimpinan & Evaluasi",
-      variant: "navy" as const,
-      description:
-        "Monitoring pelaksanaan kegiatan, evaluasi capaian, dan rekapitulasi RHPK.",
-      url: "/siproval/monev",
-    },
-    {
-      id: "tu",
-      index: "03",
-      role: "Bagian Tata Usaha (TU)",
-      badge: "Perencanaan & Anggaran",
-      variant: "navy" as const,
-      description:
-        "Pengelolaan alokasi perencanaan anggaran, rincian belanja bulanan, dan pemetaan budget mapping.",
-      url: "/siproval/tu",
-    },
-    {
-      id: "pic",
-      index: "04",
-      role: "PIC (Pengelola Sistem)",
-      badge: "Integrasi & Akses",
-      variant: "royal" as const,
-      description:
-        "Pembaruan dokumen spreadsheet, pengaturan periode pengisian, dan manajemen hak akses pengguna.",
-      url: "/siproval/admin/sinkronisasi-spreadsheet",
-    },
-  ];
+  // Hitung daftar ruang kerja yang dapat diakses oleh user ini
+  const getAvailableRoles = (): AvailableRole[] => {
+    if (!user) return [];
+
+    const roles: AvailableRole[] = [];
+
+    // Jika PIC / Admin Siproval
+    if (isPicAdmin) {
+      roles.push({
+        id: "pic",
+        role: "PIC (Pengelola Sistem)",
+        badge: "Admin",
+        url: "/siproval/admin/sinkronisasi-spreadsheet",
+        icon: "solar:settings-bold",
+        desc: "Sinkronisasi spreadsheet & permission",
+      });
+    }
+
+    // Jika memiliki akses TU
+    if (hasTuAccess) {
+      roles.push({
+        id: "tu",
+        role: "Bagian Tata Usaha (TU)",
+        badge: "Tata Usaha",
+        url: "/siproval/tu",
+        icon: "solar:pie-chart-2-bold",
+        desc: "Realisasi RO & budget mapping",
+      });
+    }
+
+    // Jika memiliki peran Katim
+    if (isKatim) {
+      roles.push({
+        id: "katim",
+        role: "Ketua Tim (Katim)",
+        badge: "PIC IKSK",
+        url: "/siproval/katim",
+        icon: "solar:widget-5-bold",
+        desc: "Pengisian capaian IKSK tim",
+      });
+    }
+
+    // Jika Kepala Balai
+    if (groupJabatanId === 1) {
+      roles.push({
+        id: "kabalai",
+        role: "Kepala Balai (Kabalai)",
+        badge: "Pimpinan",
+        url: "/siproval/monev",
+        icon: "solar:chart-2-bold",
+        desc: "Evaluasi capaian & rekap RHPK",
+      });
+    }
+
+    // Jika belum ada role terdaftar sama sekali (staf umum)
+    if (roles.length === 0) {
+      roles.push({
+        id: "default",
+        role: "Portal SIPROVAL",
+        badge: "Pegawai",
+        url: "/siproval/katim",
+        icon: "solar:login-2-bold",
+        desc: "Masuk ke halaman operasional",
+      });
+    }
+
+    return roles;
+  };
+
+  const availableRoles = getAvailableRoles();
+  const hasMultipleRoles = availableRoles.length > 1;
+  const singleRoleUrl = availableRoles[0]?.url || "/siproval/katim";
 
   return (
     <div
@@ -200,7 +256,6 @@ export default function Siproval() {
           <nav className="hidden md:flex items-center gap-8">
             {[
               { label: "Beranda", href: "#beranda" },
-              { label: "Masuk & Entry Data", href: "#entry-data" },
               { label: "Dokumen Kinerja", href: "#dokumen-kinerja" },
             ].map((item) => (
               <SiprovalNavLink
@@ -217,28 +272,117 @@ export default function Siproval() {
           </nav>
 
           {user ? (
-            <div className="flex items-center gap-2">
-              <span
-                className={`text-xs font-semibold transition-colors ${
-                  scrolled ? "text-[#001d3d]" : "text-white"
-                }`}
-              >
-                Hai, {firstName}
-              </span>
-              <span
-                className={`text-[11px] font-bold px-3 py-1 rounded-full transition-colors ${
-                  scrolled
-                    ? "bg-[#005baa]/10 text-[#005baa]"
-                    : "bg-white/20 text-white backdrop-blur-xs"
-                }`}
-              >
-                {shortRole}
-              </span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-xs font-semibold transition-colors ${
+                    scrolled ? "text-[#001d3d]" : "text-white"
+                  }`}
+                >
+                  Hai, {firstName}
+                </span>
+                <span
+                  className={`text-[11px] font-bold px-3 py-1 rounded-full transition-colors ${
+                    scrolled
+                      ? "bg-[#005baa]/10 text-[#005baa]"
+                      : "bg-white/20 text-white backdrop-blur-xs"
+                  }`}
+                >
+                  {shortRole}
+                </span>
+              </div>
+
+              {/* Header Button: Jika Single Role -> Link Langsung, Jika Multi-Role -> Hover/Click Dropdown */}
+              {hasMultipleRoles ? (
+                <div
+                  ref={headerDropdownRef}
+                  className="relative"
+                  onMouseEnter={() => setHeaderDropdownOpen(true)}
+                  onMouseLeave={() => setHeaderDropdownOpen(false)}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setHeaderDropdownOpen((prev) => !prev)}
+                    className={`inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full shadow-sm transition-all duration-200 ${
+                      scrolled
+                        ? "bg-[#003d73] text-white hover:bg-[#00284d]"
+                        : "bg-white text-[#001d3d] hover:bg-slate-100"
+                    }`}
+                  >
+                    <span>Masuk ke Sistem</span>
+                    <Icon
+                      icon="solar:alt-arrow-down-linear"
+                      width={14}
+                      className={`transition-transform duration-200 ${
+                        headerDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  <AnimatePresence>
+                    {headerDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 6, scale: 0.95 }}
+                        transition={{ duration: 0.18, ease: "easeOut" }}
+                        className="absolute right-0 top-full mt-2 w-72 rounded-2xl bg-white p-2 shadow-2xl border border-slate-200/90 z-50 text-slate-800"
+                      >
+                        <div className="px-3 py-2 border-b border-slate-100">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Pilih Ruang Kerja
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Akses peran yang tersedia untuk Anda
+                          </p>
+                        </div>
+                        <div className="py-1 space-y-1">
+                          {availableRoles.map((roleItem) => (
+                            <Link
+                              key={roleItem.id}
+                              href={roleItem.url}
+                              onClick={() => setHeaderDropdownOpen(false)}
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-blue-50/80 transition-colors group"
+                            >
+                              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-[#005baa] group-hover:bg-[#005baa] group-hover:text-white transition-colors">
+                                <Icon icon={roleItem.icon} width={18} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs font-bold text-slate-800 group-hover:text-[#005baa] truncate">
+                                    {roleItem.role}
+                                  </p>
+                                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                                    {roleItem.badge}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-slate-400 truncate">
+                                  {roleItem.desc}
+                                </p>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <SiprovalPillButton
+                  href={singleRoleUrl}
+                  useNextLink={true}
+                  label="Masuk ke Sistem"
+                  className={`text-xs font-semibold px-4 py-2 ${
+                    scrolled ? "bg-[#003d73] text-white" : "bg-white text-[#001d3d]"
+                  }`}
+                />
+              )}
             </div>
           ) : (
             <SiprovalPillButton
-              href="#entry-data"
-              label="Masuk & Entry Data"
+              href="/login?redirectUrl=/siproval"
+              useNextLink={true}
+              label="Masuk"
               className={`text-xs font-semibold px-4 py-2 ${
                 scrolled ? "bg-[#003d73] text-white" : "bg-white text-[#001d3d]"
               }`}
@@ -350,11 +494,86 @@ export default function Siproval() {
               transition={{ duration: 0.95, delay: 0.4, ease: SIPROVAL_EASE }}
               className="flex flex-wrap items-center gap-3.5"
             >
-              <SiprovalPillButton
-                href="#entry-data"
-                label="Masuk & Entry Data"
-                className="px-7 py-3.5 bg-[#003d73] hover:bg-[#00284d] text-white text-sm font-semibold shadow-lg shadow-[#001d3d]/25"
-              />
+              {/* Hero Masuk Button: Jika Multi-Role -> Dropdown, jika Single Role -> Direct Link */}
+              {hasMultipleRoles ? (
+                <div
+                  ref={heroDropdownRef}
+                  className="relative"
+                  onMouseEnter={() => setHeroDropdownOpen(true)}
+                  onMouseLeave={() => setHeroDropdownOpen(false)}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setHeroDropdownOpen((prev) => !prev)}
+                    className="inline-flex items-center gap-2.5 px-7 py-3.5 bg-[#003d73] hover:bg-[#00284d] text-white text-sm font-semibold rounded-full shadow-lg shadow-[#001d3d]/25 transition-all duration-200 active:scale-[0.98]"
+                  >
+                    <span>Masuk ke Sistem</span>
+                    <Icon
+                      icon="solar:alt-arrow-down-linear"
+                      width={16}
+                      className={`transition-transform duration-200 ${
+                        heroDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  <AnimatePresence>
+                    {heroDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                        transition={{ duration: 0.18, ease: "easeOut" }}
+                        className="absolute left-0 top-full mt-2 w-80 rounded-2xl bg-white p-2.5 shadow-2xl border border-slate-200/90 z-50 text-slate-800"
+                      >
+                        <div className="px-3.5 py-2.5 border-b border-slate-100">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Pilih Ruang Kerja Operasional
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Silakan pilih modul peran yang ingin dibuka:
+                          </p>
+                        </div>
+                        <div className="py-1.5 space-y-1">
+                          {availableRoles.map((roleItem) => (
+                            <Link
+                              key={roleItem.id}
+                              href={roleItem.url}
+                              onClick={() => setHeroDropdownOpen(false)}
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-blue-50/80 transition-colors group"
+                            >
+                              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-[#005baa] group-hover:bg-[#005baa] group-hover:text-white transition-colors shrink-0">
+                                <Icon icon={roleItem.icon} width={20} />
+                              </div>
+                              <div className="flex-1 min-w-0 text-left">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs font-bold text-slate-800 group-hover:text-[#005baa] truncate">
+                                    {roleItem.role}
+                                  </p>
+                                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 shrink-0">
+                                    {roleItem.badge}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-slate-400 truncate">
+                                  {roleItem.desc}
+                                </p>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <SiprovalPillButton
+                  href={user ? singleRoleUrl : "/login?redirectUrl=/siproval"}
+                  useNextLink={true}
+                  label="Masuk ke Sistem"
+                  className="px-7 py-3.5 bg-[#003d73] hover:bg-[#00284d] text-white text-sm font-semibold shadow-lg shadow-[#001d3d]/25"
+                />
+              )}
+
               <SiprovalPillButton
                 href="#dokumen-kinerja"
                 label="Dokumen Kinerja"
@@ -366,7 +585,7 @@ export default function Siproval() {
       </section>
 
       {/* =====================================================================
-          SCROLL-SCRUBBED STATEMENT BRIDGE (Transition Section 1 -> 2)
+          SCROLL-SCRUBBED STATEMENT BRIDGE (Transition to Dokumen Kinerja)
       ====================================================================== */}
       <SiprovalWordScrub
         badge="Ekosistem Kinerja Terpadu"
@@ -383,144 +602,7 @@ export default function Siproval() {
       />
 
       {/* =====================================================================
-          SECTION 2: MASUK & ENTRY DATA
-      ====================================================================== */}
-      <section
-        id="entry-data"
-        className="relative w-full py-20 sm:py-28 px-6 sm:px-10 lg:px-16 scroll-mt-14 overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f4f8fd_50%,#ffffff_100%)]"
-      >
-        <div className="relative z-10 max-w-6xl mx-auto">
-          {/* Animated Section Header */}
-          <div className="pb-8">
-            <SiprovalFadeUp>
-              <p className="text-xs font-bold uppercase tracking-widest text-[#005baa] mb-2">
-                Ruang Kerja Sistem
-              </p>
-              <h2 className="text-3xl sm:text-4xl lg:text-[44px] font-extrabold text-[#001d3d] tracking-[-0.02em] leading-[1.12]">
-                Masuk &amp; Entry Data
-              </h2>
-            </SiprovalFadeUp>
-          </div>
-
-          <div className="mb-12">
-            <SiprovalLineDraw className="bg-slate-200" />
-          </div>
-
-          {/* 2x2 Spotlight Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-7">
-            {roleCards.map((card, idx) => {
-              const hasAccess = canAccess(card.id);
-              const isRoyal = card.variant === "royal";
-
-              const cardSurfaceClass = hasAccess
-                ? isRoyal
-                  ? "bg-[linear-gradient(145deg,#00529e_0%,#003d73_55%,#00254d_100%)] text-white border-[#005baa]/40 shadow-[0_22px_50px_-14px_rgba(0,61,115,0.34)]"
-                  : "bg-[linear-gradient(145deg,#06152d_0%,#001d3d_55%,#002e5d_100%)] text-white border-white/15 shadow-[0_22px_50px_-14px_rgba(0,24,51,0.38)]"
-                : "bg-[linear-gradient(145deg,#ffffff_0%,#f1f6fc_100%)] text-[#001d3d] border-slate-200/90 shadow-[0_14px_34px_-12px_rgba(0,29,61,0.08)]";
-
-              const spotlightColor = hasAccess
-                ? isRoyal
-                  ? "rgba(120, 198, 255, 0.30)"
-                  : "rgba(0, 132, 255, 0.32)"
-                : "rgba(0, 91, 170, 0.09)";
-
-              return (
-                <SiprovalSpotlightCard
-                  key={card.id}
-                  delay={idx * 0.1}
-                  spotlightColor={spotlightColor}
-                  className={`rounded-[28px] border p-7 sm:p-9 transition-shadow duration-500 ${cardSurfaceClass}`}
-                >
-                  <div>
-                    {/* Top Row: Editorial Index, Role Title & Badge */}
-                    <div className="flex items-start justify-between gap-4 mb-5">
-                      <div>
-                        <span
-                          className={`block text-xs font-extrabold tracking-[0.2em] uppercase mb-1.5 ${
-                            hasAccess ? "text-sky-300/80" : "text-[#005baa]/60"
-                          }`}
-                        >
-                          {card.index}
-                        </span>
-                        <h3
-                          className={`text-xl sm:text-2xl font-bold tracking-tight ${
-                            hasAccess ? "text-white" : "text-[#001d3d]"
-                          }`}
-                        >
-                          {card.role}
-                        </h3>
-                      </div>
-
-                      <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
-                        {!hasAccess && (
-                          <span className="text-[11px] font-semibold px-3 py-1 rounded-full bg-slate-200/80 text-slate-600">
-                            Akses Terbatas
-                          </span>
-                        )}
-                        <span
-                          className={`text-[11px] font-bold px-3.5 py-1 rounded-full ${
-                            hasAccess
-                              ? "bg-white/15 text-white backdrop-blur-xs border border-white/15"
-                              : "bg-[#005baa]/10 text-[#005baa]"
-                          }`}
-                        >
-                          {card.badge}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Animated Divider Line */}
-                    <div className="mb-5">
-                      <SiprovalLineDraw
-                        delay={0.15 + idx * 0.08}
-                        className={hasAccess ? "bg-white/20" : "bg-slate-200"}
-                      />
-                    </div>
-
-                    <p
-                      className={`text-sm sm:text-[15px] leading-relaxed mb-8 ${
-                        hasAccess ? "text-blue-50/90" : "text-slate-600"
-                      }`}
-                    >
-                      {card.description}
-                    </p>
-                  </div>
-
-                  {/* Single Clean Masuk Button */}
-                  <div className="pt-1 flex items-center justify-between">
-                    {hasAccess ? (
-                      <SiprovalPillButton
-                        href={card.url}
-                        useNextLink={true}
-                        label="Masuk"
-                        className="px-7 py-3 bg-white text-[#001d3d] hover:bg-sky-50 text-xs sm:text-sm font-bold shadow-md"
-                      />
-                    ) : (
-                      <span
-                        className="inline-flex items-center justify-center px-7 py-3 rounded-full bg-slate-200/75 text-slate-500 text-xs sm:text-sm font-semibold cursor-not-allowed"
-                        title="Akses terbatas untuk peran Anda saat ini"
-                      >
-                        Masuk
-                      </span>
-                    )}
-
-                    <span
-                      className={`text-[11px] font-semibold tracking-wider uppercase ${
-                        hasAccess ? "text-white/50" : "text-slate-400"
-                      }`}
-                    >
-                      {hasAccess ? "Akses Aktif" : "Terkunci"}
-                    </span>
-                  </div>
-                </SiprovalSpotlightCard>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* =====================================================================
-          SECTION 3: REPOSITORI KINERJA BALAI (Pusat Dokumen & Informasi Kinerja)
+          REPOSITORI KINERJA BALAI (Pusat Dokumen & Informasi Kinerja)
       ====================================================================== */}
       <Suspense fallback={null}>
         <SiprovalDocumentHub />
@@ -568,11 +650,6 @@ export default function Siproval() {
                 <SiprovalNavLink
                   href="#beranda"
                   label="Beranda"
-                  className="text-xs sm:text-sm text-blue-100 hover:text-white"
-                />
-                <SiprovalNavLink
-                  href="#entry-data"
-                  label="Masuk & Entry Data"
                   className="text-xs sm:text-sm text-blue-100 hover:text-white"
                 />
                 <SiprovalNavLink

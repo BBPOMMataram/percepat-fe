@@ -83,12 +83,12 @@ const menus = {
       url: "/siproval/budget-mapping",
       active: "/siproval/budget-mapping",
     },
-    {
+    /*  {
       name: "Mapping Tahun 2026",
       icon: "solar:calendar-bold",
       url: "/siproval/budget-mapping/year?year=2026",
       active: "/siproval/budget-mapping/year",
-    },
+    }, */
     {
       name: "Eksport Laporan",
       icon: "solar:printer-bold",
@@ -148,7 +148,9 @@ export default function SidebarSiproval({ actor }: Props) {
     "019ab8b3-1fb0-73ef-af89-ad09ef30f76f", // Nanang Setyadi Santoso
   ];
 
-  const userIdLower = String(user?.id || "").toLowerCase().trim();
+  const userIdLower = String(user?.id || "")
+    .toLowerCase()
+    .trim();
   const userNameLower = (user?.name || "").toLowerCase().trim();
   const userEmailLower = (user?.email || "").toLowerCase().trim();
 
@@ -172,10 +174,11 @@ export default function SidebarSiproval({ actor }: Props) {
         Array.isArray(user?.sites) &&
         user.sites.some(
           (s: { id?: number; name?: string }) =>
-            Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval")
+            Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval"),
         ));
     const groupJabatanId = user?.employee?.group_jabatan_id;
-    const isKatimFromTable = Array.isArray(user?.katims) && user.katims.length > 0;
+    const isKatimFromTable =
+      Array.isArray(user?.katims) && user.katims.length > 0;
     const isKatim = groupJabatanId === 3 || isKatimFromTable;
 
     if (
@@ -193,7 +196,10 @@ export default function SidebarSiproval({ actor }: Props) {
         pathname.startsWith("/siproval/rhpk")
       ) {
         resolvedActor = "kabalai";
-      } else if (pathname.startsWith("/siproval/katim") || pathname.startsWith("/siproval/google-sheets")) {
+      } else if (
+        pathname.startsWith("/siproval/katim") ||
+        pathname.startsWith("/siproval/google-sheets")
+      ) {
         resolvedActor = "katim";
       } else {
         resolvedActor = "superadmin";
@@ -224,7 +230,10 @@ export default function SidebarSiproval({ actor }: Props) {
   const actorMenus = menus[resolvedActor] ?? [];
 
   const isMenuActive = (activePath: string) => {
-    if (activePath === "/siproval/tu" || activePath === "/siproval/budget-mapping") {
+    if (
+      activePath === "/siproval/tu" ||
+      activePath === "/siproval/budget-mapping"
+    ) {
       return pathname === activePath || pathname === `${activePath}/dashboard`;
     }
     return pathname === activePath || pathname.startsWith(`${activePath}/`);
@@ -280,10 +289,10 @@ export default function SidebarSiproval({ actor }: Props) {
             {resolvedActor === "kabalai"
               ? "Kepala Balai"
               : resolvedActor === "katim"
-              ? "Ketua Tim (Katim)"
-              : resolvedActor === "tu"
-              ? "Bagian Tata Usaha (TU)"
-              : "PIC (Pengelola Sistem)"}
+                ? "Ketua Tim (Katim)"
+                : resolvedActor === "tu"
+                  ? "Bagian Tata Usaha (TU)"
+                  : "PIC (Pengelola Sistem)"}
           </p>
         </div>
 
