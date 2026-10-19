@@ -228,14 +228,8 @@ export default function SiprovalDocumentHub() {
 
           <SiprovalFadeUp
             delay={0.12}
-            className="flex flex-col items-start md:items-end gap-3.5 max-w-md w-full"
+            className="flex flex-col items-start md:items-end max-w-md w-full"
           >
-            <p className="text-sm sm:text-base text-slate-600 md:text-right leading-relaxed">
-              Akses langsung berkas perencanaan kinerja, penganggaran, lembar
-              kerja monitoring evaluasi, dan laporan akuntabilitas BBPOM di
-              Mataram.
-            </p>
-
             {activeTab !== "profil" && (
               <div className="w-full relative">
                 <input
