@@ -83,12 +83,12 @@ const menus = {
       url: "/siproval/budget-mapping",
       active: "/siproval/budget-mapping",
     },
-    /*  {
-      name: "Mapping Tahun 2026",
-      icon: "solar:calendar-bold",
-      url: "/siproval/budget-mapping/year?year=2026",
-      active: "/siproval/budget-mapping/year",
-    }, */
+    {
+      name: "Rekapitulasi Anggaran",
+      icon: "solar:chart-2-bold",
+      url: "/siproval/tu/rekapitulasi",
+      active: "/siproval/tu/rekapitulasi",
+    },
     {
       name: "Eksport Laporan",
       icon: "solar:printer-bold",
@@ -331,6 +331,37 @@ export default function SidebarSiproval({ actor }: Props) {
               )}
             </ul>
           </div>
+
+          {resolvedActor === "superadmin" && hasTuAccess && (
+            <div className="pt-4 border-t border-white/10">
+              <p className="mb-2.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-white/40">
+                Menu Tata Usaha (TU)
+              </p>
+
+              <ul className="space-y-1.5">
+                {menus.tu.map((menu) => {
+                  const active = isMenuActive(menu.active);
+
+                  return (
+                    <li key={`tu-sub-${menu.url}`}>
+                      <Link
+                        href={menu.url}
+                        onClick={() => setSidebarOpen(false)}
+                        className={`flex items-center gap-3 rounded-xl px-4 py-2.5 transition-colors ${
+                          active
+                            ? "bg-white/15 text-white font-semibold"
+                            : "text-white/75 hover:bg-white/10 hover:text-white"
+                        }`}
+                      >
+                        <Icon icon={menu.icon} width={22} height={22} />
+                        <span className="text-sm font-medium">{menu.name}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
 
         <div className="mt-auto pt-4 border-t border-white/10">
