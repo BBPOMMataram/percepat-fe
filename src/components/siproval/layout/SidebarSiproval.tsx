@@ -83,6 +83,12 @@ const menus = {
       url: "/siproval/budget-mapping",
       active: "/siproval/budget-mapping",
     },
+    {
+      name: "Rekapitulasi Anggaran",
+      icon: "solar:chart-square-bold",
+      url: "/siproval/tu/rekapitulasi-anggaran",
+      active: "/siproval/tu/rekapitulasi-anggaran",
+    },
     /*  {
       name: "Mapping Tahun 2026",
       icon: "solar:calendar-bold",

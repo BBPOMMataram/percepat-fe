@@ -1,4 +1,5 @@
 import { Providers } from '@/redux/provider';
+import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './percepat-new/globals.css';
 
@@ -27,6 +28,7 @@ export default function RootLayout({
         <Providers>
           <Loading />
           <Alert />
+          <ToastContainer position="top-right" autoClose={4000} theme="colored" />
           {children}
         </Providers>
       </body>

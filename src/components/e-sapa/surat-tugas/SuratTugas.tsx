@@ -40,6 +40,9 @@ export default function MasterSuratTugas() {
     const [downloadModalItem, setDownloadModalItem] = useState<any | null>(null);
     const [downloadingFormat, setDownloadingFormat] = useState<string | null>(null);
 
+    // State untuk validasi error dari backend
+    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
     const [formData, setFormData] = useState({
         id: null as null | number,
         nomor_surat: "",
@@ -130,6 +133,7 @@ export default function MasterSuratTugas() {
             id: null, nomor_surat: "", tanggal_surat: "", kegiatan_id: "", nama_kegiatan: "",
             mak: "", maksud_tugas: "", wilayah_tugas: "", tanggal_dari: "", tanggal_sampai: "", list_petugas: []
         });
+        setFormErrors({});
         setSelectedPetugasId("");
         setIsShowOpen(false);
         setIsFormOpen(true);
@@ -158,6 +162,7 @@ export default function MasterSuratTugas() {
             tanggal_sampai: dayjs(item.tanggal_sampai).format("YYYY-MM-DD"),
             list_petugas: mappedPetugas
         });
+        setFormErrors({});
         setSelectedPetugasId("");
         setIsShowOpen(false);
         setIsFormOpen(true);
@@ -281,6 +286,7 @@ export default function MasterSuratTugas() {
         }
 
         setIsSubmitting(true);
+        setFormErrors({});
 
         const payload = {
             "nomor-surat": formData.nomor_surat,
@@ -303,19 +309,35 @@ export default function MasterSuratTugas() {
 
             const res = await request;
             toast.success(res.data?.msg || "Data berhasil disimpan");
+            setFormErrors({});
             setIsFormOpen(false);
             fetchData();
         } catch (err: any) {
             if (err.response?.status === 422 && err.response?.data?.errors) {
-                const errors = err.response.data.errors;
-                if (errors['nomor-surat']) {
-                    toast.warning("Peringatan: Nomor Surat ini sudah digunakan! Silakan periksa kembali.");
+                const rawErrors = err.response.data.errors;
+                const parsedErrors: Record<string, string> = {};
+                for (const key in rawErrors) {
+                    parsedErrors[key] = Array.isArray(rawErrors[key]) ? rawErrors[key][0] : rawErrors[key];
+                }
+                setFormErrors(parsedErrors);
+
+                if (parsedErrors['nomor-surat'] || parsedErrors['nomor_surat']) {
+                    toast.error("Nomor Surat Tugas sudah terdaftar! Silakan gunakan nomor lain.");
+                    setTimeout(() => {
+                        const el = document.getElementById('input-nomor-surat');
+                        if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            el.focus();
+                        }
+                    }, 100);
                 } else {
-                    const errorKeys = Object.keys(errors);
-                    toast.warning(errors[errorKeys[0]][0]);
+                    const firstMsg = Object.values(parsedErrors)[0];
+                    toast.error(firstMsg || "Validasi data gagal, mohon periksa isian formulir.");
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
             } else {
-                toast.error(err.response?.data?.message || "Gagal menyimpan data");
+                console.error("Gagal simpan surat tugas:", err);
+                toast.error(err.response?.data?.message || err.response?.data?.msg || "Gagal menyimpan data surat tugas");
             }
         } finally {
             setIsSubmitting(false);
@@ -478,21 +500,62 @@ export default function MasterSuratTugas() {
 
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                         <div className="p-8">
+                            {/* Alert Banner jika ada validasi error */}
+                            {Object.keys(formErrors).length > 0 && (
+                                <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 text-red-900 shadow-xs animate-shake">
+                                    <span className="material-symbols-outlined text-red-600 text-[24px] shrink-0 mt-0.5">error</span>
+                                    <div className="flex-1 text-sm">
+                                        <p className="font-bold text-red-900">Perhatian: Formulir belum dapat disimpan!</p>
+                                        <p className="text-xs text-red-700 mt-1 leading-relaxed">
+                                            {(formErrors['nomor-surat'] || formErrors['nomor_surat'])
+                                                ? "Nomor Surat Tugas sudah terdaftar / pernah digunakan sebelumnya. Silakan periksa kolom nomor surat dan gunakan nomor yang berbeda."
+                                                : Object.values(formErrors)[0]}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
                             <form onSubmit={handleFormSubmit} id="main">
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                                    {/* Kolom Nomor Surat */}
                                     <div className="flex flex-col">
-                                        <label className="mb-2 text-sm font-semibold text-slate-700">Nomor Surat</label>
-                                        <input 
-                                            type="text" 
-                                            className="bg-slate-50 rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 focus:outline-none py-3 px-4 text-slate-700 w-full" 
-                                            value={formData.nomor_surat}
-                                            onChange={(e) => setFormData({...formData, nomor_surat: e.target.value})}
-                                            placeholder="Cth: ST.02.01/BBPOM..."
-                                            required 
-                                        />
+                                        <label className="mb-2 text-sm font-semibold text-slate-700 flex items-center justify-between">
+                                            <span>Nomor Surat <span className="text-red-500">*</span></span>
+                                        </label>
+                                        <div className="relative">
+                                            <input 
+                                                id="input-nomor-surat"
+                                                type="text" 
+                                                className={`rounded-xl border py-3 px-4 w-full text-sm transition-all focus:outline-none ${
+                                                    (formErrors['nomor-surat'] || formErrors['nomor_surat'])
+                                                        ? 'border-red-500 bg-red-50/40 text-red-900 focus:border-red-600 focus:ring-2 focus:ring-red-500/20 font-medium'
+                                                        : 'bg-slate-50 border-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 text-slate-700'
+                                                }`}
+                                                value={formData.nomor_surat}
+                                                onChange={(e) => {
+                                                    setFormData({...formData, nomor_surat: e.target.value});
+                                                    if (formErrors['nomor-surat'] || formErrors['nomor_surat']) {
+                                                        setFormErrors(prev => {
+                                                            const copy = {...prev};
+                                                            delete copy['nomor-surat'];
+                                                            delete copy['nomor_surat'];
+                                                            return copy;
+                                                        });
+                                                    }
+                                                }}
+                                                placeholder="Cth: ST.02.01/BBPOM..."
+                                                required 
+                                            />
+                                        </div>
+                                        {(formErrors['nomor-surat'] || formErrors['nomor_surat']) && (
+                                            <p className="text-xs text-red-600 font-semibold mt-1.5 flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[15px] shrink-0">info</span>
+                                                Nomor surat ini sudah terdaftar. Silakan ganti dengan nomor yang berbeda.
+                                            </p>
+                                        )}
                                     </div>
                                     <div className="flex flex-col">
-                                        <label className="mb-2 text-sm font-semibold text-slate-700">Tanggal Surat</label>
+                                        <label className="mb-2 text-sm font-semibold text-slate-700">Tanggal Surat <span className="text-red-500">*</span></label>
                                         <input 
                                             type="date" 
                                             className="bg-slate-50 rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 focus:outline-none py-3 px-4 text-slate-700 w-full" 
@@ -502,7 +565,7 @@ export default function MasterSuratTugas() {
                                         />
                                     </div>
                                     <div className="flex flex-col">
-                                        <label className="mb-2 text-sm font-semibold text-slate-700">Rentang Waktu Tugas</label>
+                                        <label className="mb-2 text-sm font-semibold text-slate-700">Rentang Waktu Tugas <span className="text-red-500">*</span></label>
                                         <div className="flex items-center gap-2 w-full">
                                             <input 
                                                 type="date" 
