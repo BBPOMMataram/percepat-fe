@@ -325,12 +325,17 @@ export default function AulaRiwayat() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Narasumber</label>
-                                    <input type="text" list="narasumber-options-modal" required value={formData.pilihan} onChange={e => setFormData({...formData, pilihan: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm" />
-                                    <datalist id="narasumber-options-modal">
-                                        <option value="Internal" />
-                                        <option value="Eksternal" />
-                                        <option value="Internal & Eksternal" />
-                                    </datalist>
+                                    <select 
+                                        required 
+                                        value={formData.pilihan} 
+                                        onChange={e => setFormData({...formData, pilihan: e.target.value})} 
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800"
+                                    >
+                                        <option value="">-- Pilih Narasumber --</option>
+                                        <option value="Internal">Internal</option>
+                                        <option value="Eksternal">Eksternal</option>
+                                        <option value="Internal & Eksternal">Internal & Eksternal</option>
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Jumlah Peserta</label>

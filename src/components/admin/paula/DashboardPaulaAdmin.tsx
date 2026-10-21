@@ -37,6 +37,26 @@ export default function DashboardPaulaAdmin() {
     const [rejectModal, setRejectModal] = useState<{ id: number, type: 'pengajuan' | 'edit' | 'pengajuan_mobil' } | null>(null);
     const [rejectReason, setRejectReason] = useState("");
 
+    // STATE EDIT AULA MODAL (ADMIN)
+    const [editAulaModal, setEditAulaModal] = useState<any | null>(null);
+    const [editFormData, setEditFormData] = useState({
+        nama_kegiatan: "",
+        tanggal_pinjam: "",
+        aula: "besar",
+        waktu_mulai: "",
+        waktu_selesai: "",
+        pilihan: "Internal",
+        peserta: "",
+        jumlah_peserta: "",
+        penanggung_jawab: "",
+    });
+    const [editSarana, setEditSarana] = useState<string[]>([]);
+    const [editCustomSarana, setEditCustomSarana] = useState("");
+    const [editTimeConflict, setEditTimeConflict] = useState(false);
+    const [editConflictMessage, setEditConflictMessage] = useState("");
+    const [isSavingAula, setIsSavingAula] = useState(false);
+    const opsiSarana = ["Proyektor", "Kamera", "Zoom Meeting", "Sound System"];
+
     const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_PAULA;
 
     useEffect(() => {
@@ -124,6 +144,106 @@ export default function DashboardPaulaAdmin() {
             toast.success("Izin edit diberikan kepada user");
             fetchData();
         } catch (error) { toast.error("Gagal memberikan izin edit"); }
+    };
+
+    const handleOpenEditAula = (p: any) => {
+        let parsedSarana: string[] = [];
+        try {
+            parsedSarana = typeof p.sarana_prasarana === 'string' ? JSON.parse(p.sarana_prasarana) : (p.sarana_prasarana || []);
+        } catch (e) {
+            parsedSarana = [];
+        }
+        setEditAulaModal(p);
+        setEditFormData({
+            nama_kegiatan: p.nama_kegiatan || "",
+            tanggal_pinjam: p.tanggal_pinjam ? p.tanggal_pinjam.split('T')[0] : "",
+            aula: p.aula || "besar",
+            waktu_mulai: p.waktu_mulai ? p.waktu_mulai.slice(0, 5) : "",
+            waktu_selesai: p.waktu_selesai ? p.waktu_selesai.slice(0, 5) : "",
+            pilihan: p.pilihan || "Internal",
+            peserta: p.peserta || "",
+            jumlah_peserta: p.jumlah_peserta ? String(p.jumlah_peserta) : "",
+            penanggung_jawab: p.penanggung_jawab || "",
+        });
+        setEditSarana(parsedSarana);
+        setEditCustomSarana("");
+        setEditTimeConflict(false);
+        setEditConflictMessage("");
+    };
+
+    const handleAddEditCustomSarana = () => {
+        if (editCustomSarana.trim() && !editSarana.includes(editCustomSarana.trim())) {
+            setEditSarana([...editSarana, editCustomSarana.trim()]);
+            setEditCustomSarana("");
+        }
+    };
+
+    const checkEditTimeAvailability = async (mulai: string, selesai: string, tanggal: string, aula: string, excludeId?: number) => {
+        if (!mulai || !selesai || !tanggal || !aula) return;
+        if (selesai <= mulai) {
+            setEditTimeConflict(true);
+            setEditConflictMessage("Waktu selesai harus setelah waktu mulai.");
+            return;
+        }
+        try {
+            const res = await api.get(`${baseURL}/api/paula/check-time`, {
+                params: { tanggal, waktu_mulai: mulai, waktu_selesai: selesai, aula, exclude_id: excludeId }
+            });
+            if (!res.data.valid) {
+                setEditTimeConflict(true);
+                setEditConflictMessage(res.data.message);
+            } else {
+                setEditTimeConflict(false);
+                setEditConflictMessage("");
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    useEffect(() => {
+        if (editAulaModal && editFormData.waktu_selesai && editFormData.waktu_mulai && editFormData.tanggal_pinjam && editFormData.aula) {
+            checkEditTimeAvailability(
+                editFormData.waktu_mulai,
+                editFormData.waktu_selesai,
+                editFormData.tanggal_pinjam,
+                editFormData.aula,
+                editAulaModal.id
+            );
+        } else {
+            setEditTimeConflict(false);
+            setEditConflictMessage("");
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editFormData.waktu_selesai, editFormData.waktu_mulai, editFormData.tanggal_pinjam, editFormData.aula, editAulaModal]);
+
+    const handleSaveEditAula = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editAulaModal) return;
+        if (editTimeConflict) {
+            return toast.error("Waktu dan tempat bertabrakan dengan pemesanan lain!");
+        }
+        const maxAllowed = editFormData.aula === 'besar' ? settings.max_peserta_besar : settings.max_peserta_kecil;
+        if (parseInt(editFormData.jumlah_peserta) > maxAllowed) {
+            return toast.error(`Kapasitas maksimal aula ${editFormData.aula} adalah ${maxAllowed} orang!`);
+        }
+
+        setIsSavingAula(true);
+        try {
+            const payload = {
+                ...editFormData,
+                sarana_prasarana: editSarana,
+            };
+            await api.put(`${baseURL}/api/paula/admin/pengajuan/${editAulaModal.id}`, payload);
+            toast.success("Pengajuan berhasil diperbarui oleh admin");
+            setEditAulaModal(null);
+            fetchData();
+        } catch (error: any) {
+            const errMsg = error.response?.data?.message || "Gagal memperbarui pengajuan";
+            toast.error(errMsg);
+        } finally {
+            setIsSavingAula(false);
+        }
     };
 
     const handleApproveMobil = async (id: number) => {
@@ -314,9 +434,14 @@ export default function DashboardPaulaAdmin() {
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
                                                     <div className="flex items-center justify-center gap-2">
-                                                        <Link href={`/paula/admin/pengajuan/${p.id}/edit`} className="bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 p-2 rounded-xl text-xs font-bold transition flex items-center justify-center w-8 h-8 shadow-sm">
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => handleOpenEditAula(p)} 
+                                                            className="bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 p-2 rounded-xl text-xs font-bold transition flex items-center justify-center w-8 h-8 shadow-sm cursor-pointer" 
+                                                            title="Edit Pengajuan"
+                                                        >
                                                             <span className="material-symbols-outlined text-[16px]">edit</span>
-                                                        </Link>
+                                                        </button>
                                                         <button onClick={() => handleDelete(p.id)} className="bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-700 p-2 rounded-xl text-xs font-bold transition flex items-center justify-center w-8 h-8 shadow-sm">
                                                             <span className="material-symbols-outlined text-[16px]">delete</span>
                                                         </button>
@@ -530,6 +655,219 @@ export default function DashboardPaulaAdmin() {
                             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
                                 <button type="button" onClick={() => setShowSettingsModal(false)} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer text-sm">Batal</button>
                                 <button type="submit" className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 transition cursor-pointer text-sm">Simpan</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL EDIT PENGAJUAN AULA (ADMIN) */}
+            {editAulaModal && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 overflow-y-auto">
+                    <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-2xl shadow-2xl animate-in zoom-in-95 duration-200 my-8">
+                        <div className="flex justify-between items-center mb-4">
+                            <div>
+                                <h3 className="text-xl font-black text-slate-800">Edit Pengajuan Aula</h3>
+                                <p className="text-slate-500 text-xs font-medium">Ubah rincian kegiatan aula yang telah disetujui.</p>
+                            </div>
+                            <button 
+                                onClick={() => setEditAulaModal(null)} 
+                                className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                            >
+                                <span className="material-symbols-outlined text-[24px]">close</span>
+                            </button>
+                        </div>
+
+                        {editTimeConflict && (
+                            <div className="mb-4 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[18px]">error</span>
+                                {editConflictMessage}
+                            </div>
+                        )}
+
+                        <form onSubmit={handleSaveEditAula} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Nama Kegiatan</label>
+                                <input 
+                                    type="text" 
+                                    required 
+                                    value={editFormData.nama_kegiatan} 
+                                    onChange={e => setEditFormData({ ...editFormData, nama_kegiatan: e.target.value })} 
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800" 
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Tanggal Pelaksanaan</label>
+                                    <input 
+                                        type="date" 
+                                        required 
+                                        value={editFormData.tanggal_pinjam} 
+                                        onChange={e => setEditFormData({ ...editFormData, tanggal_pinjam: e.target.value })} 
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800" 
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Pilihan Aula</label>
+                                    <select 
+                                        required 
+                                        value={editFormData.aula} 
+                                        onChange={e => setEditFormData({ ...editFormData, aula: e.target.value })} 
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800"
+                                    >
+                                        <option value="besar">Aula Besar (Maks. {settings.max_peserta_besar} orang)</option>
+                                        <option value="kecil">Aula Kecil (Maks. {settings.max_peserta_kecil} orang)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Waktu Mulai</label>
+                                    <input 
+                                        type="time" 
+                                        required 
+                                        value={editFormData.waktu_mulai} 
+                                        onChange={e => setEditFormData({ ...editFormData, waktu_mulai: e.target.value })} 
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800" 
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Waktu Selesai</label>
+                                    <input 
+                                        type="time" 
+                                        required 
+                                        value={editFormData.waktu_selesai} 
+                                        onChange={e => setEditFormData({ ...editFormData, waktu_selesai: e.target.value })} 
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800" 
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Narasumber</label>
+                                    <select 
+                                        required 
+                                        value={editFormData.pilihan} 
+                                        onChange={e => setEditFormData({ ...editFormData, pilihan: e.target.value })} 
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800"
+                                    >
+                                        <option value="Internal">Internal</option>
+                                        <option value="Eksternal">Eksternal</option>
+                                        <option value="Internal & Eksternal">Internal & Eksternal</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Asal Peserta</label>
+                                    <input 
+                                        type="text" 
+                                        required 
+                                        value={editFormData.peserta} 
+                                        onChange={e => setEditFormData({ ...editFormData, peserta: e.target.value })} 
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800" 
+                                        placeholder="Instansi/Asal Peserta..." 
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Jumlah Peserta</label>
+                                    <input 
+                                        type="number" 
+                                        min="1" 
+                                        required 
+                                        value={editFormData.jumlah_peserta} 
+                                        onChange={e => setEditFormData({ ...editFormData, jumlah_peserta: e.target.value })} 
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800" 
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Penanggung Jawab</label>
+                                    <input 
+                                        type="text" 
+                                        required 
+                                        value={editFormData.penanggung_jawab} 
+                                        onChange={e => setEditFormData({ ...editFormData, penanggung_jawab: e.target.value })} 
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800" 
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Sarana & Prasarana</label>
+                                <div className="flex flex-wrap gap-2 mb-3">
+                                    {opsiSarana.map(item => (
+                                        <label 
+                                            key={item} 
+                                            className={`px-3 py-1.5 border rounded-full text-xs font-bold cursor-pointer transition ${editSarana.includes(item) ? 'bg-blue-100 border-blue-400 text-blue-700' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
+                                        >
+                                            <input 
+                                                type="checkbox" 
+                                                className="hidden" 
+                                                checked={editSarana.includes(item)} 
+                                                onChange={() => setEditSarana(p => p.includes(item) ? p.filter(i => i !== item) : [...p, item])} 
+                                            />
+                                            {item}
+                                        </label>
+                                    ))}
+                                    {editSarana.filter(s => !opsiSarana.includes(s)).map(customItem => (
+                                        <span 
+                                            key={customItem} 
+                                            className="px-3 py-1.5 bg-blue-50 text-blue-800 border border-blue-200 rounded-full text-xs font-bold flex items-center gap-1.5"
+                                        >
+                                            {customItem}
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setEditSarana(editSarana.filter(s => s !== customItem))}
+                                                className="hover:text-rose-600 font-bold"
+                                            >
+                                                &times;
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Tambah sarana lainnya..." 
+                                        value={editCustomSarana} 
+                                        onChange={e => setEditCustomSarana(e.target.value)} 
+                                        className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-500 text-slate-800" 
+                                    />
+                                    <button 
+                                        type="button" 
+                                        onClick={handleAddEditCustomSarana} 
+                                        className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
+                                    >
+                                        Tambah
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setEditAulaModal(null)} 
+                                    className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer text-sm"
+                                >
+                                    Batal
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    disabled={isSavingAula || editTimeConflict} 
+                                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 transition cursor-pointer text-sm flex items-center gap-2"
+                                >
+                                    {isSavingAula ? (
+                                        <>
+                                            <span className="loading loading-spinner loading-xs"></span> Menyimpan...
+                                        </>
+                                    ) : (
+                                        "Simpan Perubahan"
+                                    )}
+                                </button>
                             </div>
                         </form>
                     </div>

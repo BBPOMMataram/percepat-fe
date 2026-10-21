@@ -176,20 +176,17 @@ export default function AulaPengajuan() {
                 <div className="grid grid-cols-2 gap-6">
                     <div>
                         <label className="block text-sm font-bold text-slate-700 mb-2">Narasumber</label>
-                        <input 
-                            type="text" 
-                            list="narasumber-options"
+                        <select 
                             required 
                             value={formData.pilihan} 
                             onChange={e => setFormData({...formData, pilihan: e.target.value})} 
-                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500" 
-                            placeholder="Pilih atau ketik narasumber..." 
-                        />
-                        <datalist id="narasumber-options">
-                            <option value="Internal" />
-                            <option value="Eksternal" />
-                            <option value="Internal & Eksternal" />
-                        </datalist>
+                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-800"
+                        >
+                            <option value="">-- Pilih Narasumber --</option>
+                            <option value="Internal">Internal</option>
+                            <option value="Eksternal">Eksternal</option>
+                            <option value="Internal & Eksternal">Internal & Eksternal</option>
+                        </select>
                     </div>
                     <div>
                         <label className="block text-sm font-bold text-slate-700 mb-2">Asal Peserta</label>
