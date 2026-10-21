@@ -12,6 +12,9 @@ export const metadata = {
     default: 'Home | BBPOM di Mataram'
   },
   description: 'Aplikasi Balai Besar POM di Mataram',
+  icons: {
+    icon: '/favicon.ico',
+  },
 }
 
 export default function RootLayout({

@@ -1,23 +1,32 @@
-"use client"
-import Hero from "@/components/percepat-new/header/Hero";
-import Inventory from "@/components/percepat-new/inventory";
-import FooterBottomSiMandalika from "../simandalika/footer/FooterBottom";
+"use client";
 
-const Percepat = () => {
+import { useState } from "react";
+import PercepatNavbar from "./header/PercepatNavbar";
+import Hero from "./header/Hero";
+import ModernInventory, { CategoryKey } from "./inventory/ModernInventory";
+import PercepatFooter from "./footer/PercepatFooter";
+
+export default function Percepat() {
+    const [activeCategory, setActiveCategory] = useState<CategoryKey>("reagen");
+
     return (
-        <div>
-            <header>
-                <Hero />
-            </header>
-            <main className="min-h-screen p-4" id="inventory">
-                <Inventory />
-            </main>
-            <footer>
-                {/* <Footer /> */}
-                <FooterBottomSiMandalika />
-            </footer>
-        </div>
-    )
-}
+        <div className="min-h-screen bg-white text-slate-800 antialiased selection:bg-blue-600 selection:text-white flex flex-col justify-between font-sans">
+            <div>
+                {/* Modern Floating Header */}
+                <PercepatNavbar />
 
-export default Percepat
+                {/* Simplified Animated Hero with 3D Minimalist Glass Object */}
+                <Hero />
+
+                {/* Clean, Interactive Live Inventory Catalog */}
+                <ModernInventory
+                    activeCategory={activeCategory}
+                    onCategoryChange={setActiveCategory}
+                />
+            </div>
+
+            {/* Dignified Minimalist Footer */}
+            <PercepatFooter />
+        </div>
+    );
+}
