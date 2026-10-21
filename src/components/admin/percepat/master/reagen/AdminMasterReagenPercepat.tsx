@@ -5,6 +5,8 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import AdminMasterFormAtkPercepat from "./AdminMasterFormReagenPercepat";
+import LabelStikerModal, { LabelStikerItem } from "@/components/percepat-new/label/LabelStikerModal";
+import { QrCode } from "lucide-react";
 
 export default function AdminMasterReagenPercepat() {
     const [data, setData] = useState<any>([])
@@ -13,6 +15,8 @@ export default function AdminMasterReagenPercepat() {
     const [open, setOpen] = useState<boolean>(false)
     const [editData, setEditData] = useState<any>(null)
     const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
+    const [labelModalOpen, setLabelModalOpen] = useState<boolean>(false);
+    const [selectedLabelItem, setSelectedLabelItem] = useState<LabelStikerItem | null>(null);
 
     const dispatch = useDispatch<AppDispatch>()
 
@@ -120,6 +124,26 @@ export default function AdminMasterReagenPercepat() {
                                                 Edit
                                             </button>
                                             <button
+                                                className="btn btn-sm btn-info btn-outline ml-1"
+                                                title="Cetak Label Stiker Botol"
+                                                onClick={() => {
+                                                    setSelectedLabelItem({
+                                                        id: item.id,
+                                                        name: item.name,
+                                                        code: item.code,
+                                                        satuan: item.satuan,
+                                                        expired: item.expired,
+                                                        diterima_tanggal: null,
+                                                        diterima_penerima: null,
+                                                        category: 'reagen',
+                                                        isFromMaster: true,
+                                                    });
+                                                    setLabelModalOpen(true);
+                                                }}
+                                            >
+                                                <QrCode size={14} /> Label
+                                            </button>
+                                            <button
                                                 className="btn btn-sm btn-error ml-1"
                                                 onClick={() => handleRemove(item.id)}
                                             >
@@ -161,6 +185,12 @@ export default function AdminMasterReagenPercepat() {
                     </div>
                 </div>
             </div>
+
+            <LabelStikerModal
+                isOpen={labelModalOpen}
+                onClose={() => setLabelModalOpen(false)}
+                item={selectedLabelItem}
+            />
         </>
     )
 }

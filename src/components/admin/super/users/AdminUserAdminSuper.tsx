@@ -11,6 +11,8 @@ interface UserRow {
     name: string
     email: string
     call_name?: string | null
+    signature_path?: string | null
+    photo_path?: string | null
     is_active: number | boolean
     role?: Role | null
     sites?: Site[]
@@ -27,6 +29,7 @@ export default function AdminUserAdminSuper() {
     const [search, setSearch] = useState("")
     const [roleFilter, setRoleFilter] = useState("")
     const [typeFilter, setTypeFilter] = useState("")
+    const [previewSignature, setPreviewSignature] = useState<{ name: string; url: string } | null>(null)
     const [page, setPage] = useState(1)
     const dispatch = useDispatch()
     const { user: authUser } = useSelector((s: any) => s.auth)
@@ -45,6 +48,12 @@ export default function AdminUserAdminSuper() {
     const notify = (ok: boolean, text: string) => {
         setFlash({ ok, text })
         setTimeout(() => setFlash(null), 3500)
+    }
+
+    const getSignatureUrl = (path?: string | null) => {
+        if (!path) return null
+        if (path.startsWith('http://') || path.startsWith('https://')) return path
+        return `${AUTH_URL}${path.startsWith('/') ? '' : '/'}${path}`
     }
 
     const loadUsers = useCallback(async () => {
@@ -216,15 +225,16 @@ export default function AdminUserAdminSuper() {
                                 <th>NIP / NIM</th>
                                 <th>Role</th>
                                 <th>Akses Aplikasi (Sites)</th>
+                                <th>Tanda Tangan</th>
                                 <th>Status</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan={10} className="text-center py-6">Memuat...</td></tr>
+                                <tr><td colSpan={11} className="text-center py-6">Memuat...</td></tr>
                             ) : (users?.data || []).length === 0 ? (
-                                <tr><td colSpan={10} className="text-center py-6">Tidak ada data.</td></tr>
+                                <tr><td colSpan={11} className="text-center py-6">Tidak ada data.</td></tr>
                             ) : (
                                 (users.data as UserRow[]).map((u, index) => (
                                     <tr key={u.id}>
@@ -260,6 +270,32 @@ export default function AdminUserAdminSuper() {
                                                         <span key={s.id} className="badge badge-outline badge-sm">{s.name}</span>
                                                     ))}
                                             </div>
+                                        </td>
+                                        <td>
+                                            {u.signature_path ? (
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="badge badge-success badge-sm">
+                                                        Ada
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-ghost btn-xs text-primary underline px-1"
+                                                        title="Lihat Tanda Tangan"
+                                                        onClick={() => {
+                                                            const url = getSignatureUrl(u.signature_path);
+                                                            if (url) {
+                                                                setPreviewSignature({ name: u.name, url });
+                                                            }
+                                                        }}
+                                                    >
+                                                        Lihat
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <span className="badge badge-ghost badge-sm text-gray-400">
+                                                    Belum Ada
+                                                </span>
+                                            )}
                                         </td>
                                         <td>
                                             <span className={`badge ${u.is_active ? 'badge-success' : 'badge-error'}`}>
@@ -388,6 +424,46 @@ export default function AdminUserAdminSuper() {
                         <button>close</button>
                     </form>
                 </dialog>
+            )}
+
+            {/* Modal Pratinjau Tanda Tangan */}
+            {previewSignature && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
+                    <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden text-slate-800 p-6">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                            <div>
+                                <h3 className="font-bold text-base text-slate-900 leading-tight">
+                                    Pratinjau Tanda Tangan
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-0.5">{previewSignature.name}</p>
+                            </div>
+                            <button
+                                type="button"
+                                className="btn btn-sm btn-circle btn-ghost"
+                                onClick={() => setPreviewSignature(null)}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div className="my-5 p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center min-h-[170px]">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                                src={previewSignature.url}
+                                alt={`Tanda tangan ${previewSignature.name}`}
+                                className="max-h-36 max-w-full object-contain"
+                            />
+                        </div>
+                        <div className="flex justify-end">
+                            <button
+                                type="button"
+                                className="btn btn-sm btn-ghost"
+                                onClick={() => setPreviewSignature(null)}
+                            >
+                                Tutup
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </>
     )

@@ -6,6 +6,8 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
+import LabelStikerModal, { LabelStikerItem } from "@/components/percepat-new/label/LabelStikerModal";
+import { QrCode } from "lucide-react";
 
 export default function AdminPermintaanReagenPercepat() {
     const [data, setData] = useState<any>([])
@@ -14,6 +16,9 @@ export default function AdminPermintaanReagenPercepat() {
     const [openModalVerifPetugas, setOpenModalVerifPetugas] = useState<boolean>(false)
     const [showModalListBarangPermintaan, setShowModalListBarangPermintaan] = useState(false);
     const [listBarangPermintaan, setListBarangPermintaan] = useState<any>([]);
+    const [selectedPermintaan, setSelectedPermintaan] = useState<any>(null);
+    const [labelModalOpen, setLabelModalOpen] = useState<boolean>(false);
+    const [selectedLabelItem, setSelectedLabelItem] = useState<LabelStikerItem | null>(null);
     const [permintaanId, setPermintaanId] = useState<number | null>(null); // 
     const [jumlahRealisasi, setJumlahRealisasi] = useState<any>([]); // Array untuk menyimpan jumlah realisasi per item
     const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
@@ -59,7 +64,7 @@ export default function AdminPermintaanReagenPercepat() {
 
     const downloadSpbHandler = (id: number) => {
         api({
-            url: `/api/v1/download-reagen/${id}`,
+            url: `/api/v1/download-permintaan-reagen/${id}`,
             method: 'GET',
             responseType: 'blob'
         })
@@ -85,9 +90,10 @@ export default function AdminPermintaanReagenPercepat() {
             .catch(err => console.log(err))
     }
 
-    const showListBarangHandler = (id: number) => {
+    const showListBarangHandler = (permintaan: any) => {
+        setSelectedPermintaan(permintaan);
         setShowModalListBarangPermintaan(true);
-        getListBarangPermintaan(id);
+        getListBarangPermintaan(permintaan.id);
     }
 
     useEffect(() => {
@@ -139,7 +145,36 @@ export default function AdminPermintaanReagenPercepat() {
         debounceRef.current = setTimeout(() => {
             setKodeBarangOrNameFilter(v)
         }, 500);
-    }
+    };
+
+    const handleRowPrintLabel = (permintaan: any) => {
+        setSelectedPermintaan(permintaan);
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/list-permintaan-reagen/${permintaan.id}`)
+            .then(({ data }) => {
+                const list = data.data || [];
+                setListBarangPermintaan(list);
+                if (list.length === 1) {
+                    const b = list[0];
+                    setSelectedLabelItem({
+                        id: b.barang?.id || b.barang_id,
+                        name: b.barang?.name || 'Reagen Kimia',
+                        code: b.barang?.code,
+                        satuan: b.barang?.satuan,
+                        expired: b.barang?.expired,
+                        diterima_tanggal: permintaan.tgl_penyerahan || null,
+                        diterima_penerima: permintaan.tgl_penyerahan
+                            ? (permintaan.peminta?.name || permintaan.peminta_name || permintaan.pemohon)
+                            : null,
+                        category: 'reagen',
+                        isFromPermintaan: true,
+                    });
+                    setLabelModalOpen(true);
+                } else {
+                    setShowModalListBarangPermintaan(true);
+                }
+            })
+            .catch((err) => console.log(err));
+    };
 
     return (
         <>
@@ -248,9 +283,15 @@ export default function AdminPermintaanReagenPercepat() {
                                                 </span>
                                             </span>
                                             <span className="btn btn-sm btn-ghost btn-accent tooltip tooltip-accent tooltip-left" data-tip="List Barang"
-                                                onClick={() => showListBarangHandler(item.id)}>
+                                                onClick={() => showListBarangHandler(item)}>
                                                 <span className="material-symbols-outlined">
                                                     list
+                                                </span>
+                                            </span>
+                                            <span className="btn btn-sm btn-ghost btn-info tooltip tooltip-info tooltip-left" data-tip="Cetak Label Barang"
+                                                onClick={() => handleRowPrintLabel(item)}>
+                                                <span className="material-symbols-outlined">
+                                                    qr_code_2
                                                 </span>
                                             </span>
                                             {
@@ -303,19 +344,57 @@ export default function AdminPermintaanReagenPercepat() {
                 open={showModalListBarangPermintaan}
                 onClose={closeModalListBarangPermintaanHandler}
             >
-                <h3 className="text-lg font-semibold mb-4">List Barang Permintaan</h3>
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-slate-900">List Barang Permintaan</h3>
+                    {selectedPermintaan && (
+                        <div className="text-xs text-slate-500">
+                            Pemohon: <span className="font-bold text-slate-800">{selectedPermintaan.peminta?.name || selectedPermintaan.pemohon || '-'}</span>
+                            {selectedPermintaan.tgl_penyerahan && (
+                                <span className="ml-2">| Penyerahan: <span className="font-semibold">{dayjs(selectedPermintaan.tgl_penyerahan).format("DD MMM YYYY")}</span></span>
+                            )}
+                        </div>
+                    )}
+                </div>
 
-                <ul className="max-h-96 overflow-y-auto list-decimal list-inside">
+                <ul className="max-h-96 overflow-y-auto divide-y divide-slate-100 pr-1">
                     {
                         listBarangPermintaan.map((item: any, index: number) => (
-                            <li key={index} className="my-1 py-1 px-2 w-fit rounded">
-                                {item.barang ? `${item.barang.name} (Stok: ${item.barang.stock})` : `Barang tidak ditemukan (ID: ${item.barang_id || '-'})`}
-                                <div className="text-xs [&>span]:mr-1">
-                                    <span className="badge badge-soft badge-primary">Jumlah Permintaan : {item.jumlahpermintaan}</span>
-                                    <span className="badge badge-soft badge-primary">Jumlah Realisasi : {item.jumlahrealisasi || '-'}</span>
-                                    <span className="badge badge-soft badge-primary">Satuan : {item.barang?.satuan || '-'}</span>
-                                    <span className="badge badge-soft badge-primary">Ket : {item.keterangan || '-'}</span>
+                            <li key={index} className="py-2.5 px-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 rounded-lg transition-colors">
+                                <div className="space-y-1">
+                                    <div className="font-semibold text-slate-800">
+                                        {item.barang ? `${item.barang.name} (Stok: ${item.barang.stock})` : `Barang tidak ditemukan (ID: ${item.barang_id || '-'})`}
+                                    </div>
+                                    <div className="text-xs [&>span]:mr-1">
+                                        <span className="badge badge-soft badge-primary">Minta : {item.jumlahpermintaan}</span>
+                                        <span className="badge badge-soft badge-primary">Realisasi : {item.jumlahrealisasi || '-'}</span>
+                                        <span className="badge badge-soft badge-primary">Satuan : {item.barang?.satuan || '-'}</span>
+                                        {item.keterangan && <span className="badge badge-soft badge-primary">Ket : {item.keterangan}</span>}
+                                    </div>
                                 </div>
+                                <button
+                                    type="button"
+                                    className="btn btn-xs sm:btn-sm btn-info btn-outline gap-1 self-start sm:self-center shrink-0"
+                                    title="Cetak Label Stiker Botol"
+                                    onClick={() => {
+                                        setSelectedLabelItem({
+                                            id: item.barang?.id || item.barang_id,
+                                            name: item.barang?.name || 'Reagen Kimia',
+                                            code: item.barang?.code,
+                                            satuan: item.barang?.satuan,
+                                            expired: item.barang?.expired,
+                                            diterima_tanggal: selectedPermintaan?.tgl_penyerahan || null,
+                                            diterima_penerima: selectedPermintaan?.tgl_penyerahan
+                                                ? (selectedPermintaan?.peminta?.name || selectedPermintaan?.peminta_name || selectedPermintaan?.pemohon)
+                                                : null,
+                                            category: 'reagen',
+                                            isFromPermintaan: true,
+                                        });
+                                        setLabelModalOpen(true);
+                                    }}
+                                >
+                                    <QrCode size={13} />
+                                    Cetak Label
+                                </button>
                             </li>
                         ))
                     }
@@ -369,6 +448,12 @@ export default function AdminPermintaanReagenPercepat() {
 
                 <button className="btn btn-primary mt-4" onClick={() => verifPetugasHandler(permintaanId!)}>Verifikasi</button>
             </ModalGeneral>
+
+            <LabelStikerModal
+                isOpen={labelModalOpen}
+                onClose={() => setLabelModalOpen(false)}
+                item={selectedLabelItem}
+            />
         </>
     )
 }
