@@ -76,22 +76,19 @@ export default function BudgetMappingTable() {
   const year = searchParams.get("year") || "2026";
   const tabId = searchParams.get("tab") || "171";
 
-  // Tab & Spreadsheet metadata
   const [tabTitle, setTabTitle] = useState("Budget Mapping Bulanan");
   const [spreadsheet, setSpreadsheet] = useState<SpreadsheetInfo | null>(null);
   const [sheetTab, setSheetTab] = useState<SheetTabInfo | null>(null);
   const [apiNotice, setApiNotice] = useState("");
 
-  // Data
   const [iksks, setIksks] = useState<IkskInfo[]>([]);
   const [localKegiatans, setLocalKegiatans] = useState<KegiatanItem[]>([]);
   const [initialKegiatans, setInitialKegiatans] = useState<KegiatanItem[]>([]);
 
-  // Navigation & Display Mode
   const [displayMode, setDisplayMode] = useState<"single" | "all">("single");
-  const [selectedKegiatanCodeForm, setSelectedKegiatanCodeForm] = useState<string>("");
+  const [selectedKegiatanCodeForm, setSelectedKegiatanCodeForm] =
+    useState<string>("");
 
-  // Status & Notifications
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -101,7 +98,8 @@ export default function BudgetMappingTable() {
   const spreadsheetUrl = useMemo(() => {
     if (!spreadsheet?.spreadsheet_id) return null;
     const gidParam =
-      sheetTab?.google_sheet_id !== undefined && sheetTab?.google_sheet_id !== null
+      sheetTab?.google_sheet_id !== undefined &&
+      sheetTab?.google_sheet_id !== null
         ? `#gid=${sheetTab.google_sheet_id}`
         : "";
     return `https://docs.google.com/spreadsheets/d/${spreadsheet.spreadsheet_id}/edit${gidParam}`;
@@ -115,7 +113,7 @@ export default function BudgetMappingTable() {
     try {
       const query = user?.id ? `?user_id=${user.id}` : "";
       const res = await api.get(
-        `${baseUrl}/api/budget-mapping/${year}/tab/${tabId}${query}`
+        `${baseUrl}/api/budget-mapping/${year}/tab/${tabId}${query}`,
       );
 
       if (res.data) {
@@ -137,13 +135,15 @@ export default function BudgetMappingTable() {
         }
 
         if (Array.isArray(data.kegiatans)) {
-          const cloned: KegiatanItem[] = JSON.parse(JSON.stringify(data.kegiatans));
+          const cloned: KegiatanItem[] = JSON.parse(
+            JSON.stringify(data.kegiatans),
+          );
           setLocalKegiatans(cloned);
           setInitialKegiatans(JSON.parse(JSON.stringify(data.kegiatans)));
 
           if (cloned.length > 0) {
             setSelectedKegiatanCodeForm((prev) =>
-              prev && prev !== "" ? prev : String(cloned[0].row_number)
+              prev && prev !== "" ? prev : String(cloned[0].row_number),
             );
           }
         }
@@ -152,7 +152,7 @@ export default function BudgetMappingTable() {
       const e = err as { response?: { data?: { message?: string } } };
       setErrorMsg(
         e.response?.data?.message ||
-          "Gagal memuat rincian tabel anggaran dari backend."
+          "Gagal memuat rincian tabel anggaran dari backend.",
       );
     } finally {
       setLoading(false);
@@ -167,10 +167,13 @@ export default function BudgetMappingTable() {
 
   // Overall budget summary
   const overallTotals = useMemo(() => {
-    const totalPagu = localKegiatans.reduce((sum, k) => sum + (Number(k.pagu) || 0), 0);
+    const totalPagu = localKegiatans.reduce(
+      (sum, k) => sum + (Number(k.pagu) || 0),
+      0,
+    );
     const totalRealisasi = localKegiatans.reduce(
       (sum, k) => sum + (Number(k.realisasi) || 0),
-      0
+      0,
     );
     const sisa = totalPagu - totalRealisasi;
     const serapan = totalPagu > 0 ? (totalRealisasi / totalPagu) * 100 : 0;
@@ -241,7 +244,7 @@ export default function BudgetMappingTable() {
   const handlePercentChange = (
     kegIndex: number,
     ikskNum: number,
-    newPercent: number
+    newPercent: number,
   ) => {
     setLocalKegiatans((prev) => {
       const next = [...prev];
@@ -331,8 +334,14 @@ export default function BudgetMappingTable() {
           const alloc = keg.allocations[ikskNumStr];
           const pctFraction = (alloc.percent || 0) / 100;
           updateList.push({ cell: alloc.pct_cell, value: pctFraction });
-          updateList.push({ cell: alloc.target_cell, value: alloc.target || 0 });
-          updateList.push({ cell: alloc.real_cell, value: alloc.realisasi || 0 });
+          updateList.push({
+            cell: alloc.target_cell,
+            value: alloc.target || 0,
+          });
+          updateList.push({
+            cell: alloc.real_cell,
+            value: alloc.realisasi || 0,
+          });
         });
 
         // Clear deleted allocations from Google Sheets
@@ -356,20 +365,20 @@ export default function BudgetMappingTable() {
 
       await api.post(
         `${baseUrl}/api/budget-mapping/${year}/tab/${tabId}/update`,
-        { user_id: user?.id, updates: updateList }
+        { user_id: user?.id, updates: updateList },
       );
 
       setSuccessMsg(
         targetKegIndex !== undefined
           ? `Alokasi kegiatan berhasil disimpan dan disinkronkan ke Google Sheets!`
-          : `Seluruh data alokasi (${updateList.length} sel) berhasil disimpan dan disinkronkan ke Google Sheets!`
+          : `Seluruh data alokasi (${updateList.length} sel) berhasil disimpan dan disinkronkan ke Google Sheets!`,
       );
       await loadTable();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       setErrorMsg(
         e.response?.data?.message ||
-          "Gagal menyimpan data ke Google Sheets. Pastikan akun service account memiliki wewenang Editor."
+          "Gagal menyimpan data ke Google Sheets. Pastikan akun service account memiliki wewenang Editor.",
       );
     } finally {
       setSaving(false);
@@ -381,14 +390,14 @@ export default function BudgetMappingTable() {
     return localKegiatans.findIndex(
       (k) =>
         String(k.row_number) === String(selectedKegiatanCodeForm) ||
-        k.code === selectedKegiatanCodeForm
+        k.code === selectedKegiatanCodeForm,
     );
   }, [localKegiatans, selectedKegiatanCodeForm]);
 
   const handlePrevKegiatan = () => {
     if (formKegiatanIndex > 0) {
       setSelectedKegiatanCodeForm(
-        String(localKegiatans[formKegiatanIndex - 1].row_number)
+        String(localKegiatans[formKegiatanIndex - 1].row_number),
       );
     }
   };
@@ -396,7 +405,7 @@ export default function BudgetMappingTable() {
   const handleNextKegiatan = () => {
     if (formKegiatanIndex < localKegiatans.length - 1) {
       setSelectedKegiatanCodeForm(
-        String(localKegiatans[formKegiatanIndex + 1].row_number)
+        String(localKegiatans[formKegiatanIndex + 1].row_number),
       );
     }
   };
@@ -408,9 +417,13 @@ export default function BudgetMappingTable() {
     const found = localKegiatans.find(
       (k) =>
         String(k.row_number) === String(selectedKegiatanCodeForm) ||
-        k.code === selectedKegiatanCodeForm
+        k.code === selectedKegiatanCodeForm,
     );
-    return found ? [found] : localKegiatans.length > 0 ? [localKegiatans[0]] : [];
+    return found
+      ? [found]
+      : localKegiatans.length > 0
+        ? [localKegiatans[0]]
+        : [];
   }, [displayMode, localKegiatans, selectedKegiatanCodeForm]);
 
   return (
@@ -444,7 +457,8 @@ export default function BudgetMappingTable() {
             </span>
           </div>
           <p className="mt-1 text-xs text-slate-500">
-            Kelola pagu, realisasi belanja, dan tentukan persentase alokasi tiap kegiatan ke sasaran IKSK.
+            Kelola pagu, realisasi belanja, dan tentukan persentase alokasi tiap
+            kegiatan ke sasaran IKSK.
           </p>
         </div>
 
@@ -467,9 +481,17 @@ export default function BudgetMappingTable() {
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-xs transition hover:border-slate-300 hover:bg-slate-50"
               title="Buka dokumen Google Spreadsheet secara langsung di tab baru"
             >
-              <Icon icon="solar:link-square-bold" width={16} className="text-emerald-600" />
+              <Icon
+                icon="solar:link-square-bold"
+                width={16}
+                className="text-emerald-600"
+              />
               <span>Buka Google Spreadsheet</span>
-              <Icon icon="solar:arrow-right-up-linear" width={14} className="text-slate-400" />
+              <Icon
+                icon="solar:arrow-right-up-linear"
+                width={14}
+                className="text-slate-400"
+              />
             </a>
           )}
 
@@ -503,7 +525,11 @@ export default function BudgetMappingTable() {
       {successMsg && (
         <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800">
           <div className="flex items-center gap-2">
-            <Icon icon="solar:check-circle-bold" width={18} className="text-emerald-600 shrink-0" />
+            <Icon
+              icon="solar:check-circle-bold"
+              width={18}
+              className="text-emerald-600 shrink-0"
+            />
             <span>{successMsg}</span>
           </div>
           <button
@@ -518,7 +544,11 @@ export default function BudgetMappingTable() {
       {errorMsg && (
         <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-800">
           <div className="flex items-center gap-2">
-            <Icon icon="solar:danger-triangle-bold" width={18} className="text-red-600 shrink-0" />
+            <Icon
+              icon="solar:danger-triangle-bold"
+              width={18}
+              className="text-red-600 shrink-0"
+            />
             <span>{errorMsg}</span>
           </div>
           <button
@@ -532,7 +562,11 @@ export default function BudgetMappingTable() {
 
       {apiNotice && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-medium text-amber-800">
-          <Icon icon="solar:info-circle-bold" width={18} className="text-amber-600 shrink-0" />
+          <Icon
+            icon="solar:info-circle-bold"
+            width={18}
+            className="text-amber-600 shrink-0"
+          />
           <span>{apiNotice}</span>
         </div>
       )}
@@ -560,7 +594,10 @@ export default function BudgetMappingTable() {
               {formatRp(overallTotals.totalRealisasi)}
             </span>
             <span className="text-[11px] text-slate-500">
-              Tingkat Serapan: <strong className="text-emerald-700">{formatPct(overallTotals.serapan)}</strong>
+              Tingkat Serapan:{" "}
+              <strong className="text-emerald-700">
+                {formatPct(overallTotals.serapan)}
+              </strong>
             </span>
           </div>
         </div>
@@ -581,7 +618,10 @@ export default function BudgetMappingTable() {
             className="w-full max-w-xl truncate rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-1.5 text-xs font-medium text-slate-800 transition focus:border-[#005baa] focus:bg-white focus:outline-none"
           >
             {localKegiatans.map((k, idx) => (
-              <option key={`opt-${k.code}-${k.row_number}`} value={String(k.row_number)}>
+              <option
+                key={`opt-${k.code}-${k.row_number}`}
+                value={String(k.row_number)}
+              >
                 {idx + 1}. [{k.code}] {k.name}
               </option>
             ))}
@@ -626,7 +666,10 @@ export default function BudgetMappingTable() {
               onClick={() => setDisplayMode("single")}
               className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#005baa] hover:bg-slate-50 transition shadow-xs"
             >
-              <Icon icon="solar:maximize-square-minimalistic-linear" width={14} />
+              <Icon
+                icon="solar:maximize-square-minimalistic-linear"
+                width={14}
+              />
               Kembali ke Mode Fokus (1 Kegiatan)
             </button>
           )}
@@ -637,7 +680,9 @@ export default function BudgetMappingTable() {
       {loading ? (
         <div className="p-16 text-center">
           <div className="inline-block h-7 w-7 animate-spin rounded-full border-3 border-solid border-[#005baa] border-r-transparent" />
-          <p className="mt-3 text-xs text-slate-500">Memuat formulir kegiatan...</p>
+          <p className="mt-3 text-xs text-slate-500">
+            Memuat formulir kegiatan...
+          </p>
         </div>
       ) : displayedKegiatans.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white p-12 text-center text-xs text-slate-500">
@@ -647,18 +692,18 @@ export default function BudgetMappingTable() {
         <div className="space-y-4">
           {displayedKegiatans.map((keg) => {
             const kegIndex = localKegiatans.findIndex(
-              (k) => k.row_number === keg.row_number
+              (k) => k.row_number === keg.row_number,
             );
             const allocationsList = Object.values(keg.allocations || {});
             const totalAllocPercent = allocationsList.reduce(
               (sum, a) => sum + (Number(a.percent) || 0),
-              0
+              0,
             );
             const allocatedIkskNums = new Set(
-              allocationsList.map((a) => a.iksk_number)
+              allocationsList.map((a) => a.iksk_number),
             );
             const availableIksksToAdd = iksks.filter(
-              (i) => !allocatedIkskNums.has(i.iksk_number)
+              (i) => !allocatedIkskNums.has(i.iksk_number),
             );
 
             const isComplete = Math.abs(totalAllocPercent - 100) < 0.01;
@@ -698,8 +743,8 @@ export default function BudgetMappingTable() {
                         isComplete
                           ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
                           : isOver
-                          ? "bg-red-50 text-red-800 border border-red-200"
-                          : "bg-amber-50 text-amber-800 border border-amber-200"
+                            ? "bg-red-50 text-red-800 border border-red-200"
+                            : "bg-amber-50 text-amber-800 border border-amber-200"
                       }`}
                     >
                       Alokasi IKSK: {formatPct(totalAllocPercent)}
@@ -726,7 +771,10 @@ export default function BudgetMappingTable() {
                       type="number"
                       value={keg.pagu}
                       onChange={(e) =>
-                        handlePaguChange(kegIndex, parseFloat(e.target.value) || 0)
+                        handlePaguChange(
+                          kegIndex,
+                          parseFloat(e.target.value) || 0,
+                        )
                       }
                       className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-bold text-slate-800 transition focus:border-[#005baa] focus:bg-white focus:outline-none"
                     />
@@ -743,13 +791,23 @@ export default function BudgetMappingTable() {
                       type="number"
                       value={keg.realisasi}
                       onChange={(e) =>
-                        handleRealisasiChange(kegIndex, parseFloat(e.target.value) || 0)
+                        handleRealisasiChange(
+                          kegIndex,
+                          parseFloat(e.target.value) || 0,
+                        )
                       }
                       className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-bold text-slate-800 transition focus:border-[#005baa] focus:bg-white focus:outline-none"
                     />
                     <div className="mt-1 flex items-center justify-between text-[11px]">
-                      <span className="font-medium text-emerald-700">{formatRp(keg.realisasi)}</span>
-                      <span className="text-slate-500">Serapan: <strong className="text-emerald-700">{formatPct(serapanKeg)}</strong></span>
+                      <span className="font-medium text-emerald-700">
+                        {formatRp(keg.realisasi)}
+                      </span>
+                      <span className="text-slate-500">
+                        Serapan:{" "}
+                        <strong className="text-emerald-700">
+                          {formatPct(serapanKeg)}
+                        </strong>
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -762,7 +820,8 @@ export default function BudgetMappingTable() {
                         Pembagian Alokasi ke IKSK
                       </h4>
                       <p className="text-[11px] text-slate-500">
-                        Alokasikan anggaran belanja kegiatan ini ke satu atau beberapa indikator IKSK.
+                        Alokasikan anggaran belanja kegiatan ini ke satu atau
+                        beberapa indikator IKSK.
                       </p>
                     </div>
 
@@ -784,7 +843,8 @@ export default function BudgetMappingTable() {
                           </option>
                           {availableIksksToAdd.map((i) => (
                             <option key={i.iksk_number} value={i.iksk_number}>
-                              IKSK {i.iksk_number} - {i.full_title.slice(0, 48)}...
+                              IKSK {i.iksk_number} - {i.full_title.slice(0, 48)}
+                              ...
                             </option>
                           ))}
                         </select>
@@ -794,13 +854,15 @@ export default function BudgetMappingTable() {
 
                   {allocationsList.length === 0 ? (
                     <div className="rounded-lg border border-dashed border-slate-200 bg-white p-6 text-center text-xs text-slate-400">
-                      Belum ada pembagian IKSK untuk kegiatan ini. Gunakan menu dropdown &quot;+ Tambah Alokasi IKSK&quot; di atas untuk menambahkan.
+                      Belum ada pembagian IKSK untuk kegiatan ini. Gunakan menu
+                      dropdown &quot;+ Tambah Alokasi IKSK&quot; di atas untuk
+                      menambahkan.
                     </div>
                   ) : (
                     <div className="space-y-2">
                       {allocationsList.map((alloc) => {
                         const ikskInfo = iksks.find(
-                          (i) => i.iksk_number === alloc.iksk_number
+                          (i) => i.iksk_number === alloc.iksk_number,
                         );
 
                         return (
@@ -817,7 +879,8 @@ export default function BudgetMappingTable() {
                                   className="truncate text-xs font-semibold text-slate-800"
                                   title={ikskInfo?.full_title}
                                 >
-                                  {ikskInfo?.full_title || `IKSK ${alloc.iksk_number}`}
+                                  {ikskInfo?.full_title ||
+                                    `IKSK ${alloc.iksk_number}`}
                                 </span>
                               </div>
                               <div className="mt-0.5 flex items-center gap-2 text-[10px] text-slate-400 font-mono">
@@ -846,7 +909,7 @@ export default function BudgetMappingTable() {
                                       handlePercentChange(
                                         kegIndex,
                                         alloc.iksk_number,
-                                        parseFloat(e.target.value) || 0
+                                        parseFloat(e.target.value) || 0,
                                       )
                                     }
                                     className="w-full rounded-md border border-slate-200 bg-slate-50/50 px-2 py-1 pr-5 text-xs font-bold text-slate-800 text-right transition focus:border-[#005baa] focus:bg-white focus:outline-none"
@@ -883,13 +946,16 @@ export default function BudgetMappingTable() {
                                 onClick={() =>
                                   handleRemoveIkskAllocation(
                                     kegIndex,
-                                    alloc.iksk_number
+                                    alloc.iksk_number,
                                   )
                                 }
                                 title="Hapus alokasi IKSK ini"
                                 className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 transition"
                               >
-                                <Icon icon="solar:trash-bin-trash-bold" width={16} />
+                                <Icon
+                                  icon="solar:trash-bin-trash-bold"
+                                  width={16}
+                                />
                               </button>
                             </div>
                           </div>
@@ -907,9 +973,16 @@ export default function BudgetMappingTable() {
       {/* Spreadsheet Notice Link Footer */}
       <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
-          <Icon icon="solar:info-circle-linear" width={18} className="text-slate-500 shrink-0" />
+          <Icon
+            icon="solar:info-circle-linear"
+            width={18}
+            className="text-slate-500 shrink-0"
+          />
           <span>
-            Halaman ini khusus untuk penginputan alokasi dan realisasi anggaran. Untuk melihat rekapitulasi data secara menyeluruh, Anda dapat mengakses menu <strong>Rekapitulasi Anggaran</strong> di sidebar atau langsung membuka dokumen spreadsheet.
+            Halaman ini khusus untuk penginputan alokasi dan realisasi anggaran.
+            Untuk melihat rekapitulasi data secara menyeluruh, Anda dapat
+            mengakses menu <strong>Rekapitulasi Anggaran</strong> di sidebar
+            atau langsung membuka dokumen spreadsheet.
           </span>
         </div>
         {spreadsheetUrl && (

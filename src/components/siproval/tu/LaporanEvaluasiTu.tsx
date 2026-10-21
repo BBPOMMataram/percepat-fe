@@ -57,6 +57,40 @@ type MonthData = {
   summary: ReportSummary;
 };
 
+type RapkReportRow = {
+  no: number | string;
+  sasaran_strategis: string;
+  nama_indikator: string;
+  volume: {
+    target_2029: string;
+    target_2026: string;
+    target_tw: string;
+    realisasi: string;
+    capaian_tw: string;
+    capaian_2026: string;
+    capaian_2029: string;
+  };
+  anggaran: {
+    pagu_raw: number;
+    pagu_formatted: string;
+    realisasi_raw: number;
+    realisasi_formatted: string;
+    capaian_raw: number;
+    capaian_formatted: string;
+  };
+};
+
+type RapkMonthData = {
+  month_key: string;
+  month_label: string;
+  rows: RapkReportRow[];
+  summary: {
+    total_pagu_formatted: string;
+    total_realisasi_formatted: string;
+    total_capaian_anggaran_formatted: string;
+  };
+};
+
 type MatriksRekomendasiRow = {
   id: number;
   year?: number;
@@ -210,6 +244,10 @@ export default function LaporanEvaluasiTu() {
   const [sectionTitle, setSectionTitle] = useState(
     "Capaian Kinerja dan Realisasi Anggaran per Output perbulan Sampai Juni Tahun 2026"
   );
+  const [rapkMonthsData, setRapkMonthsData] = useState<RapkMonthData[]>([]);
+  const [rapkSectionTitle, setRapkSectionTitle] = useState(
+    "Capaian Rencana Aksi Perjanjian Kinerja dan Realisasi Anggaran per bulan Sampai Juni Tahun 2026"
+  );
 
   const printAreaRef = useRef<HTMLDivElement>(null);
 
@@ -229,6 +267,13 @@ export default function LaporanEvaluasiTu() {
         const mData: MonthData[] = d.months_data || [];
         setMonthsData(mData);
         setQuarterLabel(d.quarter_label || d.month_label || "");
+
+        if (Array.isArray(d.rapk_months_data)) {
+          setRapkMonthsData(d.rapk_months_data);
+        }
+        if (d.rapk_section_title) {
+          setRapkSectionTitle(d.rapk_section_title);
+        }
 
         if (Array.isArray(d.matriks_rekomendasi)) {
           setMatriksRekomendasi(d.matriks_rekomendasi);
@@ -798,14 +843,265 @@ export default function LaporanEvaluasiTu() {
       y = (autoTableDoc.lastAutoTable?.finalY || y) + 10;
     });
 
-    // Section 2: Matriks Rekomendasi in PDF
+    // Penutup Berita Acara RO & Tanda Tangan in PDF
+    if (y > 150) {
+      doc.addPage();
+      y = 14;
+    }
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(
+      "Demikian berita acara ini dibuat untuk dapat dipergunakan sebagaimana mestinya.",
+      marginX,
+      y
+    );
+    y += 8;
+
+    const colWidth = contentWidth / 2;
+    doc.text(`${pihak2Jabatan},`, marginX + 25, y);
+    doc.text(`${pihak1Jabatan},`, marginX + colWidth + 25, y);
+    y += 20;
+
+    doc.setFont("helvetica", "bold");
+    doc.text(pihak2Nama, marginX + 25, y);
+    doc.text(pihak1Nama, marginX + colWidth + 25, y);
+    y += 4;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text(`NIP. ${pihak2Nip}`, marginX + 25, y);
+    doc.text(`NIP. ${pihak1Nip}`, marginX + colWidth + 25, y);
+
+    // Section 2: Berita Acara Realisasi RAPK in PDF
+    if (rapkMonthsData.length > 0) {
+      doc.addPage();
+      y = 14;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10.5);
+      doc.text("BERITA ACARA EVALUASI INTERNAL", pageWidth / 2, y, {
+        align: "center",
+      });
+      y += 5;
+      doc.text("BALAI BESAR POM DI MATARAM", pageWidth / 2, y, {
+        align: "center",
+      });
+      y += 5;
+      doc.text(baHeaderMonthYear.toUpperCase(), pageWidth / 2, y, {
+        align: "center",
+      });
+      y += 8;
+
+      doc.setFontSize(9.5);
+      doc.text(openingLines, marginX, y);
+      y += openingLines.length * 4.5 + 1.5;
+
+      doc.text("1.", marginX, y);
+      doc.text("Nama", labelX, y);
+      doc.text(":", colonX, y);
+      doc.text(pihak1Nama, valueX, y);
+      y += 4.5;
+      doc.text("NIP", labelX, y);
+      doc.text(":", colonX, y);
+      doc.text(pihak1Nip, valueX, y);
+      y += 4.5;
+      doc.text("Jabatan", labelX, y);
+      doc.text(":", colonX, y);
+      doc.text(pihak1Jabatan, valueX, y);
+      y += 6.5;
+
+      doc.text("2.", marginX, y);
+      doc.text("Nama", labelX, y);
+      doc.text(":", colonX, y);
+      doc.text(pihak2Nama, valueX, y);
+      y += 4.5;
+      doc.text("NIP", labelX, y);
+      doc.text(":", colonX, y);
+      doc.text(pihak2Nip, valueX, y);
+      y += 4.5;
+      doc.text("Jabatan", labelX, y);
+      doc.text(":", colonX, y);
+      doc.text(pihak2Jabatan, valueX, y);
+      y += 7;
+
+      doc.text(evalLines, marginX, y);
+      y += evalLines.length * 4.5 + 2;
+
+      doc.text("2.", marginX, y);
+      doc.text(rapkSectionTitle, labelX, y);
+      y += 6;
+
+      rapkMonthsData.forEach((rm, rmIdx) => {
+        if (rmIdx > 0) {
+          doc.addPage();
+          y = 14;
+        }
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.text(rm.month_label, marginX, y);
+        doc.setFont("helvetica", "normal");
+        y += 3;
+
+        const rapkBodyRows: any[] = rm.rows.map((r) => [
+          r.no,
+          r.sasaran_strategis,
+          r.nama_indikator,
+          r.volume.target_2029 || "-",
+          r.volume.target_2026 || "-",
+          r.volume.target_tw || "-",
+          r.volume.realisasi || "-",
+          r.volume.capaian_tw || "-",
+          r.volume.capaian_2026 || "-",
+          r.volume.capaian_2029 || "-",
+          r.anggaran.pagu_formatted || "-",
+          r.anggaran.realisasi_formatted || "-",
+          r.anggaran.capaian_formatted || "-",
+        ]);
+
+        if (rm.summary) {
+          rapkBodyRows.push([
+            {
+              content: "JUMLAH",
+              colSpan: 3,
+              styles: { halign: "center", fontStyle: "bold" },
+            },
+            { content: "-", styles: { halign: "center" } },
+            { content: "-", styles: { halign: "center" } },
+            { content: "-", styles: { halign: "center" } },
+            { content: "-", styles: { halign: "center" } },
+            { content: "-", styles: { halign: "center" } },
+            { content: "-", styles: { halign: "center" } },
+            { content: "-", styles: { halign: "center" } },
+            {
+              content: rm.summary.total_pagu_formatted,
+              styles: { halign: "center", fontStyle: "bold" },
+            },
+            {
+              content: rm.summary.total_realisasi_formatted,
+              styles: { halign: "center", fontStyle: "bold" },
+            },
+            {
+              content: rm.summary.total_capaian_anggaran_formatted,
+              styles: { halign: "center", fontStyle: "bold" },
+            },
+          ]);
+        }
+
+        autoTable(doc, {
+          startY: y,
+          margin: { left: marginX, right: marginX },
+          theme: "grid",
+          head: [
+            [
+              { content: "No.", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+              { content: "Sasaran Strategis", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+              { content: "Nama Indikator", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+              { content: "Volume", colSpan: 7, styles: { halign: "center", valign: "middle" } },
+              { content: "Anggaran per Sasaran Strategis", colSpan: 3, styles: { halign: "center", valign: "middle" } },
+            ],
+            [
+              { content: "Target 2029", styles: { halign: "center", valign: "middle" } },
+              { content: "Target 2026", styles: { halign: "center", valign: "middle" } },
+              { content: `Target ${rm.month_label.replace(/.*Bulan\s+/i, "")}`, styles: { halign: "center", valign: "middle" } },
+              { content: "Realisasi", styles: { halign: "center", valign: "middle" } },
+              { content: "Capaian (%)/\ntarget TW", styles: { halign: "center", valign: "middle" } },
+              { content: "Capaian (%)/\ntarget 2026", styles: { halign: "center", valign: "middle" } },
+              { content: "Capaian (%)/\ntarget 2029", styles: { halign: "center", valign: "middle" } },
+              { content: "Pagu (Rp)", styles: { halign: "center", valign: "middle" } },
+              { content: "Realisasi (Rp)", styles: { halign: "center", valign: "middle" } },
+              { content: "Capaian (%)", styles: { halign: "center", valign: "middle" } },
+            ],
+            [
+              { content: "a", styles: { halign: "center" } },
+              { content: "b", styles: { halign: "center" } },
+              { content: "c", styles: { halign: "center" } },
+              { content: "d", styles: { halign: "center" } },
+              { content: "e", styles: { halign: "center" } },
+              { content: "f", styles: { halign: "center" } },
+              { content: "g", styles: { halign: "center" } },
+              { content: "h=(g/f*100)", styles: { halign: "center" } },
+              { content: "i=(g/e*100)", styles: { halign: "center" } },
+              { content: "j=(g/d*100)", styles: { halign: "center" } },
+              { content: "k", styles: { halign: "center" } },
+              { content: "l", styles: { halign: "center" } },
+              { content: "m=(l/k*100)", styles: { halign: "center" } },
+            ],
+          ],
+          body: rapkBodyRows,
+          headStyles: {
+            fillColor: [189, 215, 238],
+            textColor: [0, 0, 0],
+            fontStyle: "bold",
+            fontSize: 7.5,
+            lineColor: [0, 0, 0],
+            lineWidth: 0.25,
+            cellPadding: 1.2,
+          },
+          bodyStyles: {
+            fillColor: [255, 255, 255],
+            textColor: [0, 0, 0],
+            fontSize: 7.2,
+            lineColor: [0, 0, 0],
+            lineWidth: 0.2,
+            cellPadding: 1.2,
+            valign: "middle",
+          },
+          columnStyles: {
+            0: { cellWidth: 8, halign: "center" },
+            1: { cellWidth: 38, halign: "left" },
+            2: { cellWidth: 50, halign: "left" },
+            3: { cellWidth: 14, halign: "center" },
+            4: { cellWidth: 14, halign: "center" },
+            5: { cellWidth: 14, halign: "center" },
+            6: { cellWidth: 14, halign: "center" },
+            7: { cellWidth: 15, halign: "center" },
+            8: { cellWidth: 15, halign: "center" },
+            9: { cellWidth: 15, halign: "center" },
+            10: { cellWidth: 26, halign: "center" },
+            11: { cellWidth: 26, halign: "center" },
+            12: { cellWidth: 16, halign: "center" },
+          },
+        });
+
+        const rapkAutoDoc = doc as jsPDF & { lastAutoTable?: { finalY: number } };
+        y = (rapkAutoDoc.lastAutoTable?.finalY || y) + 10;
+      });
+
+      if (y > 150) {
+        doc.addPage();
+        y = 14;
+      }
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(
+        "Demikian berita acara ini dibuat untuk dapat dipergunakan sebagaimana mestinya.",
+        marginX,
+        y
+      );
+      y += 8;
+
+      doc.text(`${pihak2Jabatan},`, marginX + 25, y);
+      doc.text(`${pihak1Jabatan},`, marginX + colWidth + 25, y);
+      y += 20;
+
+      doc.setFont("helvetica", "bold");
+      doc.text(pihak2Nama, marginX + 25, y);
+      doc.text(pihak1Nama, marginX + colWidth + 25, y);
+      y += 4;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.text(`NIP. ${pihak2Nip}`, marginX + 25, y);
+      doc.text(`NIP. ${pihak1Nip}`, marginX + colWidth + 25, y);
+    }
+
+    // Section 3: Matriks Rekomendasi in PDF
     if (matriksRekomendasi.length > 0) {
       doc.addPage();
       y = 14;
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10.5);
-      doc.text("2.", marginX, y);
+      doc.text("3.", marginX, y);
       doc.text(matriksTitle, labelX, y);
       y += 5;
 
@@ -1145,7 +1441,7 @@ export default function LaporanEvaluasiTu() {
 
             <div className="md:col-span-2">
               <label className="block font-semibold text-slate-700">
-                Judul Poin 1 (Tabel Capaian Anggaran & Volume)
+                Judul Poin 1 (Tabel Realisasi RO & Anggaran per Output)
               </label>
               <input
                 type="text"
@@ -1157,7 +1453,19 @@ export default function LaporanEvaluasiTu() {
 
             <div className="md:col-span-2">
               <label className="block font-semibold text-slate-700">
-                Judul Poin 2 (Matriks Rekomendasi)
+                Judul Poin 2 (Tabel Realisasi RAPK & Anggaran per Sasaran)
+              </label>
+              <input
+                type="text"
+                value={rapkSectionTitle}
+                onChange={(e) => setRapkSectionTitle(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-slate-800"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block font-semibold text-slate-700">
+                Judul Poin 3 (Matriks Rekomendasi Triwulan)
               </label>
               <input
                 type="text"
@@ -1465,11 +1773,320 @@ export default function LaporanEvaluasiTu() {
             ))}
           </div>
 
-          {/* SECTION 2: Matriks Rekomendasi Triwulan */}
-          <div className="mt-12 space-y-3">
-            <div className="flex items-center justify-between text-xs sm:text-[13.5px] leading-snug text-black">
+          {/* Penutup Berita Acara Realisasi RO */}
+          <div className="mt-8 text-xs sm:text-[13px] leading-relaxed text-black">
+            <p className="mb-4">
+              Demikian berita acara ini dibuat untuk dapat dipergunakan sebagaimana mestinya.
+            </p>
+            <div className="grid grid-cols-2 gap-8 pt-4 text-center">
+              <div>
+                <p className="font-normal">{pihak2Jabatan},</p>
+                <div className="h-16" />
+                <p className="font-bold underline">{pihak2Nama}</p>
+                <p className="text-[11px]">NIP. {pihak2Nip}</p>
+              </div>
+              <div>
+                <p className="font-normal">{pihak1Jabatan},</p>
+                <div className="h-16" />
+                <p className="font-bold underline">{pihak1Nama}</p>
+                <p className="text-[11px]">NIP. {pihak1Nip}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* BAGIAN 2: BERITA ACARA EVALUASI INTERNAL - REALISASI RAPK */}
+          <div className="mt-16 pt-8 border-t-2 border-dashed border-slate-300 print:border-none print:pt-0 print:break-before-page">
+            {/* Document Title Berita Acara RAPK */}
+            <div className="mb-6 text-center leading-snug text-black">
+              <p className="text-sm sm:text-[15px] font-normal uppercase">
+                BERITA ACARA EVALUASI INTERNAL
+              </p>
+              <p className="text-sm sm:text-[15px] font-normal uppercase">
+                BALAI BESAR POM DI MATARAM
+              </p>
+              <p className="text-sm sm:text-[15px] font-normal uppercase">
+                {baHeaderMonthYear}
+              </p>
+            </div>
+
+            {/* Opening Paragraph */}
+            <p className="mb-3 text-xs sm:text-[13.5px] leading-relaxed text-black">
+              {baOpeningText}
+            </p>
+
+            {/* Signatories 1 & 2 */}
+            <div className="mb-4 space-y-3 text-xs sm:text-[13.5px] leading-snug text-black">
+              <div className="grid grid-cols-[28px_90px_14px_1fr]">
+                <span>1.</span>
+                <span>Nama</span>
+                <span>:</span>
+                <span>{pihak1Nama}</span>
+
+                <span />
+                <span>NIP</span>
+                <span>:</span>
+                <span>{pihak1Nip}</span>
+
+                <span />
+                <span>Jabatan</span>
+                <span>:</span>
+                <span>{pihak1Jabatan}</span>
+              </div>
+
+              <div className="grid grid-cols-[28px_90px_14px_1fr]">
+                <span>2.</span>
+                <span>Nama</span>
+                <span>:</span>
+                <span>{pihak2Nama}</span>
+
+                <span />
+                <span>NIP</span>
+                <span>:</span>
+                <span>{pihak2Nip}</span>
+
+                <span />
+                <span>Jabatan</span>
+                <span>:</span>
+                <span>{pihak2Jabatan}</span>
+              </div>
+            </div>
+
+            {/* Evaluation Statement */}
+            <p className="mb-4 text-xs sm:text-[13.5px] leading-relaxed text-black">
+              Telah melaksanakan evaluasi internal terhadap realisasi anggaran dan
+              capaian kinerja pada Balai Besar POM di Mataram periode {periodeText}{" "}
+              dengan hasil sebagai berikut :
+            </p>
+
+            {/* SECTION 2: Capaian Rencana Aksi Perjanjian Kinerja (RAPK) */}
+            <div className="mb-3 text-xs sm:text-[13.5px] leading-snug text-black">
               <div className="grid grid-cols-[28px_1fr]">
                 <span>2.</span>
+                <div>
+                  <p className="font-normal">{rapkSectionTitle}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Render 3 Months of RAPK Tables */}
+            <div className="space-y-8">
+              {rapkMonthsData.map((rm) => (
+                <div key={rm.month_key} className="space-y-2">
+                  <div className="font-bold text-xs sm:text-[13px] text-black">
+                    {rm.month_label}
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse border border-black text-[11.5px] text-black">
+                      <thead>
+                        <tr className="bg-[#bdd7ee] font-bold text-black">
+                          <th
+                            rowSpan={2}
+                            className="w-10 border border-black px-2 py-2 text-center align-middle"
+                          >
+                            No.
+                          </th>
+                          <th
+                            rowSpan={2}
+                            className="w-48 border border-black px-3 py-2 text-center align-middle"
+                          >
+                            Sasaran Strategis
+                          </th>
+                          <th
+                            rowSpan={2}
+                            className="min-w-[180px] border border-black px-3 py-2 text-center align-middle"
+                          >
+                            Nama Indikator
+                          </th>
+                          <th
+                            colSpan={7}
+                            className="border border-black px-2 py-1.5 text-center align-middle"
+                          >
+                            Volume
+                          </th>
+                          <th
+                            colSpan={3}
+                            className="border border-black px-2 py-1.5 text-center align-middle"
+                          >
+                            Anggaran per Sasaran Strategis
+                          </th>
+                        </tr>
+                        <tr className="bg-[#bdd7ee] font-bold text-black text-[11px]">
+                          <th className="w-16 border border-black px-1.5 py-1 text-center align-middle">
+                            Target 2029
+                          </th>
+                          <th className="w-16 border border-black px-1.5 py-1 text-center align-middle">
+                            Target 2026
+                          </th>
+                          <th className="w-16 border border-black px-1.5 py-1 text-center align-middle">
+                            Target {rm.month_label.replace(/.*Bulan\s+/i, "")}
+                          </th>
+                          <th className="w-16 border border-black px-1.5 py-1 text-center align-middle">
+                            Realisasi
+                          </th>
+                          <th className="w-20 border border-black px-1.5 py-1 text-center align-middle leading-tight">
+                            Capaian (%) /<br />target TW
+                          </th>
+                          <th className="w-20 border border-black px-1.5 py-1 text-center align-middle leading-tight">
+                            Capaian (%) /<br />target 2026
+                          </th>
+                          <th className="w-20 border border-black px-1.5 py-1 text-center align-middle leading-tight">
+                            Capaian (%) /<br />target 2029
+                          </th>
+                          <th className="w-24 border border-black px-2 py-1 text-center align-middle">
+                            Pagu (Rp)
+                          </th>
+                          <th className="w-24 border border-black px-2 py-1 text-center align-middle">
+                            Realisasi (Rp)
+                          </th>
+                          <th className="w-20 border border-black px-1.5 py-1 text-center align-middle">
+                            Capaian (%)
+                          </th>
+                        </tr>
+                        <tr className="bg-[#bdd7ee] text-[10.5px] font-bold text-black">
+                          <th className="border border-black px-1 py-0.5 text-center">a</th>
+                          <th className="border border-black px-1 py-0.5 text-center">b</th>
+                          <th className="border border-black px-1 py-0.5 text-center">c</th>
+                          <th className="border border-black px-1 py-0.5 text-center">d</th>
+                          <th className="border border-black px-1 py-0.5 text-center">e</th>
+                          <th className="border border-black px-1 py-0.5 text-center">f</th>
+                          <th className="border border-black px-1 py-0.5 text-center">g</th>
+                          <th className="border border-black px-1 py-0.5 text-center leading-none">
+                            h=(g/f*100)
+                          </th>
+                          <th className="border border-black px-1 py-0.5 text-center leading-none">
+                            i=(g/e*100)
+                          </th>
+                          <th className="border border-black px-1 py-0.5 text-center leading-none">
+                            j=(g/d*100)
+                          </th>
+                          <th className="border border-black px-1 py-0.5 text-center">k</th>
+                          <th className="border border-black px-1 py-0.5 text-center">l</th>
+                          <th className="border border-black px-1 py-0.5 text-center leading-none">
+                            m=(l/k*100)
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rm.rows.map((row, rIdx) => (
+                          <tr key={rIdx} className="hover:bg-slate-50/80">
+                            <td className="border border-black px-2 py-1 text-center align-middle">
+                              {row.no}
+                            </td>
+                            <td className="border border-black px-2 py-1 text-left align-middle leading-snug">
+                              {row.sasaran_strategis}
+                            </td>
+                            <td className="border border-black px-2.5 py-1 text-left align-middle leading-snug">
+                              {row.nama_indikator}
+                            </td>
+                            <td className="border border-black px-1.5 py-1 text-center align-middle">
+                              {row.volume.target_2029 || "-"}
+                            </td>
+                            <td className="border border-black px-1.5 py-1 text-center align-middle">
+                              {row.volume.target_2026 || "-"}
+                            </td>
+                            <td className="border border-black px-1.5 py-1 text-center align-middle">
+                              {row.volume.target_tw || "-"}
+                            </td>
+                            <td className="border border-black px-1.5 py-1 text-center align-middle">
+                              {row.volume.realisasi || "-"}
+                            </td>
+                            <td className="border border-black px-1.5 py-1 text-center align-middle">
+                              {row.volume.capaian_tw || "-"}
+                            </td>
+                            <td className="border border-black px-1.5 py-1 text-center align-middle">
+                              {row.volume.capaian_2026 || "-"}
+                            </td>
+                            <td className="border border-black px-1.5 py-1 text-center align-middle">
+                              {row.volume.capaian_2029 || "-"}
+                            </td>
+                            <td className="border border-black px-2 py-1 text-center align-middle font-medium">
+                              {row.anggaran.pagu_formatted || "-"}
+                            </td>
+                            <td className="border border-black px-2 py-1 text-center align-middle font-medium">
+                              {row.anggaran.realisasi_formatted || "-"}
+                            </td>
+                            <td className="border border-black px-1.5 py-1 text-center align-middle">
+                              {row.anggaran.capaian_formatted || "-"}
+                            </td>
+                          </tr>
+                        ))}
+
+                        {/* Baris Total / Summary RAPK */}
+                        {rm.summary && (
+                          <tr className="bg-[#bdd7ee]/40 font-bold text-black border-t-2 border-black">
+                            <td
+                              colSpan={3}
+                              className="border border-black px-3 py-2 text-center align-middle font-bold uppercase tracking-wider"
+                            >
+                              JUMLAH
+                            </td>
+                            <td className="border border-black px-1.5 py-2 text-center align-middle">
+                              -
+                            </td>
+                            <td className="border border-black px-1.5 py-2 text-center align-middle">
+                              -
+                            </td>
+                            <td className="border border-black px-1.5 py-2 text-center align-middle">
+                              -
+                            </td>
+                            <td className="border border-black px-1.5 py-2 text-center align-middle">
+                              -
+                            </td>
+                            <td className="border border-black px-1.5 py-2 text-center align-middle">
+                              -
+                            </td>
+                            <td className="border border-black px-1.5 py-2 text-center align-middle">
+                              -
+                            </td>
+                            <td className="border border-black px-1.5 py-2 text-center align-middle">
+                              -
+                            </td>
+                            <td className="border border-black px-2 py-2 text-center align-middle font-bold">
+                              {rm.summary.total_pagu_formatted}
+                            </td>
+                            <td className="border border-black px-2 py-2 text-center align-middle font-bold">
+                              {rm.summary.total_realisasi_formatted}
+                            </td>
+                            <td className="border border-black px-1.5 py-2 text-center align-middle font-bold">
+                              {rm.summary.total_capaian_anggaran_formatted}
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Penutup Berita Acara RAPK */}
+            <div className="mt-8 text-xs sm:text-[13px] leading-relaxed text-black">
+              <p className="mb-4">
+                Demikian berita acara ini dibuat untuk dapat dipergunakan sebagaimana mestinya.
+              </p>
+              <div className="grid grid-cols-2 gap-8 pt-4 text-center">
+                <div>
+                  <p className="font-normal">{pihak2Jabatan},</p>
+                  <div className="h-16" />
+                  <p className="font-bold underline">{pihak2Nama}</p>
+                  <p className="text-[11px]">NIP. {pihak2Nip}</p>
+                </div>
+                <div>
+                  <p className="font-normal">{pihak1Jabatan},</p>
+                  <div className="h-16" />
+                  <p className="font-bold underline">{pihak1Nama}</p>
+                  <p className="text-[11px]">NIP. {pihak1Nip}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 3: Matriks Rekomendasi Triwulan */}
+          <div className="mt-16 pt-8 border-t-2 border-dashed border-slate-300 print:border-none print:pt-0 print:break-before-page space-y-3">
+            <div className="flex items-center justify-between text-xs sm:text-[13.5px] leading-snug text-black">
+              <div className="grid grid-cols-[28px_1fr]">
+                <span>3.</span>
                 <div>
                   <p className="font-normal">{matriksTitle}</p>
                 </div>
@@ -1567,6 +2184,24 @@ export default function LaporanEvaluasiTu() {
                 </table>
               </div>
             )}
+
+            {/* Penutup & Tanda Tangan Matriks Rekomendasi */}
+            <div className="mt-8 text-xs sm:text-[13px] leading-relaxed text-black">
+              <div className="grid grid-cols-2 gap-8 pt-4 text-center">
+                <div>
+                  <p className="font-normal">{pihak2Jabatan},</p>
+                  <div className="h-16" />
+                  <p className="font-bold underline">{pihak2Nama}</p>
+                  <p className="text-[11px]">NIP. {pihak2Nip}</p>
+                </div>
+                <div>
+                  <p className="font-normal">{pihak1Jabatan},</p>
+                  <div className="h-16" />
+                  <p className="font-bold underline">{pihak1Nama}</p>
+                  <p className="text-[11px]">NIP. {pihak1Nip}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

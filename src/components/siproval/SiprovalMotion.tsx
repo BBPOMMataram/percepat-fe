@@ -2,12 +2,7 @@
 
 import React, { useRef, useState } from "react";
 import Link from "next/link";
-import {
-  motion,
-  useScroll,
-  useTransform,
-  MotionValue,
-} from "framer-motion";
+import { motion, useScroll, useTransform, MotionValue } from "framer-motion";
 
 export const SIPROVAL_EASE: [number, number, number, number] = [
   0.215, 0.61, 0.355, 1,
@@ -396,9 +391,6 @@ export function SiprovalWordScrub({
   );
 }
 
-/**
- * Interactive Card with Cursor-Following Radial Spotlight
- */
 export function SiprovalSpotlightCard({
   children,
   className = "",
@@ -458,4 +450,3 @@ export function SiprovalSpotlightCard({
     </motion.div>
   );
 }
-
