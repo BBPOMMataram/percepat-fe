@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
@@ -35,13 +35,6 @@ type ReportRow = {
   };
 };
 
-type MonthOption = {
-  key: string;
-  label: string;
-  short: string;
-  budget_tab_id: number;
-};
-
 type ReportSummary = {
   total_output: number;
   total_pagu_raw: number;
@@ -50,6 +43,81 @@ type ReportSummary = {
   total_realisasi_formatted: string;
   total_capaian_anggaran_raw: number;
   total_capaian_anggaran_formatted: string;
+};
+
+type MonthData = {
+  month_key: string;
+  month_label: string;
+  short: string;
+  budget_tab_id?: number;
+  budget_tab_title?: string;
+  ro_spreadsheet?: string;
+  ro_tab?: string;
+  rows: ReportRow[];
+  summary: ReportSummary;
+};
+
+type RapkReportRow = {
+  no: number | string;
+  sasaran_strategis: string;
+  nama_indikator: string;
+  volume: {
+    target_2029: string;
+    target_2026: string;
+    target_tw: string;
+    realisasi: string;
+    capaian_tw: string;
+    capaian_2026: string;
+    capaian_2029: string;
+  };
+  anggaran: {
+    pagu_raw: number;
+    pagu_formatted: string;
+    realisasi_raw: number;
+    realisasi_formatted: string;
+    capaian_raw: number;
+    capaian_formatted: string;
+  };
+};
+
+type RapkMonthData = {
+  month_key: string;
+  month_label: string;
+  rows: RapkReportRow[];
+  summary: {
+    total_pagu_formatted: string;
+    total_realisasi_formatted: string;
+    total_capaian_anggaran_formatted: string;
+  };
+};
+
+type MatriksRekomendasiRow = {
+  id: number;
+  year?: number;
+  quarter?: string;
+  no: number;
+  indikator: string;
+  kendala: string | null;
+  rekomendasi: string | null;
+  rencana_tindak_lanjut: string | null;
+  timeline: string | null;
+  is_risiko: string | null;
+  kode_resiko: string | null;
+  peristiwa_resiko: string | null;
+  progres_selesai?: string | null;
+  progres_belum?: string | null;
+};
+
+type QuarterOption = {
+  key: string;
+  name: string;
+  label: string;
+  short: string;
+  end_month: string;
+  months: string[];
+  header_month_year: string;
+  periode_text: string;
+  section_title: string;
 };
 
 type ReportSources = {
@@ -62,33 +130,103 @@ type ReportSources = {
 export default function LaporanEvaluasiTu() {
   const { user } = useSelector((state: RootState) => state.auth);
   const searchParams = useSearchParams();
-  const initialMonth = (searchParams.get("month") || "APRIL").toUpperCase();
+  const router = useRouter();
 
-  const [selectedMonth, setSelectedMonth] = useState<string>(initialMonth);
-  const [monthLabel, setMonthLabel] = useState<string>("Bulan April 2026");
-  const [availableMonths, setAvailableMonths] = useState<MonthOption[]>([
-    { key: "JANUARI", label: "Bulan Januari 2026", short: "Januari", budget_tab_id: 171 },
-    { key: "FEBRUARI", label: "Sampai Bulan Februari 2026", short: "Februari", budget_tab_id: 172 },
-    { key: "MARET", label: "Sampai Bulan Maret 2026", short: "Maret", budget_tab_id: 173 },
-    { key: "APRIL", label: "Bulan April 2026", short: "April", budget_tab_id: 175 },
-    { key: "MEI", label: "Sampai Bulan Mei 2026", short: "Mei", budget_tab_id: 176 },
-    { key: "JUNI", label: "Sampai Bulan Juni 2026", short: "Juni", budget_tab_id: 177 },
-    { key: "JULI", label: "Sampai Bulan Juli 2026", short: "Juli", budget_tab_id: 178 },
+  // Parameter from URL: either ?quarter=TW2 or ?month=JUNI
+  const paramQuarter = searchParams.get("quarter")?.toUpperCase();
+  const paramMonth = searchParams.get("month")?.toUpperCase();
+
+  const resolveInitialQuarter = () => {
+    if (paramQuarter && ["TW1", "TW2", "TW3", "TW4"].includes(paramQuarter)) {
+      return paramQuarter;
+    }
+    if (paramMonth) {
+      if (["JANUARI", "FEBRUARI", "MARET"].includes(paramMonth)) return "TW1";
+      if (["APRIL", "MEI", "JUNI"].includes(paramMonth)) return "TW2";
+      if (["JULI", "AGUSTUS", "SEPTEMBER"].includes(paramMonth)) return "TW3";
+      if (["OKTOBER", "NOVEMBER", "DESEMBER"].includes(paramMonth)) return "TW4";
+    }
+    return "TW2";
+  };
+
+  const [selectedQuarter, setSelectedQuarter] = useState<string>(
+    resolveInitialQuarter()
+  );
+
+  const [availableQuarters, setAvailableQuarters] = useState<QuarterOption[]>([
+    {
+      key: "TW1",
+      name: "Triwulan I",
+      label: "Triwulan I (Januari - Maret 2026)",
+      short: "TW I (Jan-Mar)",
+      end_month: "MARET",
+      months: ["JANUARI", "FEBRUARI", "MARET"],
+      header_month_year: "MARET TAHUN 2026",
+      periode_text: "Januari sampai dengan Maret 2026",
+      section_title:
+        "Capaian Kinerja dan Realisasi Anggaran per Output perbulan Sampai Maret Tahun 2026",
+    },
+    {
+      key: "TW2",
+      name: "Triwulan II",
+      label: "Triwulan II (April - Juni 2026)",
+      short: "TW II (Apr-Jun)",
+      end_month: "JUNI",
+      months: ["APRIL", "MEI", "JUNI"],
+      header_month_year: "JUNI TAHUN 2026",
+      periode_text: "April sampai dengan Juni 2026",
+      section_title:
+        "Capaian Kinerja dan Realisasi Anggaran per Output perbulan Sampai Juni Tahun 2026",
+    },
+    {
+      key: "TW3",
+      name: "Triwulan III",
+      label: "Triwulan III (Juli - September 2026)",
+      short: "TW III (Jul-Sep)",
+      end_month: "SEPTEMBER",
+      months: ["JULI", "AGUSTUS", "SEPTEMBER"],
+      header_month_year: "SEPTEMBER TAHUN 2026",
+      periode_text: "Juli sampai dengan September 2026",
+      section_title:
+        "Capaian Kinerja dan Realisasi Anggaran per Output perbulan Sampai September Tahun 2026",
+    },
+    {
+      key: "TW4",
+      name: "Triwulan IV",
+      label: "Triwulan IV (Oktober - Desember 2026)",
+      short: "TW IV (Okt-Des)",
+      end_month: "DESEMBER",
+      months: ["OKTOBER", "NOVEMBER", "DESEMBER"],
+      header_month_year: "DESEMBER TAHUN 2026",
+      periode_text: "Oktober sampai dengan Desember 2026",
+      section_title:
+        "Capaian Kinerja dan Realisasi Anggaran per Output perbulan Sampai Desember Tahun 2026",
+    },
   ]);
-  const [rows, setRows] = useState<ReportRow[]>([]);
+
+  const [quarterLabel, setQuarterLabel] = useState<string>(
+    "Triwulan II (April - Juni 2026)"
+  );
+  const [monthsData, setMonthsData] = useState<MonthData[]>([]);
+  const [matriksRekomendasi, setMatriksRekomendasi] = useState<
+    MatriksRekomendasiRow[]
+  >([]);
+  const [matriksTitle, setMatriksTitle] = useState<string>(
+    "Matriks Rekomendasi Triwulan TW II 2026"
+  );
   const [summary, setSummary] = useState<ReportSummary | null>(null);
   const [sources, setSources] = useState<ReportSources>({
     volume_spreadsheet: "Realisasi RO 2026",
     volume_tab: "Realisasi RO (Tab 155)",
     anggaran_spreadsheet: "Maping Anggaran 2026",
-    anggaran_tab: "April 2026 (Tab 175)",
+    anggaran_tab: "April, Mei, Juni 2026",
   });
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [showConfig, setShowConfig] = useState<boolean>(false);
 
   // Editable Berita Acara Metadata matching the template screenshot
-  const [baHeaderMonthYear, setBaHeaderMonthYear] = useState("MARET TAHUN 2026");
+  const [baHeaderMonthYear, setBaHeaderMonthYear] = useState("JUNI TAHUN 2026");
   const [baOpeningText, setBaOpeningText] = useState(
     "Pada hari ini rabu, tanggal Lima Belas Juli Tahun Dua Ribu Dua Puluh Enam, bertempat di Balai Besar POM di Mataram, kami yang bertandatangan dibawah ini :"
   );
@@ -106,30 +244,65 @@ export default function LaporanEvaluasiTu() {
   const [sectionTitle, setSectionTitle] = useState(
     "Capaian Kinerja dan Realisasi Anggaran per Output perbulan Sampai Juni Tahun 2026"
   );
+  const [rapkMonthsData, setRapkMonthsData] = useState<RapkMonthData[]>([]);
+  const [rapkSectionTitle, setRapkSectionTitle] = useState(
+    "Capaian Rencana Aksi Perjanjian Kinerja dan Realisasi Anggaran per bulan Sampai Juni Tahun 2026"
+  );
 
   const printAreaRef = useRef<HTMLDivElement>(null);
 
-  const fetchReport = async (month: string) => {
+  const fetchReport = async (quarterKey: string) => {
     setLoading(true);
     setError("");
     try {
       const query = user?.id
-        ? `?month=${encodeURIComponent(month)}&user_id=${encodeURIComponent(String(user.id))}`
-        : `?month=${encodeURIComponent(month)}`;
-      const res = await api.get(`${baseUrl}/api/tu/laporan-evaluasi/2026${query}`);
+        ? `?quarter=${encodeURIComponent(quarterKey)}&user_id=${encodeURIComponent(String(user.id))}`
+        : `?quarter=${encodeURIComponent(quarterKey)}`;
+      const res = await api.get(
+        `${baseUrl}/api/tu/laporan-evaluasi/2026${query}`
+      );
 
       if (res.data?.data) {
         const d = res.data.data;
-        setRows(d.rows || []);
-        setMonthLabel(d.month_label || `Bulan ${month} 2026`);
-        if (Array.isArray(d.available_months) && d.available_months.length > 0) {
-          setAvailableMonths(d.available_months);
+        const mData: MonthData[] = d.months_data || [];
+        setMonthsData(mData);
+        setQuarterLabel(d.quarter_label || d.month_label || "");
+
+        if (Array.isArray(d.rapk_months_data)) {
+          setRapkMonthsData(d.rapk_months_data);
         }
+        if (d.rapk_section_title) {
+          setRapkSectionTitle(d.rapk_section_title);
+        }
+
+        if (Array.isArray(d.matriks_rekomendasi)) {
+          setMatriksRekomendasi(d.matriks_rekomendasi);
+        }
+        if (d.matriks_rekomendasi_title) {
+          setMatriksTitle(d.matriks_rekomendasi_title);
+        }
+
+        if (Array.isArray(d.available_quarters) && d.available_quarters.length > 0) {
+          setAvailableQuarters(d.available_quarters);
+        }
+
         if (d.summary) {
           setSummary(d.summary);
         }
+
         if (d.sources) {
           setSources(d.sources);
+        }
+
+        // Auto-update text defaults based on active quarter
+        if (d.header_month_year) {
+          setBaHeaderMonthYear(d.header_month_year);
+        }
+        if (d.periode_text) {
+          setPeriodeText(d.periode_text);
+        }
+        if (d.section_title) {
+          setSectionTitle(d.section_title);
         }
       }
     } catch (err: unknown) {
@@ -145,29 +318,137 @@ export default function LaporanEvaluasiTu() {
 
   useEffect(() => {
     if (user?.id) {
-      fetchReport(selectedMonth);
+      fetchReport(selectedQuarter);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMonth, user?.id]);
+  }, [selectedQuarter, user?.id]);
 
-  // Build HTML string for Word / Excel export
+  const handleSelectQuarter = (qKey: string) => {
+    setSelectedQuarter(qKey);
+    const qObj = availableQuarters.find((q) => q.key === qKey);
+    if (qObj) {
+      setBaHeaderMonthYear(qObj.header_month_year);
+      setPeriodeText(qObj.periode_text);
+      setSectionTitle(qObj.section_title);
+      setMatriksTitle(`Matriks Rekomendasi Triwulan ${qObj.name} 2026`);
+    }
+    router.replace(`/siproval/tu/laporan-evaluasi?quarter=${qKey}`);
+  };
+
+  // Build HTML string for Word / Excel export containing all 3 months of Section 1 + Section 2 Matriks Rekomendasi
   const buildDocumentHtml = (forExcel = false) => {
-    const rowsHtml = rows
+    const monthsTablesHtml = monthsData
       .map(
-        (r) => `
-        <tr>
-          <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.no}</td>
-          <td style="border:1px solid #000; padding:4px 6px; text-align:left; vertical-align:middle; white-space:nowrap;">${r.kode_ro}</td>
-          <td style="border:1px solid #000; padding:4px 8px; text-align:left; vertical-align:middle;">${r.nama_ro}</td>
-          <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.volume.target_formatted}</td>
-          <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.volume.realisasi_formatted}</td>
-          <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.volume.capaian_formatted}</td>
-          <td style="border:1px solid #000; padding:4px 8px; text-align:center; vertical-align:middle;">${r.anggaran.pagu_formatted}</td>
-          <td style="border:1px solid #000; padding:4px 8px; text-align:center; vertical-align:middle;">${r.anggaran.realisasi_formatted}</td>
-          <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.anggaran.capaian_formatted}</td>
-        </tr>`
+        (m, mIdx) => `
+        <div style="font-weight:bold; font-size:11pt; margin-top:${mIdx > 0 ? "24px" : "8px"}; margin-bottom:6px;">
+          ${m.month_label}
+        </div>
+        <table class="ba-table" ${forExcel ? 'border="1"' : ""}>
+          <thead>
+            <tr>
+              <th rowspan="2" class="header-cell" style="width:38px;">No.</th>
+              <th rowspan="2" colspan="2" class="header-cell">Program/Kegiatan/Ouput</th>
+              <th colspan="3" class="header-cell">Volume</th>
+              <th colspan="3" class="header-cell">Anggaran</th>
+            </tr>
+            <tr>
+              <th class="header-cell" style="width:82px;">Target 2026</th>
+              <th class="header-cell" style="width:78px;">Realisasi</th>
+              <th class="header-cell" style="width:96px;">Capaian/<br/>Progress (%)</th>
+              <th class="header-cell" style="width:115px;">Pagu awal (Rp)</th>
+              <th class="header-cell" style="width:115px;">Realisasi (Rp)</th>
+              <th class="header-cell" style="width:92px;">Capaian (%)</th>
+            </tr>
+            <tr>
+              <th class="sub-code-cell">a</th>
+              <th colspan="2" class="sub-code-cell">b</th>
+              <th class="sub-code-cell">c</th>
+              <th class="sub-code-cell">d</th>
+              <th class="sub-code-cell">e= (d/c*100)</th>
+              <th class="sub-code-cell">f</th>
+              <th class="sub-code-cell">g</th>
+              <th class="sub-code-cell">h= (g/f*100)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${m.rows
+              .map(
+                (r) => `
+              <tr>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.no}</td>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:left; vertical-align:middle; white-space:nowrap;">${r.kode_ro}</td>
+                <td style="border:1px solid #000; padding:4px 8px; text-align:left; vertical-align:middle;">${r.nama_ro}</td>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.volume.target_formatted}</td>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.volume.realisasi_formatted}</td>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.volume.capaian_formatted}</td>
+                <td style="border:1px solid #000; padding:4px 8px; text-align:center; vertical-align:middle;">${r.anggaran.pagu_formatted}</td>
+                <td style="border:1px solid #000; padding:4px 8px; text-align:center; vertical-align:middle;">${r.anggaran.realisasi_formatted}</td>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.anggaran.capaian_formatted}</td>
+              </tr>`
+              )
+              .join("")}
+            ${
+              m.summary
+                ? `
+              <tr style="background-color:#bdd7ee; font-weight:bold;">
+                <td colspan="3" style="border:1px solid #000; padding:5px 6px; text-align:center;">JUMLAH</td>
+                <td style="border:1px solid #000; padding:5px 6px; text-align:center;">-</td>
+                <td style="border:1px solid #000; padding:5px 6px; text-align:center;">-</td>
+                <td style="border:1px solid #000; padding:5px 6px; text-align:center;">-</td>
+                <td style="border:1px solid #000; padding:5px 8px; text-align:center;">${m.summary.total_pagu_formatted}</td>
+                <td style="border:1px solid #000; padding:5px 8px; text-align:center;">${m.summary.total_realisasi_formatted}</td>
+                <td style="border:1px solid #000; padding:5px 6px; text-align:center;">${m.summary.total_capaian_anggaran_formatted}%</td>
+              </tr>`
+                : ""
+            }
+          </tbody>
+        </table>
+      `
       )
       .join("");
+
+    const matriksHtml = `
+      <div style="font-size:11pt; margin-top:28px; margin-bottom:8px;">
+        2.&nbsp;&nbsp;&nbsp;&nbsp;${matriksTitle}
+      </div>
+      <table class="ba-table" ${forExcel ? 'border="1"' : ""}>
+        <thead>
+          <tr>
+            <th class="matriks-header-cell" style="width:36px;">No.</th>
+            <th class="matriks-header-cell" style="width:160px;">Indikator</th>
+            <th class="matriks-header-cell" style="width:200px;">Kendala / Permasalahan</th>
+            <th class="matriks-header-cell" style="width:200px;">Rekomendasi</th>
+            <th class="matriks-header-cell" style="width:200px;">Rencana Tindak Lanjut</th>
+            <th class="matriks-header-cell" style="width:75px;">Timeline</th>
+            <th class="matriks-header-cell" style="width:85px;">Apakah Sudah dikelola sebagai risiko (Y/T)</th>
+            <th class="matriks-header-cell" style="width:65px;">Kode Resiko</th>
+            <th class="matriks-header-cell" style="width:170px;">Peristiwa Resiko</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${matriksRekomendasi
+            .map((item) => {
+              const isY = item.is_risiko === "Y" || item.is_risiko === "Ya";
+              const kode = isY ? (item.kode_resiko || "-") : "-";
+              const peristiwa = isY ? (item.peristiwa_resiko || "-") : "-";
+              return `
+            <tr>
+              <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:top;">${item.no}</td>
+              <td style="border:1px solid #000; padding:4px 8px; text-align:left; vertical-align:top; font-weight:bold;">${item.indikator}</td>
+              <td style="border:1px solid #000; padding:4px 8px; text-align:left; vertical-align:top; white-space:pre-line;">${item.kendala || "-"}</td>
+              <td style="border:1px solid #000; padding:4px 8px; text-align:left; vertical-align:top; white-space:pre-line;">${item.rekomendasi || "-"}</td>
+              <td style="border:1px solid #000; padding:4px 8px; text-align:left; vertical-align:top; white-space:pre-line;">${item.rencana_tindak_lanjut || "-"}</td>
+              <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:top; white-space:nowrap;">${item.timeline || "-"}</td>
+              <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:top; font-weight:bold;">${isY ? "Y" : "T"}</td>
+              <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:top;">${kode}</td>
+              <td style="border:1px solid #000; padding:4px 8px; text-align:left; vertical-align:top; white-space:pre-line;">${peristiwa}</td>
+            </tr>
+          `;
+            })
+            .join("")}
+        </tbody>
+      </table>
+    `;
 
     return `
       <html xmlns:o="urn:schemas-microsoft-com:office:office"
@@ -176,7 +457,7 @@ export default function LaporanEvaluasiTu() {
             xmlns="http://www.w3.org/TR/REC-html40">
       <head>
         <meta charset="utf-8" />
-        <title>Berita Acara Evaluasi Internal - ${monthLabel}</title>
+        <title>Berita Acara Evaluasi Internal - ${quarterLabel}</title>
         <style>
           @page {
             size: 29.7cm 21cm;
@@ -192,6 +473,7 @@ export default function LaporanEvaluasiTu() {
             width: 100%;
             border-collapse: collapse;
             font-size: 10pt;
+            margin-bottom: 16px;
           }
           .header-cell {
             background-color: #bdd7ee;
@@ -200,6 +482,15 @@ export default function LaporanEvaluasiTu() {
             text-align: center;
             vertical-align: middle;
             padding: 5px 6px;
+          }
+          .matriks-header-cell {
+            background-color: #ffc000;
+            border: 1px solid #000000;
+            font-weight: bold;
+            text-align: center;
+            vertical-align: middle;
+            padding: 5px 6px;
+            color: #000000;
           }
           .sub-code-cell {
             background-color: #bdd7ee;
@@ -265,42 +556,13 @@ export default function LaporanEvaluasiTu() {
           Telah melaksanakan evaluasi internal terhadap realisasi anggaran dan capaian kinerja pada Balai Besar POM di Mataram periode ${periodeText} dengan hasil sebagai berikut :
         </p>
 
-        <div style="margin-bottom:6px;">
+        <div style="margin-bottom:8px;">
           <div>1.&nbsp;&nbsp;&nbsp;&nbsp;${sectionTitle}</div>
-          <div style="margin-left:28px; font-weight:bold;">${monthLabel}</div>
         </div>
 
-        <table class="ba-table" ${forExcel ? 'border="1"' : ""}>
-          <thead>
-            <tr>
-              <th rowspan="2" class="header-cell" style="width:38px;">No.</th>
-              <th rowspan="2" colspan="2" class="header-cell">Program/Kegiatan/Ouput</th>
-              <th colspan="3" class="header-cell">Volume</th>
-              <th colspan="3" class="header-cell">Anggaran</th>
-            </tr>
-            <tr>
-              <th class="header-cell" style="width:82px;">Target 2026</th>
-              <th class="header-cell" style="width:78px;">Realisasi</th>
-              <th class="header-cell" style="width:96px;">Capaian/<br/>Progress (%)</th>
-              <th class="header-cell" style="width:115px;">Pagu awal (Rp)</th>
-              <th class="header-cell" style="width:115px;">Realisasi (Rp)</th>
-              <th class="header-cell" style="width:92px;">Capaian (%)</th>
-            </tr>
-            <tr>
-              <th class="sub-code-cell">a</th>
-              <th colspan="2" class="sub-code-cell">b</th>
-              <th class="sub-code-cell">c</th>
-              <th class="sub-code-cell">d</th>
-              <th class="sub-code-cell">e= (d/c*100)</th>
-              <th class="sub-code-cell">f</th>
-              <th class="sub-code-cell">g</th>
-              <th class="sub-code-cell">h= (g/f*100)</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rowsHtml}
-          </tbody>
-        </table>
+        ${monthsTablesHtml}
+
+        ${matriksRekomendasi.length > 0 ? matriksHtml : ""}
       </body>
       </html>
     `;
@@ -314,7 +576,7 @@ export default function LaporanEvaluasiTu() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Berita_Acara_Evaluasi_Internal_${selectedMonth}_2026.doc`;
+    a.download = `Berita_Acara_Evaluasi_Internal_${selectedQuarter}_2026.doc`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -329,7 +591,7 @@ export default function LaporanEvaluasiTu() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Laporan_Evaluasi_Internal_TU_${selectedMonth}_2026.xls`;
+    a.download = `Laporan_Evaluasi_Internal_TU_${selectedQuarter}_2026.xls`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -417,80 +679,23 @@ export default function LaporanEvaluasiTu() {
     // Section 1 Heading
     doc.text("1.", marginX, y);
     doc.text(sectionTitle, labelX, y);
-    y += 4.5;
-    doc.setFont("helvetica", "bold");
-    doc.text(monthLabel, labelX, y);
-    doc.setFont("helvetica", "normal");
-    y += 3;
+    y += 6;
 
-    // Table with 3-row header matching the official template
-    autoTable(doc, {
-      startY: y,
-      margin: { left: marginX, right: marginX },
-      theme: "grid",
-      head: [
-        [
-          {
-            content: "No.",
-            rowSpan: 2,
-            styles: { halign: "center", valign: "middle" },
-          },
-          {
-            content: "Program/Kegiatan/Ouput",
-            rowSpan: 2,
-            colSpan: 2,
-            styles: { halign: "center", valign: "middle" },
-          },
-          {
-            content: "Volume",
-            colSpan: 3,
-            styles: { halign: "center", valign: "middle" },
-          },
-          {
-            content: "Anggaran",
-            colSpan: 3,
-            styles: { halign: "center", valign: "middle" },
-          },
-        ],
-        [
-          { content: "Target 2026", styles: { halign: "center", valign: "middle" } },
-          { content: "Realisasi", styles: { halign: "center", valign: "middle" } },
-          {
-            content: "Capaian/\nProgress (%)",
-            styles: { halign: "center", valign: "middle" },
-          },
-          {
-            content: "Pagu awal (Rp)",
-            styles: { halign: "center", valign: "middle" },
-          },
-          {
-            content: "Realisasi (Rp)",
-            styles: { halign: "center", valign: "middle" },
-          },
-          { content: "Capaian (%)", styles: { halign: "center", valign: "middle" } },
-        ],
-        [
-          { content: "a", styles: { halign: "center", valign: "middle" } },
-          {
-            content: "b",
-            colSpan: 2,
-            styles: { halign: "center", valign: "middle" },
-          },
-          { content: "c", styles: { halign: "center", valign: "middle" } },
-          { content: "d", styles: { halign: "center", valign: "middle" } },
-          {
-            content: "e= (d/c*100)",
-            styles: { halign: "center", valign: "middle" },
-          },
-          { content: "f", styles: { halign: "center", valign: "middle" } },
-          { content: "g", styles: { halign: "center", valign: "middle" } },
-          {
-            content: "h= (g/f*100)",
-            styles: { halign: "center", valign: "middle" },
-          },
-        ],
-      ],
-      body: rows.map((r) => [
+    // Loop through each of the 3 months in Section 1
+    monthsData.forEach((m, mIdx) => {
+      if (mIdx > 0) {
+        doc.addPage();
+        y = 14;
+      }
+
+      // Month Title
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.text(m.month_label, marginX, y);
+      doc.setFont("helvetica", "normal");
+      y += 3;
+
+      const bodyRows: any[] = m.rows.map((r) => [
         r.no,
         r.kode_ro,
         r.nama_ro,
@@ -500,39 +705,485 @@ export default function LaporanEvaluasiTu() {
         r.anggaran.pagu_formatted,
         r.anggaran.realisasi_formatted,
         r.anggaran.capaian_formatted,
-      ]),
-      headStyles: {
-        fillColor: [189, 215, 238], // #bdd7ee
-        textColor: [0, 0, 0],
-        fontStyle: "bold",
-        fontSize: 8.5,
-        lineColor: [0, 0, 0],
-        lineWidth: 0.25,
-        cellPadding: 1.6,
-      },
-      bodyStyles: {
-        fillColor: [255, 255, 255],
-        textColor: [0, 0, 0],
-        fontSize: 8.2,
-        lineColor: [0, 0, 0],
-        lineWidth: 0.2,
-        cellPadding: 1.5,
-        valign: "middle",
-      },
-      columnStyles: {
-        0: { cellWidth: 10, halign: "center" },
-        1: { cellWidth: 20, halign: "left" },
-        2: { cellWidth: 97, halign: "left" },
-        3: { cellWidth: 21, halign: "center" },
-        4: { cellWidth: 21, halign: "center" },
-        5: { cellWidth: 24, halign: "center" },
-        6: { cellWidth: 27, halign: "center" },
-        7: { cellWidth: 27, halign: "center" },
-        8: { cellWidth: 22, halign: "center" },
-      },
+      ]);
+
+      if (m.summary) {
+        bodyRows.push([
+          {
+            content: "JUMLAH",
+            colSpan: 3,
+            styles: { halign: "center", fontStyle: "bold" },
+          },
+          { content: "-", styles: { halign: "center" } },
+          { content: "-", styles: { halign: "center" } },
+          { content: "-", styles: { halign: "center" } },
+          {
+            content: m.summary.total_pagu_formatted,
+            styles: { halign: "center", fontStyle: "bold" },
+          },
+          {
+            content: m.summary.total_realisasi_formatted,
+            styles: { halign: "center", fontStyle: "bold" },
+          },
+          {
+            content: `${m.summary.total_capaian_anggaran_formatted}%`,
+            styles: { halign: "center", fontStyle: "bold" },
+          },
+        ]);
+      }
+
+      autoTable(doc, {
+        startY: y,
+        margin: { left: marginX, right: marginX },
+        theme: "grid",
+        head: [
+          [
+            {
+              content: "No.",
+              rowSpan: 2,
+              styles: { halign: "center", valign: "middle" },
+            },
+            {
+              content: "Program/Kegiatan/Ouput",
+              rowSpan: 2,
+              colSpan: 2,
+              styles: { halign: "center", valign: "middle" },
+            },
+            {
+              content: "Volume",
+              colSpan: 3,
+              styles: { halign: "center", valign: "middle" },
+            },
+            {
+              content: "Anggaran",
+              colSpan: 3,
+              styles: { halign: "center", valign: "middle" },
+            },
+          ],
+          [
+            {
+              content: "Target 2026",
+              styles: { halign: "center", valign: "middle" },
+            },
+            {
+              content: "Realisasi",
+              styles: { halign: "center", valign: "middle" },
+            },
+            {
+              content: "Capaian/\nProgress (%)",
+              styles: { halign: "center", valign: "middle" },
+            },
+            {
+              content: "Pagu awal (Rp)",
+              styles: { halign: "center", valign: "middle" },
+            },
+            {
+              content: "Realisasi (Rp)",
+              styles: { halign: "center", valign: "middle" },
+            },
+            {
+              content: "Capaian (%)",
+              styles: { halign: "center", valign: "middle" },
+            },
+          ],
+          [
+            { content: "a", styles: { halign: "center", valign: "middle" } },
+            {
+              content: "b",
+              colSpan: 2,
+              styles: { halign: "center", valign: "middle" },
+            },
+            { content: "c", styles: { halign: "center", valign: "middle" } },
+            { content: "d", styles: { halign: "center", valign: "middle" } },
+            {
+              content: "e= (d/c*100)",
+              styles: { halign: "center", valign: "middle" },
+            },
+            { content: "f", styles: { halign: "center", valign: "middle" } },
+            { content: "g", styles: { halign: "center", valign: "middle" } },
+            {
+              content: "h= (g/f*100)",
+              styles: { halign: "center", valign: "middle" },
+            },
+          ],
+        ],
+        body: bodyRows,
+        headStyles: {
+          fillColor: [189, 215, 238],
+          textColor: [0, 0, 0],
+          fontStyle: "bold",
+          fontSize: 8.5,
+          lineColor: [0, 0, 0],
+          lineWidth: 0.25,
+          cellPadding: 1.6,
+        },
+        bodyStyles: {
+          fillColor: [255, 255, 255],
+          textColor: [0, 0, 0],
+          fontSize: 8.2,
+          lineColor: [0, 0, 0],
+          lineWidth: 0.2,
+          cellPadding: 1.5,
+          valign: "middle",
+        },
+        columnStyles: {
+          0: { cellWidth: 10, halign: "center" },
+          1: { cellWidth: 20, halign: "left" },
+          2: { cellWidth: 97, halign: "left" },
+          3: { cellWidth: 21, halign: "center" },
+          4: { cellWidth: 21, halign: "center" },
+          5: { cellWidth: 24, halign: "center" },
+          6: { cellWidth: 27, halign: "center" },
+          7: { cellWidth: 27, halign: "center" },
+          8: { cellWidth: 22, halign: "center" },
+        },
+      });
+
+      const autoTableDoc = doc as jsPDF & { lastAutoTable?: { finalY: number } };
+      y = (autoTableDoc.lastAutoTable?.finalY || y) + 10;
     });
 
-    doc.save(`Berita_Acara_Evaluasi_Internal_${selectedMonth}_2026.pdf`);
+    // Penutup Berita Acara RO & Tanda Tangan in PDF
+    if (y > 150) {
+      doc.addPage();
+      y = 14;
+    }
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(
+      "Demikian berita acara ini dibuat untuk dapat dipergunakan sebagaimana mestinya.",
+      marginX,
+      y
+    );
+    y += 8;
+
+    const colWidth = contentWidth / 2;
+    doc.text(`${pihak2Jabatan},`, marginX + 25, y);
+    doc.text(`${pihak1Jabatan},`, marginX + colWidth + 25, y);
+    y += 20;
+
+    doc.setFont("helvetica", "bold");
+    doc.text(pihak2Nama, marginX + 25, y);
+    doc.text(pihak1Nama, marginX + colWidth + 25, y);
+    y += 4;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text(`NIP. ${pihak2Nip}`, marginX + 25, y);
+    doc.text(`NIP. ${pihak1Nip}`, marginX + colWidth + 25, y);
+
+    // Section 2: Berita Acara Realisasi RAPK in PDF
+    if (rapkMonthsData.length > 0) {
+      doc.addPage();
+      y = 14;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10.5);
+      doc.text("BERITA ACARA EVALUASI INTERNAL", pageWidth / 2, y, {
+        align: "center",
+      });
+      y += 5;
+      doc.text("BALAI BESAR POM DI MATARAM", pageWidth / 2, y, {
+        align: "center",
+      });
+      y += 5;
+      doc.text(baHeaderMonthYear.toUpperCase(), pageWidth / 2, y, {
+        align: "center",
+      });
+      y += 8;
+
+      doc.setFontSize(9.5);
+      doc.text(openingLines, marginX, y);
+      y += openingLines.length * 4.5 + 1.5;
+
+      doc.text("1.", marginX, y);
+      doc.text("Nama", labelX, y);
+      doc.text(":", colonX, y);
+      doc.text(pihak1Nama, valueX, y);
+      y += 4.5;
+      doc.text("NIP", labelX, y);
+      doc.text(":", colonX, y);
+      doc.text(pihak1Nip, valueX, y);
+      y += 4.5;
+      doc.text("Jabatan", labelX, y);
+      doc.text(":", colonX, y);
+      doc.text(pihak1Jabatan, valueX, y);
+      y += 6.5;
+
+      doc.text("2.", marginX, y);
+      doc.text("Nama", labelX, y);
+      doc.text(":", colonX, y);
+      doc.text(pihak2Nama, valueX, y);
+      y += 4.5;
+      doc.text("NIP", labelX, y);
+      doc.text(":", colonX, y);
+      doc.text(pihak2Nip, valueX, y);
+      y += 4.5;
+      doc.text("Jabatan", labelX, y);
+      doc.text(":", colonX, y);
+      doc.text(pihak2Jabatan, valueX, y);
+      y += 7;
+
+      doc.text(evalLines, marginX, y);
+      y += evalLines.length * 4.5 + 2;
+
+      doc.text("2.", marginX, y);
+      doc.text(rapkSectionTitle, labelX, y);
+      y += 6;
+
+      rapkMonthsData.forEach((rm, rmIdx) => {
+        if (rmIdx > 0) {
+          doc.addPage();
+          y = 14;
+        }
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.text(rm.month_label, marginX, y);
+        doc.setFont("helvetica", "normal");
+        y += 3;
+
+        const rapkBodyRows: any[] = rm.rows.map((r) => [
+          r.no,
+          r.sasaran_strategis,
+          r.nama_indikator,
+          r.volume.target_2029 || "-",
+          r.volume.target_2026 || "-",
+          r.volume.target_tw || "-",
+          r.volume.realisasi || "-",
+          r.volume.capaian_tw || "-",
+          r.volume.capaian_2026 || "-",
+          r.volume.capaian_2029 || "-",
+          r.anggaran.pagu_formatted || "-",
+          r.anggaran.realisasi_formatted || "-",
+          r.anggaran.capaian_formatted || "-",
+        ]);
+
+        if (rm.summary) {
+          rapkBodyRows.push([
+            {
+              content: "JUMLAH",
+              colSpan: 3,
+              styles: { halign: "center", fontStyle: "bold" },
+            },
+            { content: "-", styles: { halign: "center" } },
+            { content: "-", styles: { halign: "center" } },
+            { content: "-", styles: { halign: "center" } },
+            { content: "-", styles: { halign: "center" } },
+            { content: "-", styles: { halign: "center" } },
+            { content: "-", styles: { halign: "center" } },
+            { content: "-", styles: { halign: "center" } },
+            {
+              content: rm.summary.total_pagu_formatted,
+              styles: { halign: "center", fontStyle: "bold" },
+            },
+            {
+              content: rm.summary.total_realisasi_formatted,
+              styles: { halign: "center", fontStyle: "bold" },
+            },
+            {
+              content: rm.summary.total_capaian_anggaran_formatted,
+              styles: { halign: "center", fontStyle: "bold" },
+            },
+          ]);
+        }
+
+        autoTable(doc, {
+          startY: y,
+          margin: { left: marginX, right: marginX },
+          theme: "grid",
+          head: [
+            [
+              { content: "No.", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+              { content: "Sasaran Strategis", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+              { content: "Nama Indikator", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+              { content: "Volume", colSpan: 7, styles: { halign: "center", valign: "middle" } },
+              { content: "Anggaran per Sasaran Strategis", colSpan: 3, styles: { halign: "center", valign: "middle" } },
+            ],
+            [
+              { content: "Target 2029", styles: { halign: "center", valign: "middle" } },
+              { content: "Target 2026", styles: { halign: "center", valign: "middle" } },
+              { content: `Target ${rm.month_label.replace(/.*Bulan\s+/i, "")}`, styles: { halign: "center", valign: "middle" } },
+              { content: "Realisasi", styles: { halign: "center", valign: "middle" } },
+              { content: "Capaian (%)/\ntarget TW", styles: { halign: "center", valign: "middle" } },
+              { content: "Capaian (%)/\ntarget 2026", styles: { halign: "center", valign: "middle" } },
+              { content: "Capaian (%)/\ntarget 2029", styles: { halign: "center", valign: "middle" } },
+              { content: "Pagu (Rp)", styles: { halign: "center", valign: "middle" } },
+              { content: "Realisasi (Rp)", styles: { halign: "center", valign: "middle" } },
+              { content: "Capaian (%)", styles: { halign: "center", valign: "middle" } },
+            ],
+            [
+              { content: "a", styles: { halign: "center" } },
+              { content: "b", styles: { halign: "center" } },
+              { content: "c", styles: { halign: "center" } },
+              { content: "d", styles: { halign: "center" } },
+              { content: "e", styles: { halign: "center" } },
+              { content: "f", styles: { halign: "center" } },
+              { content: "g", styles: { halign: "center" } },
+              { content: "h=(g/f*100)", styles: { halign: "center" } },
+              { content: "i=(g/e*100)", styles: { halign: "center" } },
+              { content: "j=(g/d*100)", styles: { halign: "center" } },
+              { content: "k", styles: { halign: "center" } },
+              { content: "l", styles: { halign: "center" } },
+              { content: "m=(l/k*100)", styles: { halign: "center" } },
+            ],
+          ],
+          body: rapkBodyRows,
+          headStyles: {
+            fillColor: [189, 215, 238],
+            textColor: [0, 0, 0],
+            fontStyle: "bold",
+            fontSize: 7.5,
+            lineColor: [0, 0, 0],
+            lineWidth: 0.25,
+            cellPadding: 1.2,
+          },
+          bodyStyles: {
+            fillColor: [255, 255, 255],
+            textColor: [0, 0, 0],
+            fontSize: 7.2,
+            lineColor: [0, 0, 0],
+            lineWidth: 0.2,
+            cellPadding: 1.2,
+            valign: "middle",
+          },
+          columnStyles: {
+            0: { cellWidth: 8, halign: "center" },
+            1: { cellWidth: 38, halign: "left" },
+            2: { cellWidth: 50, halign: "left" },
+            3: { cellWidth: 14, halign: "center" },
+            4: { cellWidth: 14, halign: "center" },
+            5: { cellWidth: 14, halign: "center" },
+            6: { cellWidth: 14, halign: "center" },
+            7: { cellWidth: 15, halign: "center" },
+            8: { cellWidth: 15, halign: "center" },
+            9: { cellWidth: 15, halign: "center" },
+            10: { cellWidth: 26, halign: "center" },
+            11: { cellWidth: 26, halign: "center" },
+            12: { cellWidth: 16, halign: "center" },
+          },
+        });
+
+        const rapkAutoDoc = doc as jsPDF & { lastAutoTable?: { finalY: number } };
+        y = (rapkAutoDoc.lastAutoTable?.finalY || y) + 10;
+      });
+
+      if (y > 150) {
+        doc.addPage();
+        y = 14;
+      }
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(
+        "Demikian berita acara ini dibuat untuk dapat dipergunakan sebagaimana mestinya.",
+        marginX,
+        y
+      );
+      y += 8;
+
+      doc.text(`${pihak2Jabatan},`, marginX + 25, y);
+      doc.text(`${pihak1Jabatan},`, marginX + colWidth + 25, y);
+      y += 20;
+
+      doc.setFont("helvetica", "bold");
+      doc.text(pihak2Nama, marginX + 25, y);
+      doc.text(pihak1Nama, marginX + colWidth + 25, y);
+      y += 4;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.text(`NIP. ${pihak2Nip}`, marginX + 25, y);
+      doc.text(`NIP. ${pihak1Nip}`, marginX + colWidth + 25, y);
+    }
+
+    // Section 3: Matriks Rekomendasi in PDF
+    if (matriksRekomendasi.length > 0) {
+      doc.addPage();
+      y = 14;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10.5);
+      doc.text("3.", marginX, y);
+      doc.text(matriksTitle, labelX, y);
+      y += 5;
+
+      autoTable(doc, {
+        startY: y,
+        margin: { left: marginX, right: marginX },
+        theme: "grid",
+        head: [
+          [
+            { content: "No.", styles: { halign: "center", valign: "middle" } },
+            { content: "Indikator", styles: { halign: "center", valign: "middle" } },
+            {
+              content: "Kendala / Permasalahan",
+              styles: { halign: "center", valign: "middle" },
+            },
+            {
+              content: "Rekomendasi",
+              styles: { halign: "center", valign: "middle" },
+            },
+            {
+              content: "Rencana Tindak Lanjut",
+              styles: { halign: "center", valign: "middle" },
+            },
+            { content: "Timeline", styles: { halign: "center", valign: "middle" } },
+            {
+              content: "Risiko (Y/T)",
+              styles: { halign: "center", valign: "middle" },
+            },
+            { content: "Kode", styles: { halign: "center", valign: "middle" } },
+            {
+              content: "Peristiwa Resiko",
+              styles: { halign: "center", valign: "middle" },
+            },
+          ],
+        ],
+        body: matriksRekomendasi.map((item) => {
+          const isY = item.is_risiko === "Y" || item.is_risiko === "Ya";
+          return [
+            item.no,
+            item.indikator,
+            item.kendala || "-",
+            item.rekomendasi || "-",
+            item.rencana_tindak_lanjut || "-",
+            item.timeline || "-",
+            isY ? "Y" : "T",
+            isY ? (item.kode_resiko || "-") : "-",
+            isY ? (item.peristiwa_resiko || "-") : "-",
+          ];
+        }),
+        headStyles: {
+          fillColor: [255, 192, 0], // #ffc000 Gold / Amber sesuai template
+          textColor: [0, 0, 0],
+          fontStyle: "bold",
+          fontSize: 8.5,
+          lineColor: [0, 0, 0],
+          lineWidth: 0.25,
+          cellPadding: 2,
+        },
+        bodyStyles: {
+          fillColor: [255, 255, 255],
+          textColor: [0, 0, 0],
+          fontSize: 7.8,
+          lineColor: [0, 0, 0],
+          lineWidth: 0.2,
+          cellPadding: 1.8,
+          valign: "top",
+        },
+        columnStyles: {
+          0: { cellWidth: 10, halign: "center" },
+          1: { cellWidth: 38, halign: "left" },
+          2: { cellWidth: 50, halign: "left" },
+          3: { cellWidth: 50, halign: "left" },
+          4: { cellWidth: 50, halign: "left" },
+          5: { cellWidth: 18, halign: "center" },
+          6: { cellWidth: 16, halign: "center" },
+          7: { cellWidth: 16, halign: "center" },
+          8: { cellWidth: 26, halign: "left" },
+        },
+      });
+    }
+
+    doc.save(`Berita_Acara_Evaluasi_Internal_${selectedQuarter}_2026.pdf`);
   };
 
   const handlePrintPdf = () => {
@@ -541,7 +1192,7 @@ export default function LaporanEvaluasiTu() {
 
   return (
     <div className="space-y-6">
-      {/* Print-only styling so printing / saving as PDF outputs the exact official Berita Acara */}
+      {/* Print-only styling */}
       <style jsx global>{`
         @media print {
           body * {
@@ -587,21 +1238,9 @@ export default function LaporanEvaluasiTu() {
               Eksport Berita Acara Evaluasi Internal (TU)
             </h1>
             <p className="mt-0.5 text-xs text-slate-500">
-              Kolom <strong>Volume</strong> diambil otomatis dari{" "}
-              <Link
-                href="/siproval/tu/realisasi-ro"
-                className="font-semibold text-[#005baa] underline"
-              >
-                Realisasi RO
-              </Link>{" "}
-              dan kolom <strong>Anggaran</strong> diambil otomatis dari{" "}
-              <Link
-                href="/siproval/budget-mapping/year?year=2026"
-                className="font-semibold text-[#005baa] underline"
-              >
-                Budget Mapping
-              </Link>
-              .
+              Menyatukan <strong>Bagian 1: Realisasi RAPK Triwulan</strong>{" "}
+              (Volume RO & Anggaran) dan{" "}
+              <strong>Bagian 2: Matriks Rekomendasi & Kendala Triwulan</strong>.
             </p>
           </div>
 
@@ -616,10 +1255,18 @@ export default function LaporanEvaluasiTu() {
               {showConfig ? "Tutup Pengaturan Teks" : "Edit Teks Berita Acara"}
             </button>
 
+            <Link
+              href={`/siproval/tu/matriks-rekomendasi?quarter=${selectedQuarter}`}
+              className="inline-flex items-center gap-2 rounded-xl border border-[#005baa]/30 bg-blue-50 px-3.5 py-2 text-xs font-semibold text-[#005baa] transition hover:bg-blue-100"
+            >
+              <Icon icon="solar:clipboard-list-bold" width={16} />
+              Kelola Matriks Rekomendasi
+            </Link>
+
             <button
               type="button"
               onClick={handleExportPdf}
-              disabled={loading || rows.length === 0}
+              disabled={loading || monthsData.length === 0}
               className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-rose-700 disabled:opacity-50"
             >
               <Icon icon="solar:file-download-bold" width={16} />
@@ -629,7 +1276,7 @@ export default function LaporanEvaluasiTu() {
             <button
               type="button"
               onClick={handleExportWord}
-              disabled={loading || rows.length === 0}
+              disabled={loading || monthsData.length === 0}
               className="inline-flex items-center gap-2 rounded-xl bg-[#005baa] px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#004b8d] disabled:opacity-50"
             >
               <Icon icon="solar:file-text-bold" width={16} />
@@ -639,7 +1286,7 @@ export default function LaporanEvaluasiTu() {
             <button
               type="button"
               onClick={handleExportExcel}
-              disabled={loading || rows.length === 0}
+              disabled={loading || monthsData.length === 0}
               className="inline-flex items-center gap-2 rounded-xl bg-[#00a651] px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#008c44] disabled:opacity-50"
             >
               <Icon icon="solar:file-smile-bold" width={16} />
@@ -649,7 +1296,7 @@ export default function LaporanEvaluasiTu() {
             <button
               type="button"
               onClick={handlePrintPdf}
-              disabled={loading || rows.length === 0}
+              disabled={loading || monthsData.length === 0}
               className="inline-flex items-center gap-2 rounded-xl border border-[#005baa]/20 bg-blue-50 px-4 py-2 text-xs font-bold text-[#005baa] transition hover:bg-blue-100 disabled:opacity-50"
             >
               <Icon icon="solar:printer-bold" width={16} />
@@ -658,26 +1305,26 @@ export default function LaporanEvaluasiTu() {
           </div>
         </div>
 
-        {/* Month Selector & Source Badges */}
+        {/* Quarter Selector & Source Badges */}
         <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="mr-1 text-xs font-semibold text-slate-600">
-              Pilih Periode Bulan:
+            <span className="mr-1 text-xs font-bold text-slate-700">
+              Pilih Periode Triwulan:
             </span>
-            {availableMonths.map((m) => {
-              const active = selectedMonth === m.key;
+            {availableQuarters.map((q) => {
+              const active = selectedQuarter === q.key;
               return (
                 <button
-                  key={m.key}
+                  key={q.key}
                   type="button"
-                  onClick={() => setSelectedMonth(m.key)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  onClick={() => handleSelectQuarter(q.key)}
+                  className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition ${
                     active
-                      ? "bg-[#005baa] text-white shadow-2xs"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      ? "bg-[#005baa] text-white shadow-xs ring-2 ring-[#005baa]/20"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                   }`}
                 >
-                  {m.short}
+                  {q.short}
                 </button>
               );
             })}
@@ -692,10 +1339,14 @@ export default function LaporanEvaluasiTu() {
               <span className="h-2 w-2 rounded-full bg-[#00a651]" />
               Anggaran: {sources.anggaran_tab}
             </span>
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1 font-medium text-amber-700">
+              <span className="h-2 w-2 rounded-full bg-amber-600" />
+              Matriks: {matriksRekomendasi.length} Indikator
+            </span>
           </div>
         </div>
 
-        {/* Optional Editable Header Fields */}
+        {/* Editable Header Fields */}
         {showConfig && (
           <div className="grid grid-cols-1 gap-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4 text-xs md:grid-cols-2">
             <div>
@@ -735,7 +1386,9 @@ export default function LaporanEvaluasiTu() {
             </div>
 
             <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-3">
-              <p className="font-bold text-slate-800">Pihak Kesatu (Kepala Balai)</p>
+              <p className="font-bold text-slate-800">
+                Pihak Kesatu (Kepala Balai)
+              </p>
               <input
                 type="text"
                 value={pihak1Nama}
@@ -788,12 +1441,36 @@ export default function LaporanEvaluasiTu() {
 
             <div className="md:col-span-2">
               <label className="block font-semibold text-slate-700">
-                Judul Poin 1 Tabel
+                Judul Poin 1 (Tabel Realisasi RO & Anggaran per Output)
               </label>
               <input
                 type="text"
                 value={sectionTitle}
                 onChange={(e) => setSectionTitle(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-slate-800"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block font-semibold text-slate-700">
+                Judul Poin 2 (Tabel Realisasi RAPK & Anggaran per Sasaran)
+              </label>
+              <input
+                type="text"
+                value={rapkSectionTitle}
+                onChange={(e) => setRapkSectionTitle(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-slate-800"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block font-semibold text-slate-700">
+                Judul Poin 3 (Matriks Rekomendasi Triwulan)
+              </label>
+              <input
+                type="text"
+                value={matriksTitle}
+                onChange={(e) => setMatriksTitle(e.target.value)}
                 className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-slate-800"
               />
             </div>
@@ -814,7 +1491,7 @@ export default function LaporanEvaluasiTu() {
           </div>
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
             <p className="text-[11px] font-semibold uppercase text-slate-400">
-              Total Pagu Awal (Rp)
+              Pagu Anggaran ({selectedQuarter})
             </p>
             <p className="mt-1 text-xl font-bold text-slate-900">
               Rp {summary.total_pagu_formatted}
@@ -822,7 +1499,7 @@ export default function LaporanEvaluasiTu() {
           </div>
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
             <p className="text-[11px] font-semibold uppercase text-slate-400">
-              Total Realisasi Anggaran (Rp)
+              Realisasi Kumulatif Akhir
             </p>
             <p className="mt-1 text-xl font-bold text-[#005baa]">
               Rp {summary.total_realisasi_formatted}
@@ -830,10 +1507,10 @@ export default function LaporanEvaluasiTu() {
           </div>
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
             <p className="text-[11px] font-semibold uppercase text-slate-400">
-              Rata-Rata Serapan Anggaran
+              Matriks Rekomendasi
             </p>
-            <p className="mt-1 text-xl font-bold text-[#00a651]">
-              {summary.total_capaian_anggaran_formatted}%
+            <p className="mt-1 text-xl font-bold text-amber-600">
+              {matriksRekomendasi.length} Indikator
             </p>
           </div>
         </div>
@@ -850,8 +1527,11 @@ export default function LaporanEvaluasiTu() {
       {loading ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-16 text-center shadow-xs">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-[#005baa] border-r-transparent" />
-          <p className="mt-3 text-sm text-slate-500">
-            Menggabungkan data Volume (Realisasi RO) dan Anggaran (Budget Mapping)...
+          <p className="mt-3 text-sm font-medium text-slate-700">
+            Menggabungkan data Triwulan ({quarterLabel})...
+          </p>
+          <p className="mt-1 text-xs text-slate-400">
+            Memuat Tabel Capaian Anggaran & Matriks Rekomendasi
           </p>
         </div>
       ) : (
@@ -924,128 +1604,607 @@ export default function LaporanEvaluasiTu() {
             dengan hasil sebagai berikut :
           </p>
 
-          {/* Section 1 Heading */}
-          <div className="mb-2 text-xs sm:text-[13.5px] leading-snug text-black">
+          {/* SECTION 1: Capaian Anggaran & Kinerja 3 Bulan */}
+          <div className="mb-3 text-xs sm:text-[13.5px] leading-snug text-black">
             <div className="grid grid-cols-[28px_1fr]">
               <span>1.</span>
               <div>
-                <p>{sectionTitle}</p>
-                <p className="mt-0.5 font-bold">{monthLabel}</p>
+                <p className="font-normal">{sectionTitle}</p>
               </div>
             </div>
           </div>
 
-          {/* Main Report Table matching the uploaded template */}
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-black text-[12px] text-black">
-              <thead>
-                <tr className="bg-[#bdd7ee] font-bold text-black">
-                  <th
-                    rowSpan={2}
-                    className="w-10 border border-black px-2 py-2 text-center align-middle"
-                  >
-                    No.
-                  </th>
-                  <th
-                    rowSpan={2}
-                    colSpan={2}
-                    className="border border-black px-3 py-2 text-center align-middle"
-                  >
-                    Program/Kegiatan/Ouput
-                  </th>
-                  <th
-                    colSpan={3}
-                    className="border border-black px-2 py-1.5 text-center align-middle"
-                  >
-                    Volume
-                  </th>
-                  <th
-                    colSpan={3}
-                    className="border border-black px-2 py-1.5 text-center align-middle"
-                  >
-                    Anggaran
-                  </th>
-                </tr>
-                <tr className="bg-[#bdd7ee] font-bold text-black">
-                  <th className="w-24 border border-black px-2 py-1.5 text-center align-middle">
-                    Target 2026
-                  </th>
-                  <th className="w-24 border border-black px-2 py-1.5 text-center align-middle">
-                    Realisasi
-                  </th>
-                  <th className="w-28 border border-black px-2 py-1.5 text-center align-middle leading-tight">
-                    Capaian/
-                    <br />
-                    Progress (%)
-                  </th>
-                  <th className="w-32 border border-black px-2 py-1.5 text-center align-middle">
-                    Pagu awal (Rp)
-                  </th>
-                  <th className="w-32 border border-black px-2 py-1.5 text-center align-middle">
-                    Realisasi (Rp)
-                  </th>
-                  <th className="w-28 border border-black px-2 py-1.5 text-center align-middle">
-                    Capaian (%)
-                  </th>
-                </tr>
-                <tr className="bg-[#bdd7ee] text-[11px] font-bold text-black">
-                  <th className="border border-black px-1.5 py-1 text-center">a</th>
-                  <th
-                    colSpan={2}
-                    className="border border-black px-2 py-1 text-center"
-                  >
-                    b
-                  </th>
-                  <th className="border border-black px-1.5 py-1 text-center">c</th>
-                  <th className="border border-black px-1.5 py-1 text-center">d</th>
-                  <th className="border border-black px-1.5 py-1 text-center">
-                    e= (d/c*100)
-                  </th>
-                  <th className="border border-black px-1.5 py-1 text-center">f</th>
-                  <th className="border border-black px-1.5 py-1 text-center">g</th>
-                  <th className="border border-black px-1.5 py-1 text-center">
-                    h= (g/f*100)
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.kode_ro} className="hover:bg-slate-50/80">
-                    <td className="border border-black px-2 py-1.5 text-center align-middle">
-                      {row.no}
-                    </td>
-                    <td className="w-24 whitespace-nowrap border border-black px-2 py-1.5 text-left align-middle">
-                      {row.kode_ro}
-                    </td>
-                    <td className="border border-black px-2.5 py-1.5 text-left align-middle leading-snug">
-                      {row.nama_ro}
-                    </td>
-                    <td className="border border-black px-2 py-1.5 text-center align-middle">
-                      {row.volume.target_formatted}
-                    </td>
-                    <td className="border border-black px-2 py-1.5 text-center align-middle">
-                      {row.volume.realisasi_formatted}
-                    </td>
-                    <td className="border border-black px-2 py-1.5 text-center align-middle">
-                      {row.volume.capaian_formatted}
-                    </td>
-                    <td className="border border-black px-2.5 py-1.5 text-center align-middle">
-                      {row.anggaran.pagu_formatted}
-                    </td>
-                    <td className="border border-black px-2.5 py-1.5 text-center align-middle">
-                      {row.anggaran.realisasi_formatted}
-                    </td>
-                    <td className="border border-black px-2 py-1.5 text-center align-middle">
-                      {row.anggaran.capaian_formatted}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Render each of the 3 months in Section 1 */}
+          <div className="space-y-8">
+            {monthsData.map((m) => (
+              <div key={m.month_key} className="space-y-2">
+                <div className="font-bold text-xs sm:text-[13px] text-black">
+                  {m.month_label}
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-black text-[12px] text-black">
+                    <thead>
+                      <tr className="bg-[#bdd7ee] font-bold text-black">
+                        <th
+                          rowSpan={2}
+                          className="w-10 border border-black px-2 py-2 text-center align-middle"
+                        >
+                          No.
+                        </th>
+                        <th
+                          rowSpan={2}
+                          colSpan={2}
+                          className="border border-black px-3 py-2 text-center align-middle"
+                        >
+                          Program/Kegiatan/Ouput
+                        </th>
+                        <th
+                          colSpan={3}
+                          className="border border-black px-2 py-1.5 text-center align-middle"
+                        >
+                          Volume
+                        </th>
+                        <th
+                          colSpan={3}
+                          className="border border-black px-2 py-1.5 text-center align-middle"
+                        >
+                          Anggaran
+                        </th>
+                      </tr>
+                      <tr className="bg-[#bdd7ee] font-bold text-black">
+                        <th className="w-24 border border-black px-2 py-1.5 text-center align-middle">
+                          Target 2026
+                        </th>
+                        <th className="w-24 border border-black px-2 py-1.5 text-center align-middle">
+                          Realisasi
+                        </th>
+                        <th className="w-28 border border-black px-2 py-1.5 text-center align-middle leading-tight">
+                          Capaian/
+                          <br />
+                          Progress (%)
+                        </th>
+                        <th className="w-32 border border-black px-2 py-1.5 text-center align-middle">
+                          Pagu awal (Rp)
+                        </th>
+                        <th className="w-32 border border-black px-2 py-1.5 text-center align-middle">
+                          Realisasi (Rp)
+                        </th>
+                        <th className="w-28 border border-black px-2 py-1.5 text-center align-middle">
+                          Capaian (%)
+                        </th>
+                      </tr>
+                      <tr className="bg-[#bdd7ee] text-[11px] font-bold text-black">
+                        <th className="border border-black px-1.5 py-1 text-center">
+                          a
+                        </th>
+                        <th
+                          colSpan={2}
+                          className="border border-black px-2 py-1 text-center"
+                        >
+                          b
+                        </th>
+                        <th className="border border-black px-1.5 py-1 text-center">
+                          c
+                        </th>
+                        <th className="border border-black px-1.5 py-1 text-center">
+                          d
+                        </th>
+                        <th className="border border-black px-1.5 py-1 text-center">
+                          e= (d/c*100)
+                        </th>
+                        <th className="border border-black px-1.5 py-1 text-center">
+                          f
+                        </th>
+                        <th className="border border-black px-1.5 py-1 text-center">
+                          g
+                        </th>
+                        <th className="border border-black px-1.5 py-1 text-center">
+                          h= (g/f*100)
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {m.rows.map((row) => (
+                        <tr key={row.kode_ro} className="hover:bg-slate-50/80">
+                          <td className="border border-black px-2 py-1.5 text-center align-middle">
+                            {row.no}
+                          </td>
+                          <td className="w-24 whitespace-nowrap border border-black px-2 py-1.5 text-left align-middle font-medium">
+                            {row.kode_ro}
+                          </td>
+                          <td className="border border-black px-2.5 py-1.5 text-left align-middle leading-snug">
+                            {row.nama_ro}
+                          </td>
+                          <td className="border border-black px-2 py-1.5 text-center align-middle">
+                            {row.volume.target_formatted}
+                          </td>
+                          <td className="border border-black px-2 py-1.5 text-center align-middle">
+                            {row.volume.realisasi_formatted}
+                          </td>
+                          <td className="border border-black px-2 py-1.5 text-center align-middle">
+                            {row.volume.capaian_formatted}
+                          </td>
+                          <td className="border border-black px-2.5 py-1.5 text-center align-middle">
+                            {row.anggaran.pagu_formatted}
+                          </td>
+                          <td className="border border-black px-2.5 py-1.5 text-center align-middle">
+                            {row.anggaran.realisasi_formatted}
+                          </td>
+                          <td className="border border-black px-2 py-1.5 text-center align-middle">
+                            {row.anggaran.capaian_formatted}
+                          </td>
+                        </tr>
+                      ))}
+
+                      {/* Summary Row */}
+                      {m.summary && (
+                        <tr className="bg-[#bdd7ee]/40 font-bold text-black border-t-2 border-black">
+                          <td
+                            colSpan={3}
+                            className="border border-black px-3 py-2 text-center align-middle font-bold uppercase tracking-wider"
+                          >
+                            JUMLAH
+                          </td>
+                          <td className="border border-black px-2 py-2 text-center align-middle">
+                            -
+                          </td>
+                          <td className="border border-black px-2 py-2 text-center align-middle">
+                            -
+                          </td>
+                          <td className="border border-black px-2 py-2 text-center align-middle">
+                            -
+                          </td>
+                          <td className="border border-black px-2.5 py-2 text-center align-middle font-bold">
+                            {m.summary.total_pagu_formatted}
+                          </td>
+                          <td className="border border-black px-2.5 py-2 text-center align-middle font-bold">
+                            {m.summary.total_realisasi_formatted}
+                          </td>
+                          <td className="border border-black px-2 py-2 text-center align-middle font-bold">
+                            {m.summary.total_capaian_anggaran_formatted}%
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Penutup Berita Acara Realisasi RO */}
+          <div className="mt-8 text-xs sm:text-[13px] leading-relaxed text-black">
+            <p className="mb-4">
+              Demikian berita acara ini dibuat untuk dapat dipergunakan sebagaimana mestinya.
+            </p>
+            <div className="grid grid-cols-2 gap-8 pt-4 text-center">
+              <div>
+                <p className="font-normal">{pihak2Jabatan},</p>
+                <div className="h-16" />
+                <p className="font-bold underline">{pihak2Nama}</p>
+                <p className="text-[11px]">NIP. {pihak2Nip}</p>
+              </div>
+              <div>
+                <p className="font-normal">{pihak1Jabatan},</p>
+                <div className="h-16" />
+                <p className="font-bold underline">{pihak1Nama}</p>
+                <p className="text-[11px]">NIP. {pihak1Nip}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* BAGIAN 2: BERITA ACARA EVALUASI INTERNAL - REALISASI RAPK */}
+          <div className="mt-16 pt-8 border-t-2 border-dashed border-slate-300 print:border-none print:pt-0 print:break-before-page">
+            {/* Document Title Berita Acara RAPK */}
+            <div className="mb-6 text-center leading-snug text-black">
+              <p className="text-sm sm:text-[15px] font-normal uppercase">
+                BERITA ACARA EVALUASI INTERNAL
+              </p>
+              <p className="text-sm sm:text-[15px] font-normal uppercase">
+                BALAI BESAR POM DI MATARAM
+              </p>
+              <p className="text-sm sm:text-[15px] font-normal uppercase">
+                {baHeaderMonthYear}
+              </p>
+            </div>
+
+            {/* Opening Paragraph */}
+            <p className="mb-3 text-xs sm:text-[13.5px] leading-relaxed text-black">
+              {baOpeningText}
+            </p>
+
+            {/* Signatories 1 & 2 */}
+            <div className="mb-4 space-y-3 text-xs sm:text-[13.5px] leading-snug text-black">
+              <div className="grid grid-cols-[28px_90px_14px_1fr]">
+                <span>1.</span>
+                <span>Nama</span>
+                <span>:</span>
+                <span>{pihak1Nama}</span>
+
+                <span />
+                <span>NIP</span>
+                <span>:</span>
+                <span>{pihak1Nip}</span>
+
+                <span />
+                <span>Jabatan</span>
+                <span>:</span>
+                <span>{pihak1Jabatan}</span>
+              </div>
+
+              <div className="grid grid-cols-[28px_90px_14px_1fr]">
+                <span>2.</span>
+                <span>Nama</span>
+                <span>:</span>
+                <span>{pihak2Nama}</span>
+
+                <span />
+                <span>NIP</span>
+                <span>:</span>
+                <span>{pihak2Nip}</span>
+
+                <span />
+                <span>Jabatan</span>
+                <span>:</span>
+                <span>{pihak2Jabatan}</span>
+              </div>
+            </div>
+
+            {/* Evaluation Statement */}
+            <p className="mb-4 text-xs sm:text-[13.5px] leading-relaxed text-black">
+              Telah melaksanakan evaluasi internal terhadap realisasi anggaran dan
+              capaian kinerja pada Balai Besar POM di Mataram periode {periodeText}{" "}
+              dengan hasil sebagai berikut :
+            </p>
+
+            {/* SECTION 2: Capaian Rencana Aksi Perjanjian Kinerja (RAPK) */}
+            <div className="mb-3 text-xs sm:text-[13.5px] leading-snug text-black">
+              <div className="grid grid-cols-[28px_1fr]">
+                <span>2.</span>
+                <div>
+                  <p className="font-normal">{rapkSectionTitle}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Render 3 Months of RAPK Tables */}
+            <div className="space-y-8">
+              {rapkMonthsData.map((rm) => (
+                <div key={rm.month_key} className="space-y-2">
+                  <div className="font-bold text-xs sm:text-[13px] text-black">
+                    {rm.month_label}
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse border border-black text-[11.5px] text-black">
+                      <thead>
+                        <tr className="bg-[#bdd7ee] font-bold text-black">
+                          <th
+                            rowSpan={2}
+                            className="w-10 border border-black px-2 py-2 text-center align-middle"
+                          >
+                            No.
+                          </th>
+                          <th
+                            rowSpan={2}
+                            className="w-48 border border-black px-3 py-2 text-center align-middle"
+                          >
+                            Sasaran Strategis
+                          </th>
+                          <th
+                            rowSpan={2}
+                            className="min-w-[180px] border border-black px-3 py-2 text-center align-middle"
+                          >
+                            Nama Indikator
+                          </th>
+                          <th
+                            colSpan={7}
+                            className="border border-black px-2 py-1.5 text-center align-middle"
+                          >
+                            Volume
+                          </th>
+                          <th
+                            colSpan={3}
+                            className="border border-black px-2 py-1.5 text-center align-middle"
+                          >
+                            Anggaran per Sasaran Strategis
+                          </th>
+                        </tr>
+                        <tr className="bg-[#bdd7ee] font-bold text-black text-[11px]">
+                          <th className="w-16 border border-black px-1.5 py-1 text-center align-middle">
+                            Target 2029
+                          </th>
+                          <th className="w-16 border border-black px-1.5 py-1 text-center align-middle">
+                            Target 2026
+                          </th>
+                          <th className="w-16 border border-black px-1.5 py-1 text-center align-middle">
+                            Target {rm.month_label.replace(/.*Bulan\s+/i, "")}
+                          </th>
+                          <th className="w-16 border border-black px-1.5 py-1 text-center align-middle">
+                            Realisasi
+                          </th>
+                          <th className="w-20 border border-black px-1.5 py-1 text-center align-middle leading-tight">
+                            Capaian (%) /<br />target TW
+                          </th>
+                          <th className="w-20 border border-black px-1.5 py-1 text-center align-middle leading-tight">
+                            Capaian (%) /<br />target 2026
+                          </th>
+                          <th className="w-20 border border-black px-1.5 py-1 text-center align-middle leading-tight">
+                            Capaian (%) /<br />target 2029
+                          </th>
+                          <th className="w-24 border border-black px-2 py-1 text-center align-middle">
+                            Pagu (Rp)
+                          </th>
+                          <th className="w-24 border border-black px-2 py-1 text-center align-middle">
+                            Realisasi (Rp)
+                          </th>
+                          <th className="w-20 border border-black px-1.5 py-1 text-center align-middle">
+                            Capaian (%)
+                          </th>
+                        </tr>
+                        <tr className="bg-[#bdd7ee] text-[10.5px] font-bold text-black">
+                          <th className="border border-black px-1 py-0.5 text-center">a</th>
+                          <th className="border border-black px-1 py-0.5 text-center">b</th>
+                          <th className="border border-black px-1 py-0.5 text-center">c</th>
+                          <th className="border border-black px-1 py-0.5 text-center">d</th>
+                          <th className="border border-black px-1 py-0.5 text-center">e</th>
+                          <th className="border border-black px-1 py-0.5 text-center">f</th>
+                          <th className="border border-black px-1 py-0.5 text-center">g</th>
+                          <th className="border border-black px-1 py-0.5 text-center leading-none">
+                            h=(g/f*100)
+                          </th>
+                          <th className="border border-black px-1 py-0.5 text-center leading-none">
+                            i=(g/e*100)
+                          </th>
+                          <th className="border border-black px-1 py-0.5 text-center leading-none">
+                            j=(g/d*100)
+                          </th>
+                          <th className="border border-black px-1 py-0.5 text-center">k</th>
+                          <th className="border border-black px-1 py-0.5 text-center">l</th>
+                          <th className="border border-black px-1 py-0.5 text-center leading-none">
+                            m=(l/k*100)
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rm.rows.map((row, rIdx) => (
+                          <tr key={rIdx} className="hover:bg-slate-50/80">
+                            <td className="border border-black px-2 py-1 text-center align-middle">
+                              {row.no}
+                            </td>
+                            <td className="border border-black px-2 py-1 text-left align-middle leading-snug">
+                              {row.sasaran_strategis}
+                            </td>
+                            <td className="border border-black px-2.5 py-1 text-left align-middle leading-snug">
+                              {row.nama_indikator}
+                            </td>
+                            <td className="border border-black px-1.5 py-1 text-center align-middle">
+                              {row.volume.target_2029 || "-"}
+                            </td>
+                            <td className="border border-black px-1.5 py-1 text-center align-middle">
+                              {row.volume.target_2026 || "-"}
+                            </td>
+                            <td className="border border-black px-1.5 py-1 text-center align-middle">
+                              {row.volume.target_tw || "-"}
+                            </td>
+                            <td className="border border-black px-1.5 py-1 text-center align-middle">
+                              {row.volume.realisasi || "-"}
+                            </td>
+                            <td className="border border-black px-1.5 py-1 text-center align-middle">
+                              {row.volume.capaian_tw || "-"}
+                            </td>
+                            <td className="border border-black px-1.5 py-1 text-center align-middle">
+                              {row.volume.capaian_2026 || "-"}
+                            </td>
+                            <td className="border border-black px-1.5 py-1 text-center align-middle">
+                              {row.volume.capaian_2029 || "-"}
+                            </td>
+                            <td className="border border-black px-2 py-1 text-center align-middle font-medium">
+                              {row.anggaran.pagu_formatted || "-"}
+                            </td>
+                            <td className="border border-black px-2 py-1 text-center align-middle font-medium">
+                              {row.anggaran.realisasi_formatted || "-"}
+                            </td>
+                            <td className="border border-black px-1.5 py-1 text-center align-middle">
+                              {row.anggaran.capaian_formatted || "-"}
+                            </td>
+                          </tr>
+                        ))}
+
+                        {/* Baris Total / Summary RAPK */}
+                        {rm.summary && (
+                          <tr className="bg-[#bdd7ee]/40 font-bold text-black border-t-2 border-black">
+                            <td
+                              colSpan={3}
+                              className="border border-black px-3 py-2 text-center align-middle font-bold uppercase tracking-wider"
+                            >
+                              JUMLAH
+                            </td>
+                            <td className="border border-black px-1.5 py-2 text-center align-middle">
+                              -
+                            </td>
+                            <td className="border border-black px-1.5 py-2 text-center align-middle">
+                              -
+                            </td>
+                            <td className="border border-black px-1.5 py-2 text-center align-middle">
+                              -
+                            </td>
+                            <td className="border border-black px-1.5 py-2 text-center align-middle">
+                              -
+                            </td>
+                            <td className="border border-black px-1.5 py-2 text-center align-middle">
+                              -
+                            </td>
+                            <td className="border border-black px-1.5 py-2 text-center align-middle">
+                              -
+                            </td>
+                            <td className="border border-black px-1.5 py-2 text-center align-middle">
+                              -
+                            </td>
+                            <td className="border border-black px-2 py-2 text-center align-middle font-bold">
+                              {rm.summary.total_pagu_formatted}
+                            </td>
+                            <td className="border border-black px-2 py-2 text-center align-middle font-bold">
+                              {rm.summary.total_realisasi_formatted}
+                            </td>
+                            <td className="border border-black px-1.5 py-2 text-center align-middle font-bold">
+                              {rm.summary.total_capaian_anggaran_formatted}
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Penutup Berita Acara RAPK */}
+            <div className="mt-8 text-xs sm:text-[13px] leading-relaxed text-black">
+              <p className="mb-4">
+                Demikian berita acara ini dibuat untuk dapat dipergunakan sebagaimana mestinya.
+              </p>
+              <div className="grid grid-cols-2 gap-8 pt-4 text-center">
+                <div>
+                  <p className="font-normal">{pihak2Jabatan},</p>
+                  <div className="h-16" />
+                  <p className="font-bold underline">{pihak2Nama}</p>
+                  <p className="text-[11px]">NIP. {pihak2Nip}</p>
+                </div>
+                <div>
+                  <p className="font-normal">{pihak1Jabatan},</p>
+                  <div className="h-16" />
+                  <p className="font-bold underline">{pihak1Nama}</p>
+                  <p className="text-[11px]">NIP. {pihak1Nip}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 3: Matriks Rekomendasi Triwulan */}
+          <div className="mt-16 pt-8 border-t-2 border-dashed border-slate-300 print:border-none print:pt-0 print:break-before-page space-y-3">
+            <div className="flex items-center justify-between text-xs sm:text-[13.5px] leading-snug text-black">
+              <div className="grid grid-cols-[28px_1fr]">
+                <span>3.</span>
+                <div>
+                  <p className="font-normal">{matriksTitle}</p>
+                </div>
+              </div>
+              <Link
+                href={`/siproval/tu/matriks-rekomendasi?quarter=${selectedQuarter}`}
+                className="print:hidden inline-flex items-center gap-1.5 rounded-lg border border-[#005baa]/20 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#005baa] hover:bg-blue-100"
+              >
+                <Icon icon="solar:pen-new-square-bold" width={14} />
+                Edit Formulir Matriks Rekomendasi
+              </Link>
+            </div>
+
+            {matriksRekomendasi.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-xs text-slate-500">
+                Belum ada data Matriks Rekomendasi untuk {selectedQuarter}. Silakan isi melalui menu{" "}
+                <Link
+                  href={`/siproval/tu/matriks-rekomendasi?quarter=${selectedQuarter}`}
+                  className="font-semibold text-[#005baa] underline"
+                >
+                  Matriks Rekomendasi
+                </Link>
+                .
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse border border-black text-[11.5px] text-black">
+                  <thead>
+                    <tr className="bg-[#ffc000] font-bold text-black text-center">
+                      <th className="w-10 border border-black px-2 py-2 text-center align-middle">
+                        No.
+                      </th>
+                      <th className="min-w-[180px] border border-black px-3 py-2 text-center align-middle">
+                        Indikator
+                      </th>
+                      <th className="min-w-[220px] border border-black px-3 py-2 text-center align-middle">
+                        Kendala / Permasalahan
+                      </th>
+                      <th className="min-w-[220px] border border-black px-3 py-2 text-center align-middle">
+                        Rekomendasi
+                      </th>
+                      <th className="min-w-[220px] border border-black px-3 py-2 text-center align-middle">
+                        Rencana Tindak Lanjut
+                      </th>
+                      <th className="w-24 border border-black px-2 py-2 text-center align-middle">
+                        Timeline
+                      </th>
+                      <th className="w-24 border border-black px-2 py-2 text-center align-middle">
+                        Apakah Sudah dikelola sebagai risiko (Y/T)
+                      </th>
+                      <th className="w-20 border border-black px-2 py-2 text-center align-middle">
+                        Kode Resiko
+                      </th>
+                      <th className="min-w-[180px] border border-black px-3 py-2 text-center align-middle">
+                        Peristiwa Resiko
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {matriksRekomendasi.map((item) => {
+                      const isY = item.is_risiko === "Y" || item.is_risiko === "Ya";
+                      return (
+                        <tr key={item.id} className="hover:bg-slate-50/80">
+                          <td className="border border-black px-2 py-2 text-center align-top font-semibold">
+                            {item.no}
+                          </td>
+                          <td className="border border-black px-3 py-2 text-left font-bold align-top leading-snug">
+                            {item.indikator}
+                          </td>
+                          <td className="border border-black px-3 py-2 text-left whitespace-pre-line align-top leading-relaxed">
+                            {item.kendala || "-"}
+                          </td>
+                          <td className="border border-black px-3 py-2 text-left whitespace-pre-line align-top leading-relaxed">
+                            {item.rekomendasi || "-"}
+                          </td>
+                          <td className="border border-black px-3 py-2 text-left whitespace-pre-line align-top leading-relaxed">
+                            {item.rencana_tindak_lanjut || "-"}
+                          </td>
+                          <td className="border border-black px-2 py-2 text-center align-top whitespace-nowrap">
+                            {item.timeline || "-"}
+                          </td>
+                          <td className="border border-black px-2 py-2 text-center align-top font-bold">
+                            {isY ? "Y" : "T"}
+                          </td>
+                          <td className="border border-black px-2 py-2 text-center font-mono align-top">
+                            {isY ? (item.kode_resiko || "-") : "-"}
+                          </td>
+                          <td className="border border-black px-3 py-2 text-left whitespace-pre-line align-top leading-relaxed">
+                            {isY ? (item.peristiwa_resiko || "-") : "-"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Penutup & Tanda Tangan Matriks Rekomendasi */}
+            <div className="mt-8 text-xs sm:text-[13px] leading-relaxed text-black">
+              <div className="grid grid-cols-2 gap-8 pt-4 text-center">
+                <div>
+                  <p className="font-normal">{pihak2Jabatan},</p>
+                  <div className="h-16" />
+                  <p className="font-bold underline">{pihak2Nama}</p>
+                  <p className="text-[11px]">NIP. {pihak2Nip}</p>
+                </div>
+                <div>
+                  <p className="font-normal">{pihak1Jabatan},</p>
+                  <div className="h-16" />
+                  <p className="font-bold underline">{pihak1Nama}</p>
+                  <p className="text-[11px]">NIP. {pihak1Nip}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
     </div>
   );
 }
-

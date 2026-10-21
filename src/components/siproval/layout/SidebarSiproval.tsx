@@ -90,9 +90,15 @@ const menus = {
       active: "/siproval/tu/rekapitulasi-anggaran",
     },
     {
+      name: "Matriks Rekomendasi",
+      icon: "solar:clipboard-list-bold",
+      url: "/siproval/tu/matriks-rekomendasi?quarter=TW2",
+      active: "/siproval/tu/matriks-rekomendasi",
+    },
+    {
       name: "Eksport Laporan",
       icon: "solar:printer-bold",
-      url: "/siproval/tu/laporan-evaluasi?month=APRIL",
+      url: "/siproval/tu/laporan-evaluasi?quarter=TW2",
       active: "/siproval/tu/laporan-evaluasi",
     },
   ],

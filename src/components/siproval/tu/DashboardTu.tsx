@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Icon } from "@iconify/react";
+import TargetRealisasiTuChart from "./TargetRealisasiTuChart";
 
 export default function DashboardTu() {
   const currentYear = new Date().getFullYear();
@@ -135,97 +136,8 @@ export default function DashboardTu() {
         </div>
       </div>
 
-      {/* Main navigation cards */}
-      <div>
-        <h2 className="text-lg font-bold text-slate-900">Menu Pengelolaan Anggaran</h2>
-        <p className="text-sm text-slate-500">
-          Akses langsung ke modul pemetaan anggaran dan tabel rincian kegiatan.
-        </p>
-
-        <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
-          <Link
-            href="/siproval/tu/realisasi-ro"
-            className="group block rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50/50 via-white to-indigo-50/30 p-6 shadow-sm transition hover:-translate-y-1 hover:border-blue-400 hover:shadow-md"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#005baa] text-white shadow-sm">
-                <Icon icon="solar:document-medicine-bold" width={26} />
-              </div>
-              <span className="inline-flex items-center gap-1 text-sm font-semibold text-[#005baa] group-hover:underline">
-                Buka Menu <Icon icon="solar:arrow-right-linear" width={16} />
-              </span>
-            </div>
-            <h3 className="mt-4 text-lg font-bold text-slate-900 group-hover:text-[#005baa]">
-              Realisasi RO (Tab 155)
-            </h3>
-            <p className="mt-1 text-sm text-slate-500">
-              Pantau target tahunan, target bulanan, realisasi, capaian serta perbarui data langsung ke Google Sheets.
-            </p>
-          </Link>
-
-          <Link
-            href="/siproval/budget-mapping"
-            className="group block rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-md"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-[#005baa]">
-                <Icon icon="solar:layers-bold" width={26} />
-              </div>
-              <span className="inline-flex items-center gap-1 text-sm font-semibold text-[#005baa] group-hover:underline">
-                Buka Menu <Icon icon="solar:arrow-right-linear" width={16} />
-              </span>
-            </div>
-            <h3 className="mt-4 text-lg font-bold text-slate-900 group-hover:text-[#005baa]">
-              Daftar Tahun Budget Mapping
-            </h3>
-            <p className="mt-1 text-sm text-slate-500">
-              Pilih tahun anggaran yang tersedia untuk melihat seluruh tab dan alokasi
-              perencanaan belanja program.
-            </p>
-          </Link>
-
-          <Link
-            href={`/siproval/budget-mapping/year?year=${currentYear}`}
-            className="group block rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-md"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-[#00a651]">
-                <Icon icon="solar:document-medicine-bold" width={26} />
-              </div>
-              <span className="inline-flex items-center gap-1 text-sm font-semibold text-[#00a651] group-hover:underline">
-                Kelola Tab <Icon icon="solar:arrow-right-linear" width={16} />
-              </span>
-            </div>
-            <h3 className="mt-4 text-lg font-bold text-slate-900 group-hover:text-[#00a651]">
-              Tab Spreadsheet Anggaran {currentYear}
-            </h3>
-            <p className="mt-1 text-sm text-slate-500">
-              Kelola tab-tab rincian anggaran bulanan dan perbarui data sel secara langsung
-              ke Google Sheets.
-            </p>
-          </Link>
-
-          <Link
-            href="/siproval/tu/laporan-evaluasi?month=APRIL"
-            className="group block rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/50 via-white to-teal-50/30 p-6 shadow-sm transition hover:-translate-y-1 hover:border-emerald-400 hover:shadow-md"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#00a651] text-white shadow-sm">
-                <Icon icon="solar:printer-bold" width={26} />
-              </div>
-              <span className="inline-flex items-center gap-1 text-sm font-semibold text-[#00a651] group-hover:underline">
-                Eksport <Icon icon="solar:arrow-right-linear" width={16} />
-              </span>
-            </div>
-            <h3 className="mt-4 text-lg font-bold text-slate-900 group-hover:text-[#00a651]">
-              Eksport Laporan Evaluasi
-            </h3>
-            <p className="mt-1 text-sm text-slate-500">
-              Cetak atau unduh Berita Acara Evaluasi Internal (Bulan April 2026) gabungan Volume RO &amp; Anggaran.
-            </p>
-          </Link>
-        </div>
-      </div>
+      {/* Target vs Realisasi Comparison Chart */}
+      <TargetRealisasiTuChart />
     </div>
   );
 }
