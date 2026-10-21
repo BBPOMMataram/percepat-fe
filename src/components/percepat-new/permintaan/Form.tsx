@@ -9,6 +9,7 @@ import { useDispatch, useSelector } from "react-redux";
 import FormPerlengkapanKebersihan from "./FormPerlengkapanKebersihan";
 import FormReagen from "./FormReagen";
 import FormAtk from "./FromAtk";
+import FormBakuPembanding from "./FormBakuPembanding";
 import FormSukuCadang from "./FormSukuCadang";
 
 function FormPermintaanPercepat() {
@@ -73,14 +74,17 @@ function FormPermintaanPercepat() {
 
                     let mappedJenis = "reagen";
                     if (editType === 'atk') mappedJenis = "ATK";
+                    if (editType === 'baku pembanding' || editType === 'baku-pembanding') mappedJenis = "baku_pembanding";
                     if (editType === 'perlengkapan kebersihan') mappedJenis = "barang";
                     if (editType === 'suku-cadang' || editType === 'suku cadang') mappedJenis = "suku_cadang";
 
                     const items = data.listBarang.map((it: any) => {
-                        const barang = it.barang || it.atk || it.sukuCadang || {};
+                        const barang = it.barang || it.atk || it.sukuCadang || it.bakuPembanding || it.baku_pembanding || {};
                         return {
                             id: barang.id,
+                            kode_baru: barang.kode_baru || "",
                             nama: barang.name || "",
+                            letak: barang.letak || "",
                             satuan: barang.satuan || "",
                             expired: barang.expired || null,
                             jumlah: it.jumlahpermintaan || it.jumlah,
@@ -124,11 +128,13 @@ function FormPermintaanPercepat() {
                 url += `/api/v1/permintaan-reagen`;
                 redirectUrlAfterSubmit = '/percepat-new/permintaan/reagen';
                 break;
+            case 'baku pembanding':
+                url += `/api/v1/permintaan-baku-pembanding`;
+                redirectUrlAfterSubmit = '/percepat-new/permintaan/baku-pembanding';
+                break;
             case 'atk':
                 url += `/api/v1/permintaan-atk`;
                 redirectUrlAfterSubmit = '/percepat-new/permintaan/atk';
-                break;
-            case 'baku pembanding':
                 break;
             case 'suku cadang':
                 url += `/api/v1/permintaan-suku-cadang`;
@@ -197,10 +203,8 @@ function FormPermintaanPercepat() {
                             className="ar-input-text-purple"
                         >
                             {listJenisBarang.map((jb, index) => {
-                                const isAllowed = ['baku pembanding']
-                                .includes(jb.toLowerCase().trim());
                                 return (
-                                    <option key={index} value={jb} disabled={isAllowed}>
+                                    <option key={index} value={jb}>
                                         {jb.toUpperCase()}
                                     </option>
                                 );
@@ -245,12 +249,12 @@ function FormPermintaanPercepat() {
                     {jenisBarang === 'reagen' && (
                         <FormReagen listBarang={listBarang} setListBarang={setListBarang} />
                     )}
+                    {jenisBarang === 'baku pembanding' && (
+                        <FormBakuPembanding listBarang={listBarang} setListBarang={setListBarang} />
+                    )}
                     {jenisBarang === 'atk' && (
                         <FormAtk listBarang={listBarang} setListBarang={setListBarang} />
                     )}
-                    {/* {jenisBarang === 'baku pembanding' && (
-                        <FormBakuPembanding listBarang={listBarang} setListBarang={setListBarang} />
-                    )} */}
                     {jenisBarang === 'suku cadang' && (
                         <FormSukuCadang listBarang={listBarang} setListBarang={setListBarang} />
                     )}

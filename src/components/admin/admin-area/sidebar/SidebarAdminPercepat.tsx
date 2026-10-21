@@ -41,6 +41,9 @@ export default function SidebarAdminPercepat() {
                         <Link href={'/admin/percepat/master/reagen'}>Reagen</Link>
                     </li>
                     <li>
+                        <Link href={'/admin/percepat/master/baku-pembanding'} className="whitespace-nowrap">Baku Pembanding</Link>
+                    </li>
+                    <li>
                         <Link href={'/admin/percepat/master/atk'}>ATK</Link>
                     </li>
                     <li>
@@ -65,6 +68,9 @@ export default function SidebarAdminPercepat() {
                 >
                     <li>
                         <Link href={'/admin/percepat/permintaan/reagen'}>Reagen</Link>
+                    </li>
+                    <li>
+                        <Link href={'/admin/percepat/permintaan/baku-pembanding'} className="whitespace-nowrap">Baku Pembanding</Link>
                     </li>
                     <li>
                         <Link href={'/admin/percepat/permintaan/atk'}>ATK</Link>
@@ -95,6 +101,9 @@ export default function SidebarAdminPercepat() {
                         <Link href={'/admin/percepat/penerimaan/reagen'}>Reagen</Link>
                     </li>
                     <li>
+                        <Link href={'/admin/percepat/penerimaan/baku-pembanding'} className="whitespace-nowrap">Baku Pembanding</Link>
+                    </li>
+                    <li>
                         <Link href={'/admin/percepat/penerimaan/atk'}>ATK</Link>
                     </li>
                     <li>
@@ -120,6 +129,9 @@ export default function SidebarAdminPercepat() {
                 >
                     <li>
                         <Link href={'/admin/percepat/kartu-stok/reagen'}>Reagen</Link>
+                    </li>
+                    <li>
+                        <Link href={'/admin/percepat/kartu-stok/baku-pembanding'} className="whitespace-nowrap">Baku Pembanding</Link>
                     </li>
                     <li>
                         <Link href={'/admin/percepat/kartu-stok/atk'}>ATK</Link>

@@ -36,7 +36,7 @@ export default function AdminKartuStokReagenPercepat() {
 
     const downloadHandler = (id: number) => {
         api({
-            url: `/api/v1/download-reagen/${id}`,
+            url: `/api/v1/kartu-stok/reagen/${id}`,
             method: 'GET',
             responseType: 'blob'
         })

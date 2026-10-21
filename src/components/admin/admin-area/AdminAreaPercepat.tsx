@@ -10,18 +10,22 @@ import AdminPercepat from "../percepat/AdminPercepat";
 import AdminMasterAtkPercepat from "../percepat/master/atk/AdminMasterAtkPercepat";
 import AdminMasterPerlengkapanPercepat from "../percepat/master/perlengkapan/AdminMasterPerlengkapanPercepat";
 import AdminMasterReagenPercepat from "../percepat/master/reagen/AdminMasterReagenPercepat";
+import AdminMasterBakuPembandingPercepat from "../percepat/master/baku-pembanding/AdminMasterBakuPembandingPercepat";
 import AdminMasterSukuCadangPercepat from "../percepat/master/suku-cadang/AdminMasterSukuCadangPercepat";
 import AdminPenerimaanAtkPercepat from "../percepat/penerimaan/atk/AdminPenerimaanAtkPercepat";
 import AdminPenerimaanPerlengkapanPercepat from "../percepat/penerimaan/perlengkapan/AdminPenerimaanPerlengkapanPercepat";
 import AdminPenerimaanReagenPercepat from "../percepat/penerimaan/reagen/AdminPenerimaanReagenPercepat";
+import AdminPenerimaanBakuPembandingPercepat from "../percepat/penerimaan/baku-pembanding/AdminPenerimaanBakuPembandingPercepat";
 import AdminPenerimaanSukuCadangPercepat from "../percepat/penerimaan/suku-cadang/AdminPenerimaanSukuCadangPercepat";
 import AdminAtkPercepat from "../percepat/permintaan/atk/AdminAtkPercepat";
 import AdminSukuCadangPercepat from "../percepat/permintaan/suku-cadang/AdminSukuCadangPercepat";
 import AdminKartuStokReagenPercepat from "../percepat/kartu-stok/reagen/AdminKartuStokReagenPercepat";
+import AdminKartuStokBakuPembandingPercepat from "../percepat/kartu-stok/baku-pembanding/AdminKartuStokBakuPembandingPercepat";
 import AdminKartuStokAtkPercepat from "../percepat/kartu-stok/atk/AdminKartuStokAtkPercepat";
 import AdminKartuStokPerlengkapanPercepat from "../percepat/kartu-stok/perlengkapan/AdminKartuStokPerlengkapanPercepat";
 import AdminPermintaanPerlengkapanPercepat from "../percepat/permintaan/perlengkapan/AdminPermintaanPerlengkapanPercepat";
 import AdminPermintaanReagenPercepat from "../percepat/permintaan/reagen/AdminPermintaanReagenPercepat";
+import AdminPermintaanBakuPembandingPercepat from "../percepat/permintaan/baku-pembanding/AdminPermintaanBakuPembandingPercepat";
 import AdminSettingsPercepat from "../percepat/settings/AdminSettingsPercepat";
 import SidebarAdminPercepat from "./sidebar/SidebarAdminPercepat";
 
@@ -68,6 +72,10 @@ export default function AdminAreaPercepat() {
                         <AdminMasterReagenPercepat />
                     }
                     {
+                        pathname === '/admin/percepat/master/baku-pembanding' && user &&
+                        <AdminMasterBakuPembandingPercepat />
+                    }
+                    {
                         pathname === '/admin/percepat/master/atk' && user &&
                         <AdminMasterAtkPercepat />
                     }
@@ -81,12 +89,20 @@ export default function AdminAreaPercepat() {
                         <AdminPermintaanReagenPercepat />
                     }
                     {
+                        pathname === '/admin/percepat/permintaan/baku-pembanding' && user &&
+                        <AdminPermintaanBakuPembandingPercepat />
+                    }
+                    {
                         pathname === '/admin/percepat/permintaan/atk' && user &&
                         <AdminAtkPercepat />
                     }
                     {
                         pathname === '/admin/percepat/kartu-stok/reagen' && user &&
                         <AdminKartuStokReagenPercepat />
+                    }
+                    {
+                        pathname === '/admin/percepat/kartu-stok/baku-pembanding' && user &&
+                        <AdminKartuStokBakuPembandingPercepat />
                     }
                     {
                         pathname === '/admin/percepat/kartu-stok/atk' && user &&
@@ -104,6 +120,10 @@ export default function AdminAreaPercepat() {
                     {
                         pathname === '/admin/percepat/penerimaan/reagen' && user &&
                         <AdminPenerimaanReagenPercepat />
+                    }
+                    {
+                        pathname === '/admin/percepat/penerimaan/baku-pembanding' && user &&
+                        <AdminPenerimaanBakuPembandingPercepat />
                     }
                     {
                         pathname === '/admin/percepat/penerimaan/atk' && user &&

@@ -37,6 +37,7 @@ export default function NavBarSiapMelayani() {
                             {permintaanOpen && (
                                 <ul className="p-2">
                                     <li><Link href={'/percepat-new/permintaan/reagen'} onClick={() => setPermintaanOpen(false)}>Reagen</Link></li>
+                                    <li><Link href={'/percepat-new/permintaan/baku-pembanding'} onClick={() => setPermintaanOpen(false)}>Baku Pembanding</Link></li>
                                     <li><Link href={'/percepat-new/permintaan/atk'} onClick={() => setPermintaanOpen(false)}>ATK</Link></li>
                                     <li><Link href={'/percepat-new/permintaan/suku-cadang'} onClick={() => setPermintaanOpen(false)}>Suku Cadang</Link></li>
                                     <li><Link href={'/percepat-new/permintaan/perlengkapan-kebersihan'} onClick={() => setPermintaanOpen(false)}>Perlengkapan Kebersihan</Link></li>
@@ -49,6 +50,7 @@ export default function NavBarSiapMelayani() {
                             {verifOpen && (
                                 <ul className="p-2">
                                     <li><Link href={'/percepat-new/verif/reagen'} onClick={() => setVerifOpen(false)}>Reagen</Link></li>
+                                    <li><Link href={'/percepat-new/verif/baku-pembanding'} onClick={() => setVerifOpen(false)}>Baku Pembanding</Link></li>
                                     <li><Link href={'/percepat-new/verif/atk'} onClick={() => setVerifOpen(false)}>ATK</Link></li>
                                     <li><Link href={'/percepat-new/verif/suku-cadang'} onClick={() => setVerifOpen(false)}>Suku Cadang</Link></li>
                                     <li><Link href={'/percepat-new/verif/perlengkapan-kebersihan'} onClick={() => setVerifOpen(false)}>Perlengkapan Kebersihan</Link></li>
@@ -73,6 +75,7 @@ export default function NavBarSiapMelayani() {
                         {permintaanOpen && (
                             <ul className="p-2 bg-base-100 rounded-box absolute top-full left-0 mt-2 shadow">
                                 <li><Link href={'/percepat-new/permintaan/reagen'} onClick={() => setPermintaanOpen(false)}>Reagen</Link></li>
+                                <li><Link href={'/percepat-new/permintaan/baku-pembanding'} onClick={() => setPermintaanOpen(false)}>Baku Pembanding</Link></li>
                                 <li><Link href={'/percepat-new/permintaan/atk'} onClick={() => setPermintaanOpen(false)}>ATK</Link></li>
                                 <li><Link href={'/percepat-new/permintaan/suku-cadang'} onClick={() => setPermintaanOpen(false)}>Suku Cadang</Link></li>
                                 <li><Link href={'/percepat-new/permintaan/perlengkapan-kebersihan'} onClick={() => setPermintaanOpen(false)}>Perlengkapan Kebersihan</Link></li>
@@ -85,10 +88,11 @@ export default function NavBarSiapMelayani() {
                         </button>
                         {verifOpen && (
                             <ul className="p-2 bg-base-100 rounded-box absolute top-full left-0 mt-2 shadow">
-                                <li><Link href={'/percepat-new/verif/reagen'} onClick={() => setPermintaanOpen(false)}>Reagen</Link></li>
-                                <li><Link href={'/percepat-new/verif/atk'} onClick={() => setPermintaanOpen(false)}>ATK</Link></li>
-                                <li><Link href={'/percepat-new/verif/suku-cadang'} onClick={() => setPermintaanOpen(false)}>Suku Cadang</Link></li>
-                                <li><Link href={'/percepat-new/verif/perlengkapan-kebersihan'} onClick={() => setPermintaanOpen(false)}>Perlengkapan Kebersihan</Link></li>
+                                <li><Link href={'/percepat-new/verif/reagen'} onClick={() => setVerifOpen(false)}>Reagen</Link></li>
+                                <li><Link href={'/percepat-new/verif/baku-pembanding'} onClick={() => setVerifOpen(false)}>Baku Pembanding</Link></li>
+                                <li><Link href={'/percepat-new/verif/atk'} onClick={() => setVerifOpen(false)}>ATK</Link></li>
+                                <li><Link href={'/percepat-new/verif/suku-cadang'} onClick={() => setVerifOpen(false)}>Suku Cadang</Link></li>
+                                <li><Link href={'/percepat-new/verif/perlengkapan-kebersihan'} onClick={() => setVerifOpen(false)}>Perlengkapan Kebersihan</Link></li>
                             </ul>
                         )}
                     </li>

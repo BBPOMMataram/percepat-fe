@@ -1,0 +1,407 @@
+"use client";
+import { ModalGeneral } from "@/components/main/ModalGeneral";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
+import api from "@/utils/api";
+import dayjs from "dayjs";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import LabelStikerModal, { LabelStikerItem } from "@/components/percepat-new/label/LabelStikerModal";
+import { QrCode } from "lucide-react";
+
+export default function PermintaanBakuPembandingPercepat() {
+    const { user } = useRequireAuth();
+    const [dataPermintaan, setDataBarang] = useState<any>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
+    const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
+    const [listBarangPermintaan, setListBarangPermintaan] = useState<any>([]);
+    const [showModalListBarangPermintaan, setShowModalListBarangPermintaan] = useState(false);
+    const [selectedPermintaan, setSelectedPermintaan] = useState<any>(null);
+    const [labelModalOpen, setLabelModalOpen] = useState(false);
+    const [selectedLabelItem, setSelectedLabelItem] = useState<LabelStikerItem | null>(null);
+
+    // === STATE DELETE ===
+    const [showModalConfirmDelete, setShowModalConfirmDelete] = useState(false);
+    const [selectedDeleteId, setSelectedDeleteId] = useState<number | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const rowNumber = (index: number) => (currentPage - 1) * perPage + index + 1;
+
+    const fetchData = (url?: string) => {
+        const endpoint = url ||
+            `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-baku-pembanding?per_page=${perPage}&kode_or_name=${kodeBarangOrNameFilter}`;
+
+        api.get(endpoint)
+            .then(({ data }) => {
+                setDataBarang(data);
+                setCurrentPage(data?.current_page);
+                setPerPage(data?.per_page);
+            })
+            .catch((err) => console.log(err));
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, [perPage, kodeBarangOrNameFilter]);
+
+    const showListBarangHandler = (permintaan: any) => {
+        setSelectedPermintaan(permintaan);
+        setShowModalListBarangPermintaan(true);
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/list-permintaan-baku-pembanding/${permintaan.id}`)
+            .then(({ data }) => {
+                setListBarangPermintaan(data.data || []);
+            })
+            .catch((err) => console.log(err));
+    };
+
+    const handleRowPrintLabel = (permintaan: any) => {
+        setSelectedPermintaan(permintaan);
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/list-permintaan-baku-pembanding/${permintaan.id}`)
+            .then(({ data }) => {
+                const list = data.data || [];
+                setListBarangPermintaan(list);
+                if (list.length === 1) {
+                    const b = list[0];
+                    const bp = b.baku_pembanding || b.bakuPembanding || b.barang || {};
+                    setSelectedLabelItem({
+                        id: bp.id || b.baku_pembanding_id || b.barang_id,
+                        name: bp.name || 'Baku Pembanding',
+                        code: bp.code,
+                        kode_baru: bp.kode_baru,
+                        letak: bp.letak,
+                        satuan: bp.satuan,
+                        expired: bp.expired,
+                        diterima_tanggal: permintaan.tgl_penyerahan || null,
+                        diterima_penerima: permintaan.tgl_penyerahan
+                            ? (permintaan.peminta?.name || permintaan.pemohon)
+                            : null,
+                        category: 'baku-pembanding',
+                        isFromPermintaan: true,
+                    });
+                    setLabelModalOpen(true);
+                } else {
+                    setShowModalListBarangPermintaan(true);
+                }
+            })
+            .catch((err) => console.log(err));
+    };
+
+    const downloadSpbHandler = (id: number) => {
+        api({
+            url: `/api/v1/download-permintaan-baku-pembanding/${id}`,
+            method: 'GET',
+            responseType: 'blob'
+        })
+            .then(({ data }) => {
+                const url = window.URL.createObjectURL(new Blob([data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `SPB-Baku-Pembanding-${id}.pdf`);
+                document.body.appendChild(link);
+                link.click();
+
+                toast.success('Download berhasil !', {
+                    position: "top-right",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: "light",
+                });
+            })
+            .catch(err => console.log(err));
+    };
+
+    const openConfirmDeleteHandler = (id: number) => {
+        setSelectedDeleteId(id);
+        setShowModalConfirmDelete(true);
+    };
+
+    const closeConfirmDeleteHandler = () => {
+        setSelectedDeleteId(null);
+        setShowModalConfirmDelete(false);
+    };
+
+    const confirmDeleteHandler = () => {
+        if (!selectedDeleteId) return;
+
+        setIsDeleting(true);
+        api.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-baku-pembanding/${selectedDeleteId}`)
+            .then(() => {
+                toast.success('Data berhasil dihapus!', {
+                    position: "top-right",
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    theme: "light",
+                });
+                closeConfirmDeleteHandler();
+                fetchData();
+            })
+            .catch((err) => {
+                console.log(err);
+                toast.error('Gagal menghapus data!', {
+                    position: "top-right",
+                    autoClose: 3000,
+                    theme: "light",
+                });
+            })
+            .finally(() => setIsDeleting(false));
+    };
+
+    const closeModalListBarangPermintaanHandler = () => {
+        setShowModalListBarangPermintaan(false);
+        setListBarangPermintaan([]);
+    };
+
+    return (
+        <>
+            <h2 className="mb-5 font-bold text-lg lg:text-3xl font-serif">Data Permintaan Baku Pembanding</h2>
+            <div className="flex flex-wrap items-center gap-4 mb-4">
+                <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Tampilkan</span>
+                    <select
+                        value={perPage}
+                        onChange={(e) => setPerPage(Number(e.target.value))}
+                        className="select select-bordered w-fit"
+                    >
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+            </div>
+            <div className="overflow-x-auto rounded-2xl shadow-sm border border-gray-200 bg-white">
+                <table className="table table-zebra">
+                    <thead className="bg-primary text-primary-content uppercase text-xs">
+                        <tr>
+                            <th className="px-4 py-3 text-left">#</th>
+                            <th className="px-4 py-3 text-left">Pemohon</th>
+                            <th className="px-4 py-3 text-left">Fungsi</th>
+                            <th className="px-4 py-3 text-left">KaTim / Penyelia</th>
+                            <th className="px-4 py-3 text-left">Status</th>
+                            <th className="px-4 py-3 text-left">Tgl Permintaan</th>
+                            <th className="px-4 py-3 text-left">Tgl Penyerahan</th>
+                            <th className="px-4 py-3 text-left">Yang Menyerahkan</th>
+                            <th className="px-4 py-3 text-center">##</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {dataPermintaan?.data?.length === 0 ? (
+                            <tr>
+                                <td colSpan={9} className="text-center py-6 text-gray-500">
+                                    Belum ada data permintaan
+                                </td>
+                            </tr>
+                        ) : (
+                            dataPermintaan?.data?.map((item: any, index: number) => (
+                                <tr key={item.id} className="border-t transition">
+                                    <td className="px-4 py-3 font-medium">{rowNumber(index)}</td>
+                                    <td className="px-4 py-3 font-semibold capitalize">{item.peminta?.name}</td>
+                                    <td className="px-4 py-3 font-semibold capitalize">{item.bidang?.name || item.bidang_name_auth_external}</td>
+                                    <td className="px-4 py-3">{item.bidang?.user?.name || item.katim?.name}</td>
+                                    <td className="px-4 py-3">{item.status?.name}</td>
+                                    <td className="px-4 py-3">{dayjs(item.tgl_permintaan).format("DD MMM YYYY")}</td>
+                                    <td className="px-4 py-3">{item.tgl_penyerahan ? dayjs(item.tgl_penyerahan).format("DD MMM YYYY") : '-'}</td>
+                                    <td className="px-4 py-3">{item.penyerah?.name || '-'}</td>
+                                    <td className="px-1 py-3 flex">
+                                        <span
+                                            className="btn btn-xs btn-ghost btn-error tooltip tooltip-error tooltip-left"
+                                            data-tip="Download SPB"
+                                            onClick={() => downloadSpbHandler(item.id)}
+                                        >
+                                            <span className="material-symbols-outlined text-[20px]!">download</span>
+                                        </span>
+                                        <span
+                                            className="btn btn-xs btn-ghost btn-accent tooltip tooltip-accent tooltip-left"
+                                            data-tip="List Barang"
+                                            onClick={() => showListBarangHandler(item)}
+                                        >
+                                            <span className="material-symbols-outlined text-[20px]!">list</span>
+                                        </span>
+                                        <span
+                                            className="btn btn-xs btn-ghost btn-info tooltip tooltip-info tooltip-left"
+                                            data-tip="Cetak Label"
+                                            onClick={() => handleRowPrintLabel(item)}
+                                        >
+                                            <span className="material-symbols-outlined text-[20px]!">qr_code_2</span>
+                                        </span>
+                                        {(item.status?.id === 1 && item.peminta?.external_user_id === user?.id) && (
+                                            <span
+                                                className="btn btn-xs btn-ghost text-error tooltip tooltip-error tooltip-left"
+                                                data-tip="Hapus"
+                                                onClick={() => openConfirmDeleteHandler(item.id)}
+                                            >
+                                                <span className="material-symbols-outlined text-[20px]!">delete</span>
+                                            </span>
+                                        )}
+
+                                        {(item.status?.id < 4 && item.peminta?.external_user_id === user?.id) && (
+                                            <Link
+                                                href={`/percepat-new/permintaan/form?id=${item.id}&type=baku-pembanding`}
+                                                className="btn btn-xs btn-ghost btn-warning tooltip tooltip-warning tooltip-left"
+                                                data-tip="Edit"
+                                            >
+                                                <span className="material-symbols-outlined text-[20px]!">edit</span>
+                                            </Link>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+
+                <div className="flex justify-between items-center m-6">
+                    <span>
+                        Menampilkan {dataPermintaan?.from || 0} - {dataPermintaan?.to || 0} dari {dataPermintaan?.total || 0} data
+                    </span>
+                </div>
+                <div className="flex justify-end items-center m-4 gap-4">
+                    <div className="btn-group">
+                        {dataPermintaan?.links?.map((link: any, index: number) => (
+                            <button
+                                key={index}
+                                className={`btn ${link.active && 'btn-active'} ${!link.url && 'btn-disabled'} mr-1`}
+                                onClick={() => {
+                                    if (link.url) {
+                                        const url = new URL(link.url, window.location.origin);
+                                        url.searchParams.set('per_page', String(perPage));
+                                        fetchData(url.toString());
+                                    }
+                                }}
+                            >
+                                <span dangerouslySetInnerHTML={{ __html: link.label }}></span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            <div className="fixed bottom-4 lg:bottom-8 right-4 lg:right-8 tooltip tooltip-left" data-tip="Create New">
+                <Link
+                    href="/percepat-new/permintaan/form"
+                    className="btn btn-primary btn-floating btn-circle hover:scale-110 hover:rotate-90 transition-all duration-200 ease-in-out"
+                >
+                    <span className="material-symbols-outlined">add</span>
+                </Link>
+            </div>
+
+            {/* Modal List Barang */}
+            {showModalListBarangPermintaan && (
+                <ModalGeneral open={showModalListBarangPermintaan} onClose={closeModalListBarangPermintaanHandler}>
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-slate-900">List Baku Pembanding Permintaan</h3>
+                        {selectedPermintaan && (
+                            <div className="text-xs text-slate-500">
+                                Pemohon: <span className="font-bold text-slate-800">{selectedPermintaan.peminta?.name || selectedPermintaan.pemohon || '-'}</span>
+                                {selectedPermintaan.tgl_penyerahan && (
+                                    <span className="ml-2">| Penyerahan: <span className="font-semibold">{dayjs(selectedPermintaan.tgl_penyerahan).format("DD MMM YYYY")}</span></span>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    <ul className="max-h-96 overflow-y-auto divide-y divide-slate-100 pr-1">
+                        {listBarangPermintaan.length === 0 ? (
+                            <li className="text-gray-500 py-3 text-center">Tidak ada barang dalam permintaan ini.</li>
+                        ) : (
+                            listBarangPermintaan.map((item: any, index: number) => {
+                                const bp = item.baku_pembanding || item.bakuPembanding || item.barang || {};
+                                return (
+                                    <li key={index} className="py-2.5 px-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 rounded-lg transition-colors">
+                                        <div className="space-y-1">
+                                            <div className="font-semibold text-slate-800">
+                                                {bp.name ? `${bp.kode_baru ? `[${bp.kode_baru}] ` : ''}${bp.name} (Stok: ${bp.stock ?? '-'})` : `Barang tidak ditemukan (ID: ${item.baku_pembanding_id || item.barang_id || '-'})`}
+                                            </div>
+                                            <div className="text-xs [&>span]:mr-1">
+                                                {bp.kode_baru && <span className="badge badge-soft badge-primary">Kode Baru : {bp.kode_baru}</span>}
+                                                {bp.letak && <span className="badge badge-soft badge-primary">Letak : {bp.letak}</span>}
+                                                <span className="badge badge-soft badge-primary">Minta : {item.jumlahpermintaan}</span>
+                                                <span className="badge badge-soft badge-primary">Realisasi : {item.jumlahrealisasi || '-'}</span>
+                                                <span className="badge badge-soft badge-primary">Satuan : {bp.satuan || '-'}</span>
+                                                <span className="badge badge-soft badge-primary">Expired : {bp.expired ? dayjs(bp.expired).format("DD MMM YYYY") : '-'}</span>
+                                                {item.keterangan && <span className="badge badge-soft badge-primary">Ket : {item.keterangan}</span>}
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className="btn btn-xs sm:btn-sm btn-info btn-outline gap-1 self-start sm:self-center shrink-0"
+                                            title="Cetak Label Stiker Botol"
+                                            onClick={() => {
+                                                setSelectedLabelItem({
+                                                    id: bp.id || item.baku_pembanding_id || item.barang_id,
+                                                    name: bp.name || 'Baku Pembanding',
+                                                    code: bp.code,
+                                                    kode_baru: bp.kode_baru,
+                                                    letak: bp.letak,
+                                                    satuan: bp.satuan,
+                                                    expired: bp.expired,
+                                                    diterima_tanggal: selectedPermintaan?.tgl_penyerahan || null,
+                                                    diterima_penerima: selectedPermintaan?.tgl_penyerahan
+                                                        ? (selectedPermintaan?.peminta?.name || selectedPermintaan?.pemohon)
+                                                        : null,
+                                                    category: 'baku-pembanding',
+                                                    isFromPermintaan: true,
+                                                });
+                                                setLabelModalOpen(true);
+                                            }}
+                                        >
+                                            <QrCode size={13} />
+                                            Cetak Label
+                                        </button>
+                                    </li>
+                                );
+                            })
+                        )}
+                    </ul>
+                </ModalGeneral>
+            )}
+
+            {/* Modal Konfirmasi Delete */}
+            {showModalConfirmDelete && (
+                <ModalGeneral open={showModalConfirmDelete} onClose={closeConfirmDeleteHandler}>
+                    <div className="text-center">
+                        <span className="material-symbols-outlined text-error text-5xl mb-3">warning</span>
+                        <h3 className="text-lg font-semibold mb-2">Konfirmasi Hapus</h3>
+                        <p className="text-gray-500 mb-6">
+                            Apakah Anda yakin ingin menghapus data permintaan ini? <br />
+                            <span className="text-error font-medium">Tindakan ini tidak dapat dibatalkan.</span>
+                        </p>
+                        <div className="flex justify-center gap-3">
+                            <button
+                                className="btn btn-ghost"
+                                onClick={closeConfirmDeleteHandler}
+                                disabled={isDeleting}
+                            >
+                                Batal
+                            </button>
+                            <button
+                                className="btn btn-error"
+                                onClick={confirmDeleteHandler}
+                                disabled={isDeleting}
+                            >
+                                {isDeleting
+                                    ? <><span className="loading loading-spinner loading-sm"></span> Menghapus...</>
+                                    : 'Ya, Hapus'
+                                }
+                            </button>
+                        </div>
+                    </div>
+                </ModalGeneral>
+            )}
+
+            <LabelStikerModal
+                isOpen={labelModalOpen}
+                onClose={() => setLabelModalOpen(false)}
+                item={selectedLabelItem}
+            />
+        </>
+    );
+}

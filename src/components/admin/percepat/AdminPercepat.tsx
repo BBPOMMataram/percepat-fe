@@ -44,8 +44,27 @@ export default function AdminPercepat() {
                                 }
                             </p>
                             <div className="card-actions justify-center">
-                                <Link href="/admin/siap-melayani/peserta">
+                                <Link href="/admin/percepat/master/reagen">
                                     <button className="btn btn-sm btn-primary">Check it out</button>
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="card bg-info text-info-content w-64 shadow-sm">
+                        <div className="card-body">
+                            <h2 className="card-title text-sm">Total Baku Pembanding</h2>
+                            <p className="text-4xl font-bold flex items-center justify-center">
+                                {
+                                    <CountUp
+                                        end={dataDashboard?.totalBakuPembanding || 0}
+                                        duration={1.5}
+                                        separator="."
+                                    />
+                                }
+                            </p>
+                            <div className="card-actions justify-center">
+                                <Link href="/admin/percepat/master/baku-pembanding">
+                                    <button className="btn btn-sm btn-info">Check it out</button>
                                 </Link>
                             </div>
                         </div>

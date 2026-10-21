@@ -1,0 +1,474 @@
+import { ModalGeneral } from "@/components/main/ModalGeneral";
+import { showAlert } from "@/features/alertSlice";
+import { AppDispatch } from "@/redux/store";
+import api from "@/utils/api";
+import dayjs from "dayjs";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { toast } from "react-toastify";
+import LabelStikerModal, { LabelStikerItem } from "@/components/percepat-new/label/LabelStikerModal";
+import { QrCode } from "lucide-react";
+
+export default function AdminPermintaanBakuPembandingPercepat() {
+    const [data, setData] = useState<any>([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
+    const [openModalVerifPetugas, setOpenModalVerifPetugas] = useState<boolean>(false);
+    const [showModalListBarangPermintaan, setShowModalListBarangPermintaan] = useState(false);
+    const [listBarangPermintaan, setListBarangPermintaan] = useState<any>([]);
+    const [selectedPermintaan, setSelectedPermintaan] = useState<any>(null);
+    const [labelModalOpen, setLabelModalOpen] = useState<boolean>(false);
+    const [selectedLabelItem, setSelectedLabelItem] = useState<LabelStikerItem | null>(null);
+    const [permintaanId, setPermintaanId] = useState<number | null>(null);
+    const [jumlahRealisasi, setJumlahRealisasi] = useState<any>([]);
+    const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+
+    const { user } = useSelector((state: any) => state.auth);
+
+    const dispatch = useDispatch<AppDispatch>();
+
+    const rowNumber = (index: number) => (currentPage - 1) * perPage + index + 1;
+
+    const loadData = useCallback(() => {
+        const params = new URLSearchParams({
+            per_page: String(perPage),
+            name: kodeBarangOrNameFilter,
+            ...(startDate && { start_date: startDate }),
+            ...(endDate && { end_date: endDate }),
+        });
+
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-baku-pembanding?${params}`)
+            .then(({ data }) => {
+                setData(data);
+                setCurrentPage(data?.current_page);
+                setPerPage(data?.per_page);
+            })
+            .catch(err => console.log(err));
+    }, [perPage, kodeBarangOrNameFilter, startDate, endDate]);
+
+    const getListBarangPermintaan = (id: number) => {
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/list-permintaan-baku-pembanding/${id}`)
+            .then(({ data }) => {
+                setListBarangPermintaan(data.data);
+                const defaults = data.data.map((item: any) => (item.jumlahrealisasi ?? item.jumlahpermintaan ?? 1));
+                setJumlahRealisasi(defaults);
+            })
+            .catch((err) => {
+                console.log(err);
+            });
+    };
+
+    const downloadSpbHandler = (id: number) => {
+        api({
+            url: `/api/v1/download-permintaan-baku-pembanding/${id}`,
+            method: 'GET',
+            responseType: 'blob'
+        })
+            .then(({ data }) => {
+                const url = window.URL.createObjectURL(new Blob([data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `SPB-Baku-Pembanding-${id}.pdf`);
+                document.body.appendChild(link);
+                link.click();
+
+                toast.success('Download berhasil !', {
+                    position: "top-right",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: "light",
+                });
+            })
+            .catch(err => console.log(err));
+    };
+
+    const showListBarangHandler = (permintaan: any) => {
+        setSelectedPermintaan(permintaan);
+        setShowModalListBarangPermintaan(true);
+        getListBarangPermintaan(permintaan.id);
+    };
+
+    useEffect(() => {
+        loadData();
+    }, [perPage, loadData]);
+
+    const closeModalListBarangPermintaanHandler = () => {
+        setShowModalListBarangPermintaan(false);
+        setListBarangPermintaan([]);
+    };
+
+    const closeModalVerifPetugasHandler = () => {
+        setOpenModalVerifPetugas(false);
+        setListBarangPermintaan([]);
+        setJumlahRealisasi([]);
+    };
+
+    const openModalVerifPetugasHandler = (id: number) => {
+        setPermintaanId(id);
+        setOpenModalVerifPetugas(true);
+        getListBarangPermintaan(id);
+    };
+
+    const verifPetugasHandler = (id: number) => {
+        if (!window.confirm("Apakah Anda yakin ingin memverifikasi permintaan ini?")) {
+            return;
+        }
+
+        api.post(`/api/v1/verif-petugas-baku-pembanding/${id}`, {
+            user,
+            realisasi: jumlahRealisasi,
+        })
+            .then(res => {
+                dispatch(showAlert({ type: "success", message: res.data.message || "Verifikasi berhasil!", description: res.data.message || "Success" }));
+                loadData();
+                closeModalVerifPetugasHandler();
+            })
+            .catch(err => {
+                console.log(err);
+                dispatch(showAlert({ type: "error", message: err?.response?.data?.message || err.message, description: err.response?.data?.message || "Error" }));
+            });
+    };
+
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const filterKodeOrNameHander = (v: string) => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            setKodeBarangOrNameFilter(v);
+        }, 500);
+    };
+
+    const handleRowPrintLabel = (permintaan: any) => {
+        setSelectedPermintaan(permintaan);
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/list-permintaan-baku-pembanding/${permintaan.id}`)
+            .then(({ data }) => {
+                const list = data.data || [];
+                setListBarangPermintaan(list);
+                if (list.length === 1) {
+                    const b = list[0];
+                    const bp = b.baku_pembanding || b.bakuPembanding || b.barang || {};
+                    setSelectedLabelItem({
+                        id: bp.id || b.baku_pembanding_id || b.barang_id,
+                        name: bp.name || 'Baku Pembanding',
+                        code: bp.code,
+                        kode_baru: bp.kode_baru,
+                        letak: bp.letak,
+                        satuan: bp.satuan,
+                        expired: bp.expired,
+                        diterima_tanggal: permintaan.tgl_penyerahan || null,
+                        diterima_penerima: permintaan.tgl_penyerahan
+                            ? (permintaan.peminta?.name || permintaan.peminta_name || permintaan.pemohon)
+                            : null,
+                        category: 'baku-pembanding',
+                        isFromPermintaan: true,
+                    });
+                    setLabelModalOpen(true);
+                } else {
+                    setShowModalListBarangPermintaan(true);
+                }
+            })
+            .catch((err) => console.log(err));
+    };
+
+    return (
+        <>
+            <div className="bg-white rounded-2xl shadow px-8 py-4 mb-2 flex flex-col md:flex-row">
+                <div className="text-lg font-semibold text-gray-800 uppercase">Permintaan Baku Pembanding</div>
+                <h2 className="text-xl font-semibold text-gray-800 uppercase md:ml-auto">Admin Panel Percepat</h2>
+            </div>
+            <div className="bg-white rounded-2xl shadow px-8 py-4">
+                <div className="flex flex-wrap items-center gap-4 mb-4">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">Tampilkan</span>
+                        <select
+                            value={perPage}
+                            onChange={(e) => setPerPage(Number(e.target.value))}
+                            className="select select-bordered w-fit"
+                        >
+                            <option value="5">5</option>
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="ar-input-text-purple"
+                        />
+                        <span className="text-sm text-gray-600">s/d</span>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="ar-input-text-purple"
+                        />
+                    </div>
+
+                    <div className="ml-auto flex items-center gap-2">
+                        <input
+                            type="text"
+                            className="ar-input-text-purple"
+                            placeholder="Cari nama / kode"
+                            onChange={e => filterKodeOrNameHander(e.currentTarget.value)}
+                        />
+                        <button
+                            onClick={() => {
+                                const params = new URLSearchParams({
+                                    per_page: String(perPage),
+                                    page: String(currentPage),
+                                    ...(kodeBarangOrNameFilter && { name: kodeBarangOrNameFilter }),
+                                    ...(startDate && { start_date: startDate }),
+                                    ...(endDate && { end_date: endDate }),
+                                });
+                                window.open(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/permintaan-baku-pembanding/export-pdf?${params}`, '_blank');
+                            }}
+                            className="btn btn-success text-white gap-2"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            PDF
+                        </button>
+                    </div>
+                </div>
+                <div className="w-full overflow-x-auto">
+                    <table className="ar-table">
+                        <thead>
+                            <tr>
+                                <th className="px-4 py-3 text-left">#</th>
+                                <th className="px-4 py-3 text-left">Pemohon</th>
+                                <th className="px-4 py-3 text-left">Fungsi</th>
+                                <th className="px-4 py-3 text-left">KaTim / Penyelia</th>
+                                <th className="px-4 py-3 text-left">Status</th>
+                                <th className="px-4 py-3 text-left">Tgl Permintaan</th>
+                                <th className="px-4 py-3 text-left">Tgl Penyerahan</th>
+                                <th className="px-4 py-3 text-left">Yang Menyerahkan</th>
+                                <th className="px-4 py-3 text-center">##</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {data?.data?.length === 0 ? (
+                                <tr>
+                                    <td colSpan={9} className="text-center py-6 text-gray-500">
+                                        Belum ada data permintaan
+                                    </td>
+                                </tr>
+                            ) : (
+                                data?.data?.map((item: any, index: number) => (
+                                    <tr key={item.id} className="border-t transition">
+                                        <td className="px-4 py-3 font-medium">{rowNumber(index)}</td>
+                                        <td className="px-4 py-3 capitalize">{item.peminta?.name || '-'}</td>
+                                        <td className="px-4 py-3 capitalize">{item.bidang?.name || item.bidang_name_auth_external}</td>
+                                        <td className="px-4 py-3 capitalize">{item.bidang?.user?.name || item.katim?.name}</td>
+                                        <td className="px-4 py-3 capitalize">{item.status?.name}</td>
+                                        <td className="px-4 py-3 capitalize">{dayjs(item.tgl_permintaan).format("DD MMM YYYY")}</td>
+                                        <td className="px-4 py-3">{
+                                            item.tgl_penyerahan ?
+                                                dayjs(item.tgl_penyerahan).format("DD MMM YYYY")
+                                                : '-'
+                                        }</td>
+                                        <td className="px-4 py-3 capitalize">{item.penyerah?.name || '-'}</td>
+                                        <td className="px-4 py-3 flex">
+                                            <span className="btn btn-sm btn-ghost btn-error tooltip tooltip-error tooltip-left" data-tip="Download SPB"
+                                                onClick={() => downloadSpbHandler(item.id)}>
+                                                <span className="material-symbols-outlined">
+                                                    download
+                                                </span>
+                                            </span>
+                                            <span className="btn btn-sm btn-ghost btn-accent tooltip tooltip-accent tooltip-left" data-tip="List Barang"
+                                                onClick={() => showListBarangHandler(item)}>
+                                                <span className="material-symbols-outlined">
+                                                    list
+                                                </span>
+                                            </span>
+                                            <span className="btn btn-sm btn-ghost btn-info tooltip tooltip-info tooltip-left" data-tip="Cetak Label Barang"
+                                                onClick={() => handleRowPrintLabel(item)}>
+                                                <span className="material-symbols-outlined">
+                                                    qr_code_2
+                                                </span>
+                                            </span>
+                                            {
+                                                (item.status_id === 3) &&
+                                                <span className="btn btn-sm btn-ghost btn-success tooltip tooltip-success tooltip-left" data-tip="Verif Permintaan"
+                                                    onClick={() => openModalVerifPetugasHandler(item.id)}>
+                                                    <span className="material-symbols-outlined">
+                                                        check_small
+                                                    </span>
+                                                </span>
+                                            }
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+                {/* links */}
+                <div className="flex justify-end mt-8">
+                    <div className="btn-group">
+                        {
+                            data?.links?.map((link: any, index: number) =>
+                                <button
+                                    key={index}
+                                    className={`btn ${link.active && 'btn-active'} ${!link.url && 'btn-disabled'} mr-1`}
+                                    onClick={() => {
+                                        if (link.url) {
+                                            const url = new URL(link.url);
+                                            url.searchParams.set('per_page', String(perPage));
+                                            url.searchParams.set('name', kodeBarangOrNameFilter);
+
+                                            api.get(url.toString())
+                                                .then(res => {
+                                                    setData(res.data);
+                                                    setCurrentPage(res.data?.current_page);
+                                                });
+                                        }
+                                    }}
+                                >
+                                    <span dangerouslySetInnerHTML={{ __html: link.label }}></span>
+                                </button>
+                            )
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <ModalGeneral
+                open={showModalListBarangPermintaan}
+                onClose={closeModalListBarangPermintaanHandler}
+            >
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-slate-900">List Baku Pembanding Permintaan</h3>
+                    {selectedPermintaan && (
+                        <div className="text-xs text-slate-500">
+                            Pemohon: <span className="font-bold text-slate-800">{selectedPermintaan.peminta?.name || selectedPermintaan.pemohon || '-'}</span>
+                            {selectedPermintaan.tgl_penyerahan && (
+                                <span className="ml-2">| Penyerahan: <span className="font-semibold">{dayjs(selectedPermintaan.tgl_penyerahan).format("DD MMM YYYY")}</span></span>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                <ul className="max-h-96 overflow-y-auto divide-y divide-slate-100 pr-1">
+                    {listBarangPermintaan.length === 0 ? (
+                        <li className="text-gray-500 py-3 text-center">Tidak ada barang dalam permintaan ini.</li>
+                    ) : (
+                        listBarangPermintaan.map((item: any, index: number) => {
+                            const bp = item.baku_pembanding || item.bakuPembanding || item.barang || {};
+                            return (
+                                <li key={index} className="py-2.5 px-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 rounded-lg transition-colors">
+                                    <div className="space-y-1">
+                                        <div className="font-semibold text-slate-800">
+                                            {bp.name ? `${bp.kode_baru ? `[${bp.kode_baru}] ` : ''}${bp.name} (Stok: ${bp.stock ?? '-'})` : `Barang tidak ditemukan (ID: ${item.baku_pembanding_id || item.barang_id || '-'})`}
+                                        </div>
+                                        <div className="text-xs [&>span]:mr-1">
+                                            {bp.kode_baru && <span className="badge badge-soft badge-primary">Kode Baru : {bp.kode_baru}</span>}
+                                            {bp.letak && <span className="badge badge-soft badge-primary">Letak : {bp.letak}</span>}
+                                            <span className="badge badge-soft badge-primary">Minta : {item.jumlahpermintaan}</span>
+                                            <span className="badge badge-soft badge-primary">Realisasi : {item.jumlahrealisasi || '-'}</span>
+                                            <span className="badge badge-soft badge-primary">Satuan : {bp.satuan || '-'}</span>
+                                            {item.keterangan && <span className="badge badge-soft badge-primary">Ket : {item.keterangan}</span>}
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="btn btn-xs sm:btn-sm btn-info btn-outline gap-1 self-start sm:self-center shrink-0"
+                                        title="Cetak Label Stiker Botol"
+                                        onClick={() => {
+                                            setSelectedLabelItem({
+                                                id: bp.id || item.baku_pembanding_id || item.barang_id,
+                                                name: bp.name || 'Baku Pembanding',
+                                                code: bp.code,
+                                                kode_baru: bp.kode_baru,
+                                                letak: bp.letak,
+                                                satuan: bp.satuan,
+                                                expired: bp.expired,
+                                                diterima_tanggal: selectedPermintaan?.tgl_penyerahan || null,
+                                                diterima_penerima: selectedPermintaan?.tgl_penyerahan
+                                                    ? (selectedPermintaan?.peminta?.name || selectedPermintaan?.peminta_name || selectedPermintaan?.pemohon)
+                                                    : null,
+                                                category: 'baku-pembanding',
+                                                isFromPermintaan: true,
+                                            });
+                                            setLabelModalOpen(true);
+                                        }}
+                                    >
+                                        <QrCode size={13} />
+                                        Cetak Label
+                                    </button>
+                                </li>
+                            );
+                        })
+                    )}
+                </ul>
+            </ModalGeneral>
+
+            {/* MODAL VERIF OLEH PETUGAS */}
+            <ModalGeneral
+                open={openModalVerifPetugas}
+                onClose={closeModalVerifPetugasHandler}
+            >
+                <h3 className="text-lg font-semibold mb-4">Verifikasi Permintaan</h3>
+
+                <ul className="max-h-96 overflow-y-auto list-decimal list-inside">
+                    {listBarangPermintaan.length === 0 ? (
+                        <li className="text-gray-500">Tidak ada barang dalam permintaan ini.</li>
+                    ) : (
+                        listBarangPermintaan.map((item: any, index: number) => {
+                            const bp = item.baku_pembanding || item.bakuPembanding || item.barang || {};
+                            return (
+                                <li key={index} className="my-1 py-1 px-2 w-fit rounded">
+                                    {bp.name ? `${bp.kode_baru ? `[${bp.kode_baru}] ` : ''}${bp.name} (Stok: ${bp.stock ?? '-'})` : `Barang tidak ditemukan (ID: ${item.baku_pembanding_id || item.barang_id || '-'})`}
+                                    <span className="ml-4">
+                                        <label htmlFor={`realisasi-${index}`} className="text-secondary">Realisasi : </label>
+                                        <input
+                                            type="number"
+                                            id={`realisasi-${index}`}
+                                            min={1}
+                                            value={jumlahRealisasi[index] ?? (item.jumlahpermintaan ?? 1)}
+                                            className="ar-input w-16 my-2 outline-1 outline-secondary rounded px-1"
+                                            onChange={(e: any) => {
+                                                const val = parseInt(e.target.value) || 0;
+                                                setJumlahRealisasi((prev: any) => {
+                                                    const updatedArray = [...(prev || [])];
+                                                    updatedArray[index] = val;
+                                                    return updatedArray;
+                                                });
+                                            }}
+                                        />
+                                    </span>
+                                    <div className="text-xs [&>span]:mr-1">
+                                        <span className="badge badge-soft badge-primary">Kode Baru : {bp.kode_baru || '-'}</span>
+                                        <span className="badge badge-soft badge-primary">Letak : {bp.letak || '-'}</span>
+                                        <span className="badge badge-soft badge-primary">Jumlah Permintaan : {item.jumlahpermintaan}</span>
+                                        <span className="badge badge-soft badge-primary">Jumlah Realisasi : {item.jumlahrealisasi || '-'}</span>
+                                        <span className="badge badge-soft badge-primary">Satuan : {bp.satuan || '-'}</span>
+                                        <span className="badge badge-soft badge-primary">Expired : {bp.expired ? dayjs(bp.expired).format("DD MMM YYYY") : '-'}</span>
+                                        <span className="badge badge-soft badge-primary">Ket : {item.keterangan || '-'}</span>
+                                    </div>
+                                </li>
+                            );
+                        })
+                    )}
+                </ul>
+
+                <button className="btn btn-primary mt-4" onClick={() => verifPetugasHandler(permintaanId!)}>Verifikasi</button>
+            </ModalGeneral>
+
+            <LabelStikerModal
+                isOpen={labelModalOpen}
+                onClose={() => setLabelModalOpen(false)}
+                item={selectedLabelItem}
+            />
+        </>
+    );
+}
