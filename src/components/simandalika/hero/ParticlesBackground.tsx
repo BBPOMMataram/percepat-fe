@@ -5,7 +5,19 @@ import { loadSlim } from "tsparticles-slim";
 
 const ParticlesBackground = ({ particleColor }: { particleColor: string }) => {
     const particlesInit = useCallback(async (engine: any) => {
-        await loadSlim(engine); // gunakan Slim daripada Full
+        if (
+            typeof document !== "undefined" &&
+            (document.documentElement.classList.contains("legacy-win") ||
+                document.documentElement.getAttribute("data-legacy-browser") === "true")
+        ) {
+            return;
+        }
+
+        try {
+            await loadSlim(engine); // gunakan Slim daripada Full
+        } catch (e) {
+            console.warn("Particles failed to init:", e);
+        }
     }, []);
 
     return (

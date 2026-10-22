@@ -10,10 +10,23 @@ export default function MolecularBackground({ className = "" }: MolecularBackgro
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
     useEffect(() => {
+        // Nonaktifkan canvas loop jika terdeteksi Windows lama
+        if (
+            document.documentElement.classList.contains("legacy-win") ||
+            document.documentElement.getAttribute("data-legacy-browser") === "true"
+        ) {
+            return;
+        }
+
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        const ctx = canvas.getContext("2d", { alpha: true });
+        let ctx: CanvasRenderingContext2D | null = null;
+        try {
+            ctx = canvas.getContext("2d", { alpha: true });
+        } catch (e) {
+            return;
+        }
         if (!ctx) return;
 
         let animationFrameId: number;

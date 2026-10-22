@@ -1,18 +1,30 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import StaticLabCard from "./StaticLabCard";
 
 export default function Interactive3DFlask() {
     const containerRef = useRef<HTMLDivElement | null>(null);
+    const [webGlFailed, setWebGlFailed] = useState(false);
 
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
 
-        // Clean any existing canvas/children
-        while (container.firstChild) {
-            container.removeChild(container.firstChild);
+        // Check if WebGL is supported by browser/GPU
+        try {
+            const canvasTest = document.createElement("canvas");
+            const gl =
+                canvasTest.getContext("webgl") ||
+                canvasTest.getContext("experimental-webgl");
+            if (!gl) {
+                setWebGlFailed(true);
+                return;
+            }
+        } catch (e) {
+            setWebGlFailed(true);
+            return;
         }
 
         const width = container.clientWidth || 360;
@@ -25,14 +37,26 @@ export default function Interactive3DFlask() {
         camera.position.set(0, 2.3, 8.2);
         camera.lookAt(0, 1.9, 0);
 
-        const renderer = new THREE.WebGLRenderer({
-            antialias: true,
-            alpha: true,
-            powerPreference: "high-performance",
-        });
-        renderer.setSize(width, height);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-        container.appendChild(renderer.domElement);
+        let renderer: THREE.WebGLRenderer;
+        try {
+            // Clean any existing canvas/children
+            while (container.firstChild) {
+                container.removeChild(container.firstChild);
+            }
+
+            renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                alpha: true,
+                powerPreference: "high-performance",
+            });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+            container.appendChild(renderer.domElement);
+        } catch (e) {
+            console.warn("WebGL not supported or disabled, switching to 2D card mode:", e);
+            setWebGlFailed(true);
+            return;
+        }
 
         // --- Hierarchy for physical motion ---
         // 1. tiltGroup: Anchored at base (0, 0, 0).
@@ -591,6 +615,10 @@ export default function Interactive3DFlask() {
             renderer.dispose();
         };
     }, []);
+
+    if (webGlFailed) {
+        return <StaticLabCard />;
+    }
 
     return (
         <div className="relative w-full aspect-square max-w-[340px] sm:max-w-[400px] select-none flex items-center justify-center cursor-ew-resize bg-transparent">

@@ -214,6 +214,9 @@ export default function PercepatNavbar() {
                                                 src={user.photo_path || "/assets/images/noimage.svg"}
                                                 alt={user.name || "User Avatar"}
                                                 className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    e.currentTarget.src = "/assets/images/noimage.svg";
+                                                }}
                                             />
                                         </div>
                                     </div>
