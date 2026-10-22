@@ -10,7 +10,6 @@ interface PengujianTableProps {
     currentBatch: BatchItem | null;
     loading: boolean;
     onOpenQrModal: (data: QrModalData) => void;
-    onLoadSample2Col: () => void;
 }
 
 export default function PengujianTable({
@@ -19,7 +18,6 @@ export default function PengujianTable({
     currentBatch,
     loading,
     onOpenQrModal,
-    onLoadSample2Col,
 }: PengujianTableProps) {
     // Search & Pagination States
     const [tableSearch, setTableSearch] = useState("");
@@ -52,11 +50,10 @@ export default function PengujianTable({
         });
     }, [items, tableSearch]);
 
-    // Reset pagination when filter changes
+    // Pagination calculations
     const totalItems = filteredItems.length;
     const effectivePageSize = pageSize === 0 ? totalItems : pageSize;
     const totalPages = Math.max(1, Math.ceil(totalItems / (effectivePageSize || 1)));
-
     const validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
 
     const startIndex = (validCurrentPage - 1) * effectivePageSize;
@@ -88,15 +85,11 @@ export default function PengujianTable({
 
     const renderCellContent = (val: any) => {
         if (val === null || val === undefined || val === "") {
-            return <span className="text-slate-400">-</span>;
+            return "-";
         }
 
         if (typeof val === "object") {
-            return (
-                <span className="font-mono text-[11px] text-slate-700">
-                    {JSON.stringify(val)}
-                </span>
-            );
+            return JSON.stringify(val);
         }
 
         const valStr = String(val);
@@ -122,7 +115,63 @@ export default function PengujianTable({
             );
         }
 
-        return <span className="text-slate-800">{valStr}</span>;
+        return valStr;
+    };
+
+    // Generate pagination numbered buttons
+    const renderPaginationButtons = () => {
+        if (totalPages <= 1) return null;
+
+        const buttons = [];
+        let startPage = Math.max(1, validCurrentPage - 2);
+        let endPage = Math.min(totalPages, validCurrentPage + 2);
+
+        // Previous Button
+        buttons.push(
+            <button
+                key="prev"
+                type="button"
+                disabled={validCurrentPage === 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition text-xs cursor-pointer"
+            >
+                Sebelumnya
+            </button>
+        );
+
+        // Numbered Buttons
+        for (let p = startPage; p <= endPage; p++) {
+            const isCurrent = p === validCurrentPage;
+            buttons.push(
+                <button
+                    key={p}
+                    type="button"
+                    onClick={() => setCurrentPage(p)}
+                    className={`px-2.5 py-1 rounded-lg border text-xs font-semibold transition cursor-pointer ${
+                        isCurrent
+                            ? "bg-[#005baa] text-white border-[#005baa]"
+                            : "border-slate-200 text-slate-700 hover:bg-slate-100"
+                    }`}
+                >
+                    {p}
+                </button>
+            );
+        }
+
+        // Next Button
+        buttons.push(
+            <button
+                key="next"
+                type="button"
+                disabled={validCurrentPage === totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                className="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition text-xs cursor-pointer"
+            >
+                Selanjutnya
+            </button>
+        );
+
+        return buttons;
     };
 
     return (
@@ -204,33 +253,8 @@ export default function PengujianTable({
             {/* Empty State */}
             {items.length === 0 ? (
                 <div className="p-12 text-center">
-                    <div className="w-16 h-16 mx-auto rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-3">
-                        <span className="material-symbols-outlined text-3xl">inventory_2</span>
-                    </div>
                     <p className="text-sm font-semibold text-slate-700">Belum ada data pengujian yang dimuat</p>
-                    <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-                        Silakan unggah file Excel, CSV, atau Dokumen PDF pada formulir di atas atau gunakan contoh data.
-                    </p>
-                    <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
-                        <a
-                            href={pengujianService.getTemplateDownloadUrl("2col")}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-xs"
-                        >
-                            <span className="material-symbols-outlined text-[17px]">download</span>
-                            <span>Download Template 2-Kolom</span>
-                        </a>
-                        <button
-                            type="button"
-                            disabled={loading}
-                            onClick={onLoadSample2Col}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-[#005baa] text-white hover:bg-[#004887] disabled:opacity-50 transition shadow-xs cursor-pointer"
-                        >
-                            <span className="material-symbols-outlined text-[17px]">play_arrow</span>
-                            <span>Muat Contoh 2-Kolom Sekarang</span>
-                        </button>
-                    </div>
+                    <p className="text-xs text-slate-400 mt-1">Silakan unggah file Excel, CSV, atau Dokumen PDF pada formulir di atas.</p>
                 </div>
             ) : (
                 <>
@@ -242,10 +266,9 @@ export default function PengujianTable({
                                         No
                                     </th>
 
-                                    {/* Dynamic headers from Excel */}
+                                    {/* Dynamic Headers from Excel */}
                                     {displayHeaders.map((h, i) => {
-                                        const hasSplit = h.includes(" - ");
-                                        if (hasSplit) {
+                                        if (h.includes(" - ")) {
                                             const [mainH, subH] = h.split(" - ");
                                             return (
                                                 <th
@@ -271,7 +294,7 @@ export default function PengujianTable({
                                         );
                                     })}
 
-                                    {/* Generated QR Code Column (Di Kolom Sampingnya) */}
+                                    {/* Generated QR Code Column */}
                                     <th className="py-3 px-4 font-bold uppercase tracking-wider text-center bg-blue-50/70 text-[#005baa] border-l border-blue-100 min-w-[120px]">
                                         QR Code Ter-generate
                                     </th>
@@ -289,14 +312,13 @@ export default function PengujianTable({
                                     return (
                                         <tr
                                             key={item.id}
-                                            className="hover:bg-blue-50/20 transition-colors group"
+                                            className="hover:bg-blue-50/20 transition-colors"
                                         >
-                                            {/* Number */}
                                             <td className="py-3 px-3.5 text-center text-slate-400 font-mono font-medium">
                                                 {actualRowNumber}
                                             </td>
 
-                                            {/* Data Columns */}
+                                            {/* Dynamic Data Cells */}
                                             {displayHeaders.map((h, i) => (
                                                 <td
                                                     key={i}
@@ -306,7 +328,7 @@ export default function PengujianTable({
                                                 </td>
                                             ))}
 
-                                            {/* QR Code Column (Kolom Sampingnya) */}
+                                            {/* QR Code Column */}
                                             <td className="py-2.5 px-4 bg-blue-50/20 border-l border-blue-100 text-center">
                                                 <div className="flex items-center justify-center">
                                                     <button
@@ -328,19 +350,16 @@ export default function PengujianTable({
                                                                     className="w-full h-full object-contain"
                                                                 />
                                                             ) : (
-                                                                <span className="material-symbols-outlined text-2xl text-slate-400">
-                                                                    qr_code
-                                                                </span>
+                                                                <span className="text-slate-400 text-xs font-mono">QR</span>
                                                             )}
                                                         </div>
                                                     </button>
                                                 </div>
                                             </td>
 
-                                            {/* Sticky Action Column */}
+                                            {/* Action Column (Sticky Right) */}
                                             <td className="py-2.5 px-4 bg-white border-l border-slate-200 sticky right-0 z-10 hover:bg-blue-50/30 transition-colors">
                                                 <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                                                    {/* Pop-up QR Button */}
                                                     <button
                                                         type="button"
                                                         onClick={() => handleRowQrClick(item)}
@@ -350,7 +369,6 @@ export default function PengujianTable({
                                                         <span>Pop-up QR</span>
                                                     </button>
 
-                                                    {/* Export PDF Button */}
                                                     <a
                                                         href={pengujianService.getItemPdfUrl(item.id)}
                                                         target="_blank"
@@ -369,7 +387,7 @@ export default function PengujianTable({
                         </table>
                     </div>
 
-                    {/* Pagination Footer */}
+                    {/* DATATABLE PAGINATION BAR */}
                     <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-white">
                         <div>
                             {totalItems === 0 ? (
@@ -382,54 +400,9 @@ export default function PengujianTable({
                                 </span>
                             )}
                         </div>
-
-                        {totalPages > 1 && (
-                            <div className="flex items-center gap-1 flex-wrap">
-                                {/* Previous Button */}
-                                <button
-                                    type="button"
-                                    disabled={validCurrentPage <= 1}
-                                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                                    className="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
-                                >
-                                    Sebelumnya
-                                </button>
-
-                                {/* Page Number Buttons */}
-                                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                                    .filter((p) => p === 1 || p === totalPages || Math.abs(p - validCurrentPage) <= 2)
-                                    .map((p, idx, arr) => {
-                                        const prevP = arr[idx - 1];
-                                        const showEllipsis = prevP && p - prevP > 1;
-                                        return (
-                                            <React.Fragment key={p}>
-                                                {showEllipsis && <span className="px-1 text-slate-400">...</span>}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setCurrentPage(p)}
-                                                    className={`px-2.5 py-1 rounded-lg border text-xs font-semibold transition cursor-pointer ${
-                                                        p === validCurrentPage
-                                                            ? "bg-[#005baa] text-white border-[#005baa]"
-                                                            : "border-slate-200 text-slate-700 hover:bg-slate-100"
-                                                    }`}
-                                                >
-                                                    {p}
-                                                </button>
-                                            </React.Fragment>
-                                        );
-                                    })}
-
-                                {/* Next Button */}
-                                <button
-                                    type="button"
-                                    disabled={validCurrentPage >= totalPages}
-                                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                                    className="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
-                                >
-                                    Selanjutnya
-                                </button>
-                            </div>
-                        )}
+                        <div className="flex items-center gap-1">
+                            {renderPaginationButtons()}
+                        </div>
                     </div>
                 </>
             )}
