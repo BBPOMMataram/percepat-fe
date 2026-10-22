@@ -156,3 +156,208 @@ html {
 .animate-gradient {
   animation: gradientAnimation 15s ease infinite;
 }
+
+/* ==========================================================================
+   LEGACY OS & BROWSER COMPATIBILITY LAYER (WINDOWS 7 / CHROME <= 109)
+   Auto-detected via html.legacy-win, html.legacy-chrome, data-legacy-browser,
+   and @supports not (color: oklch(0.5 0.2 180)).
+   ========================================================================== */
+
+/* 1. OKLCH Color Fallbacks for DaisyUI & Tailwind */
+@supports not (color: oklch(0.5 0.2 180)) {
+  :root,
+  html,
+  body {
+    --color-base-100: #ffffff;
+    --color-base-200: #f8fafc;
+    --color-base-300: #e2e8f0;
+    --color-base-content: #1e293b;
+    --color-primary: #005baa;
+    --color-primary-content: #ffffff;
+    --color-secondary: #0ea5e9;
+    --color-secondary-content: #ffffff;
+    --color-accent: #04a451;
+    --color-accent-content: #ffffff;
+    --color-neutral: #1e293b;
+    --color-neutral-content: #f8fafc;
+    --color-info: #0284c7;
+    --color-info-content: #ffffff;
+    --color-success: #16a34a;
+    --color-success-content: #ffffff;
+    --color-warning: #d97706;
+    --color-warning-content: #ffffff;
+    --color-error: #dc2626;
+    --color-error-content: #ffffff;
+
+    /* Legacy DaisyUI tokens */
+    --b1: 255 255 255;
+    --b2: 248 250 252;
+    --b3: 226 232 240;
+    --bc: 30 41 59;
+    --p: 0 91 170;
+    --pc: 255 255 255;
+    --s: 14 165 233;
+    --sc: 255 255 255;
+    --a: 4 164 81;
+    --ac: 255 255 255;
+    --n: 30 41 59;
+    --nc: 248 250 252;
+    --in: 2 132 199;
+    --inc: 255 255 255;
+    --su: 22 163 74;
+    --suc: 255 255 255;
+    --wa: 217 119 6;
+    --wac: 255 255 255;
+    --er: 220 38 38;
+    --erc: 255 255 255;
+  }
+}
+
+/* Explicit class-based fallback triggered by auto-detection script */
+html.legacy-win,
+html.legacy-chrome,
+html[data-legacy-browser="true"] {
+  --color-base-100: #ffffff;
+  --color-base-200: #f8fafc;
+  --color-base-300: #e2e8f0;
+  --color-base-content: #1e293b;
+  --color-primary: #005baa;
+  --color-primary-content: #ffffff;
+  --color-secondary: #0ea5e9;
+  --color-secondary-content: #ffffff;
+  --color-accent: #04a451;
+  --color-accent-content: #ffffff;
+  --color-neutral: #1e293b;
+  --color-neutral-content: #f8fafc;
+  --color-info: #0284c7;
+  --color-info-content: #ffffff;
+  --color-success: #16a34a;
+  --color-success-content: #ffffff;
+  --color-warning: #d97706;
+  --color-warning-content: #ffffff;
+  --color-error: #dc2626;
+  --color-error-content: #ffffff;
+
+  /* Turn off sluggish smooth scroll on older hardware */
+  scroll-behavior: auto !important;
+}
+
+/* 2. Windows 7 / Legacy Font & ClearType Optimization */
+html.legacy-win body,
+html.legacy-win7 body {
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Tahoma, Arial, sans-serif !important;
+  -webkit-font-smoothing: subpixel-antialiased !important;
+  -moz-osx-font-smoothing: auto !important;
+  text-rendering: optimizeLegibility;
+}
+
+/* 3. Backdrop Blur / Glassmorphism Fixes for Windows 7 (Removes black glitches & hardware lag) */
+html.legacy-win [class*="backdrop-blur"],
+html.legacy-win .backdrop-blur,
+html.legacy-win .backdrop-blur-sm,
+html.legacy-win .backdrop-blur-md,
+html.legacy-win .backdrop-blur-lg,
+html.legacy-win .backdrop-blur-xl,
+html.legacy-win .backdrop-blur-2xl,
+html.legacy-win [style*="backdrop-filter"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Fallback solid / high-opacity backgrounds for glass panels on Windows 7 */
+html.legacy-win .bg-white\/80,
+html.legacy-win .bg-white\/75,
+html.legacy-win .bg-white\/70,
+html.legacy-win .bg-white\/60,
+html.legacy-win .bg-white\/50,
+html.legacy-win .bg-white\/40,
+html.legacy-win .bg-white\/30,
+html.legacy-win .bg-white\/20 {
+  background-color: #ffffff !important;
+}
+
+html.legacy-win .bg-slate-900\/80,
+html.legacy-win .bg-slate-800\/80,
+html.legacy-win .bg-gray-900\/80,
+html.legacy-win .bg-black\/50,
+html.legacy-win .bg-black\/60,
+html.legacy-win .bg-black\/70,
+html.legacy-win .bg-black\/80 {
+  background-color: #0f172a !important;
+}
+
+/* 4. Component Styles Stabilization on Legacy Windows */
+html.legacy-win .btn {
+  border-width: 1px !important;
+  text-shadow: none !important;
+}
+
+html.legacy-win .btn-primary {
+  background-color: #005baa !important;
+  color: #ffffff !important;
+  border-color: #004c8e !important;
+}
+
+html.legacy-win .btn-secondary {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.legacy-win .btn-accent {
+  background-color: #04a451 !important;
+  color: #ffffff !important;
+  border-color: #038a44 !important;
+}
+
+html.legacy-win .btn-success {
+  background-color: #16a34a !important;
+  color: #ffffff !important;
+  border-color: #15803d !important;
+}
+
+html.legacy-win .btn-error {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+  border-color: #b91c1c !important;
+}
+
+html.legacy-win .btn-warning {
+  background-color: #d97706 !important;
+  color: #ffffff !important;
+  border-color: #b45309 !important;
+}
+
+html.legacy-win .btn-info {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+  border-color: #0369a1 !important;
+}
+
+html.legacy-win .card,
+html.legacy-win .modal-box {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1) !important;
+}
+
+html.legacy-win .table th,
+html.legacy-win .table td {
+  border-color: #e2e8f0 !important;
+}
+
+html.legacy-win .badge {
+  border: 1px solid currentColor !important;
+}
+
+/* 5. Reduced Motion & Performance Enhancements for Legacy Hardware */
+html.legacy-win .animate-gradient {
+  animation: none !important;
+  background-position: center !important;
+}
+
+html.legacy-win .transition-all {
+  transition-duration: 150ms !important;
+}
+

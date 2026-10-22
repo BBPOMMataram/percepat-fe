@@ -74,7 +74,14 @@
     "eslint-config-next": "^16.1.6",
     "typescript": "^5.9.3"
   },
-  "browserslist": "> 1%",
+  "browserslist": [
+    "> 0.2%",
+    "chrome >= 79",
+    "edge >= 79",
+    "firefox >= 78",
+    "safari >= 13.1",
+    "not dead"
+  ],
   "engines": {
     "node": ">=20.19.6"
   }
