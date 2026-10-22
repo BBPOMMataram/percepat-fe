@@ -65,7 +65,7 @@ export default function PermintaanReagenPercepat() {
                     const b = list[0];
                     setSelectedLabelItem({
                         id: b.barang?.id || b.barang_id,
-                        name: b.barang?.name || 'Reagen Kimia',
+                        name: b.barang?.name || 'Reagen',
                         code: b.barang?.code,
                         satuan: b.barang?.satuan,
                         expired: b.barang?.expired,
@@ -223,13 +223,6 @@ export default function PermintaanReagenPercepat() {
                                         >
                                             <span className="material-symbols-outlined text-[20px]!">list</span>
                                         </span>
-                                        <span
-                                            className="btn btn-xs btn-ghost btn-info tooltip tooltip-info tooltip-left"
-                                            data-tip="Cetak Label"
-                                            onClick={() => handleRowPrintLabel(item)}
-                                        >
-                                            <span className="material-symbols-outlined text-[20px]!">qr_code_2</span>
-                                        </span>
                                         {(item.status?.id === 1 && item.peminta?.external_user_id === user?.id) && (
                                             <span
                                                 className="btn btn-xs btn-ghost text-error tooltip tooltip-error tooltip-left"
@@ -321,7 +314,7 @@ export default function PermintaanReagenPercepat() {
                                             <span className="badge badge-soft badge-primary">Realisasi : {item.jumlahrealisasi || '-'}</span>
                                             <span className="badge badge-soft badge-primary">Satuan : {item.barang?.satuan || '-'}</span>
                                             <span className="badge badge-soft badge-primary">Expired : {item.barang?.expired ? dayjs(item.barang?.expired).format("DD MMM YYYY") : '-'}</span>
-                                            {item.keterangan && <span className="badge badge-soft badge-primary">Ket : {item.keterangan}</span>}
+                                            <span className="badge badge-soft badge-primary">Ket : {selectedPermintaan?.bidang?.name || selectedPermintaan?.bidang_name_auth_external || item.keterangan || '-'}</span>
                                         </div>
                                     </div>
                                     <button
@@ -331,7 +324,7 @@ export default function PermintaanReagenPercepat() {
                                         onClick={() => {
                                             setSelectedLabelItem({
                                                 id: item.barang?.id || item.barang_id,
-                                                name: item.barang?.name || 'Reagen Kimia',
+                                                name: item.barang?.name || 'Reagen',
                                                 code: item.barang?.code,
                                                 satuan: item.barang?.satuan,
                                                 expired: item.barang?.expired,

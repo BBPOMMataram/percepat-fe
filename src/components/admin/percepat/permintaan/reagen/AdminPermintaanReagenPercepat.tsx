@@ -105,6 +105,8 @@ export default function AdminPermintaanReagenPercepat() {
         setListBarangPermintaan([]);
     }
 
+    const [tglPenyerahan, setTglPenyerahan] = useState<string>(dayjs().format("YYYY-MM-DD"));
+
     const closeModalVerifPetugasHandler = () => {
         setOpenModalVerifPetugas(false);
         setListBarangPermintaan([]);
@@ -113,6 +115,7 @@ export default function AdminPermintaanReagenPercepat() {
 
     const openModalVerifPetugasHandler = (id: number) => {
         setPermintaanId(id);
+        setTglPenyerahan(dayjs().format("YYYY-MM-DD"));
         setOpenModalVerifPetugas(true);
         getListBarangPermintaan(id);
     }
@@ -127,6 +130,7 @@ export default function AdminPermintaanReagenPercepat() {
             {
                 user,
                 realisasi: jumlahRealisasi,
+                tgl_penyerahan: tglPenyerahan,
             })
             .then(res => {
                 dispatch(showAlert({ type: "success", message: res.data.message, description: res.data.message }))
@@ -157,7 +161,7 @@ export default function AdminPermintaanReagenPercepat() {
                     const b = list[0];
                     setSelectedLabelItem({
                         id: b.barang?.id || b.barang_id,
-                        name: b.barang?.name || 'Reagen Kimia',
+                        name: b.barang?.name || 'Reagen',
                         code: b.barang?.code,
                         satuan: b.barang?.satuan,
                         expired: b.barang?.expired,
@@ -288,12 +292,6 @@ export default function AdminPermintaanReagenPercepat() {
                                                     list
                                                 </span>
                                             </span>
-                                            <span className="btn btn-sm btn-ghost btn-info tooltip tooltip-info tooltip-left" data-tip="Cetak Label Barang"
-                                                onClick={() => handleRowPrintLabel(item)}>
-                                                <span className="material-symbols-outlined">
-                                                    qr_code_2
-                                                </span>
-                                            </span>
                                             {
                                                 (item.status_id === 3) &&
                                                 <span className="btn btn-sm btn-ghost btn-success tooltip tooltip-success tooltip-left" data-tip="Verif Permintaan"
@@ -368,7 +366,7 @@ export default function AdminPermintaanReagenPercepat() {
                                         <span className="badge badge-soft badge-primary">Minta : {item.jumlahpermintaan}</span>
                                         <span className="badge badge-soft badge-primary">Realisasi : {item.jumlahrealisasi || '-'}</span>
                                         <span className="badge badge-soft badge-primary">Satuan : {item.barang?.satuan || '-'}</span>
-                                        {item.keterangan && <span className="badge badge-soft badge-primary">Ket : {item.keterangan}</span>}
+                                        <span className="badge badge-soft badge-primary">Ket : {selectedPermintaan?.bidang?.name || selectedPermintaan?.bidang_name_auth_external || item.keterangan || '-'}</span>
                                     </div>
                                 </div>
                                 <button
@@ -378,7 +376,7 @@ export default function AdminPermintaanReagenPercepat() {
                                     onClick={() => {
                                         setSelectedLabelItem({
                                             id: item.barang?.id || item.barang_id,
-                                            name: item.barang?.name || 'Reagen Kimia',
+                                            name: item.barang?.name || 'Reagen',
                                             code: item.barang?.code,
                                             satuan: item.barang?.satuan,
                                             expired: item.barang?.expired,
@@ -406,7 +404,22 @@ export default function AdminPermintaanReagenPercepat() {
                 open={openModalVerifPetugas}
                 onClose={closeModalVerifPetugasHandler}
             >
-                <h3 className="text-lg font-semibold mb-4">Verifikasi Permintaan</h3>
+                <h3 className="text-lg font-semibold mb-3">Verifikasi & Penyerahan Permintaan</h3>
+
+                <div className="mb-4 p-3 bg-blue-50/70 border border-blue-200 rounded-xl">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Tanggal Penyerahan Barang :
+                    </label>
+                    <input
+                        type="date"
+                        value={tglPenyerahan}
+                        onChange={(e) => setTglPenyerahan(e.target.value)}
+                        className="input input-sm input-bordered bg-white text-slate-800 font-semibold rounded-lg"
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1">
+                        *Secara default terisi tanggal hari ini. Dapat diubah jika barang telah diserahkan sebelumnya.
+                    </p>
+                </div>
 
                 <ul className="max-h-96 overflow-y-auto list-decimal list-inside">
                     {listBarangPermintaan.length === 0 ? (

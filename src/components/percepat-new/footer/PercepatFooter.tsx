@@ -28,17 +28,11 @@ export default function PercepatFooter() {
                 </div>
 
                 <div className="flex items-center gap-5 text-xs font-medium text-slate-600">
-                    <Link href="/" className="hover:text-slate-900 transition-colors">
-                        Portal SiMandalika
-                    </Link>
                     <a href="#inventory" className="hover:text-slate-900 transition-colors">
                         Katalog
                     </a>
                     <Link href="/percepat-new/permintaan/reagen" className="hover:text-slate-900 transition-colors">
                         Riwayat Permintaan
-                    </Link>
-                    <Link href="/profile" className="hover:text-slate-900 transition-colors">
-                        Profil
                     </Link>
                 </div>
 

@@ -33,9 +33,11 @@ export default function DashboardPaulaAdmin() {
     const [showMobilModal, setShowMobilModal] = useState(false);
     const [formMobil, setFormMobil] = useState({ id: null, nama: "", plat_nomor: "", kapasitas: "", status: "tersedia" });
 
-    // STATE UMUM (REJECT)
+    // STATE UMUM (REJECT & DETAIL)
     const [rejectModal, setRejectModal] = useState<{ id: number, type: 'pengajuan' | 'edit' | 'pengajuan_mobil' } | null>(null);
     const [rejectReason, setRejectReason] = useState("");
+    const [detailPengajuanModal, setDetailPengajuanModal] = useState<any | null>(null);
+    const [detailMobilModal, setDetailMobilModal] = useState<any | null>(null);
 
     // STATE EDIT AULA MODAL (ADMIN)
     const [editAulaModal, setEditAulaModal] = useState<any | null>(null);
@@ -376,6 +378,14 @@ export default function DashboardPaulaAdmin() {
                                 <div key={req.id} className="bg-blue-50/70 border border-blue-200 text-blue-900 px-6 py-4 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
                                     <p className="font-medium text-sm">Pengajuan baru dari <strong className="text-blue-950">{req.user?.name}</strong> untuk kegiatan "{req.nama_kegiatan}"</p>
                                     <div className="flex gap-2 w-full md:w-auto">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setDetailPengajuanModal(req)} 
+                                            className="flex-1 md:flex-none bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer flex items-center justify-center gap-1.5"
+                                        >
+                                            <span className="material-symbols-outlined text-[16px]">visibility</span>
+                                            Lihat
+                                        </button>
                                         <button onClick={() => handleApprovePengajuan(req.id)} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer">Izinkan</button>
                                         <button onClick={() => setRejectModal({ id: req.id, type: 'pengajuan' })} className="flex-1 md:flex-none bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer">Tolak</button>
                                     </div>
@@ -391,6 +401,14 @@ export default function DashboardPaulaAdmin() {
                                 <div key={req.id} className="bg-amber-50/70 border border-amber-200 text-amber-900 px-6 py-4 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
                                     <p className="font-medium text-sm">User <strong className="text-amber-950">{req.user?.name}</strong> meminta izin edit data kegiatan "{req.nama_kegiatan}"</p>
                                     <div className="flex gap-2 w-full md:w-auto">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setDetailPengajuanModal(req)} 
+                                            className="flex-1 md:flex-none bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer flex items-center justify-center gap-1.5"
+                                        >
+                                            <span className="material-symbols-outlined text-[16px]">visibility</span>
+                                            Lihat
+                                        </button>
                                         <button onClick={() => handleApproveEdit(req.id)} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer">Izinkan</button>
                                         <button onClick={() => setRejectModal({ id: req.id, type: 'edit' })} className="flex-1 md:flex-none bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer">Tolak</button>
                                     </div>
@@ -506,6 +524,14 @@ export default function DashboardPaulaAdmin() {
                                         <p className="text-xs mt-1 text-indigo-800 font-medium">{req.tujuan_dinas} ({new Date(req.tanggal_pinjam).toLocaleDateString('id-ID')})</p>
                                     </div>
                                     <div className="flex gap-2 w-full md:w-auto">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setDetailMobilModal(req)} 
+                                            className="flex-1 md:flex-none bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer flex items-center justify-center gap-1.5"
+                                        >
+                                            <span className="material-symbols-outlined text-[16px]">visibility</span>
+                                            Lihat
+                                        </button>
                                         <button onClick={() => handleApproveMobil(req.id)} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer">Izinkan</button>
                                         <button onClick={() => setRejectModal({ id: req.id, type: 'pengajuan_mobil' })} className="flex-1 md:flex-none bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer">Tolak</button>
                                     </div>
@@ -873,6 +899,265 @@ export default function DashboardPaulaAdmin() {
                     </div>
                 </div>
             )}
+
+            {/* MODAL LIHAT DETAIL PENGAJUAN AULA */}
+            {detailPengajuanModal && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-start border-b border-slate-100 pb-4">
+                            <div>
+                                <span className={`inline-block px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider mb-2 ${
+                                    detailPengajuanModal.aula === 'besar' ? 'bg-indigo-100 text-indigo-700' : 'bg-pink-100 text-pink-700'
+                                }`}>
+                                    Aula {detailPengajuanModal.aula}
+                                </span>
+                                <h3 className="text-xl font-black text-slate-900 leading-snug">
+                                    {detailPengajuanModal.nama_kegiatan}
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Diajukan oleh <strong className="text-slate-800">{detailPengajuanModal.user?.name}</strong> ({detailPengajuanModal.user?.email || detailPengajuanModal.fungsi_pengusul || '-'})
+                                </p>
+                            </div>
+                            <button 
+                                onClick={() => setDetailPengajuanModal(null)} 
+                                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+                            >
+                                <span className="material-symbols-outlined text-[22px]">close</span>
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Tanggal Pelaksanaan</span>
+                                <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-[16px] text-blue-600">event</span>
+                                    {new Date(detailPengajuanModal.tanggal_pinjam).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                </span>
+                            </div>
+
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Waktu Pelaksanaan</span>
+                                <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-[16px] text-blue-600">schedule</span>
+                                    {detailPengajuanModal.waktu_mulai?.slice(0,5)} - {detailPengajuanModal.waktu_selesai?.slice(0,5)} WITA
+                                </span>
+                            </div>
+
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Fungsi / Unit Pengusul</span>
+                                <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-[16px] text-blue-600">domain</span>
+                                    {detailPengajuanModal.fungsi_pengusul || '-'}
+                                </span>
+                            </div>
+
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Sifat & Jumlah Peserta</span>
+                                <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-[16px] text-blue-600">groups</span>
+                                    {detailPengajuanModal.pilihan || 'Internal'} • {detailPengajuanModal.jumlah_peserta ? `${detailPengajuanModal.jumlah_peserta} Orang` : '-'}
+                                </span>
+                            </div>
+
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 sm:col-span-2">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Penanggung Jawab Kegiatan</span>
+                                <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-[16px] text-blue-600">person</span>
+                                    {detailPengajuanModal.penanggung_jawab || '-'}
+                                    {detailPengajuanModal.kontak_pj ? ` (${detailPengajuanModal.kontak_pj})` : ''}
+                                </span>
+                            </div>
+
+                            {detailPengajuanModal.peserta && (
+                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 sm:col-span-2">
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Sasaran / Peserta</span>
+                                    <p className="text-slate-700 whitespace-pre-line text-xs font-medium">{detailPengajuanModal.peserta}</p>
+                                </div>
+                            )}
+
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 sm:col-span-2">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">Sarana & Prasarana Dibutuhkan</span>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {(() => {
+                                        let saranaList: string[] = [];
+                                        try {
+                                            saranaList = typeof detailPengajuanModal.sarana_prasarana === 'string'
+                                                ? JSON.parse(detailPengajuanModal.sarana_prasarana)
+                                                : (detailPengajuanModal.sarana_prasarana || []);
+                                        } catch {
+                                            saranaList = detailPengajuanModal.sarana_prasarana ? [detailPengajuanModal.sarana_prasarana] : [];
+                                        }
+                                        if (!saranaList || saranaList.length === 0) {
+                                            return <span className="text-slate-400 text-xs italic">Tidak ada sarana khusus diminta</span>;
+                                        }
+                                        return saranaList.map((item: string, idx: number) => (
+                                            <span key={idx} className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full border border-blue-200">
+                                                {item}
+                                            </span>
+                                        ));
+                                    })()}
+                                </div>
+                            </div>
+
+                            {detailPengajuanModal.keterangan && (
+                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 sm:col-span-2">
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Catatan Tambahan / Keterangan</span>
+                                    <p className="text-slate-700 text-xs font-medium">{detailPengajuanModal.keterangan}</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-3 pt-4 border-t border-slate-100">
+                            <button 
+                                type="button" 
+                                onClick={() => setDetailPengajuanModal(null)} 
+                                className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer text-xs"
+                            >
+                                Tutup
+                            </button>
+                            <div className="flex gap-2 w-full sm:w-auto">
+                                <button 
+                                    type="button" 
+                                    onClick={() => {
+                                        const id = detailPengajuanModal.id;
+                                        const type = detailPengajuanModal.is_edit_requested ? 'edit' : 'pengajuan';
+                                        setDetailPengajuanModal(null);
+                                        setRejectModal({ id, type });
+                                    }} 
+                                    className="flex-1 sm:flex-none bg-rose-600 hover:bg-rose-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-rose-600/20 transition cursor-pointer"
+                                >
+                                    Tolak Pengajuan
+                                </button>
+                                <button 
+                                    type="button" 
+                                    onClick={() => {
+                                        const id = detailPengajuanModal.id;
+                                        setDetailPengajuanModal(null);
+                                        if (detailPengajuanModal.is_edit_requested) {
+                                            handleApproveEdit(id);
+                                        } else {
+                                            handleApprovePengajuan(id);
+                                        }
+                                    }} 
+                                    className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition cursor-pointer"
+                                >
+                                    Izinkan / Setujui
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL LIHAT DETAIL PENGAJUAN MOBIL */}
+            {detailMobilModal && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-start border-b border-slate-100 pb-4">
+                            <div>
+                                <span className="inline-block px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider mb-2 bg-indigo-100 text-indigo-700">
+                                    {detailMobilModal.kendaraan || 'Kendaraan Dinas'}
+                                </span>
+                                <h3 className="text-xl font-black text-slate-900 leading-snug">
+                                    {detailMobilModal.tujuan_dinas}
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Diajukan oleh <strong className="text-slate-800">{detailMobilModal.user?.name}</strong> ({detailMobilModal.user?.email || detailMobilModal.fungsi_pengusul || '-'})
+                                </p>
+                            </div>
+                            <button 
+                                onClick={() => setDetailMobilModal(null)} 
+                                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+                            >
+                                <span className="material-symbols-outlined text-[22px]">close</span>
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Tanggal Peminjaman</span>
+                                <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-[16px] text-indigo-600">event</span>
+                                    {new Date(detailMobilModal.tanggal_pinjam).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                </span>
+                            </div>
+
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Waktu Peminjaman</span>
+                                <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-[16px] text-indigo-600">schedule</span>
+                                    {detailMobilModal.waktu_mulai?.slice(0,5)} {detailMobilModal.waktu_selesai ? `- ${detailMobilModal.waktu_selesai?.slice(0,5)}` : ''} WITA
+                                </span>
+                            </div>
+
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Lokasi Tujuan</span>
+                                <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-[16px] text-indigo-600">location_on</span>
+                                    {detailMobilModal.tujuan_lokasi || '-'}
+                                </span>
+                            </div>
+
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Driver & Kapasitas</span>
+                                <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-[16px] text-indigo-600">directions_car</span>
+                                    {detailMobilModal.driver || 'Mandiri'} {detailMobilModal.jumlah_peserta ? `• ${detailMobilModal.jumlah_peserta} Orang` : ''}
+                                </span>
+                            </div>
+
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 sm:col-span-2">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Penanggung Jawab</span>
+                                <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-[16px] text-indigo-600">person</span>
+                                    {detailMobilModal.penanggung_jawab || '-'}
+                                </span>
+                            </div>
+
+                            {detailMobilModal.keterangan && (
+                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 sm:col-span-2">
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Keterangan / Catatan</span>
+                                    <p className="text-slate-700 text-xs font-medium">{detailMobilModal.keterangan}</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-3 pt-4 border-t border-slate-100">
+                            <button 
+                                type="button" 
+                                onClick={() => setDetailMobilModal(null)} 
+                                className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer text-xs"
+                            >
+                                Tutup
+                            </button>
+                            <div className="flex gap-2 w-full sm:w-auto">
+                                <button 
+                                    type="button" 
+                                    onClick={() => {
+                                        const id = detailMobilModal.id;
+                                        setDetailMobilModal(null);
+                                        setRejectModal({ id, type: 'pengajuan_mobil' });
+                                    }} 
+                                    className="flex-1 sm:flex-none bg-rose-600 hover:bg-rose-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-rose-600/20 transition cursor-pointer"
+                                >
+                                    Tolak Permohonan
+                                </button>
+                                <button 
+                                    type="button" 
+                                    onClick={() => {
+                                        const id = detailMobilModal.id;
+                                        setDetailMobilModal(null);
+                                        handleApproveMobil(id);
+                                    }} 
+                                    className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition cursor-pointer"
+                                >
+                                    Izinkan / Setujui
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
-}
+}

@@ -2,7 +2,7 @@
 
 import React from "react";
 
-export type CategoryKey = "reagen" | "bakuPembanding" | "atk" | "sukuCadang" | "perlengkapan";
+export type CategoryKey = "reagen" | "bakuPembanding" | "atk" | "sukuCadang" | "perlengkapan" | "reagenExpiring" | "bakuPembandingExpiring";
 
 interface CategoryCardsProps {
     activeCategory: CategoryKey;
@@ -12,7 +12,7 @@ interface CategoryCardsProps {
 const CATEGORIES = [
     {
         key: "reagen" as CategoryKey,
-        title: "Reagen Kimia & Media",
+        title: "Reagen",
         badge: "Laboratorium",
         badgeColor: "bg-blue-50 text-blue-700 ring-blue-600/20",
         desc: "Pelarut organik, bahan kimia analisis, reagen pengujian, dan media kultur mikrobiologi.",

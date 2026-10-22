@@ -113,8 +113,11 @@ export default function AdminPermintaanPerlengkapanPercepat() {
         setJumlahRealisasi([]);
     }
 
+    const [tglPenyerahan, setTglPenyerahan] = useState<string>(dayjs().format("YYYY-MM-DD"));
+
     const openModalVerifPetugasHandler = (id: number) => {
         setPermintaanId(id);
+        setTglPenyerahan(dayjs().format("YYYY-MM-DD"));
         setOpenModalVerifPetugas(true);
         getListBarangPermintaan(id);
     }
@@ -129,6 +132,7 @@ export default function AdminPermintaanPerlengkapanPercepat() {
             {
                 user,
                 realisasi: jumlahRealisasi,
+                tgl_penyerahan: tglPenyerahan,
             })
             .then(res => {
                 dispatch(showAlert({ type: "success", message: res.data.message, description: res.data.message }))
@@ -320,7 +324,22 @@ export default function AdminPermintaanPerlengkapanPercepat() {
                 open={openModalVerifPetugas}
                 onClose={closeModalVerifPetugasHandler}
             >
-                <h3 className="text-lg font-semibold mb-4">Verifikasi Permintaan</h3>
+                <h3 className="text-lg font-semibold mb-3">Verifikasi & Penyerahan Permintaan</h3>
+
+                <div className="mb-4 p-3 bg-blue-50/70 border border-blue-200 rounded-xl">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Tanggal Penyerahan Barang :
+                    </label>
+                    <input
+                        type="date"
+                        value={tglPenyerahan}
+                        onChange={(e) => setTglPenyerahan(e.target.value)}
+                        className="input input-sm input-bordered bg-white text-slate-800 font-semibold rounded-lg"
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1">
+                        *Secara default terisi tanggal hari ini. Dapat diubah jika barang telah diserahkan sebelumnya.
+                    </p>
+                </div>
 
                 <ul className="max-h-96 overflow-y-auto list-decimal list-inside">
                     {listBarangPermintaan.length === 0 ? (

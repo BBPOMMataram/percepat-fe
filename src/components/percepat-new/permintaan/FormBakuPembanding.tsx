@@ -6,7 +6,8 @@ import { AppDispatch } from "@/redux/store";
 import api from "@/utils/api";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 
 interface FormBakuPembandingProps {
     listBarang: any[];
@@ -18,11 +19,19 @@ export default function FormBakuPembanding({ listBarang, setListBarang }: FormBa
     const [isLoading, setIsLoading] = useState(false);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const dispatch = useDispatch<AppDispatch>();
+    const { user } = useSelector((state: RootState) => state.auth);
+    const userFungsi = user?.bidang?.name || user?.employee?.fungsi?.name || (user as any)?.fungsi?.name || "";
     const [searchTerm, setSearchTerm] = useState("");
     const [bakuPembandingList, setBakuPembandingList] = useState<any[]>([]);
     const [selectedBakuPembanding, setSelectedBakuPembanding] = useState<any>(null);
     const [jumlah, setJumlah] = useState<string>("1");
-    const [keterangan, setKeterangan] = useState<string>("");
+    const [keterangan, setKeterangan] = useState<string>(userFungsi);
+
+    useEffect(() => {
+        if (!keterangan && userFungsi) {
+            setKeterangan(userFungsi);
+        }
+    }, [userFungsi]);
 
     useEffect(() => {
         searchInputRef.current?.focus();
@@ -107,7 +116,7 @@ export default function FormBakuPembanding({ listBarang, setListBarang }: FormBa
 
         setSelectedBakuPembanding(null);
         setJumlah("1");
-        setKeterangan("");
+        setKeterangan(userFungsi);
     };
 
     const handleRemoveBarang = (index: number) => {

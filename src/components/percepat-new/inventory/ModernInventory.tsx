@@ -4,7 +4,14 @@ import React, { useCallback, useEffect, useState } from "react";
 import api from "@/utils/api";
 import { motion, AnimatePresence } from "framer-motion";
 
-export type CategoryKey = "reagen" | "bakuPembanding" | "atk" | "sukuCadang" | "perlengkapan";
+export type CategoryKey =
+    | "reagen"
+    | "bakuPembanding"
+    | "atk"
+    | "sukuCadang"
+    | "perlengkapan"
+    | "reagenExpiring"
+    | "bakuPembandingExpiring";
 
 interface ModernInventoryProps {
     activeCategory: CategoryKey;
@@ -17,12 +24,13 @@ interface CategoryConfig {
     url: string;
     description: string;
     icon: string;
+    isExpiring?: boolean;
 }
 
 const CATEGORY_CONFIGS: Record<CategoryKey, CategoryConfig> = {
     reagen: {
         key: "reagen",
-        label: "Reagen Kimia",
+        label: "Reagen",
         url: "api/v1/barang/reagen",
         description: "Bahan kimia, reagen analisis laboratorium, dan media mikrobiologi.",
         icon: "biotech",
@@ -55,6 +63,22 @@ const CATEGORY_CONFIGS: Record<CategoryKey, CategoryConfig> = {
         description: "Pembersih kaca, desinfektan, sabun laboratorium, dan sanitasi lab.",
         icon: "cleaning_services",
     },
+    reagenExpiring: {
+        key: "reagenExpiring",
+        label: "Reagen Kadaluarsa",
+        url: "api/v1/barang/reagen?expiring_months=3&has_stock=1",
+        description: "Reagen yang akan kedaluwarsa dalam 3 bulan ke depan dan stok fisik masih tersedia.",
+        icon: "hourglass_bottom",
+        isExpiring: true,
+    },
+    bakuPembandingExpiring: {
+        key: "bakuPembandingExpiring",
+        label: "Baku Pembanding Kadaluarsa",
+        url: "api/v1/barang/baku-pembanding?expiring_months=3&has_stock=1",
+        description: "Baku Pembanding yang akan kedaluwarsa dalam 3 bulan ke depan dan stok fisik masih tersedia.",
+        icon: "hourglass_bottom",
+        isExpiring: true,
+    },
 };
 
 export default function ModernInventory({ activeCategory, onCategoryChange }: ModernInventoryProps) {
@@ -66,8 +90,12 @@ export default function ModernInventory({ activeCategory, onCategoryChange }: Mo
     const [nameToSearch, setNameToSearch] = useState("");
     const [page, setPage] = useState(1);
 
-    // Reset pagination when category changes
+    const isBakuPembanding = activeCategory === "bakuPembanding" || activeCategory === "bakuPembandingExpiring";
+    const isReagen = activeCategory === "reagen" || activeCategory === "reagenExpiring";
+
+    // Reset data and pagination when category changes
     useEffect(() => {
+        setData(null);
         setPage(1);
         setNameToSearch("");
     }, [activeCategory]);
@@ -75,11 +103,13 @@ export default function ModernInventory({ activeCategory, onCategoryChange }: Mo
     const fetchData = useCallback(async (targetPage = page, search = nameToSearch, perPage = valuePerPage) => {
         setLoading(true);
         try {
-            const url = `${config.url}?value_per_page=${perPage}&name=${encodeURIComponent(search)}&page=${targetPage}`;
+            const separator = config.url.includes("?") ? "&" : "?";
+            const url = `${config.url}${separator}value_per_page=${perPage}&name=${encodeURIComponent(search)}&page=${targetPage}`;
             const res = await api.get(url);
             setData(res.data);
         } catch (err) {
             console.error("Gagal memuat inventaris:", err);
+            setData({ data: [], total: 0 });
         } finally {
             setLoading(false);
         }
@@ -153,9 +183,17 @@ export default function ModernInventory({ activeCategory, onCategoryChange }: Mo
                 {/* Header Title with Subtitle */}
                 <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
                     <div>
-                        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-                            Daftar Inventaris Terpadu
-                        </h2>
+                        <div className="flex items-center gap-2">
+                            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+                                Daftar Inventaris Terpadu
+                            </h2>
+                            {config.isExpiring && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-amber-100 text-amber-800 border border-amber-300">
+                                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                                    Filter Kadaluarsa ≤ 3 Bulan
+                                </span>
+                            )}
+                        </div>
                         <p className="text-xs sm:text-sm text-slate-500 mt-1">
                             {config.description}
                         </p>
@@ -169,30 +207,60 @@ export default function ModernInventory({ activeCategory, onCategoryChange }: Mo
                     )}
                 </div>
 
-                {/* Animated Segmented Category Tabs */}
-                <div className="flex items-center gap-1.5 p-1.5 bg-slate-200/60 rounded-2xl mb-6 overflow-x-auto">
-                    {Object.values(CATEGORY_CONFIGS).map(cat => {
+                {/* Animated Segmented Category Tabs with High Contrast Active State */}
+                <div className="flex items-center gap-1.5 p-1.5 bg-slate-200/70 border border-slate-300/70 rounded-2xl mb-6 overflow-x-auto">
+                    {/* Standar Kategori */}
+                    {(["reagen", "bakuPembanding", "atk", "sukuCadang", "perlengkapan"] as CategoryKey[]).map(key => {
+                        const cat = CATEGORY_CONFIGS[key];
                         const isActive = activeCategory === cat.key;
                         return (
                             <button
                                 key={cat.key}
                                 type="button"
                                 onClick={() => onCategoryChange(cat.key)}
-                                className={`relative px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-colors duration-150 flex items-center gap-2 whitespace-nowrap cursor-pointer ${
-                                    isActive ? "text-slate-900" : "text-slate-600 hover:text-slate-900"
+                                className={`relative px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+                                    isActive
+                                        ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-700/50 scale-[1.02]"
+                                        : "bg-transparent text-slate-600 hover:text-slate-900 hover:bg-white/80 font-medium"
                                 }`}
                             >
-                                {isActive && (
-                                    <motion.div
-                                        layoutId="activeCategoryPill"
-                                        className="absolute inset-0 bg-white rounded-xl shadow-xs border border-slate-200/60 -z-10"
-                                        transition={{ type: "spring", stiffness: 450, damping: 35 }}
-                                    />
-                                )}
-                                <span className="material-symbols-outlined text-base">
+                                <span className={`material-symbols-outlined text-base transition-transform ${isActive ? "scale-110" : ""}`}>
                                     {cat.icon}
                                 </span>
                                 <span>{cat.label}</span>
+                                {isActive && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-white/90 animate-pulse ml-0.5" />
+                                )}
+                            </button>
+                        );
+                    })}
+
+                    {/* Divider Pemisah */}
+                    <div className="h-6 w-px bg-slate-300 mx-1 shrink-0" />
+
+                    {/* Kategori Khusus Segera Kadaluarsa di Paling Kanan */}
+                    {(["reagenExpiring", "bakuPembandingExpiring"] as CategoryKey[]).map(key => {
+                        const cat = CATEGORY_CONFIGS[key];
+                        const isActive = activeCategory === cat.key;
+                        return (
+                            <button
+                                key={cat.key}
+                                type="button"
+                                onClick={() => onCategoryChange(cat.key)}
+                                className={`relative px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                                    isActive
+                                        ? "bg-amber-600 text-white shadow-md shadow-amber-600/30 ring-1 ring-amber-700/50 scale-[1.02]"
+                                        : "bg-amber-50/90 text-amber-900 hover:bg-amber-100 border border-amber-300/80 font-semibold"
+                                }`}
+                                title={cat.description}
+                            >
+                                <span className={`material-symbols-outlined text-base transition-transform ${isActive ? "scale-110" : "text-amber-600"}`}>
+                                    {cat.icon}
+                                </span>
+                                <span>{cat.label}</span>
+                                {isActive && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-white/90 animate-pulse ml-0.5" />
+                                )}
                             </button>
                         );
                     })}
@@ -223,17 +291,20 @@ export default function ModernInventory({ activeCategory, onCategoryChange }: Mo
                             )}
                         </div>
 
-                        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                            <span className="text-xs text-slate-500 hidden sm:inline">Tampilkan:</span>
+                        <div className="flex items-center gap-2 self-end sm:self-auto text-xs text-slate-500">
+                            <span>Tampilkan:</span>
                             <select
                                 value={valuePerPage}
-                                onChange={e => setValuePerPage(e.target.value)}
-                                className="px-3 py-1.5 rounded-xl text-xs bg-slate-50 border border-slate-200 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                onChange={e => {
+                                    setValuePerPage(e.target.value);
+                                    setPage(1);
+                                }}
+                                className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                             >
-                                <option value="5">5 baris</option>
                                 <option value="10">10 baris</option>
                                 <option value="25">25 baris</option>
                                 <option value="50">50 baris</option>
+                                <option value="100">100 baris</option>
                             </select>
                         </div>
                     </div>
@@ -245,7 +316,7 @@ export default function ModernInventory({ activeCategory, onCategoryChange }: Mo
                                 <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold text-[11px] tracking-wide uppercase">
                                     <th className="py-3 px-4 w-12 text-center">No</th>
 
-                                    {activeCategory === "bakuPembanding" && (
+                                    {isBakuPembanding && (
                                         <>
                                             <th className="py-3 px-4 w-32">Kode Baru</th>
                                             <th className="py-3 px-4">Nama Baku Pembanding</th>
@@ -253,27 +324,27 @@ export default function ModernInventory({ activeCategory, onCategoryChange }: Mo
                                         </>
                                     )}
 
-                                    {activeCategory === "reagen" && (
+                                    {isReagen && (
                                         <th className="py-3 px-4">Nama Reagen</th>
                                     )}
 
-                                    {(activeCategory === "atk" || activeCategory === "sukuCadang" || activeCategory === "perlengkapan") && (
+                                    {!isBakuPembanding && !isReagen && (
                                         <th className="py-3 px-4">Nama Barang</th>
                                     )}
 
                                     <th className="py-3 px-4 w-28">Satuan</th>
 
-                                    {(activeCategory === "reagen" || activeCategory === "bakuPembanding") && (
+                                    {(isReagen || isBakuPembanding) && (
                                         <th className="py-3 px-4 w-36">Kedaluwarsa</th>
                                     )}
 
                                     <th className="py-3 px-4 w-28">Stok</th>
 
-                                    {(activeCategory === "atk" || activeCategory === "sukuCadang" || activeCategory === "perlengkapan") && (
+                                    {!isBakuPembanding && !isReagen && (
                                         <th className="py-3 px-4">Keterangan</th>
                                     )}
 
-                                    {(activeCategory === "reagen" || activeCategory === "bakuPembanding") && (
+                                    {(isReagen || isBakuPembanding) && (
                                         <th className="py-3 px-4 w-20 text-center">MSDS</th>
                                     )}
                                 </tr>
@@ -294,7 +365,7 @@ export default function ModernInventory({ activeCategory, onCategoryChange }: Mo
                                 ) : !data?.data || data.data.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan={activeCategory === "bakuPembanding" ? 8 : (activeCategory === "reagen" ? 6 : 5)}
+                                            colSpan={isBakuPembanding ? 8 : (isReagen ? 6 : 5)}
                                             className="py-12 px-4 text-center text-slate-500"
                                         >
                                             <div className="flex flex-col items-center justify-center">
@@ -303,7 +374,9 @@ export default function ModernInventory({ activeCategory, onCategoryChange }: Mo
                                                 </span>
                                                 <div className="font-semibold text-slate-700 text-sm">Tidak ada data ditemukan</div>
                                                 <div className="text-xs text-slate-400 mt-0.5">
-                                                    Coba ganti kata kunci pencarian.
+                                                    {config.isExpiring
+                                                        ? "Tidak ada barang yang akan kedaluwarsa dalam 3 bulan ke depan dengan stok tersedia."
+                                                        : "Coba ganti kata kunci pencarian."}
                                                 </div>
                                             </div>
                                         </td>
@@ -324,7 +397,7 @@ export default function ModernInventory({ activeCategory, onCategoryChange }: Mo
                                                 </td>
 
                                                 {/* Baku Pembanding special columns */}
-                                                {activeCategory === "bakuPembanding" && (
+                                                {isBakuPembanding && (
                                                     <>
                                                         <td className="py-3 px-4 font-mono text-xs font-semibold text-slate-800">
                                                             {item.kode_baru || "-"}
@@ -343,7 +416,7 @@ export default function ModernInventory({ activeCategory, onCategoryChange }: Mo
                                                 )}
 
                                                 {/* Other Categories name */}
-                                                {activeCategory !== "bakuPembanding" && (
+                                                {!isBakuPembanding && (
                                                     <td className="py-3 px-4 font-medium text-slate-900">
                                                         {item.name}
                                                     </td>
@@ -354,9 +427,13 @@ export default function ModernInventory({ activeCategory, onCategoryChange }: Mo
                                                 </td>
 
                                                 {/* Expired date */}
-                                                {(activeCategory === "reagen" || activeCategory === "bakuPembanding") && (
-                                                    <td className="py-3 px-4 text-xs text-slate-600">
-                                                        {formatDate(item.expired)}
+                                                {(isReagen || isBakuPembanding) && (
+                                                    <td className="py-3 px-4 text-xs font-medium">
+                                                        {item.expired ? (
+                                                            <span className={config.isExpiring ? "text-amber-700 font-bold" : "text-slate-600"}>
+                                                                {formatDate(item.expired)}
+                                                            </span>
+                                                        ) : "-"}
                                                     </td>
                                                 )}
 
@@ -366,14 +443,14 @@ export default function ModernInventory({ activeCategory, onCategoryChange }: Mo
                                                 </td>
 
                                                 {/* Keterangan */}
-                                                {(activeCategory === "atk" || activeCategory === "sukuCadang" || activeCategory === "perlengkapan") && (
+                                                {!isBakuPembanding && !isReagen && (
                                                     <td className="py-3 px-4 text-xs text-slate-600 max-w-xs truncate">
                                                         {item.description || item.keterangan || "-"}
                                                     </td>
                                                 )}
 
                                                 {/* MSDS link */}
-                                                {(activeCategory === "reagen" || activeCategory === "bakuPembanding") && (
+                                                {(isReagen || isBakuPembanding) && (
                                                     <td className="py-3 px-4 text-center">
                                                         {item.msds ? (
                                                             <a

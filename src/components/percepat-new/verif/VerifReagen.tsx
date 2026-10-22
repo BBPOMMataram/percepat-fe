@@ -250,11 +250,11 @@ export default function VerifReagenPercepat() {
                                         </span>
                                     } */}
                                     <div className="text-xs [&>span]:mr-1">
-                                        <span className="badge badge-soft badge-primary">Jumlah Permintaan : {item.jumlahpermintaan}</span>
-                                        <span className="badge badge-soft badge-primary">Jumlah Realisasi : {item.jumlahrealisasi || '-'}</span>
-                                        <span className="badge badge-soft badge-primary">Satuan : {item.barang?.satuan || '-'}</span>
-                                        <span className="badge badge-soft badge-primary">Expired : {item.barang?.expired ? dayjs(item.barang?.expired).format("DD MMM YYYY") : '-'}</span>
-                                        <span className="badge badge-soft badge-primary">Ket : {item.keterangan || '-'}</span>
+                                        <span className="badge badge-soft badge-primary">Jumlah Permintaan : {item.jumlahpermintaan} |</span>
+                                        <span className="badge badge-soft badge-primary">Jumlah Realisasi : {item.jumlahrealisasi || '-'} |</span>
+                                        <span className="badge badge-soft badge-primary">Satuan : {item.barang?.satuan || '-'} |</span>
+                                        <span className="badge badge-soft badge-primary">Expired : {item.barang?.expired ? dayjs(item.barang?.expired).format("DD MMM YYYY") : '-'} |</span>
+                                        <span className="badge badge-soft badge-primary">Ket : {item.keterangan || '-'} |</span>
                                     </div>
                                     {/* 
                                     {

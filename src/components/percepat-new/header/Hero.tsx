@@ -78,11 +78,6 @@ export default function Hero() {
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
                         {/* Kolom Kiri: Teks & Aksi Utama Bersih */}
                         <div className="md:col-span-7 flex flex-col items-start">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold mb-4">
-                                <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-                                Balai Besar POM di Mataram &bull; PERCEPAT
-                            </div>
-
                             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 leading-[1.16] mb-4">
                                 Persediaan Laboratorium Lebih{" "}
                                 <span className="text-[#005baa]">
@@ -134,10 +129,6 @@ export default function Hero() {
                             transition={{ duration: 0.6, ease: "easeOut" }}
                             className="md:col-span-7 flex flex-col items-start"
                         >
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold mb-4">
-                                <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
-                                Balai Besar POM di Mataram &bull; PERCEPAT
-                            </div>
 
                             <motion.h1
                                 initial={{ opacity: 0, y: 15 }}

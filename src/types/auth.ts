@@ -99,6 +99,8 @@ export interface User {
     signature_path: string | null;
     role_id: number;
     role?: Role;
+    bidang?: { id?: number; name?: string; [key: string]: any } | null;
+    fungsi?: { id?: number; name?: string; [key: string]: any } | null;
     employee?: Employee | null;
     student?: Student | null;
     sites?: Sites[] | [];

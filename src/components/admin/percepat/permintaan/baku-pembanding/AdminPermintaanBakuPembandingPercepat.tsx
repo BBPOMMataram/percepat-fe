@@ -6,8 +6,6 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
-import LabelStikerModal, { LabelStikerItem } from "@/components/percepat-new/label/LabelStikerModal";
-import { QrCode } from "lucide-react";
 
 export default function AdminPermintaanBakuPembandingPercepat() {
     const [data, setData] = useState<any>([]);
@@ -17,8 +15,6 @@ export default function AdminPermintaanBakuPembandingPercepat() {
     const [showModalListBarangPermintaan, setShowModalListBarangPermintaan] = useState(false);
     const [listBarangPermintaan, setListBarangPermintaan] = useState<any>([]);
     const [selectedPermintaan, setSelectedPermintaan] = useState<any>(null);
-    const [labelModalOpen, setLabelModalOpen] = useState<boolean>(false);
-    const [selectedLabelItem, setSelectedLabelItem] = useState<LabelStikerItem | null>(null);
     const [permintaanId, setPermintaanId] = useState<number | null>(null);
     const [jumlahRealisasi, setJumlahRealisasi] = useState<any>([]);
     const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
@@ -109,8 +105,11 @@ export default function AdminPermintaanBakuPembandingPercepat() {
         setJumlahRealisasi([]);
     };
 
+    const [tglPenyerahan, setTglPenyerahan] = useState<string>(dayjs().format("YYYY-MM-DD"));
+
     const openModalVerifPetugasHandler = (id: number) => {
         setPermintaanId(id);
+        setTglPenyerahan(dayjs().format("YYYY-MM-DD"));
         setOpenModalVerifPetugas(true);
         getListBarangPermintaan(id);
     };
@@ -123,6 +122,7 @@ export default function AdminPermintaanBakuPembandingPercepat() {
         api.post(`/api/v1/verif-petugas-baku-pembanding/${id}`, {
             user,
             realisasi: jumlahRealisasi,
+            tgl_penyerahan: tglPenyerahan,
         })
             .then(res => {
                 dispatch(showAlert({ type: "success", message: res.data.message || "Verifikasi berhasil!", description: res.data.message || "Success" }));
@@ -141,38 +141,6 @@ export default function AdminPermintaanBakuPembandingPercepat() {
         debounceRef.current = setTimeout(() => {
             setKodeBarangOrNameFilter(v);
         }, 500);
-    };
-
-    const handleRowPrintLabel = (permintaan: any) => {
-        setSelectedPermintaan(permintaan);
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/list-permintaan-baku-pembanding/${permintaan.id}`)
-            .then(({ data }) => {
-                const list = data.data || [];
-                setListBarangPermintaan(list);
-                if (list.length === 1) {
-                    const b = list[0];
-                    const bp = b.baku_pembanding || b.bakuPembanding || b.barang || {};
-                    setSelectedLabelItem({
-                        id: bp.id || b.baku_pembanding_id || b.barang_id,
-                        name: bp.name || 'Baku Pembanding',
-                        code: bp.code,
-                        kode_baru: bp.kode_baru,
-                        letak: bp.letak,
-                        satuan: bp.satuan,
-                        expired: bp.expired,
-                        diterima_tanggal: permintaan.tgl_penyerahan || null,
-                        diterima_penerima: permintaan.tgl_penyerahan
-                            ? (permintaan.peminta?.name || permintaan.peminta_name || permintaan.pemohon)
-                            : null,
-                        category: 'baku-pembanding',
-                        isFromPermintaan: true,
-                    });
-                    setLabelModalOpen(true);
-                } else {
-                    setShowModalListBarangPermintaan(true);
-                }
-            })
-            .catch((err) => console.log(err));
     };
 
     return (
@@ -290,12 +258,6 @@ export default function AdminPermintaanBakuPembandingPercepat() {
                                                     list
                                                 </span>
                                             </span>
-                                            <span className="btn btn-sm btn-ghost btn-info tooltip tooltip-info tooltip-left" data-tip="Cetak Label Barang"
-                                                onClick={() => handleRowPrintLabel(item)}>
-                                                <span className="material-symbols-outlined">
-                                                    qr_code_2
-                                                </span>
-                                            </span>
                                             {
                                                 (item.status_id === 3) &&
                                                 <span className="btn btn-sm btn-ghost btn-success tooltip tooltip-success tooltip-left" data-tip="Verif Permintaan"
@@ -379,32 +341,6 @@ export default function AdminPermintaanBakuPembandingPercepat() {
                                             {item.keterangan && <span className="badge badge-soft badge-primary">Ket : {item.keterangan}</span>}
                                         </div>
                                     </div>
-                                    <button
-                                        type="button"
-                                        className="btn btn-xs sm:btn-sm btn-info btn-outline gap-1 self-start sm:self-center shrink-0"
-                                        title="Cetak Label Stiker Botol"
-                                        onClick={() => {
-                                            setSelectedLabelItem({
-                                                id: bp.id || item.baku_pembanding_id || item.barang_id,
-                                                name: bp.name || 'Baku Pembanding',
-                                                code: bp.code,
-                                                kode_baru: bp.kode_baru,
-                                                letak: bp.letak,
-                                                satuan: bp.satuan,
-                                                expired: bp.expired,
-                                                diterima_tanggal: selectedPermintaan?.tgl_penyerahan || null,
-                                                diterima_penerima: selectedPermintaan?.tgl_penyerahan
-                                                    ? (selectedPermintaan?.peminta?.name || selectedPermintaan?.peminta_name || selectedPermintaan?.pemohon)
-                                                    : null,
-                                                category: 'baku-pembanding',
-                                                isFromPermintaan: true,
-                                            });
-                                            setLabelModalOpen(true);
-                                        }}
-                                    >
-                                        <QrCode size={13} />
-                                        Cetak Label
-                                    </button>
                                 </li>
                             );
                         })
@@ -417,7 +353,22 @@ export default function AdminPermintaanBakuPembandingPercepat() {
                 open={openModalVerifPetugas}
                 onClose={closeModalVerifPetugasHandler}
             >
-                <h3 className="text-lg font-semibold mb-4">Verifikasi Permintaan</h3>
+                <h3 className="text-lg font-semibold mb-3">Verifikasi & Penyerahan Permintaan</h3>
+
+                <div className="mb-4 p-3 bg-blue-50/70 border border-blue-200 rounded-xl">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Tanggal Penyerahan Barang :
+                    </label>
+                    <input
+                        type="date"
+                        value={tglPenyerahan}
+                        onChange={(e) => setTglPenyerahan(e.target.value)}
+                        className="input input-sm input-bordered bg-white text-slate-800 font-semibold rounded-lg"
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1">
+                        *Secara default terisi tanggal hari ini. Dapat diubah jika barang telah diserahkan sebelumnya.
+                    </p>
+                </div>
 
                 <ul className="max-h-96 overflow-y-auto list-decimal list-inside">
                     {listBarangPermintaan.length === 0 ? (
@@ -464,11 +415,6 @@ export default function AdminPermintaanBakuPembandingPercepat() {
                 <button className="btn btn-primary mt-4" onClick={() => verifPetugasHandler(permintaanId!)}>Verifikasi</button>
             </ModalGeneral>
 
-            <LabelStikerModal
-                isOpen={labelModalOpen}
-                onClose={() => setLabelModalOpen(false)}
-                item={selectedLabelItem}
-            />
         </>
     );
 }

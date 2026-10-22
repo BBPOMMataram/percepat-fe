@@ -147,7 +147,7 @@ export default function DetailReagen() {
                             <ArrowLeft size={16} /> Beranda Percepat
                         </Link>
                         <span>/</span>
-                        <span className="text-slate-700 font-medium">Reagen Kimia</span>
+                        <span className="text-slate-700 font-medium">Reagen</span>
                         <span>/</span>
                         <span className="text-slate-400 truncate max-w-[200px]">#{data.id}</span>
                     </div>
@@ -180,7 +180,7 @@ export default function DetailReagen() {
                             <div className="flex flex-wrap items-center gap-2.5">
                                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
                                     <Beaker size={14} />
-                                    Reagen Kimia
+                                    Reagen
                                 </span>
 
                                 {isExpired ? (
@@ -322,7 +322,7 @@ export default function DetailReagen() {
                 <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
                     <h3 className="font-bold text-sm sm:text-base text-slate-900 flex items-center gap-2 mb-3">
                         <ShieldAlert size={18} className="text-amber-500" />
-                        Ketentuan Penanganan Reagen Kimia di Laboratorium
+                        Ketentuan Penanganan Reagen di Laboratorium
                     </h3>
                     <ul className="text-xs text-slate-600 space-y-2 list-disc pl-5 leading-relaxed">
                         <li>

@@ -36,7 +36,7 @@ const StyledWrapper = styled.div`
     -webkit-box-sizing: content-box;
     box-sizing: content-box;
     height: 40px;
-    padding: 10px 10px;
+    padding: 8px 0;
     border-radius: 8px;
   }
 

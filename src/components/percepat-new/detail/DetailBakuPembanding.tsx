@@ -25,7 +25,6 @@ import {
     UserCheck,
 } from 'lucide-react';
 import api from '@/utils/api';
-import LabelStikerModal, { LabelStikerItem } from '@/components/percepat-new/label/LabelStikerModal';
 
 dayjs.locale('id');
 
@@ -52,7 +51,6 @@ export default function DetailBakuPembanding() {
     const [data, setData] = useState<BakuPembandingDetail | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
-    const [labelModalOpen, setLabelModalOpen] = useState<boolean>(false);
     const [copied, setCopied] = useState<boolean>(false);
 
     useEffect(() => {
@@ -127,19 +125,6 @@ export default function DetailBakuPembanding() {
     const isNearExpired = expDate ? !isExpired && expDate.diff(now, 'month') < 6 : false;
     const daysUntilExp = expDate ? expDate.diff(now, 'day') : null;
 
-    const labelItem: LabelStikerItem = {
-        id: data.id,
-        name: data.name,
-        code: data.code,
-        kode_baru: data.kode_baru,
-        letak: data.letak,
-        satuan: data.satuan,
-        expired: data.expired,
-        diterima_tanggal: data.diterima_tanggal,
-        diterima_penerima: data.diterima_penerima,
-        category: 'baku-pembanding',
-    };
-
     return (
         <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 text-slate-800">
             <div className="max-w-5xl mx-auto">
@@ -167,14 +152,6 @@ export default function DetailBakuPembanding() {
                         >
                             {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
                             {copied ? 'Tersalin!' : 'Salin URL'}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setLabelModalOpen(true)}
-                            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold bg-sky-600 hover:bg-sky-700 text-white shadow-xs transition-colors"
-                        >
-                            <QrCode size={15} />
-                            Cetak Stiker Botol
                         </button>
                     </div>
                 </div>
@@ -367,12 +344,6 @@ export default function DetailBakuPembanding() {
                     </ul>
                 </div>
 
-                {/* Sticker Modal */}
-                <LabelStikerModal
-                    isOpen={labelModalOpen}
-                    onClose={() => setLabelModalOpen(false)}
-                    item={labelItem}
-                />
             </div>
         </div>
     );

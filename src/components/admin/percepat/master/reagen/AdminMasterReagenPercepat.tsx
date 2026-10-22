@@ -6,7 +6,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import AdminMasterFormAtkPercepat from "./AdminMasterFormReagenPercepat";
 import LabelStikerModal, { LabelStikerItem } from "@/components/percepat-new/label/LabelStikerModal";
-import { QrCode } from "lucide-react";
+import { QrCode, FileSpreadsheet } from "lucide-react";
+import { exportJsonToExcel } from "@/utils/excelExport";
 
 export default function AdminMasterReagenPercepat() {
     const [data, setData] = useState<any>([])
@@ -17,8 +18,41 @@ export default function AdminMasterReagenPercepat() {
     const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
     const [labelModalOpen, setLabelModalOpen] = useState<boolean>(false);
     const [selectedLabelItem, setSelectedLabelItem] = useState<LabelStikerItem | null>(null);
+    const [isExporting, setIsExporting] = useState(false);
 
     const dispatch = useDispatch<AppDispatch>()
+
+    const handleExportExcel = async () => {
+        try {
+            setIsExporting(true);
+            const res = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/reagen?per_page=99999`);
+            const allItems = res.data?.data || [];
+            
+            if (allItems.length === 0) {
+                dispatch(showAlert({ type: 'error', message: 'Data kosong', description: 'Tidak ada data reagen untuk diekspor' }));
+                return;
+            }
+
+            exportJsonToExcel({
+                data: allItems,
+                fileName: `Data_Master_Reagen_${dayjs().format('YYYYMMDD_HHmmss')}`,
+                sheetName: 'Reagen',
+                columns: [
+                    { header: 'No', key: 'id', width: 6, formatter: (_v, _row, index) => index + 1 },
+                    { header: 'Nama Reagen', key: 'name', width: 45 },
+                    { header: 'Stok', key: 'stock', width: 12, formatter: (v) => Number(v) || 0 },
+                    { header: 'Satuan', key: 'satuan', width: 15, formatter: (v) => v || '-' },
+                    { header: 'Kedaluwarsa (Expired)', key: 'expired', width: 22, formatter: (v) => v ? dayjs(v).format('DD MMM YYYY') : '-' },
+                ]
+            });
+            dispatch(showAlert({ type: 'success', message: 'Export Berhasil', description: `Berhasil mengekspor ${allItems.length} baris data reagen ke Excel.` }));
+        } catch (error: any) {
+            console.error(error);
+            dispatch(showAlert({ type: 'error', message: 'Gagal Export', description: error.message || 'Terjadi kesalahan saat mengekspor data' }));
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     const rowNumber = (index: number) => (currentPage - 1) * perPage + index + 1;
     const loadData = useCallback(() => {
@@ -66,13 +100,21 @@ export default function AdminMasterReagenPercepat() {
             </div>
             <div className="bg-white rounded-2xl shadow px-8 py-4">
                 <div className="flex flex-wrap items-center gap-4 mb-4">
-                    <div className="mb-4">
+                    <div className="mb-4 flex items-center gap-2">
                         <button className="btn btn-primary"
                             onClick={() => {
                                 setOpen(true)
                                 setEditData(null)
                             }}
                         >Add New</button>
+                        <button 
+                            className="btn btn-success text-white gap-2"
+                            disabled={isExporting}
+                            onClick={handleExportExcel}
+                        >
+                            {isExporting ? <span className="loading loading-spinner loading-xs" /> : <FileSpreadsheet size={16} />}
+                            Export Excel
+                        </button>
                     </div>
 
                     <div className="flex items-center gap-2 ml-auto">

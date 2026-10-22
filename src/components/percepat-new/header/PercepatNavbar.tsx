@@ -99,13 +99,6 @@ export default function PercepatNavbar() {
                         >
                             Katalog Inventaris
                         </a>
-                        <Link
-                            href="/"
-                            className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 transition-colors"
-                        >
-                            Portal SiMandalika
-                        </Link>
-
                         {/* Dropdown Permintaan */}
                         <div className="relative">
                             <button
@@ -307,13 +300,6 @@ export default function PercepatNavbar() {
                         >
                             Katalog Inventaris
                         </a>
-                        <Link
-                            href="/"
-                            onClick={() => setMobileMenuOpen(false)}
-                            className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50"
-                        >
-                            Portal SiMandalika
-                        </Link>
                         <div className="pt-2 border-t border-slate-100">
                             <div className="px-3 py-1 text-xs font-semibold text-slate-600">Permintaan:</div>
                             {categories.map(c => (

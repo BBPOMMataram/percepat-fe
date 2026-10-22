@@ -5,7 +5,8 @@ import { showAlert } from "@/features/alertSlice";
 import { AppDispatch } from "@/redux/store";
 import api from "@/utils/api";
 import { useEffect, useRef, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 
 interface FormProps {
     listBarang: any[];
@@ -17,11 +18,19 @@ export default function FormAtk({ listBarang, setListBarang }: FormProps) {
     const [isLoading, setIsLoading] = useState(false);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const dispatch = useDispatch<AppDispatch>();
+    const { user } = useSelector((state: RootState) => state.auth);
+    const userFungsi = user?.bidang?.name || user?.employee?.fungsi?.name || (user as any)?.fungsi?.name || "";
     const [searchTerm, setSearchTerm] = useState("");
     const [barangList, setBarangList] = useState<any[]>([]);
     const [selectedBarang, setSelectedBarang] = useState<any>(null);
     const [jumlah, setJumlah] = useState<number>(1);
-    const [keterangan, setKeterangan] = useState<string>("");
+    const [keterangan, setKeterangan] = useState<string>(userFungsi);
+
+    useEffect(() => {
+        if (!keterangan && userFungsi) {
+            setKeterangan(userFungsi);
+        }
+    }, [userFungsi]);
 
     useEffect(() => {
         searchInputRef.current?.focus();
@@ -108,7 +117,7 @@ export default function FormAtk({ listBarang, setListBarang }: FormProps) {
 
         setSelectedBarang(null);
         setJumlah(1);
-        setKeterangan("");
+        setKeterangan(userFungsi);
     };
 
     const handleRemoveBarang = (index: number) => {

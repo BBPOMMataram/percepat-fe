@@ -25,29 +25,29 @@ const ParticlesBackground = ({ particleColor }: { particleColor: string }) => {
             id="tsparticles"
             init={particlesInit}
             options={{
-                fullScreen: { enable: true },
+                fpsLimit: 45,
+                pauseOnBlur: true,
+                fullScreen: { enable: true, zIndex: 0 },
                 background: { color: "transparent" },
                 particles: {
-                    number: { value: 25 },
+                    number: { value: 24 },
                     color: { value: particleColor },
-                    size: { value: 4 },
-                    move: { enable: true, speed: .6 },
+                    size: { value: 3.5 },
+                    move: {
+                        enable: true,
+                        speed: 0.6,
+                        direction: "none",
+                        outModes: { default: "bounce" }
+                    },
                     links: {
                         enable: true,
                         color: particleColor,
-                        distance: 200,
-                        opacity: .4,
+                        distance: 190,
+                        opacity: 0.35,
                     },
-                    opacity: { value: .5 },
+                    opacity: { value: 0.5 },
                 },
-                noise: {
-                    enable: true, // ✅ aktifkan noise
-                    delay: { value: 0 },
-                    factor: {
-                        value: "10", // semakin besar nilainya semakin berombak
-                    },
-                },
-                detectRetina: true,
+                detectRetina: false,
             }}
         />
     );

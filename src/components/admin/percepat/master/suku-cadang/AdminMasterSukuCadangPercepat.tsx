@@ -4,6 +4,9 @@ import api from "@/utils/api";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import AdminMasterFormSukuCadangPercepat from "./AdminMasterFormSukuCadangPercepat";
+import dayjs from "dayjs";
+import { FileSpreadsheet } from "lucide-react";
+import { exportJsonToExcel } from "@/utils/excelExport";
 
 export default function AdminMasterSukuCadangPercepat() {
     const [data, setData] = useState<any>([])
@@ -12,8 +15,41 @@ export default function AdminMasterSukuCadangPercepat() {
     const [open, setOpen] = useState<boolean>(false)
     const [editData, setEditData] = useState<any>(null)
     const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
+    const [isExporting, setIsExporting] = useState(false);
 
     const dispatch = useDispatch<AppDispatch>()
+
+    const handleExportExcel = async () => {
+        try {
+            setIsExporting(true);
+            const res = await api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/barang-suku-cadang?per_page=99999`);
+            const allItems = res.data?.data || [];
+            
+            if (allItems.length === 0) {
+                dispatch(showAlert({ type: 'error', message: 'Data kosong', description: 'Tidak ada data suku cadang untuk diekspor' }));
+                return;
+            }
+
+            exportJsonToExcel({
+                data: allItems,
+                fileName: `Data_Master_Suku_Cadang_${dayjs().format('YYYYMMDD_HHmmss')}`,
+                sheetName: 'Suku Cadang',
+                columns: [
+                    { header: 'No', key: 'id', width: 6, formatter: (_v, _row, index) => index + 1 },
+                    { header: 'Nama Suku Cadang', key: 'name', width: 45 },
+                    { header: 'Stok', key: 'stock', width: 12, formatter: (v) => Number(v) || 0 },
+                    { header: 'Satuan', key: 'satuan', width: 15, formatter: (v) => v || '-' },
+                    { header: 'Keterangan', key: 'description', width: 30, formatter: (v) => v || '-' },
+                ]
+            });
+            dispatch(showAlert({ type: 'success', message: 'Export Berhasil', description: `Berhasil mengekspor ${allItems.length} baris data suku cadang ke Excel.` }));
+        } catch (error: any) {
+            console.error(error);
+            dispatch(showAlert({ type: 'error', message: 'Gagal Export', description: error.message || 'Terjadi kesalahan saat mengekspor data' }));
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     const rowNumber = (index: number) => (currentPage - 1) * perPage + index + 1;
     const loadData = useCallback(() => {
@@ -61,13 +97,21 @@ export default function AdminMasterSukuCadangPercepat() {
             </div>
             <div className="bg-white rounded-2xl shadow px-8 py-4">
                 <div className="flex flex-wrap items-center gap-4 mb-4">
-                    <div className="mb-4">
+                    <div className="mb-4 flex items-center gap-2">
                         <button className="btn btn-primary"
                             onClick={() => {
                                 setOpen(true)
                                 setEditData(null)
                             }}
                         >Add New</button>
+                        <button 
+                            className="btn btn-success text-white gap-2"
+                            disabled={isExporting}
+                            onClick={handleExportExcel}
+                        >
+                            {isExporting ? <span className="loading loading-spinner loading-xs" /> : <FileSpreadsheet size={16} />}
+                            Export Excel
+                        </button>
                     </div>
 
                     <div className="flex items-center gap-2 ml-auto">
