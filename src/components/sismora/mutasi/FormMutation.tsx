@@ -7,6 +7,21 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 
+const getTodayString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+};
+
+const getCurrentTimeString = () => {
+    const d = new Date();
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return `${hours}:${minutes}`;
+};
+
 function FormMutationContent() {
     const dispatch = useDispatch<AppDispatch>();
     const router = useRouter();
@@ -15,8 +30,8 @@ function FormMutationContent() {
     const isEditMode = !!editId;
 
     const [roomId, setRoomId] = useState("");
-    const [tanggal, setTanggal] = useState("");
-    const [jam, setJam] = useState("");
+    const [tanggal, setTanggal] = useState(getTodayString());
+    const [jam, setJam] = useState(getCurrentTimeString());
     const [temperature, setTemperature] = useState("");
     const [humidity, setHumidity] = useState("");
     const [deskripsi, setDeskripsi] = useState("");
@@ -24,7 +39,7 @@ function FormMutationContent() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SISMORA}/api/v1/rooms?per_page=100`)
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SISMORA}/api/v1/rooms?per_page=1000`)
             .then(({ data }) => {
                 setListRooms(Array.isArray(data) ? data : data?.data || []);
             })
@@ -36,11 +51,11 @@ function FormMutationContent() {
             api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SISMORA}/api/v1/mutations/${editId}`)
                 .then(({ data }) => {
                     const d = data.data || data;
-                    setRoomId(d.room_id ?? "");
-                    setTanggal(d.tanggal || "");
-                    setJam(d.jam || "");
-                    setTemperature(d.temperature ?? "");
-                    setHumidity(d.humidity ?? "");
+                    setRoomId(d.room_id ? String(d.room_id) : "");
+                    setTanggal(d.tanggal || getTodayString());
+                    setJam(d.jam || getCurrentTimeString());
+                    setTemperature(d.temperature !== null && d.temperature !== undefined ? String(d.temperature) : "");
+                    setHumidity(d.humidity !== null && d.humidity !== undefined ? String(d.humidity) : "");
                     setDeskripsi(d.deskripsi || "");
                 })
                 .catch((err) => {
@@ -49,6 +64,10 @@ function FormMutationContent() {
                 });
         }
     }, [editId, dispatch]);
+
+    // Ambil object ruangan yang sedang terpilih beserta tipe ruangannya untuk monitoring
+    const selectedRoom = listRooms.find((r) => String(r.id) === String(roomId));
+    const selectedRoomType = selectedRoom?.room_type;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -126,10 +145,39 @@ function FormMutationContent() {
                         <option value="">-- Pilih Ruangan --</option>
                         {listRooms.map((room: any) => (
                             <option key={room.id} value={room.id}>
-                                {room.nama}
+                                {room.nama} {room.room_type?.nama ? `(${room.room_type.nama})` : ""}
                             </option>
                         ))}
                     </select>
+
+                    {/* Informasi Standar Tipe Ruangan untuk Monitoring */}
+                    {selectedRoomType && (
+                        <div className="mt-3 p-3 bg-blue-50/70 rounded-xl border border-blue-200 text-xs text-gray-700 space-y-1">
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-800">Tipe Ruangan:</span>
+                                <span className="badge badge-primary badge-sm text-white font-medium">
+                                    {selectedRoomType.nama}
+                                </span>
+                            </div>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-gray-600">
+                                <span>
+                                    Standar Monitoring Suhu:{" "}
+                                    <strong className="text-orange-600">
+                                        {selectedRoomType.temp_min !== null ? `${selectedRoomType.temp_min} - ` : "≤ "}
+                                        {selectedRoomType.temp_max}°C
+                                    </strong>
+                                </span>
+                                <span>
+                                    Standar Monitoring Kelembaban:{" "}
+                                    <strong className="text-blue-600">
+                                        {selectedRoomType.is_humidity
+                                            ? `${selectedRoomType.hum_min !== null ? `${selectedRoomType.hum_min} - ` : "< "}${selectedRoomType.hum_max}%`
+                                            : "Tidak dipantau"}
+                                    </strong>
+                                </span>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -162,11 +210,11 @@ function FormMutationContent() {
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Temperatur
+                            Temperatur (°C)
                         </label>
                         <input
                             type="number"
-                            step="0.1"
+                            step="any"
                             value={temperature}
                             onChange={(e) => setTemperature(e.target.value)}
                             className="input input-bordered w-full"
@@ -175,11 +223,11 @@ function FormMutationContent() {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Kelembaban
+                            Kelembaban (%)
                         </label>
                         <input
                             type="number"
-                            step="0.1"
+                            step="any"
                             value={humidity}
                             onChange={(e) => setHumidity(e.target.value)}
                             className="input input-bordered w-full"

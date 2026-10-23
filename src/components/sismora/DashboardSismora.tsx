@@ -3,7 +3,7 @@
 import api from "@/utils/api";
 import { useEffect, useState } from "react";
 import {
-    ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine,
+    ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 
 interface MutationRow {
@@ -36,13 +36,21 @@ export default function DashboardSismora() {
     const [tempWarnings, setTempWarnings] = useState<WarningItem[]>([]);
     const [humWarnings, setHumWarnings] = useState<WarningItem[]>([]);
     const [totalRooms, setTotalRooms] = useState(0);
-    const [loading, setLoading] = useState(true);
+    const [roomsList, setRoomsList] = useState<any[]>([]);
+    const [selectedRoom, setSelectedRoom] = useState("");
+    const [selectedMonth, setSelectedMonth] = useState("");
+    const [initialLoading, setInitialLoading] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
+                const params = new URLSearchParams();
+                params.append("per_page", "1000");
+                if (selectedRoom) params.append("room_id", selectedRoom);
+                if (selectedMonth) params.append("month", selectedMonth);
+
                 const [mutationsRes, roomsRes, roomTypesRes] = await Promise.all([
-                    api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SISMORA}/api/v1/mutations`),
+                    api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SISMORA}/api/v1/mutations?${params.toString()}`),
                     api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SISMORA}/api/v1/rooms?per_page=1000`),
                     api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SISMORA}/api/v1/room-types?per_page=1000`),
                 ]);
@@ -50,6 +58,8 @@ export default function DashboardSismora() {
                 const mutations = Array.isArray(mutationsRes.data) ? mutationsRes.data : mutationsRes.data?.data || [];
                 const rooms = Array.isArray(roomsRes.data) ? roomsRes.data : roomsRes.data?.data || [];
                 const roomTypes = Array.isArray(roomTypesRes.data) ? roomTypesRes.data : roomTypesRes.data?.data || [];
+
+                setRoomsList(rooms);
 
                 const roomMap = new Map<number, any>();
                 rooms.forEach((r: any) => roomMap.set(r.id, r));
@@ -111,18 +121,18 @@ export default function DashboardSismora() {
                 setAllData(chartData);
                 setTempWarnings(tempResult);
                 setHumWarnings(humResult);
-                setTotalRooms(rooms.length);
+                setTotalRooms(selectedRoom ? 1 : rooms.length);
             } catch (err) {
                 console.error("Dashboard error:", err);
             } finally {
-                setLoading(false);
+                setInitialLoading(false);
             }
         };
 
         fetchData();
-    }, []);
+    }, [selectedRoom, selectedMonth]);
 
-    if (loading) {
+    if (initialLoading) {
         return (
             <>
                 <div className="bg-white rounded-2xl shadow px-8 py-4 flex items-center">
@@ -137,8 +147,47 @@ export default function DashboardSismora() {
 
     return (
         <>
-            <div className="bg-white rounded-2xl shadow px-8 py-4 flex items-center">
+            <div className="bg-white rounded-2xl shadow px-8 py-4 flex flex-wrap items-center justify-between gap-4">
                 <h2 className="text-xl font-semibold text-gray-800 uppercase">Dashboard Sismora</h2>
+                
+                {/* Filter Ruangan dan Bulan */}
+                <div className="flex flex-wrap items-center gap-3">
+                    <select
+                        value={selectedRoom}
+                        onChange={(e) => setSelectedRoom(e.target.value)}
+                        className="select select-bordered select-sm w-44 sm:w-52"
+                    >
+                        <option value="">Semua Ruangan</option>
+                        {roomsList.map((room) => (
+                            <option key={room.id} value={room.id}>
+                                {room.nama} {room.room_type?.nama ? `(${room.room_type.nama})` : ""}
+                            </option>
+                        ))}
+                    </select>
+
+                    <input
+                        type="month"
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(e.target.value)}
+                        className="input input-bordered select-sm w-36 sm:w-44"
+                        title="Filter Bulan"
+                    />
+
+                    {(selectedRoom || selectedMonth) && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSelectedRoom("");
+                                setSelectedMonth("");
+                            }}
+                            className="btn btn-ghost btn-xs text-gray-500 hover:text-gray-800"
+                            title="Reset Filter"
+                        >
+                            <span className="material-symbols-outlined text-[16px]">close</span>
+                            Reset
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Summary Cards */}
@@ -174,7 +223,7 @@ export default function DashboardSismora() {
             </div>
 
             {/* Charts */}
-            {allData.length > 0 && (
+            {allData.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
                     {/* Temperature Chart */}
                     <div className="bg-white rounded-2xl shadow px-6 py-5">
@@ -215,6 +264,11 @@ export default function DashboardSismora() {
                             </ComposedChart>
                         </ResponsiveContainer>
                     </div>
+                </div>
+            ) : (
+                <div className="bg-white rounded-2xl shadow px-6 py-12 text-center text-gray-400 mt-4">
+                    <span className="material-symbols-outlined text-5xl mb-2">query_stats</span>
+                    <p className="text-sm font-medium">Tidak ada data grafik untuk filter yang dipilih</p>
                 </div>
             )}
 
