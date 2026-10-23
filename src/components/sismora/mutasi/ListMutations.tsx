@@ -36,23 +36,46 @@ export default function ListMutations() {
             .catch((err) => console.log("Failed to fetch rooms:", err));
     }, []);
 
+    // Helper untuk rentang tanggal dari string YYYY-MM
+    const getMonthDateRange = (monthStr: string) => {
+        if (!monthStr || !monthStr.includes("-")) return null;
+        const [yStr, mStr] = monthStr.split("-");
+        const year = parseInt(yStr, 10);
+        const month = parseInt(mStr, 10);
+        const startDate = `${yStr}-${mStr.padStart(2, "0")}-01`;
+        const lastDay = new Date(year, month, 0).getDate();
+        const endDate = `${yStr}-${mStr.padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+        return { startDate, endDate };
+    };
+
     const fetchMutations = useCallback(() => {
         setLoading(true);
         const params = new URLSearchParams();
         if (search) params.append("search", search);
         if (selectedRoom) params.append("room_id", selectedRoom);
-        if (selectedMonth) params.append("month", selectedMonth);
+        if (selectedMonth) {
+            params.append("month", selectedMonth);
+            const range = getMonthDateRange(selectedMonth);
+            if (range) {
+                params.append("start_date", range.startDate);
+                params.append("end_date", range.endDate);
+            }
+        }
         params.append("page", currentPage.toString());
         params.append("per_page", perPage.toString());
 
         const endpoint = `${process.env.NEXT_PUBLIC_BACKEND_URL_SISMORA}/api/v1/mutations?${params.toString()}`;
         api.get(endpoint)
             .then(({ data }) => {
-                const list = Array.isArray(data) ? data : data?.data || [];
+                const rawList = Array.isArray(data) ? data : data?.data || [];
+                // Proteksi ganda di frontend jika respon backend masih mengembalikan record di luar bulan yang dipilih
+                const list = selectedMonth
+                    ? rawList.filter((m: any) => !m.tanggal || m.tanggal.startsWith(selectedMonth))
+                    : rawList;
                 setItems(list);
                 const meta = data?.meta || data;
                 setLastPage(meta?.last_page || 1);
-                setTotal(meta?.total ?? list.length);
+                setTotal(selectedMonth ? list.length : (meta?.total ?? list.length));
                 setFrom(meta?.from ?? (list.length > 0 ? (currentPage - 1) * perPage + 1 : 0));
                 setTo(meta?.to ?? (list.length > 0 ? (currentPage - 1) * perPage + list.length : 0));
             })
@@ -127,7 +150,7 @@ export default function ListMutations() {
 
     return (
         <>
-            <div className="flex flex-wrap items-center gap-3 mb-4">
+            <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 mb-4">
                 <input
                     type="text"
                     placeholder="Cari mutasi..."
@@ -136,7 +159,7 @@ export default function ListMutations() {
                         setSearch(e.target.value);
                         setCurrentPage(1);
                     }}
-                    className="input input-bordered w-full sm:w-64"
+                    className="input input-bordered w-full sm:w-60"
                 />
 
                 <select
@@ -175,7 +198,7 @@ export default function ListMutations() {
                             setSelectedMonth("");
                             setCurrentPage(1);
                         }}
-                        className="btn btn-ghost btn-sm text-gray-500 hover:text-gray-800"
+                        className="btn btn-ghost btn-sm text-gray-500 hover:text-gray-800 self-start sm:self-center"
                     >
                         <span className="material-symbols-outlined text-[18px]">close</span>
                         Reset
@@ -184,7 +207,7 @@ export default function ListMutations() {
             </div>
 
             <div className="overflow-x-auto rounded-2xl shadow-sm border border-gray-200 bg-white">
-                <table className="table table-zebra">
+                <table className="table table-zebra min-w-[700px]">
                     <thead className="bg-primary text-primary-content uppercase text-xs">
                         <tr>
                             <th className="px-4 py-3 text-left">#</th>

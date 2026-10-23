@@ -87,25 +87,25 @@ function LaporanMutasiContent() {
     }
 
     return (
-        <div className="max-w-3xl mx-auto p-6">
-            <div className="flex items-center justify-between mb-6 no-print">
-                <h1 className="text-2xl font-semibold">Laporan Mutasi</h1>
-                <div className="flex gap-2">
-                    <button className="btn btn-ghost" onClick={() => router.push("/sismora/mutasi")}>
+        <div className="max-w-3xl mx-auto p-2 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 no-print">
+                <h1 className="text-xl sm:text-2xl font-semibold">Laporan Mutasi</h1>
+                <div className="flex flex-wrap gap-2">
+                    <button className="btn btn-sm sm:btn-md btn-ghost" onClick={() => router.push("/sismora/mutasi")}>
                         Kembali
                     </button>
                     {laporan && (
                         <>
-                            <button className="btn btn-ghost btn-warning" onClick={() => router.push(`/sismora/mutasi/laporan/form?id=${laporan.id}&mutasi_id=${mutasiId}`)}>
-                                <span className="material-symbols-outlined text-[20px]!">edit</span>
+                            <button className="btn btn-sm sm:btn-md btn-ghost btn-warning" onClick={() => router.push(`/sismora/mutasi/laporan/form?id=${laporan.id}&mutasi_id=${mutasiId}`)}>
+                                <span className="material-symbols-outlined text-[18px] sm:text-[20px]!">edit</span>
                                 Edit
                             </button>
-                            <button className="btn btn-ghost btn-error" onClick={() => setShowModalDelete(true)}>
-                                <span className="material-symbols-outlined text-[20px]!">delete</span>
+                            <button className="btn btn-sm sm:btn-md btn-ghost btn-error" onClick={() => setShowModalDelete(true)}>
+                                <span className="material-symbols-outlined text-[18px] sm:text-[20px]!">delete</span>
                                 Hapus
                             </button>
-                            <button className="btn btn-primary" onClick={handlePrint}>
-                                <span className="material-symbols-outlined text-[20px]!">print</span>
+                            <button className="btn btn-sm sm:btn-md btn-primary" onClick={handlePrint}>
+                                <span className="material-symbols-outlined text-[18px] sm:text-[20px]!">print</span>
                                 Cetak
                             </button>
                         </>
@@ -115,9 +115,9 @@ function LaporanMutasiContent() {
 
             {/* Info Mutasi */}
             {mutasi && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
-                    <h2 className="text-lg font-semibold mb-4">Data Mutasi</h2>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
+                    <h2 className="text-base sm:text-lg font-semibold mb-4">Data Mutasi</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div>
                             <p className="text-gray-500">Ruangan</p>
                             <p className="font-medium">{mutasi.room?.nama || mutasi.room_id || "-"}</p>
@@ -148,10 +148,10 @@ function LaporanMutasiContent() {
 
             {/* Laporan */}
             {laporan ? (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 print:shadow-none print:border-none">
-                    <div className="text-center mb-8">
-                        <h2 className="text-xl font-bold uppercase">Laporan Mutasi Ruangan</h2>
-                        <p className="text-gray-500 text-sm mt-1">Sistem Informasi Manajemen Ruangan (SISMORA)</p>
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-8 print:shadow-none print:border-none">
+                    <div className="text-center mb-6 sm:mb-8">
+                        <h2 className="text-lg sm:text-xl font-bold uppercase">Laporan Mutasi Ruangan</h2>
+                        <p className="text-gray-500 text-xs sm:text-sm mt-1">Sistem Informasi Manajemen Ruangan (SISMORA)</p>
                     </div>
 
                     <div className="space-y-4">

@@ -31,6 +31,24 @@ interface WarningItem {
     room_type_name: string;
 }
 
+const getCurrentMonth = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    return `${year}-${month}`;
+};
+
+const getMonthDateRange = (monthStr: string) => {
+    if (!monthStr || !monthStr.includes("-")) return null;
+    const [yStr, mStr] = monthStr.split("-");
+    const year = parseInt(yStr, 10);
+    const month = parseInt(mStr, 10);
+    const startDate = `${yStr}-${mStr.padStart(2, "0")}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDate = `${yStr}-${mStr.padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+    return { startDate, endDate };
+};
+
 export default function DashboardSismora() {
     const [allData, setAllData] = useState<MutationRow[]>([]);
     const [tempWarnings, setTempWarnings] = useState<WarningItem[]>([]);
@@ -38,7 +56,7 @@ export default function DashboardSismora() {
     const [totalRooms, setTotalRooms] = useState(0);
     const [roomsList, setRoomsList] = useState<any[]>([]);
     const [selectedRoom, setSelectedRoom] = useState("");
-    const [selectedMonth, setSelectedMonth] = useState("");
+    const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth);
     const [initialLoading, setInitialLoading] = useState(true);
 
     useEffect(() => {
@@ -47,7 +65,14 @@ export default function DashboardSismora() {
                 const params = new URLSearchParams();
                 params.append("per_page", "1000");
                 if (selectedRoom) params.append("room_id", selectedRoom);
-                if (selectedMonth) params.append("month", selectedMonth);
+                if (selectedMonth) {
+                    params.append("month", selectedMonth);
+                    const range = getMonthDateRange(selectedMonth);
+                    if (range) {
+                        params.append("start_date", range.startDate);
+                        params.append("end_date", range.endDate);
+                    }
+                }
 
                 const [mutationsRes, roomsRes, roomTypesRes] = await Promise.all([
                     api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SISMORA}/api/v1/mutations?${params.toString()}`),
@@ -55,7 +80,12 @@ export default function DashboardSismora() {
                     api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SISMORA}/api/v1/room-types?per_page=1000`),
                 ]);
 
-                const mutations = Array.isArray(mutationsRes.data) ? mutationsRes.data : mutationsRes.data?.data || [];
+                const rawMutations = Array.isArray(mutationsRes.data) ? mutationsRes.data : mutationsRes.data?.data || [];
+                // Proteksi ganda di frontend jika respon backend masih mengembalikan record di luar bulan yang dipilih
+                const mutations = selectedMonth
+                    ? rawMutations.filter((m: any) => !m.tanggal || m.tanggal.startsWith(selectedMonth))
+                    : rawMutations;
+
                 const rooms = Array.isArray(roomsRes.data) ? roomsRes.data : roomsRes.data?.data || [];
                 const roomTypes = Array.isArray(roomTypesRes.data) ? roomTypesRes.data : roomTypesRes.data?.data || [];
 
@@ -135,8 +165,8 @@ export default function DashboardSismora() {
     if (initialLoading) {
         return (
             <>
-                <div className="bg-white rounded-2xl shadow px-8 py-4 flex items-center">
-                    <h2 className="text-xl font-semibold text-gray-800 uppercase">Dashboard Sismora</h2>
+                <div className="bg-white rounded-2xl shadow px-4 sm:px-8 py-3 sm:py-4 flex items-center">
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-800 uppercase">Dashboard Sismora</h2>
                 </div>
                 <div className="flex justify-center py-16">
                     <span className="loading loading-spinner loading-lg"></span>
@@ -145,17 +175,19 @@ export default function DashboardSismora() {
         );
     }
 
+    const isFilteredFromDefault = selectedRoom !== "" || selectedMonth !== getCurrentMonth();
+
     return (
         <>
-            <div className="bg-white rounded-2xl shadow px-8 py-4 flex flex-wrap items-center justify-between gap-4">
-                <h2 className="text-xl font-semibold text-gray-800 uppercase">Dashboard Sismora</h2>
+            <div className="bg-white rounded-2xl shadow px-4 sm:px-8 py-3 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 uppercase">Dashboard Sismora</h2>
                 
                 {/* Filter Ruangan dan Bulan */}
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
                     <select
                         value={selectedRoom}
                         onChange={(e) => setSelectedRoom(e.target.value)}
-                        className="select select-bordered select-sm w-44 sm:w-52"
+                        className="select select-bordered select-sm flex-1 sm:flex-initial sm:w-52"
                     >
                         <option value="">Semua Ruangan</option>
                         {roomsList.map((room) => (
@@ -169,21 +201,21 @@ export default function DashboardSismora() {
                         type="month"
                         value={selectedMonth}
                         onChange={(e) => setSelectedMonth(e.target.value)}
-                        className="input input-bordered select-sm w-36 sm:w-44"
+                        className="input input-bordered select-sm flex-1 sm:flex-initial sm:w-44"
                         title="Filter Bulan"
                     />
 
-                    {(selectedRoom || selectedMonth) && (
+                    {isFilteredFromDefault && (
                         <button
                             type="button"
                             onClick={() => {
                                 setSelectedRoom("");
-                                setSelectedMonth("");
+                                setSelectedMonth(getCurrentMonth());
                             }}
                             className="btn btn-ghost btn-xs text-gray-500 hover:text-gray-800"
-                            title="Reset Filter"
+                            title="Reset ke Bulan Saat Ini"
                         >
-                            <span className="material-symbols-outlined text-[16px]">close</span>
+                            <span className="material-symbols-outlined text-[16px]">restart_alt</span>
                             Reset
                         </button>
                     )}
@@ -191,33 +223,33 @@ export default function DashboardSismora() {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                <div className="bg-white rounded-2xl shadow px-5 py-4 flex items-center gap-4">
-                    <span className="material-symbols-outlined text-primary text-4xl">data_table</span>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-4">
+                <div className="bg-white rounded-2xl shadow p-3 sm:px-5 sm:py-4 flex items-center gap-3 sm:gap-4">
+                    <span className="material-symbols-outlined text-primary text-3xl sm:text-4xl">data_table</span>
                     <div>
-                        <p className="text-xs text-gray-500 uppercase">Total Mutasi</p>
-                        <p className="text-2xl font-bold text-gray-800">{allData.length}</p>
+                        <p className="text-[10px] sm:text-xs text-gray-500 uppercase font-semibold">Total Mutasi</p>
+                        <p className="text-xl sm:text-2xl font-bold text-gray-800">{allData.length}</p>
                     </div>
                 </div>
-                <div className="bg-white rounded-2xl shadow px-5 py-4 flex items-center gap-4">
-                    <span className="material-symbols-outlined text-orange-500 text-4xl">thermostat</span>
+                <div className="bg-white rounded-2xl shadow p-3 sm:px-5 sm:py-4 flex items-center gap-3 sm:gap-4">
+                    <span className="material-symbols-outlined text-orange-500 text-3xl sm:text-4xl">thermostat</span>
                     <div>
-                        <p className="text-xs text-gray-500 uppercase">Temp Warning</p>
-                        <p className="text-2xl font-bold text-orange-600">{tempWarnings.length}</p>
+                        <p className="text-[10px] sm:text-xs text-gray-500 uppercase font-semibold">Temp Warning</p>
+                        <p className="text-xl sm:text-2xl font-bold text-orange-600">{tempWarnings.length}</p>
                     </div>
                 </div>
-                <div className="bg-white rounded-2xl shadow px-5 py-4 flex items-center gap-4">
-                    <span className="material-symbols-outlined text-blue-500 text-4xl">humidity_percentage</span>
+                <div className="bg-white rounded-2xl shadow p-3 sm:px-5 sm:py-4 flex items-center gap-3 sm:gap-4">
+                    <span className="material-symbols-outlined text-blue-500 text-3xl sm:text-4xl">humidity_percentage</span>
                     <div>
-                        <p className="text-xs text-gray-500 uppercase">Humidity Warning</p>
-                        <p className="text-2xl font-bold text-blue-600">{humWarnings.length}</p>
+                        <p className="text-[10px] sm:text-xs text-gray-500 uppercase font-semibold">Humidity Warning</p>
+                        <p className="text-xl sm:text-2xl font-bold text-blue-600">{humWarnings.length}</p>
                     </div>
                 </div>
-                <div className="bg-white rounded-2xl shadow px-5 py-4 flex items-center gap-4">
-                    <span className="material-symbols-outlined text-purple-500 text-4xl">meeting_room</span>
+                <div className="bg-white rounded-2xl shadow p-3 sm:px-5 sm:py-4 flex items-center gap-3 sm:gap-4">
+                    <span className="material-symbols-outlined text-purple-500 text-3xl sm:text-4xl">meeting_room</span>
                     <div>
-                        <p className="text-xs text-gray-500 uppercase">Total Ruangan</p>
-                        <p className="text-2xl font-bold text-gray-800">{totalRooms}</p>
+                        <p className="text-[10px] sm:text-xs text-gray-500 uppercase font-semibold">Total Ruangan</p>
+                        <p className="text-xl sm:text-2xl font-bold text-gray-800">{totalRooms}</p>
                     </div>
                 </div>
             </div>
@@ -226,43 +258,47 @@ export default function DashboardSismora() {
             {allData.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
                     {/* Temperature Chart */}
-                    <div className="bg-white rounded-2xl shadow px-6 py-5">
-                        <div className="flex items-center gap-3 mb-4">
-                            <span className="material-symbols-outlined text-orange-500 text-2xl">thermostat</span>
-                            <h3 className="text-lg font-bold text-gray-800">Grafik Temperature</h3>
+                    <div className="bg-white rounded-2xl shadow p-4 sm:px-6 sm:py-5">
+                        <div className="flex items-center gap-2 sm:gap-3 mb-4">
+                            <span className="material-symbols-outlined text-orange-500 text-xl sm:text-2xl">thermostat</span>
+                            <h3 className="text-base sm:text-lg font-bold text-gray-800">Grafik Temperature</h3>
                         </div>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <ComposedChart data={allData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                                <YAxis tick={{ fontSize: 11 }} />
-                                <Tooltip />
-                                <Legend />
-                                <Bar dataKey="temperature" name="Suhu (°C)" fill="#f97316" radius={[4, 4, 0, 0]} />
-                                <Line type="monotone" dataKey="temp_max" name="Max" stroke="#ef4444" strokeDasharray="5 5" dot={false} strokeWidth={2} />
-                                <Line type="monotone" dataKey="temp_min" name="Min" stroke="#22c55e" strokeDasharray="5 5" dot={false} strokeWidth={2} />
-                            </ComposedChart>
-                        </ResponsiveContainer>
+                        <div className="w-full h-[260px] sm:h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={allData}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                    <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                                    <YAxis tick={{ fontSize: 11 }} />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Bar dataKey="temperature" name="Suhu (°C)" fill="#f97316" radius={[4, 4, 0, 0]} />
+                                    <Line type="monotone" dataKey="temp_max" name="Max" stroke="#ef4444" strokeDasharray="5 5" dot={false} strokeWidth={2} />
+                                    <Line type="monotone" dataKey="temp_min" name="Min" stroke="#22c55e" strokeDasharray="5 5" dot={false} strokeWidth={2} />
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
 
                     {/* Humidity Chart */}
-                    <div className="bg-white rounded-2xl shadow px-6 py-5">
-                        <div className="flex items-center gap-3 mb-4">
-                            <span className="material-symbols-outlined text-blue-500 text-2xl">humidity_percentage</span>
-                            <h3 className="text-lg font-bold text-gray-800">Grafik Kelembaban</h3>
+                    <div className="bg-white rounded-2xl shadow p-4 sm:px-6 sm:py-5">
+                        <div className="flex items-center gap-2 sm:gap-3 mb-4">
+                            <span className="material-symbols-outlined text-blue-500 text-xl sm:text-2xl">humidity_percentage</span>
+                            <h3 className="text-base sm:text-lg font-bold text-gray-800">Grafik Kelembaban</h3>
                         </div>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <ComposedChart data={allData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                                <YAxis tick={{ fontSize: 11 }} />
-                                <Tooltip />
-                                <Legend />
-                                <Bar dataKey="humidity" name="Kelembaban (%)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                                <Line type="monotone" dataKey="hum_max" name="Max" stroke="#ef4444" strokeDasharray="5 5" dot={false} strokeWidth={2} />
-                                <Line type="monotone" dataKey="hum_min" name="Min" stroke="#22c55e" strokeDasharray="5 5" dot={false} strokeWidth={2} />
-                            </ComposedChart>
-                        </ResponsiveContainer>
+                        <div className="w-full h-[260px] sm:h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={allData}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                    <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                                    <YAxis tick={{ fontSize: 11 }} />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Bar dataKey="humidity" name="Kelembaban (%)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                    <Line type="monotone" dataKey="hum_max" name="Max" stroke="#ef4444" strokeDasharray="5 5" dot={false} strokeWidth={2} />
+                                    <Line type="monotone" dataKey="hum_min" name="Min" stroke="#22c55e" strokeDasharray="5 5" dot={false} strokeWidth={2} />
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
                 </div>
             ) : (
@@ -275,10 +311,10 @@ export default function DashboardSismora() {
             {/* Warning Tables */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
                 {/* Temperature Warning */}
-                <div className="bg-white rounded-2xl shadow px-6 py-5">
-                    <div className="flex items-center gap-3 mb-4">
-                        <span className="material-symbols-outlined text-orange-500 text-3xl">thermostat</span>
-                        <h3 className="text-lg font-bold text-gray-800">Temperature Warning</h3>
+                <div className="bg-white rounded-2xl shadow p-4 sm:px-6 sm:py-5">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-4">
+                        <span className="material-symbols-outlined text-orange-500 text-2xl sm:text-3xl">thermostat</span>
+                        <h3 className="text-base sm:text-lg font-bold text-gray-800">Temperature Warning</h3>
                         <span className={`badge badge-sm text-white ${tempWarnings.length > 0 ? "badge-warning" : "badge-success"}`}>
                             {tempWarnings.length}
                         </span>
@@ -291,7 +327,7 @@ export default function DashboardSismora() {
                         </div>
                     ) : (
                         <div className="overflow-x-auto rounded-xl border border-gray-200">
-                            <table className="table table-zebra text-sm">
+                            <table className="table table-zebra text-sm min-w-[480px]">
                                 <thead className="bg-orange-500 text-white uppercase text-xs">
                                     <tr>
                                         <th className="px-3 py-2 text-left">#</th>
@@ -326,10 +362,10 @@ export default function DashboardSismora() {
                 </div>
 
                 {/* Humidity Warning */}
-                <div className="bg-white rounded-2xl shadow px-6 py-5">
-                    <div className="flex items-center gap-3 mb-4">
-                        <span className="material-symbols-outlined text-blue-500 text-3xl">humidity_percentage</span>
-                        <h3 className="text-lg font-bold text-gray-800">Humidity Warning</h3>
+                <div className="bg-white rounded-2xl shadow p-4 sm:px-6 sm:py-5">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-4">
+                        <span className="material-symbols-outlined text-blue-500 text-2xl sm:text-3xl">humidity_percentage</span>
+                        <h3 className="text-base sm:text-lg font-bold text-gray-800">Humidity Warning</h3>
                         <span className={`badge badge-sm text-white ${humWarnings.length > 0 ? "badge-info" : "badge-success"}`}>
                             {humWarnings.length}
                         </span>
@@ -342,7 +378,7 @@ export default function DashboardSismora() {
                         </div>
                     ) : (
                         <div className="overflow-x-auto rounded-xl border border-gray-200">
-                            <table className="table table-zebra text-sm">
+                            <table className="table table-zebra text-sm min-w-[480px]">
                                 <thead className="bg-blue-500 text-white uppercase text-xs">
                                     <tr>
                                         <th className="px-3 py-2 text-left">#</th>

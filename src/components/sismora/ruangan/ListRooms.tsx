@@ -73,12 +73,12 @@ export default function ListRooms() {
                     placeholder="Cari ruangan..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="input input-bordered w-full max-w-xs"
+                    className="input input-bordered w-full sm:w-72"
                 />
             </div>
 
             <div className="overflow-x-auto rounded-2xl shadow-sm border border-gray-200 bg-white">
-                <table className="table table-zebra">
+                <table className="table table-zebra min-w-[600px]">
                     <thead className="bg-primary text-primary-content uppercase text-xs">
                         <tr>
                             <th className="px-4 py-3 text-left">#</th>

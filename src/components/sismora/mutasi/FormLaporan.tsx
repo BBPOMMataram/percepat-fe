@@ -85,12 +85,12 @@ function FormLaporanContent() {
     };
 
     return (
-        <div className="max-w-2xl mx-auto p-6">
-            <h1 className="text-2xl font-semibold mb-6">
+        <div className="max-w-2xl mx-auto p-2 sm:p-6">
+            <h1 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">
                 {isEditMode ? "Edit Laporan" : "Buat Laporan"}
             </h1>
 
-            <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 space-y-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Problem</label>
                     <textarea
@@ -151,17 +151,17 @@ function FormLaporanContent() {
                     />
                 </div>
 
-                <div className="flex gap-3 pt-2">
+                <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
                     <button
                         type="button"
-                        className="btn btn-ghost"
+                        className="btn btn-ghost w-full sm:w-auto"
                         onClick={() => router.push(`/sismora/mutasi/laporan?mutasi_id=${mutasiId}`)}
                     >
                         Batal
                     </button>
                     <button
                         type="submit"
-                        className="btn btn-primary"
+                        className="btn btn-primary w-full sm:w-auto"
                         disabled={isSubmitting}
                     >
                         {isSubmitting ? (
