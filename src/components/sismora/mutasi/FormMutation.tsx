@@ -53,7 +53,7 @@ function FormMutationContent() {
                     const d = data.data || data;
                     setRoomId(d.room_id ? String(d.room_id) : "");
                     setTanggal(d.tanggal || getTodayString());
-                    setJam(d.jam || getCurrentTimeString());
+                    setJam(d.jam ? (d.jam.length > 5 ? d.jam.slice(0, 5) : d.jam) : getCurrentTimeString());
                     setTemperature(d.temperature !== null && d.temperature !== undefined ? String(d.temperature) : "");
                     setHumidity(d.humidity !== null && d.humidity !== undefined ? String(d.humidity) : "");
                     setDeskripsi(d.deskripsi || "");
@@ -194,16 +194,47 @@ function FormMutationContent() {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Jam <span className="text-error">*</span>
-                        </label>
-                        <input
-                            type="time"
-                            value={jam}
-                            onChange={(e) => setJam(e.target.value)}
-                            className="input input-bordered w-full"
-                            required
-                        />
+                        <div className="flex items-center justify-between mb-1">
+                            <label className="block text-sm font-medium text-gray-700">
+                                Jam <span className="text-error">*</span>
+                            </label>
+                            <span className="text-xs text-gray-400">Pilihan Cepat</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="time"
+                                value={jam}
+                                onChange={(e) => setJam(e.target.value)}
+                                className="input input-bordered flex-1 min-w-0"
+                                required
+                            />
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={() => setJam("08:00")}
+                                    className={`btn btn-sm transition-all ${
+                                        jam.startsWith("08:00")
+                                            ? "btn-primary text-white shadow-sm font-semibold"
+                                            : "btn-outline border-gray-300 text-gray-700 hover:bg-primary/10 hover:border-primary"
+                                    }`}
+                                    title="Set ke jam 08:00 (Pagi)"
+                                >
+                                    08:00
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setJam("13:00")}
+                                    className={`btn btn-sm transition-all ${
+                                        jam.startsWith("13:00")
+                                            ? "btn-primary text-white shadow-sm font-semibold"
+                                            : "btn-outline border-gray-300 text-gray-700 hover:bg-primary/10 hover:border-primary"
+                                    }`}
+                                    title="Set ke jam 13:00 (Siang)"
+                                >
+                                    13:00
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
