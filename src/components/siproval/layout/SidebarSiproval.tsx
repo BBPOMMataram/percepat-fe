@@ -19,17 +19,11 @@ const menus = {
       active: "/siproval/katim",
     },
     {
-      name: "Google Sheet",
-      icon: "solar:document-text-bold",
-      url: "/siproval/google-sheets",
-      active: "/siproval/google-sheets",
+      name: "Entry Data RHPK",
+      icon: "solar:pen-new-square-bold",
+      url: "/siproval/katim/entry-data-rhpk",
+      active: "/siproval/katim/entry-data-rhpk",
     },
-    // {
-    //   name: "Edit Rekap RHPK",
-    //   icon: "solar:pen-new-square-bold",
-    //   url: "/siproval/katim/rhpk",
-    //   active: "/siproval/katim/rhpk",
-    // },
     {
       name: "Arahan Pimpinan",
       icon: "solar:chat-round-line-bold",
@@ -46,22 +40,22 @@ const menus = {
 
   kabalai: [
     {
-      name: "Monitoring & Evaluasi",
-      icon: "solar:chart-square-bold",
-      url: "/siproval/monev",
-      active: "/siproval/monev",
-    },
-    {
-      name: "Catatan Monev",
-      icon: "solar:clipboard-text-bold",
+      name: "Dashboard",
+      icon: "solar:widget-5-bold",
       url: "/siproval/catatan",
       active: "/siproval/catatan",
     },
     {
-      name: "RHPK",
+      name: "Monitoring & Evaluasi",
       icon: "solar:chart-2-bold",
       url: "/siproval/rhpk/2026",
       active: "/siproval/rhpk",
+    },
+    {
+      name: "Tambah Arahan Pimpinan",
+      icon: "solar:chat-square-call-bold",
+      url: "/siproval/monev",
+      active: "/siproval/monev",
     },
   ],
   tu: [
@@ -104,10 +98,10 @@ const menus = {
   ],
   superadmin: [
     {
-      name: "Sinkronisasi Spreadsheet",
-      icon: "solar:cloud-upload-bold",
-      url: "/siproval/admin/sinkronisasi-spreadsheet",
-      active: "/siproval/admin/sinkronisasi-spreadsheet",
+      name: "Kelola Akses RHPK",
+      icon: "solar:document-medicine-bold",
+      url: "/siproval/admin/kelola-akses-rhpk",
+      active: "/siproval/admin/kelola-akses-rhpk",
     },
     {
       name: "Otorisasi & Kunci Bulan",

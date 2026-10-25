@@ -205,7 +205,7 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       setModalErrorMsg(
-        e.response?.data?.message || "Gagal menyimpan arahan ke Google Sheet."
+        e.response?.data?.message || "Gagal menyimpan arahan ke database lokal."
       );
     } finally {
       setSavingArahan(false);
@@ -218,7 +218,7 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2 text-sm text-slate-500">
           <Link href="/siproval/monev" className="transition hover:text-[#005baa]">
-            Monev
+            Tambah Arahan Pimpinan
           </Link>
           <span>/</span>
           <Link
@@ -249,7 +249,7 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
                 Rekapitulasi Monitoring RHPK {year}
               </span>
               <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                Live Google Sheet
+                Data Lokal Mandiri
               </span>
             </div>
             <h1 className="mt-1 text-xl font-bold text-slate-900">{tabTitle}</h1>

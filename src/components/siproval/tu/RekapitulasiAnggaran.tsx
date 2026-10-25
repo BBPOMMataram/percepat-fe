@@ -87,8 +87,10 @@ export default function RekapitulasiAnggaran() {
   const initialTabId = searchParams.get("tab") || "";
 
   // Filter States
+  const hasYearParam = Boolean(searchParams.get("year"));
+  const [showYearList, setShowYearList] = useState<boolean>(!hasYearParam);
   const [selectedYear, setSelectedYear] = useState<string>(initialYear);
-  const [availableYears, setAvailableYears] = useState<string[]>(["2026", "2025"]);
+  const [availableYears, setAvailableYears] = useState<string[]>(["2026"]);
   const [tabs, setTabs] = useState<MonthTab[]>([]);
   const [selectedTabId, setSelectedTabId] = useState<string>(initialTabId);
 

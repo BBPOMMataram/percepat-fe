@@ -94,68 +94,51 @@ export default function SyncPermission() {
       {/* Title */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">
-          Otorisasi & Kunci Bulan Google Sheet
+          Otorisasi & Kunci Bulan
         </h1>
         <p className="mt-1 text-xs text-slate-500">
-          Pengaturan pembukaan dan penguncian periode bulan pengisian data Google Sheet untuk Ketua Tim.
+          Pengaturan pembukaan dan penguncian periode bulan pengisian data untuk Ketua Tim.
         </p>
       </div>
 
       {/* Alerts */}
       {successMsg && (
         <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800">
-          <div className="flex items-center gap-2">
-            <Icon icon="solar:check-circle-bold" width={18} className="text-emerald-600" />
-            <span>{successMsg}</span>
-          </div>
-          <button onClick={() => setSuccessMsg("")} className="text-emerald-700">
-            <Icon icon="solar:close-circle-linear" width={16} />
+          <span>{successMsg}</span>
+          <button onClick={() => setSuccessMsg("")} className="text-emerald-700 hover:text-emerald-900">
+            &times;
           </button>
         </div>
       )}
 
       {errorMsg && (
         <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-800">
-          <div className="flex items-center gap-2">
-            <Icon icon="solar:danger-triangle-bold" width={18} className="text-red-600" />
-            <span>{errorMsg}</span>
-          </div>
-          <button onClick={() => setErrorMsg("")} className="text-red-700">
-            <Icon icon="solar:close-circle-linear" width={16} />
+          <span>{errorMsg}</span>
+          <button onClick={() => setErrorMsg("")} className="text-red-700 hover:text-red-900">
+            &times;
           </button>
         </div>
       )}
 
-      {/* Tab Header */}
-      <div className="flex border-b border-slate-200 gap-6">
-        <div className="flex items-center gap-2 pb-3 text-xs font-bold border-b-2 -mb-px border-[#005baa] text-[#005baa]">
-          <Icon icon="solar:calendar-date-bold" width={18} />
-          <span>Kunci Bulan Pengisian (Month Lock)</span>
-          {universalUnlocked && (
-            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] text-emerald-800 font-bold">
-              Universal Buka
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* KUNCI BULAN PENGISIAN (MONTH LOCK) */}
+      {/* Konten Otorisasi Kunci Bulan */}
       <div className="space-y-6">
         {/* Universal Unlock Card */}
-        <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-blue-50/50 via-white to-sky-50/30 p-6 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-5 sm:p-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="max-w-xl">
-              <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#005baa] text-white">
-                  <Icon icon="solar:global-bold" width={18} />
-                </span>
+              <div className="flex items-center gap-2.5">
                 <h2 className="text-sm font-bold text-slate-900">
                   Otorisasi Universal Bulan Lampau
                 </h2>
+                {universalUnlocked && (
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] text-emerald-800 font-bold">
+                    Status: Buka Universal
+                  </span>
+                )}
               </div>
               <p className="mt-1.5 text-xs text-slate-600 leading-relaxed">
                 Secara default sistem, seluruh baris data pada bulan sebelum bulan berjalan terkunci (read-only). 
-                Aktifkan fitur ini jika Anda ingin <strong>membuka seluruh bulan lampau sekaligus</strong> untuk semua Ketua Tim dan semua Google Spreadsheet.
+                Gunakan tombol di samping untuk <strong>membuka seluruh bulan lampau sekaligus</strong> untuk semua Ketua Tim.
               </p>
             </div>
 
@@ -164,23 +147,12 @@ export default function SyncPermission() {
                 type="button"
                 disabled={togglingMonth === 0}
                 onClick={() => handleToggleMonthLock(0, universalUnlocked)}
-                className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold transition shadow-sm ${
+                className={`inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-xs font-bold transition shadow-xs ${
                   universalUnlocked
                     ? "border border-red-300 bg-red-50 text-red-700 hover:bg-red-100"
                     : "bg-[#005baa] text-white hover:bg-[#004b8d]"
                 } disabled:opacity-50`}
               >
-                <Icon
-                  icon={
-                    togglingMonth === 0
-                      ? "solar:refresh-circle-linear"
-                      : universalUnlocked
-                        ? "solar:lock-bold"
-                        : "solar:lock-unlocked-bold"
-                  }
-                  width={18}
-                  className={togglingMonth === 0 ? "animate-spin" : ""}
-                />
                 <span>
                   {togglingMonth === 0
                     ? "Memproses..."

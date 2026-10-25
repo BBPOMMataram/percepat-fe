@@ -95,43 +95,8 @@ export default function SyncSpreadsheet() {
 
   const handleSyncSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedSpreadsheetId) {
-      setErrorMsg("Harap pilih spreadsheet yang ingin diperbarui.");
-      return;
-    }
-    const cleanIdOrUrl = detectedId || spreadsheetInput.trim();
-    if (!cleanIdOrUrl) {
-      setErrorMsg("Harap masukkan URL Google Spreadsheet atau Spreadsheet ID baru.");
-      return;
-    }
-
-    setSyncing(true);
-    setSuccessMsg("");
-    setErrorMsg("");
-
-    try {
-      const res = await api.post(
-        `${baseUrl}/api/superadmin/sinkronisasi-spreadsheet/update`,
-        { user_id: user?.id, id: selectedSpreadsheetId, spreadsheet: cleanIdOrUrl }
-      );
-
-      if (res.status === 200 || res.status === 201) {
-        setSuccessMsg(
-          res.data?.message || "Spreadsheet berhasil diperbarui di database SIPROVAL!"
-        );
-        fetchSpreadsheets();
-      } else {
-        setErrorMsg(res.data?.message || "Gagal memperbarui spreadsheet.");
-      }
-    } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } } };
-      setErrorMsg(
-        e.response?.data?.message ||
-          "Gagal memperbarui spreadsheet di backend SIPROVAL."
-      );
-    } finally {
-      setSyncing(false);
-    }
+    setErrorMsg("Fungsi Sinkronisasi Google Sheets API telah dinonaktifkan. Silakan gunakan menu 'Kelola Akses RHPK'.");
+    return;
   };
 
   const handleDeleteConfirm = async () => {
@@ -166,11 +131,37 @@ export default function SyncSpreadsheet() {
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">
-          Sinkronisasi Spreadsheet
+          Sinkronisasi Spreadsheet (Nonaktif)
         </h1>
         <p className="mt-1 text-xs text-slate-500">
-          Hubungkan dokumen Google Spreadsheet baru ke sistem SIPROVAL dan kelola daftar dokumen aktif.
+          Modul sinkronisasi Google Sheets API telah dinonaktifkan dan digantikan dengan sistem tabel mandiri di Kelola Akses RHPK.
         </p>
+      </div>
+
+      {/* Migration Notice */}
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white shadow-sm">
+              <Icon icon="solar:danger-triangle-bold" width={22} />
+            </span>
+            <div>
+              <h2 className="text-sm font-bold text-amber-950">
+                Fitur Sinkronisasi Google Sheets API Dinonaktifkan
+              </h2>
+              <p className="mt-0.5 text-xs text-amber-800">
+                Sistem SIPROVAL kini menggunakan modul mandiri tanpa Google API. Unggah file Excel langsung di menu <strong>Kelola Akses RHPK</strong>.
+              </p>
+            </div>
+          </div>
+          <a
+            href="/siproval/admin/kelola-akses-rhpk"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#005baa] px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-[#004b8d] shrink-0"
+          >
+            <Icon icon="solar:document-medicine-bold" width={16} />
+            Buka Kelola Akses RHPK
+          </a>
+        </div>
       </div>
 
       {/* Alerts */}

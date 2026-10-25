@@ -75,7 +75,7 @@ export default function RhpkList({ year = "2026" }: Props) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2 text-sm text-slate-500">
           <Link href="/siproval/monev" className="transition hover:text-[#005baa]">
-            Monitoring & Evaluasi
+            Tambah Arahan Pimpinan
           </Link>
           <span>/</span>
           <span className="font-semibold text-slate-800">RHPK {year}</span>
@@ -128,8 +128,8 @@ export default function RhpkList({ year = "2026" }: Props) {
               <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Sumber Data
               </p>
-              <p className="mt-2 text-base font-bold text-slate-900">Google Sheets</p>
-              <p className="mt-0.5 text-xs text-slate-500">{spreadsheetName}</p>
+              <p className="mt-2 text-base font-bold text-emerald-700">Database Lokal Mandiri</p>
+              <p className="mt-0.5 text-xs text-slate-500">Excel Lokal Tanpa API</p>
             </div>
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
               <Icon icon="solar:database-bold" width={22} />

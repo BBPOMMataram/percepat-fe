@@ -149,6 +149,40 @@ export default function LaporanEvaluasiTu() {
     return "TW2";
   };
 
+  type LampiranFoto = {
+    id: string;
+    file: File | null;
+    previewUrl: string;
+    caption: string;
+  };
+
+  const [selectedYear, setSelectedYear] = useState<number>(2026);
+  const availableYears = [2026];
+  const [lampiranFotos, setLampiranFotos] = useState<LampiranFoto[]>([]);
+  const [showLampiranConfig, setShowLampiranConfig] = useState(false);
+  const [isDraggingPhoto, setIsDraggingPhoto] = useState(false);
+
+  const handleAddPhotos = (files: FileList | null) => {
+    if (!files) return;
+    const newItems: LampiranFoto[] = Array.from(files).map((f, i) => ({
+      id: `${Date.now()}_${i}_${Math.random()}`,
+      file: f,
+      previewUrl: URL.createObjectURL(f),
+      caption: `Dokumentasi Kegiatan Evaluasi Internal Triwulan ${selectedQuarter} ${selectedYear}`,
+    }));
+    setLampiranFotos((prev) => [...prev, ...newItems]);
+  };
+
+  const handleUpdateCaption = (id: string, caption: string) => {
+    setLampiranFotos((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, caption } : item))
+    );
+  };
+
+  const handleRemovePhoto = (id: string) => {
+    setLampiranFotos((prev) => prev.filter((item) => item.id !== id));
+  };
+
   const [selectedQuarter, setSelectedQuarter] = useState<string>(
     resolveInitialQuarter()
   );
@@ -259,7 +293,7 @@ export default function LaporanEvaluasiTu() {
         ? `?quarter=${encodeURIComponent(quarterKey)}&user_id=${encodeURIComponent(String(user.id))}`
         : `?quarter=${encodeURIComponent(quarterKey)}`;
       const res = await api.get(
-        `${baseUrl}/api/tu/laporan-evaluasi/2026${query}`
+        `${baseUrl}/api/tu/laporan-evaluasi/${selectedYear}${query}`
       );
 
       if (res.data?.data) {
@@ -321,7 +355,7 @@ export default function LaporanEvaluasiTu() {
       fetchReport(selectedQuarter);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedQuarter, user?.id]);
+  }, [selectedQuarter, selectedYear, user?.id]);
 
   const handleSelectQuarter = (qKey: string) => {
     setSelectedQuarter(qKey);
@@ -576,7 +610,7 @@ export default function LaporanEvaluasiTu() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Berita_Acara_Evaluasi_Internal_${selectedQuarter}_2026.doc`;
+    a.download = `Berita_Acara_Evaluasi_Internal_${selectedQuarter}_${selectedYear}.doc`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -591,7 +625,7 @@ export default function LaporanEvaluasiTu() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Laporan_Evaluasi_Internal_TU_${selectedQuarter}_2026.xls`;
+    a.download = `Laporan_Evaluasi_Internal_TU_${selectedQuarter}_${selectedYear}.xls`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1183,7 +1217,7 @@ export default function LaporanEvaluasiTu() {
       });
     }
 
-    doc.save(`Berita_Acara_Evaluasi_Internal_${selectedQuarter}_2026.pdf`);
+    doc.save(`Berita_Acara_Evaluasi_Internal_${selectedQuarter}_${selectedYear}.pdf`);
   };
 
   const handlePrintPdf = () => {
@@ -1248,6 +1282,15 @@ export default function LaporanEvaluasiTu() {
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
+              onClick={() => setShowLampiranConfig((prev) => !prev)}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              <Icon icon="solar:gallery-bold" width={16} className="text-[#005baa]" />
+              <span>{showLampiranConfig ? "Tutup Lampiran Foto" : `Tambah Lampiran Foto (${lampiranFotos.length})`}</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setShowConfig((prev) => !prev)}
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
             >
@@ -1307,7 +1350,22 @@ export default function LaporanEvaluasiTu() {
 
         {/* Quarter Selector & Source Badges */}
         <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center gap-1.5 mr-2">
+              <span className="text-xs font-bold text-slate-700">Tahun:</span>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 shadow-2xs focus:border-[#005baa] focus:outline-none"
+              >
+                {availableYears.map((y) => (
+                  <option key={y} value={y}>
+                    Tahun {y}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <span className="mr-1 text-xs font-bold text-slate-700">
               Pilih Periode Triwulan:
             </span>
@@ -1474,6 +1532,119 @@ export default function LaporanEvaluasiTu() {
                 className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-slate-800"
               />
             </div>
+          </div>
+        )}
+
+        {/* Lampiran Foto Uploader & Manager */}
+        {showLampiranConfig && (
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4 print:hidden">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900">
+                Unggah Lampiran Dokumentasi Kegiatan (Foto / Gambar)
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Foto akan otomatis diselaraskan dengan proporsi 4:3 rapi dan dicetak di halaman lampiran Berita Acara.
+              </p>
+            </div>
+
+            {/* Dropzone Area Sesuai Format Referensi */}
+            <div
+              onClick={() => document.getElementById("tu-photo-input")?.click()}
+              onDragEnter={(e) => { e.preventDefault(); setIsDraggingPhoto(true); }}
+              onDragLeave={(e) => { e.preventDefault(); setIsDraggingPhoto(false); }}
+              onDragOver={(e) => { e.preventDefault(); setIsDraggingPhoto(true); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDraggingPhoto(false);
+                if (e.dataTransfer.files) {
+                  handleAddPhotos(e.dataTransfer.files);
+                }
+              }}
+              className={`rounded-2xl border-2 border-dashed p-6 text-center cursor-pointer transition ${
+                isDraggingPhoto ? "border-[#005baa] bg-blue-50/50" : "border-slate-200 hover:border-[#005baa]/60 hover:bg-slate-50/50"
+              }`}
+            >
+              <input
+                id="tu-photo-input"
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={(e) => {
+                  if (e.target.files) handleAddPhotos(e.target.files);
+                }}
+                className="hidden"
+              />
+
+              {/* Badges */}
+              <div className="flex items-center justify-center gap-3 mb-2.5">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#005baa] shadow-2xs">
+                  <Icon icon="solar:gallery-bold" width={22} />
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shadow-2xs">
+                  <Icon icon="solar:camera-bold" width={22} />
+                </div>
+              </div>
+
+              <p className="text-sm font-bold text-slate-800">
+                Pilih atau seret file foto ke area ini
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                Format didukung: <strong>JPG, JPEG, PNG, WEBP</strong> (Maksimal 10 MB per gambar)
+              </p>
+            </div>
+
+            {/* List Foto Terunggah */}
+            {lampiranFotos.length > 0 && (
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                  <span>Daftar Foto Terlampir ({lampiranFotos.length} foto):</span>
+                  <button
+                    type="button"
+                    onClick={() => setLampiranFotos([])}
+                    className="text-red-500 hover:underline font-semibold"
+                  >
+                    Hapus Semua
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                  {lampiranFotos.map((foto, idx) => (
+                    <div
+                      key={foto.id}
+                      className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 space-y-2 relative group"
+                    >
+                      <div className="aspect-[4/3] w-full overflow-hidden rounded-lg bg-slate-200">
+                        <img
+                          src={foto.previewUrl}
+                          alt={foto.caption}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-slate-600 block">
+                          Keterangan Foto {idx + 1}:
+                        </label>
+                        <input
+                          type="text"
+                          value={foto.caption}
+                          onChange={(e) => handleUpdateCaption(foto.id, e.target.value)}
+                          placeholder="Masukkan judul / keterangan foto"
+                          className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-800 focus:border-[#005baa] focus:outline-none"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePhoto(foto.id)}
+                        className="absolute top-4 right-4 rounded-full bg-red-600 p-1 text-white opacity-80 hover:opacity-100 shadow-md transition"
+                        title="Hapus foto ini"
+                      >
+                        <Icon icon="solar:trash-bin-trash-bold" width={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -2202,6 +2373,41 @@ export default function LaporanEvaluasiTu() {
                 </div>
               </div>
             </div>
+
+            {/* Bagian 3: Lampiran Foto Dokumentasi Kegiatan (Jika ada) */}
+            {lampiranFotos.length > 0 && (
+              <div className="mt-12 pt-8 border-t-2 border-slate-300 print:break-before-page">
+                <div className="mb-6 text-center">
+                  <h3 className="text-sm sm:text-base font-bold uppercase tracking-wider text-black">
+                    LAMPIRAN DOKUMENTASI KEGIATAN EVALUASI INTERNAL
+                  </h3>
+                  <p className="text-xs text-slate-600 mt-1">
+                    Triwulan {selectedQuarter} Tahun Anggaran {selectedYear} &bull; Balai Besar Pengawas Obat dan Makanan di Mataram
+                  </p>
+                </div>
+
+                {/* Eye-Comforting Aligned Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-2">
+                  {lampiranFotos.map((foto, fIdx) => (
+                    <div
+                      key={foto.id}
+                      className="flex flex-col items-center rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xs break-inside-avoid"
+                    >
+                      <div className="w-full aspect-[4/3] overflow-hidden rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center">
+                        <img
+                          src={foto.previewUrl}
+                          alt={foto.caption}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <p className="mt-3 text-center text-xs font-semibold text-slate-800 italic leading-snug">
+                        Foto {fIdx + 1}: {foto.caption}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -72,6 +72,26 @@ export default function MatriksRekomendasiTu() {
     ? (paramQuarter as string)
     : "TW2";
 
+  const paramYear = Number(searchParams.get("year")) || 2026;
+  const hasYearParam = Boolean(searchParams.get("year"));
+  const [showYearList, setShowYearList] = useState<boolean>(!hasYearParam);
+  const [selectedYear, setSelectedYear] = useState<number>(paramYear);
+  const [availableYears, setAvailableYears] = useState<{ id: number; year: number; name?: string; file_name?: string }[]>([]);
+  const [loadingYears, setLoadingYears] = useState<boolean>(true);
+
+  // Modal Tambah Tahun
+  const [isYearModalOpen, setIsYearModalOpen] = useState(false);
+  const [newYearNumber, setNewYearNumber] = useState(new Date().getFullYear() + 1);
+  const [newYearName, setNewYearName] = useState("");
+  const [savingYear, setSavingYear] = useState(false);
+
+  // Modal Upload Excel Matriks
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadQuarter, setUploadQuarter] = useState<string>(initialQuarter);
+  const [uploadingExcel, setUploadingExcel] = useState(false);
+  const [isDraggingExcel, setIsDraggingExcel] = useState(false);
+
   const [selectedQuarter, setSelectedQuarter] = useState<string>(initialQuarter);
   const [items, setItems] = useState<MatriksRekomendasiItem[]>([]);
   const [tuRisks, setTuRisks] = useState<TuRisk[]>([]);
@@ -111,6 +131,87 @@ export default function MatriksRekomendasiTu() {
   const [newRiskPeristiwa, setNewRiskPeristiwa] = useState<string>("");
   const [savingRisk, setSavingRisk] = useState<boolean>(false);
 
+  const fetchYears = async () => {
+    try {
+      setLoadingYears(true);
+      const query = user?.id ? `?user_id=${encodeURIComponent(String(user.id))}` : "";
+      const res = await api.get(`${baseUrl}/api/tu/matriks-rekomendasi-years${query}`);
+      if (res.data?.data && Array.isArray(res.data.data)) {
+        setAvailableYears(res.data.data);
+      }
+    } catch (e) {
+      console.warn("Gagal mengambil daftar tahun matriks:", e);
+    } finally {
+      setLoadingYears(false);
+    }
+  };
+
+  const handleCreateYear = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newYearNumber) return;
+    setSavingYear(true);
+    try {
+      const res = await api.post(`${baseUrl}/api/tu/matriks-rekomendasi-years`, {
+        year: newYearNumber,
+        name: newYearName || `Matriks Rekomendasi ${newYearNumber}`,
+      });
+      setNotification({
+        type: "success",
+        message: res.data?.message || `Tahun ${newYearNumber} berhasil ditambahkan.`,
+      });
+      setIsYearModalOpen(false);
+      setNewYearName("");
+      await fetchYears();
+    } catch (err: any) {
+      setNotification({
+        type: "error",
+        message: err.response?.data?.message || "Gagal menambahkan tahun baru.",
+      });
+    } finally {
+      setSavingYear(false);
+    }
+  };
+
+  const handleUploadExcelSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadFile) {
+      alert("Silakan pilih file Excel terlebih dahulu.");
+      return;
+    }
+    setUploadingExcel(true);
+    const fd = new FormData();
+    fd.append("file", uploadFile);
+    fd.append("year", String(selectedYear));
+    fd.append("quarter", uploadQuarter);
+
+    try {
+      const res = await api.post(`${baseUrl}/api/tu/matriks-rekomendasi-upload`, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setNotification({
+        type: "success",
+        message: res.data?.message || "File Excel berhasil diunggah dan diimpor.",
+      });
+      setIsUploadModalOpen(false);
+      setUploadFile(null);
+      await fetchMatriks(selectedQuarter);
+      await fetchYears();
+    } catch (err: any) {
+      setNotification({
+        type: "error",
+        message: err.response?.data?.message || "Gagal mengunggah file Excel matriks.",
+      });
+    } finally {
+      setUploadingExcel(false);
+    }
+  };
+
+  const handleOpenYearMatriks = (yr: number) => {
+    setSelectedYear(yr);
+    setShowYearList(false);
+    router.replace(`/siproval/tu/matriks-rekomendasi?year=${yr}&quarter=${selectedQuarter}`, { scroll: false });
+  };
+
   const fetchMatriks = async (quarter: string) => {
     setLoading(true);
     setError("");
@@ -118,7 +219,7 @@ export default function MatriksRekomendasiTu() {
       const query = user?.id
         ? `?quarter=${encodeURIComponent(quarter)}&user_id=${encodeURIComponent(String(user.id))}`
         : `?quarter=${encodeURIComponent(quarter)}`;
-      const res = await api.get(`${baseUrl}/api/tu/matriks-rekomendasi/2026${query}`);
+      const res = await api.get(`${baseUrl}/api/tu/matriks-rekomendasi/${selectedYear}${query}`);
 
       if (res.data?.data) {
         setItems(res.data.data.records || []);
@@ -155,6 +256,10 @@ export default function MatriksRekomendasiTu() {
       }
     }
   };
+
+  useEffect(() => {
+    fetchYears();
+  }, [user?.id]);
 
   useEffect(() => {
     if (user?.id) {
@@ -435,6 +540,371 @@ export default function MatriksRekomendasiTu() {
     });
   }, [items, searchQuery, filterRisiko]);
 
+  if (showYearList) {
+    return (
+      <div className="space-y-6">
+        {/* Header Landing Hub */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowYearList(true);
+                  router.replace('/siproval/tu/matriks-rekomendasi', { scroll: false });
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition"
+              >
+                <Icon icon="solar:arrow-left-linear" width={14} />
+                <span>Daftar Tahun</span>
+              </button>
+              <span>/</span>
+              <span className="text-slate-800">Tahun {selectedYear}</span>
+            </div>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+              Matriks Rekomendasi & RTL
+            </h1>
+            <p className="mt-1 text-xs sm:text-sm text-slate-500">
+              Kelola daftar kendala, rekomendasi, dan tindak lanjut per triwulan berdasarkan tahun anggaran.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setIsYearModalOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition"
+            >
+              <Icon icon="solar:calendar-add-bold" width={16} className="text-[#005baa]" />
+              Buat Tahun Baru
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsUploadModalOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-[#005baa] px-4 py-2 text-xs font-bold text-white shadow-2xs hover:bg-[#004887] transition"
+            >
+              <Icon icon="solar:upload-track-2-bold" width={16} />
+              Unggah File Excel Matriks
+            </button>
+          </div>
+        </div>
+
+        {/* 3 KPI Summary Cards */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs">
+            <span className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+              Total Tahun Terdaftar
+            </span>
+            <span className="mt-2 block text-2xl font-black text-slate-900">
+              {loadingYears ? "..." : `${availableYears.length} Tahun`}
+            </span>
+            <span className="text-xs text-slate-500 mt-1 block">
+              Tahun anggaran aktif dalam sistem
+            </span>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs">
+            <span className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+              Periode Evaluasi
+            </span>
+            <span className="mt-2 block text-2xl font-black text-[#005baa]">
+              4 Triwulan
+            </span>
+            <span className="text-xs text-slate-500 mt-1 block">
+              TW I (Maret), TW II (Juni), TW III (Sept), TW IV (Des)
+            </span>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs">
+            <span className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+              Sumber Data Mandiri
+            </span>
+            <span className="mt-2 block text-2xl font-black text-emerald-700">
+              Upload Excel (.xlsx)
+            </span>
+            <span className="text-xs text-slate-500 mt-1 block">
+              Bebas kendala API Google Sheets
+            </span>
+          </div>
+        </div>
+
+        {/* Grid Kartu Tahun */}
+        <div>
+          <div className="mb-3.5">
+            <h2 className="text-base font-bold text-slate-900">
+              Daftar Tahun Matriks Rekomendasi
+            </h2>
+            <p className="text-xs text-slate-500">
+              Pilih tahun anggaran yang ingin Anda kelola kendala dan tindak lanjutnya.
+            </p>
+          </div>
+
+          {loadingYears ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-xs text-slate-500">
+              Memuat daftar tahun matriks rekomendasi...
+            </div>
+          ) : availableYears.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-xs text-slate-500">
+              Belum ada tahun matriks rekomendasi terdaftar. Klik &ldquo;Buat Tahun Baru&rdquo; atau unggah file Excel untuk memulai.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {availableYears.map((y) => (
+                <div
+                  key={y.year}
+                  className="group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs transition hover:border-[#005baa]/60 hover:shadow-xs"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="rounded-xl bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-bold text-[#005baa]">
+                        Tahun {y.year}
+                      </span>
+                      <span className="text-xs font-semibold text-slate-400">
+                        Tahun Anggaran
+                      </span>
+                    </div>
+
+                    <h3 className="text-base font-bold text-slate-900 group-hover:text-[#005baa] transition">
+                      {y.name || `Matriks Rekomendasi ${y.year}`}
+                    </h3>
+                    <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                      Kendala, rekomendasi, RTL, dan pemetaan risiko per triwulan tahun {y.year}.
+                    </p>
+                    {y.file_name && (
+                      <p className="mt-2 text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100 truncate">
+                        File: {y.file_name}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#005baa] group-hover:underline">
+                      Buka Rincian Matriks &rarr;
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenYearMatriks(y.year)}
+                      className="inline-flex items-center justify-center rounded-xl bg-[#005baa] px-4 py-2 text-xs font-bold text-white shadow-2xs hover:bg-[#004887] transition"
+                    >
+                      Buka Matriks
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Modal Buat Tahun Baru */}
+        {isYearModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+              <h3 className="text-base font-bold text-slate-900">
+                Buat Tahun Baru Matriks Rekomendasi
+              </h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Daftarkan tahun baru untuk pengelolaan kendala & rekomendasi.
+              </p>
+
+              <form onSubmit={handleCreateYear} className="mt-4 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Tahun Anggaran *
+                  </label>
+                  <input
+                    type="number"
+                    min="2020"
+                    max="2050"
+                    value={newYearNumber}
+                    onChange={(e) => setNewYearNumber(parseInt(e.target.value) || 2026)}
+                    required
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-800 focus:border-[#005baa] focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Nama / Deskripsi Dokumen (Opsional)
+                  </label>
+                  <input
+                    type="text"
+                    value={newYearName}
+                    onChange={(e) => setNewYearName(e.target.value)}
+                    placeholder="Contoh: Matriks Rekomendasi TU 2027"
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-[#005baa] focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsYearModalOpen(false)}
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingYear}
+                    className="rounded-xl bg-[#005baa] px-5 py-2 text-xs font-bold text-white shadow-2xs hover:bg-[#004887] disabled:opacity-50 transition"
+                  >
+                    {savingYear ? "Menyimpan..." : "Simpan Tahun"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Unggah File Excel Matriks (Format Gambar Referensi) */}
+        {isUploadModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl">
+              <div className="border-b border-slate-100 pb-3 mb-4">
+                <h3 className="text-base font-bold text-slate-900">
+                  Unggah Dokumen Matriks Rekomendasi (Excel / CSV)
+                </h3>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Mendukung file Excel (.xlsx, .xls) atau CSV. Sistem otomatis membaca indikator sasaran, kendala, rekomendasi, dan tindak lanjut.
+                </p>
+              </div>
+
+              <form onSubmit={handleUploadExcelSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Pilih Tahun Anggaran
+                    </label>
+                    <select
+                      value={selectedYear}
+                      onChange={(e) => setSelectedYear(Number(e.target.value))}
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-800 focus:border-[#005baa] focus:outline-none"
+                    >
+                      {availableYears.map((y) => (
+                        <option key={y.year} value={y.year}>
+                          Tahun {y.year}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Target Triwulan
+                    </label>
+                    <select
+                      value={uploadQuarter}
+                      onChange={(e) => setUploadQuarter(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-800 focus:border-[#005baa] focus:outline-none"
+                    >
+                      {QUARTERS.map((q) => (
+                        <option key={q.key} value={q.key}>
+                          {q.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Dropzone Sesuai Format Referensi Gambar */}
+                <div
+                  onClick={() => document.getElementById("matriks-excel-upload-file")?.click()}
+                  onDragEnter={(e) => { e.preventDefault(); setIsDraggingExcel(true); }}
+                  onDragLeave={(e) => { e.preventDefault(); setIsDraggingExcel(false); }}
+                  onDragOver={(e) => { e.preventDefault(); setIsDraggingExcel(true); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDraggingExcel(false);
+                    if (e.dataTransfer.files?.[0]) setUploadFile(e.dataTransfer.files[0]);
+                  }}
+                  className={`cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center transition ${
+                    isDraggingExcel ? "border-[#005baa] bg-blue-50/50" : "border-slate-200 hover:border-[#005baa]/60 hover:bg-slate-50/50"
+                  }`}
+                >
+                  <input
+                    id="matriks-excel-upload-file"
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) setUploadFile(e.target.files[0]);
+                    }}
+                    className="hidden"
+                  />
+
+                  {/* 3 Glyph Badges */}
+                  <div className="flex items-center justify-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shadow-2xs">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                        <polyline strokeLinecap="round" strokeLinejoin="round" points="14 2 14 8 20 8"></polyline>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 13l3 3m0-3l-3 3m5-3h4m-4 3h4"></path>
+                      </svg>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shadow-2xs">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                        <polyline strokeLinecap="round" strokeLinejoin="round" points="14 2 14 8 20 8"></polyline>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 15h6M9 11h6"></path>
+                      </svg>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#005baa] shadow-2xs">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <p className="text-sm font-bold text-slate-800">
+                    Pilih atau seret file ke area ini
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Format didukung: <strong>.xlsx, .xls, .csv</strong> (Maksimal 25 MB)
+                  </p>
+                </div>
+
+                {uploadFile && (
+                  <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs">
+                    <span className="font-bold text-slate-800 truncate">
+                      {uploadFile.name} ({(uploadFile.size / 1024).toFixed(1)} KB)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setUploadFile(null)}
+                      className="text-red-500 font-bold hover:underline"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                  <p className="text-xs text-slate-500">
+                    File akan langsung diekstrak ke Matriks {uploadQuarter} {selectedYear}.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsUploadModalOpen(false)}
+                      className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={uploadingExcel || !uploadFile}
+                      className="rounded-xl bg-[#005baa] px-5 py-2 text-xs font-bold text-white shadow-2xs hover:bg-[#004887] disabled:opacity-50 transition"
+                    >
+                      {uploadingExcel ? "Mengimpor Data..." : "Proses & Simpan Data"}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
   return (
     <div className="space-y-6">
       {/* Top Header & Breadcrumb */}
@@ -462,17 +932,11 @@ export default function MatriksRekomendasiTu() {
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
-              onClick={handleSyncSheet}
-              disabled={syncing || loading}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 disabled:opacity-50"
-              title="Tarik dan sinkronkan data terkini langsung dari Google Spreadsheet TU"
+              onClick={() => setIsUploadModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:bg-slate-50"
             >
-              <Icon
-                icon={syncing ? "solar:refresh-circle-bold" : "solar:cloud-download-bold"}
-                className={syncing ? "animate-spin text-[#005baa]" : "text-[#005baa]"}
-                width={16}
-              />
-              {syncing ? "Menyinkronkan..." : "Tarik dari Google Sheet"}
+              <Icon icon="solar:upload-track-2-bold" width={16} className="text-emerald-600" />
+              Unggah File Excel (.xlsx)
             </button>
 
             <button
@@ -493,15 +957,7 @@ export default function MatriksRekomendasiTu() {
               Lihat di Eksport Laporan
             </Link>
 
-            <a
-              href="https://docs.google.com/spreadsheets/d/1HvkyPs44pIwghzI4g0RonXGTcuoz_8cS3UbHbiEN5JI/edit?usp=sharing"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100"
-            >
-              <Icon icon="solar:file-smile-bold" width={16} />
-              Buka Google Sheet
-            </a>
+
           </div>
         </div>
 
@@ -1108,6 +1564,153 @@ export default function MatriksRekomendasiTu() {
                   )}
                   {saving ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Unggah File Excel Matriks (Table View) */}
+      {isUploadModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl">
+            <div className="border-b border-slate-100 pb-3 mb-4">
+              <h3 className="text-base font-bold text-slate-900">
+                Unggah Dokumen Matriks Rekomendasi (Excel / CSV)
+              </h3>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Mendukung file Excel (.xlsx, .xls) atau CSV. Sistem otomatis membaca indikator sasaran, kendala, rekomendasi, dan tindak lanjut.
+              </p>
+            </div>
+
+            <form onSubmit={handleUploadExcelSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Pilih Tahun Anggaran
+                  </label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(Number(e.target.value))}
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-800 focus:border-[#005baa] focus:outline-none"
+                  >
+                    {availableYears.map((y) => (
+                      <option key={y.year} value={y.year}>
+                        Tahun {y.year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Target Triwulan
+                  </label>
+                  <select
+                    value={uploadQuarter}
+                    onChange={(e) => setUploadQuarter(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-800 focus:border-[#005baa] focus:outline-none"
+                  >
+                    {QUARTERS.map((q) => (
+                      <option key={q.key} value={q.key}>
+                        {q.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Dropzone Sesuai Format Referensi Gambar */}
+              <div
+                onClick={() => document.getElementById("matriks-excel-upload-file-table")?.click()}
+                onDragEnter={(e) => { e.preventDefault(); setIsDraggingExcel(true); }}
+                onDragLeave={(e) => { e.preventDefault(); setIsDraggingExcel(false); }}
+                onDragOver={(e) => { e.preventDefault(); setIsDraggingExcel(true); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDraggingExcel(false);
+                  if (e.dataTransfer.files?.[0]) setUploadFile(e.dataTransfer.files[0]);
+                }}
+                className={`cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center transition ${
+                  isDraggingExcel ? "border-[#005baa] bg-blue-50/50" : "border-slate-200 hover:border-[#005baa]/60 hover:bg-slate-50/50"
+                }`}
+              >
+                <input
+                  id="matriks-excel-upload-file-table"
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) setUploadFile(e.target.files[0]);
+                  }}
+                  className="hidden"
+                />
+
+                {/* 3 Glyph Badges */}
+                <div className="flex items-center justify-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shadow-2xs">
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                      <polyline strokeLinecap="round" strokeLinejoin="round" points="14 2 14 8 20 8"></polyline>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 13l3 3m0-3l-3 3m5-3h4m-4 3h4"></path>
+                    </svg>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shadow-2xs">
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                      <polyline strokeLinecap="round" strokeLinejoin="round" points="14 2 14 8 20 8"></polyline>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 15h6M9 11h6"></path>
+                    </svg>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#005baa] shadow-2xs">
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                  </div>
+                </div>
+
+                <p className="text-sm font-bold text-slate-800">
+                  Pilih atau seret file ke area ini
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Format didukung: <strong>.xlsx, .xls, .csv</strong> (Maksimal 25 MB)
+                </p>
+              </div>
+
+              {uploadFile && (
+                <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs">
+                  <span className="font-bold text-slate-800 truncate">
+                    {uploadFile.name} ({(uploadFile.size / 1024).toFixed(1)} KB)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setUploadFile(null)}
+                    className="text-red-500 font-bold hover:underline"
+                  >
+                    Hapus
+                  </button>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                <p className="text-xs text-slate-500">
+                  File akan langsung diekstrak ke Matriks {uploadQuarter} {selectedYear}.
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsUploadModalOpen(false)}
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={uploadingExcel || !uploadFile}
+                    className="rounded-xl bg-[#005baa] px-5 py-2 text-xs font-bold text-white shadow-2xs hover:bg-[#004887] disabled:opacity-50 transition"
+                  >
+                    {uploadingExcel ? "Mengimpor Data..." : "Proses & Simpan Data"}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

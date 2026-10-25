@@ -126,10 +126,7 @@ export default function BudgetMapping() {
       return;
     }
 
-    if (!spreadsheetUrlInput.trim()) {
-      setModalError("Silakan masukkan Link atau ID Google Sheet baru yang sudah dibagikan ke service account.");
-      return;
-    }
+    // Tidak memerlukan URL Google Sheets lagi (mandiri lokal)
 
     setCreateLoading(true);
     setModalError("");
@@ -141,12 +138,14 @@ export default function BudgetMapping() {
         year: newYearInput,
         name: newNameInput.trim() || `Mapping Anggaran ${newYearInput}`,
         source_year: sourceYearInput,
-        spreadsheet_url: spreadsheetUrlInput.trim(),
       };
+      if (spreadsheetUrlInput.trim()) {
+        payload.spreadsheet_url = spreadsheetUrlInput.trim();
+      }
 
       await api.post(`${baseUrl}/api/budget-mapping/years`, payload);
 
-      setModalSuccess(`Tahun anggaran ${newYearInput} beserta dokumen spreadsheet baru berhasil dibuat dengan data pagu kosong!`);
+      setModalSuccess(`Tahun anggaran ${newYearInput} berhasil dibuat dengan data pagu kosong!`);
       await fetchYears();
 
       setTimeout(() => {
@@ -179,13 +178,8 @@ export default function BudgetMapping() {
     setSubmitError("");
     setSubmitSuccess(null);
 
-    if (uploadMode === "link" && !spreadsheetUrl.trim()) {
-      setSubmitError("Silakan masukkan URL atau ID Google Spreadsheet.");
-      return;
-    }
-
-    if (uploadMode === "file" && !selectedFile && !spreadsheetUrl.trim()) {
-      setSubmitError("Silakan pilih file spreadsheet atau masukkan URL spreadsheet.");
+    if (!selectedFile && !spreadsheetUrl.trim()) {
+      setSubmitError("Silakan pilih file spreadsheet (.xlsx / .xls).");
       return;
     }
 
@@ -281,7 +275,7 @@ export default function BudgetMapping() {
               <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Sumber Data
               </p>
-              <p className="mt-2 text-base font-bold text-slate-900">Google Sheets</p>
+              <p className="mt-2 text-base font-bold text-slate-900">Database Lokal Mandiri</p>
               <p className="mt-1 text-xs text-slate-500 truncate max-w-44" title={spreadsheetName}>
                 {spreadsheetName}
               </p>
@@ -329,7 +323,7 @@ export default function BudgetMapping() {
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-[0.98]"
           >
             <Icon icon="solar:cloud-upload-bold" width={20} className="text-[#005baa]" />
-            <span>Tambah File Spreadsheet</span>
+            <span>Tambah File Excel</span>
           </button>
         </div>
       </div>
@@ -506,41 +500,11 @@ export default function BudgetMapping() {
                 </div>
               )}
 
-              {/* Info Banner */}
-              <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-3.5 text-xs text-blue-900 space-y-2">
-                <div className="flex items-center gap-2 font-semibold text-[#005baa]">
-                  <Icon icon="solar:info-circle-bold" width={18} className="shrink-0" />
-                  <span>Petunjuk Pembuatan Spreadsheet Tahun Baru:</span>
-                </div>
-                <p className="text-[11.5px] leading-relaxed text-slate-600">
-                  Anda cukup membuat <strong>Google Spreadsheet Baru</strong> (bisa di dalam folder Drive mana pun yang Anda inginkan, atau buka <a href="https://sheets.new" target="_blank" rel="noopener noreferrer" className="text-[#005baa] underline font-semibold">sheets.new</a>), lalu beri akses <strong>Editor</strong> ke email akun Siproval. Sistem akan <strong>otomatis menyalin format 28 IKSK lengkap dan mengosongkan seluruh nilai pagu & realisasinya</strong>.
-                </p>
-                <div className="pt-1 flex flex-col sm:flex-row gap-2">
-                  <a
-                    href="https://sheets.new"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#005baa] px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[#004b8d] transition"
-                  >
-                    <Icon icon="solar:file-smile-bold" width={14} />
-                    1. Buat Spreadsheet Baru (sheets.new)
-                    <Icon icon="solar:arrow-right-up-linear" width={13} />
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(SERVICE_ACCOUNT_EMAIL);
-                      setCopiedEmail(true);
-                      setTimeout(() => setCopiedEmail(false), 2000);
-                    }}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#005baa] hover:bg-blue-50 transition"
-                  >
-                    <Icon icon={copiedEmail ? "solar:check-circle-bold" : "solar:clipboard-bold"} width={14} />
-                    {copiedEmail ? "Email Berhasil Disalin!" : "2. Salin Email Service Account"}
-                  </button>
-                </div>
-                <p className="text-[10.5px] text-slate-500 italic">
-                  *Catatan Folder: Jika menggunakan link salin Google Drive, Google otomatis menempatkan file di &quot;Drive Saya&quot;. Anda dapat memindahkannya (Move) ke folder tujuan di Google Drive kapan saja.
+              {/* Info Banner Lokal Mandiri */}
+              <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-3.5 text-xs text-slate-700">
+                <p className="font-bold text-[#005baa]">Pembuatan Tahun Anggaran Mandiri (Tanpa Google API)</p>
+                <p className="mt-1 text-slate-600 leading-relaxed">
+                  Tahun baru akan otomatis terdaftar di database lokal SIPROVAL. Anda dapat menyalin struktur kegiatan dari tahun sebelumnya atau mengunggah file template Excel baru (.xlsx).
                 </p>
               </div>
 
@@ -598,23 +562,6 @@ export default function BudgetMapping() {
                 </p>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Link / ID Google Sheet Baru <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={spreadsheetUrlInput}
-                  onChange={(e) => setSpreadsheetUrlInput(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-800 transition focus:border-[#005baa] focus:bg-white focus:outline-none"
-                  placeholder="https://docs.google.com/spreadsheets/d/..."
-                />
-                <p className="mt-1 text-[11px] text-slate-400">
-                  Pastikan spreadsheet telah dibagikan dengan hak akses <strong>Editor</strong> ke: <code className="rounded bg-slate-100 px-1 py-0.5 text-slate-700 select-all">{SERVICE_ACCOUNT_EMAIL}</code>
-                </p>
-              </div>
-
               <div className="mt-6 flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
@@ -647,30 +594,25 @@ export default function BudgetMapping() {
         </div>
       )}
 
-      {/* Modal Dialog 2: Tambah File Spreadsheet (Unggah File / Link Google Drive) */}
+      {/* Modal Dialog 2: Tambah File Spreadsheet */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
           <div className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-[#005baa]">
-                  <Icon icon="solar:document-add-bold" width={22} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900">
-                    Tambah Spreadsheet Budget Mapping
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Konfigurasi otomatisasi potongan Sheet ID & sinkronisasi tab
-                  </p>
-                </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Unggah Dokumen Budget Mapping (Excel / CSV)
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Mendukung file Excel (.xlsx, .xls) atau CSV. Sistem otomatis memetakan alokasi anggaran dan tab bulanan.
+                </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 text-lg font-bold"
               >
-                <Icon icon="solar:close-circle-bold" width={22} />
+                &times;
               </button>
             </div>
 
@@ -691,39 +633,6 @@ export default function BudgetMapping() {
                   </div>
                 </div>
               )}
-
-              {/* Input Mode Selector */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Metode Penambahan
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setUploadMode("link")}
-                    className={`flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-semibold border transition ${
-                      uploadMode === "link"
-                        ? "border-[#005baa] bg-blue-50 text-[#005baa]"
-                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    <Icon icon="solar:link-circle-bold" width={18} />
-                    <span>Tautan Google Drive / Sheets</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setUploadMode("file")}
-                    className={`flex items-center justify-center gap-2 rounded-xl py-2 px-3 text-xs font-semibold border transition ${
-                      uploadMode === "file"
-                        ? "border-[#005baa] bg-blue-50 text-[#005baa]"
-                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    <Icon icon="solar:file-smile-bold" width={18} />
-                    <span>Unggah File Spreadsheet</span>
-                  </button>
-                </div>
-              </div>
 
               {/* Tahun Anggaran & Nama Dokumen */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -757,119 +666,80 @@ export default function BudgetMapping() {
                 </div>
               </div>
 
-              {/* Mode 1: Tautan / ID Google Sheets */}
-              {uploadMode === "link" && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Tautan (URL) atau Potongan Sheet ID <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={spreadsheetUrl}
-                      onChange={(e) => setSpreadsheetUrl(e.target.value)}
-                      placeholder="https://docs.google.com/spreadsheets/d/12JWKA8gxzJLwZC8JWh42L-AJAE.../edit"
-                      required={uploadMode === "link"}
-                      className="w-full rounded-xl border border-slate-200 pl-9 pr-3 py-2 text-sm text-slate-800 focus:border-[#005baa] focus:outline-none"
-                    />
-                    <Icon
-                      icon="solar:link-bold"
-                      className="absolute left-3 top-2.5 text-slate-400"
-                      width={16}
-                    />
-                  </div>
-                  <p className="mt-1 text-[11px] text-slate-500">
-                    Sistem akan otomatis mengekstrak potongan Sheet ID di antara <code>/d/</code> dan <code>/edit</code> untuk disimpan ke tabel <code>google_spreadsheets</code>.
-                  </p>
-                </div>
-              )}
-
-              {/* Mode 2: Unggah File Spreadsheet */}
-              {uploadMode === "file" && (
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Pilih File (.xlsx, .xls, .csv)
-                    </label>
-                    <input
-                      type="file"
-                      accept=".xlsx,.xls,.csv"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          setSelectedFile(e.target.files[0]);
-                        }
-                      }}
-                      className="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#005baa] hover:file:bg-blue-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Tautan Google Drive / Sheet ID (Opsional jika file sudah di Google Drive)
-                    </label>
-                    <input
-                      type="text"
-                      value={spreadsheetUrl}
-                      onChange={(e) => setSpreadsheetUrl(e.target.value)}
-                      placeholder="https://docs.google.com/spreadsheets/d/..."
-                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-[#005baa] focus:outline-none"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Instruksi Share Service Account */}
-              <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-3.5">
-                <div className="flex items-start gap-2.5">
-                  <Icon icon="solar:info-circle-bold" className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                  <div className="flex-1 text-xs text-amber-900 leading-relaxed">
-                    <p className="font-semibold">Penting: Izin Akses Google Drive</p>
-                    <p className="mt-0.5 text-amber-800">
-                      Pastikan file spreadsheet di Google Drive sudah dibagikan (Share) dengan hak akses <strong>Editor</strong> atau <strong>Viewer</strong> ke email service account sistem:
-                    </p>
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <code className="rounded bg-white/80 px-2 py-1 font-mono text-[11px] font-bold text-amber-950 border border-amber-200">
-                        {serviceAccountEmail}
-                      </code>
-                      <button
-                        type="button"
-                        onClick={handleCopyEmail}
-                        className="rounded-lg bg-white px-2 py-1 text-[11px] font-semibold text-amber-800 border border-amber-300 hover:bg-amber-100 transition"
-                      >
-                        {copiedEmail ? "Disalin!" : "Salin Email"}
-                      </button>
+              {/* Upload Dropzone Sesuai Gambar Referensi */}
+              <div>
+                <div
+                  onClick={() => document.getElementById("bm-file-input")?.click()}
+                  className="rounded-2xl border-2 border-dashed border-slate-200 hover:border-[#005baa]/60 hover:bg-slate-50/50 p-6 text-center cursor-pointer transition"
+                >
+                  <input
+                    id="bm-file-input"
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setSelectedFile(e.target.files[0]);
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  
+                  {/* 3 Glyph Badges */}
+                  <div className="flex items-center justify-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shadow-2xs">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                        <polyline strokeLinecap="round" strokeLinejoin="round" points="14 2 14 8 20 8"></polyline>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 13l3 3m0-3l-3 3m5-3h4m-4 3h4"></path>
+                      </svg>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shadow-2xs">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                        <polyline strokeLinecap="round" strokeLinejoin="round" points="14 2 14 8 20 8"></polyline>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 15h6M9 11h6"></path>
+                      </svg>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#005baa] shadow-2xs">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                      </svg>
                     </div>
                   </div>
+
+                  <p className="text-sm font-bold text-slate-800">
+                    {selectedFile ? selectedFile.name : "Pilih atau seret file ke area ini"}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {selectedFile
+                      ? `Ukuran: ${(selectedFile.size / 1024).toFixed(1)} KB`
+                      : "Format didukung: .xlsx, .xls, .csv (Maksimal 25 MB)"}
+                  </p>
                 </div>
               </div>
 
-              {/* Modal Buttons */}
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  disabled={submitting}
-                  className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#005baa] px-5 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#004b8d] disabled:opacity-50"
-                >
-                  {submitting ? (
-                    <>
-                      <span className="loading loading-spinner loading-xs"></span>
-                      <span>Menyimpan & Sinkronisasi Tab...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Icon icon="solar:disk-bold" width={16} />
-                      <span>Simpan & Sinkronisasi Tab</span>
-                    </>
-                  )}
-                </button>
+              {/* Bottom Action Bar */}
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                <p className="text-xs text-slate-500">
+                  File yang diunggah akan langsung dipetakan ke tabel di bawah ini.
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    disabled={submitting}
+                    className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting || !selectedFile}
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#005baa] px-5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-[#004b8d] disabled:opacity-50"
+                  >
+                    {submitting ? "Mengunggah & Menyimpan..." : "Proses & Simpan File"}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

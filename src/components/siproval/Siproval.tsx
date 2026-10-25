@@ -192,9 +192,9 @@ export default function Siproval() {
         id: "kabalai",
         role: "Kepala Balai (Kabalai)",
         badge: "Pimpinan",
-        url: "/siproval/monev",
-        icon: "solar:chart-2-bold",
-        desc: "Evaluasi capaian & rekap RHPK",
+        url: "/siproval/catatan",
+        icon: "solar:widget-5-bold",
+        desc: "Dashboard capaian & rekap RHPK",
       });
     }
 

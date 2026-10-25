@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import RealisasiRoTable from "@/components/siproval/tu/RealisasiRoTable";
 
 export const metadata = {
@@ -6,5 +7,9 @@ export const metadata = {
 };
 
 export default function RealisasiRoPage() {
-  return <RealisasiRoTable />;
+  return (
+    <Suspense fallback={<div className="p-8 text-xs text-slate-500">Memuat data Realisasi RO...</div>}>
+      <RealisasiRoTable />
+    </Suspense>
+  );
 }

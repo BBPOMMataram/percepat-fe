@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { useSelector } from "react-redux";
@@ -64,6 +65,34 @@ type RowItem = {
 
 export default function RealisasiRoTable() {
   const { user } = useSelector((state: RootState) => state.auth);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const yearParam = searchParams.get("year");
+
+  const [activeYear, setActiveYear] = useState<number>(
+    yearParam ? Number(yearParam) : 2026
+  );
+  const [showYearList, setShowYearList] = useState<boolean>(!yearParam);
+
+  const [roYears, setRoYears] = useState<
+    { id?: number; year: number; spreadsheet_name?: string }[]
+  >([
+    { year: 2026, spreadsheet_name: "REKAP DATA RHPK 2026 Mataram (Tab Realisasi RO)" },
+  ]);
+
+  // Modal Buat Tahun Baru
+  const [showCreateYearModal, setShowCreateYearModal] = useState(false);
+  const [newYearInput, setNewYearInput] = useState<number>(2027);
+  const [newYearName, setNewYearName] = useState("");
+  const [creatingYear, setCreatingYear] = useState(false);
+
+  // Modal Upload File Excel
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadYear, setUploadYear] = useState<number>(2026);
+  const [uploadDocName, setUploadDocName] = useState("");
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState("JANUARI");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -77,18 +106,95 @@ export default function RealisasiRoTable() {
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [apiNotice, setApiNotice] = useState("");
+
+  const fetchRoYears = async () => {
+    try {
+      const query = user?.id ? `?user_id=${user.id}` : "";
+      const res = await api.get(`${baseUrl}/api/tu/realisasi-ro-years${query}`);
+      const list = res.data?.data?.years || res.data?.years || [];
+      if (Array.isArray(list) && list.length > 0) {
+        setRoYears(list);
+      }
+    } catch {
+      // fallback
+    }
+  };
+
+  useEffect(() => {
+    fetchRoYears();
+  }, [user?.id]);
+
+  const handleCreateYearSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newYearInput || newYearInput < 2020 || newYearInput > 2099) {
+      setErrorMsg("Masukkan tahun anggaran yang valid.");
+      return;
+    }
+    setCreatingYear(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+    try {
+      const query = user?.id ? `?user_id=${user.id}` : "";
+      const res = await api.post(`${baseUrl}/api/tu/realisasi-ro-years${query}`, {
+        year: newYearInput,
+        name: newYearName || `Realisasi RO ${newYearInput}`,
+      });
+      setSuccessMsg(res.data?.message || "Tahun anggaran Realisasi RO berhasil ditambahkan.");
+      setShowCreateYearModal(false);
+      await fetchRoYears();
+      setActiveYear(newYearInput);
+      setShowYearList(false);
+      router.push(`/siproval/tu/realisasi-ro?year=${newYearInput}`);
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || "Gagal menambahkan tahun anggaran baru.");
+    } finally {
+      setCreatingYear(false);
+    }
+  };
+
+  const handleUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadFile) {
+      setErrorMsg("Silakan pilih file Excel (.xlsx / .xls) terlebih dahulu.");
+      return;
+    }
+    setUploadingFile(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+    const formData = new FormData();
+    formData.append("file", uploadFile);
+    formData.append("year", String(uploadYear));
+    if (uploadDocName) formData.append("name", uploadDocName);
+    try {
+      const query = user?.id ? `?user_id=${user.id}` : "";
+      const res = await api.post(`${baseUrl}/api/tu/realisasi-ro-upload${query}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setSuccessMsg(res.data?.message || "File Excel Realisasi RO berhasil diunggah.");
+      setShowUploadModal(false);
+      setUploadFile(null);
+      await fetchRoYears();
+      setActiveYear(uploadYear);
+      setShowYearList(false);
+      router.push(`/siproval/tu/realisasi-ro?year=${uploadYear}`);
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || "Gagal mengunggah file Excel.");
+    } finally {
+      setUploadingFile(false);
+    }
+  };
   const [googleSheetUrl, setGoogleSheetUrl] = useState(
     "https://docs.google.com/spreadsheets/d/1KXN2ukZTcDUZ-9kfc3BbM-qi3VumvcHUSELK91nGqnU/edit#gid=17060817",
   );
 
-  const fetchData = async (month: string) => {
+  const fetchData = async (month: string, targetYear: number = activeYear) => {
     setLoading(true);
     setApiNotice("");
     try {
       const query = user?.id
         ? `?month=${month}&user_id=${user.id}`
         : `?month=${month}`;
-      const res = await api.get(`${baseUrl}/api/tu/realisasi-ro/2026${query}`);
+      const res = await api.get(`${baseUrl}/api/tu/realisasi-ro/${targetYear}${query}`);
 
       if (res.data && res.data.data) {
         const d = res.data.data;
@@ -113,9 +219,11 @@ export default function RealisasiRoTable() {
   };
 
   useEffect(() => {
-    fetchData(selectedMonth);
+    if (!showYearList) {
+      fetchData(selectedMonth, activeYear);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMonth, user?.id]);
+  }, [selectedMonth, activeYear, showYearList, user?.id]);
 
   // Handle cell edit
   const handleCellChange = (cellCoord: string, value: string) => {
@@ -249,6 +357,374 @@ export default function RealisasiRoTable() {
   const belumTercapaiCount = totalRO - tercapaiCount;
   const pendingCount = Object.keys(editedCells).length;
 
+  if (showYearList) {
+    return (
+      <div className="space-y-8">
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          <Link href="/siproval/tu" className="hover:text-[#005baa]">
+            Tata Usaha
+          </Link>
+          <Icon icon="solar:alt-arrow-right-linear" width={14} className="text-slate-400" />
+          <span className="font-bold text-slate-800">Realisasi RO</span>
+        </div>
+
+        {/* Alerts */}
+        {successMsg && (
+          <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800">
+            <span>{successMsg}</span>
+            <button onClick={() => setSuccessMsg("")} className="text-emerald-700 hover:text-emerald-900 font-bold">
+              &times;
+            </button>
+          </div>
+        )}
+
+        {errorMsg && (
+          <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-800">
+            <span>{errorMsg}</span>
+            <button onClick={() => setErrorMsg("")} className="text-red-700 hover:text-red-900 font-bold">
+              &times;
+            </button>
+          </div>
+        )}
+
+        {/* Overview Cards (Sama persis seperti Budget Mapping) */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Total Tahun
+                </p>
+                <p className="mt-2 text-3xl font-bold text-slate-900">
+                  {roYears.length}
+                </p>
+              </div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-[#005baa]">
+                <Icon icon="solar:calendar-bold" width={22} />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Realisasi RO
+                </p>
+                <p className="mt-2 text-base font-bold text-slate-900">Per Tahun</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Data capaian output dan target tahunan
+                </p>
+              </div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                <Icon icon="solar:chart-square-bold" width={22} />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Sumber Data
+                </p>
+                <p className="mt-2 text-base font-bold text-slate-900">Spreadsheet / Excel</p>
+                <p className="mt-1 text-xs text-slate-500 truncate max-w-44">
+                  Dokumen Realisasi RO
+                </p>
+              </div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+                <Icon icon="solar:database-bold" width={22} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Header section with Action Buttons */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">
+              Daftar Tahun Realisasi RO
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Pilih tahun yang ingin kamu kelola untuk melihat rincian capaian output dan target bulanan.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <button
+              type="button"
+              onClick={() => {
+                const nextYear = roYears.length > 0 ? Math.max(...roYears.map((y) => y.year)) + 1 : 2027;
+                setNewYearInput(nextYear);
+                setNewYearName(`Realisasi RO ${nextYear}`);
+                setShowCreateYearModal(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#005baa] px-4 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-[#004b8d]"
+            >
+              <Icon icon="solar:calendar-add-bold" width={18} />
+              <span>Buat Tahun Baru</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowUploadModal(true);
+                setUploadYear(activeYear);
+                setUploadFile(null);
+              }}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 shadow-xs transition hover:bg-slate-50"
+            >
+              <Icon icon="solar:cloud-upload-bold" width={18} className="text-[#005baa]" />
+              <span>Tambah File Excel RO</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Grid of Year Cards */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {roYears.map((item) => (
+            <div
+              key={item.year}
+              onClick={() => {
+                setActiveYear(item.year);
+                setShowYearList(false);
+                fetchData(selectedMonth, item.year);
+                router.push(`/siproval/tu/realisasi-ro?year=${item.year}`);
+              }}
+              className="group block cursor-pointer rounded-2xl border border-slate-200 bg-white p-6 shadow-xs transition duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
+            >
+              <div className="flex items-center justify-between">
+                <span className="rounded-xl bg-blue-50 px-3 py-1 text-sm font-bold text-[#005baa]">
+                  {item.year}
+                </span>
+                <span className="text-xs font-semibold uppercase text-slate-400">
+                  Tahun Anggaran
+                </span>
+              </div>
+
+              <div className="mt-4">
+                <h3 className="text-lg font-bold text-slate-900 group-hover:text-[#005baa]">
+                  Realisasi RO {item.year}
+                </h3>
+                <p className="mt-1 text-xs text-slate-500 truncate">
+                  {item.spreadsheet_name || "Pemantauan Rincian Output & Target"}
+                </p>
+              </div>
+
+              <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-xs font-semibold text-[#005baa]">
+                <span>Buka Rincian RO &rarr;</span>
+                <Icon icon="solar:arrow-right-linear" width={16} className="transition group-hover:translate-x-1" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Modal 1: Buat Tahun Baru */}
+        {showCreateYearModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                <h3 className="text-base font-bold text-slate-900">
+                  Buat Tahun Baru Realisasi RO
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateYearModal(false)}
+                  className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+                >
+                  &times;
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateYearSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Tahun Anggaran *
+                  </label>
+                  <input
+                    type="number"
+                    min={2020}
+                    max={2099}
+                    value={newYearInput}
+                    onChange={(e) => setNewYearInput(Number(e.target.value))}
+                    required
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-800 focus:border-[#005baa] focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Nama / Deskripsi Dokumen
+                  </label>
+                  <input
+                    type="text"
+                    value={newYearName}
+                    onChange={(e) => setNewYearName(e.target.value)}
+                    placeholder={`Realisasi RO ${newYearInput}`}
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-800 focus:border-[#005baa] focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateYearModal(false)}
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creatingYear}
+                    className="rounded-xl bg-[#005baa] px-5 py-2 text-xs font-bold text-white hover:bg-[#004b8d] disabled:opacity-50"
+                  >
+                    {creatingYear ? "Menyimpan..." : "Simpan Tahun"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal 2: Upload File Excel RO */}
+        {showUploadModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                <h3 className="text-base font-bold text-slate-900">
+                  Unggah File Excel Realisasi RO
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowUploadModal(false)}
+                  className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+                >
+                  &times;
+                </button>
+              </div>
+
+              <form onSubmit={handleUploadSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Tahun Anggaran *
+                    </label>
+                    <input
+                      type="number"
+                      min={2020}
+                      max={2099}
+                      value={uploadYear}
+                      onChange={(e) => setUploadYear(Number(e.target.value))}
+                      required
+                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-800 focus:border-[#005baa] focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Nama Dokumen (Opsional)
+                    </label>
+                    <input
+                      type="text"
+                      value={uploadDocName}
+                      onChange={(e) => setUploadDocName(e.target.value)}
+                      placeholder={`Realisasi RO ${uploadYear}`}
+                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-800 focus:border-[#005baa] focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Dropzone Area Sesuai Format Referensi Gambar */}
+                <div
+                  onClick={() => document.getElementById("ro-file-input")?.click()}
+                  onDragEnter={(e) => { e.preventDefault(); setIsDragging(true); }}
+                  onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                      setUploadFile(e.dataTransfer.files[0]);
+                    }
+                  }}
+                  className={`rounded-2xl border-2 border-dashed p-6 text-center cursor-pointer transition ${
+                    isDragging ? "border-[#005baa] bg-blue-50/50" : "border-slate-200 hover:border-[#005baa]/60 hover:bg-slate-50/50"
+                  }`}
+                >
+                  <input
+                    id="ro-file-input"
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setUploadFile(e.target.files[0]);
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  
+                  {/* 3 Glyph Badges */}
+                  <div className="flex items-center justify-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shadow-2xs">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                        <polyline strokeLinecap="round" strokeLinejoin="round" points="14 2 14 8 20 8"></polyline>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 13l3 3m0-3l-3 3m5-3h4m-4 3h4"></path>
+                      </svg>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shadow-2xs">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                        <polyline strokeLinecap="round" strokeLinejoin="round" points="14 2 14 8 20 8"></polyline>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 15h6M9 11h6"></path>
+                      </svg>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#005baa] shadow-2xs">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <p className="text-sm font-bold text-slate-800">
+                    {uploadFile ? uploadFile.name : "Pilih atau seret file ke area ini"}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Format didukung: <strong>.xlsx, .xls</strong> (Maksimal 25 MB)
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                  <p className="text-xs text-slate-500">
+                    File yang diunggah akan langsung dipetakan ke tabel di bawah ini.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowUploadModal(false)}
+                      className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={uploadingFile || !uploadFile}
+                      className="rounded-xl bg-[#005baa] px-5 py-2 text-xs font-bold text-white hover:bg-[#004b8d] disabled:opacity-50"
+                    >
+                      {uploadingFile ? "Mengunggah..." : "Proses & Simpan File"}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 pb-16">
       {/* Top Header Ringkas */}
@@ -275,12 +751,39 @@ export default function RealisasiRoTable() {
               width={14}
               className="text-slate-400"
             />
-            <span className="font-bold text-[#005baa]">Tahun 2026</span>
+            <span className="font-bold text-[#005baa]">Tahun {activeYear}</span>
           </nav>
-          <div className="mt-1 flex items-center gap-3">
+          <div className="mt-1.5 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setShowYearList(true);
+                router.push("/siproval/tu/realisasi-ro");
+              }}
+              className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition shadow-2xs"
+            >
+              <Icon icon="solar:arrow-left-linear" width={14} />
+              <span>Daftar Tahun</span>
+            </button>
             <h1 className="text-xl font-bold text-slate-900">
-              Realisasi Rincian Output (RO)
+              Realisasi Rincian Output (RO) {activeYear}
             </h1>
+            <select
+              value={activeYear}
+              onChange={(e) => {
+                const y = Number(e.target.value);
+                setActiveYear(y);
+                fetchData(selectedMonth, y);
+                router.push(`/siproval/tu/realisasi-ro?year=${y}`);
+              }}
+              className="rounded-xl border border-blue-200 bg-blue-50/70 px-2.5 py-1 text-xs font-bold text-[#005baa] focus:outline-none"
+            >
+              {roYears.map((ry) => (
+                <option key={ry.year} value={ry.year}>
+                  Tahun {ry.year}
+                </option>
+              ))}
+            </select>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Tab 155 Live
@@ -300,26 +803,23 @@ export default function RealisasiRoTable() {
             Eksport Laporan
           </Link>
 
-          {/* Tombol Langsung ke Google Sheet */}
-          <a
-            href={googleSheetUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Buka Spreadsheet Tab Realisasi RO di tab baru"
+          {/* Tombol Tambah File Excel RO */}
+          <button
+            type="button"
+            onClick={() => {
+              setUploadYear(activeYear);
+              setShowUploadModal(true);
+            }}
+            title="Unggah file Excel Realisasi RO (.xlsx / .xls)"
             className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition shadow-2xs"
           >
             <Icon
-              icon="solar:document-text-bold"
+              icon="solar:upload-track-2-bold"
               width={16}
               className="text-[#00a651]"
             />
-            Buka Google Sheet
-            <Icon
-              icon="solar:arrow-right-up-linear"
-              width={14}
-              className="text-emerald-600"
-            />
-          </a>
+            Tambah File Excel RO
+          </button>
 
           {/* Tombol Refresh Data */}
           <button

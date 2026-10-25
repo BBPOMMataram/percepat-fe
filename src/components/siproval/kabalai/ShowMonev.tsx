@@ -1,125 +1,122 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Icon } from "@iconify/react";
+import api from "@/utils/api";
+
+const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8006";
+
+type YearItem = {
+  id: number;
+  year_number: number;
+  desc?: string;
+  spreadsheet_count?: number;
+};
 
 export default function ShowMonev() {
   const currentYear = new Date().getFullYear();
+  const [years, setYears] = useState<YearItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const years = [
-    {
-      year: 2027,
-      label: "Tahun 2027",
-      short: "27",
-      desc: "Data belum tersedia",
-      active: false,
-    },
-    {
-      year: 2026,
-      label: "Tahun 2026",
-      short: "26",
-      desc: "Rekap Data RHPK 2026 Mataram",
-      active: true,
-      href: "/siproval/rhpk/2026",
-    },
-    {
-      year: 2025,
-      label: "Tahun 2025",
-      short: "25",
-      desc: "Rekap Data RHPK 2025 Mataram (Arsip)",
-      active: true,
-      href: "/siproval/rhpk/2025",
-    },
-  ];
+  useEffect(() => {
+    async function fetchYears() {
+      setLoading(true);
+      try {
+        const res = await api.get(`${baseUrl}/api/test-local-table/years`);
+        if (res.data?.data && Array.isArray(res.data.data)) {
+          setYears(res.data.data);
+        } else if (Array.isArray(res.data?.years)) {
+          setYears(res.data.years);
+        } else if (Array.isArray(res.data)) {
+          setYears(res.data);
+        }
+      } catch (err) {
+        console.error("Gagal mengambil data tahun RHPK:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchYears();
+  }, []);
 
   return (
-    <div className="space-y-8">
-      {/* Header banner */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-[#005baa]">
-              <Icon icon="solar:clipboard-list-bold" width={28} />
+    <div className="space-y-6">
+      {/* Header Bersih & Minimal Tanpa Ikon Berlebihan */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
+              <span>Kepala Balai</span>
+              <span>/</span>
+              <span className="text-slate-800">Tambah Arahan Pimpinan</span>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">
-                Data Monitoring & Evaluasi (RHPK)
-              </h1>
-              <p className="mt-0.5 text-xs text-slate-500">
-                Rekapitulasi Rencana Hasil Pelaksanaan Kegiatan Kepala Balai
-              </p>
-            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+              Tambah Arahan Pimpinan
+            </h1>
+            <p className="mt-1 text-xs sm:text-sm text-slate-500">
+              Pilih tahun anggaran RHPK yang aktif untuk memberikan arahan pimpinan dan meninjau capaian kinerja bulanan.
+            </p>
           </div>
 
-          <div className="inline-flex w-fit items-center gap-2 rounded-xl bg-blue-50 px-3.5 py-2 text-xs font-semibold text-[#005baa]">
-            <Icon icon="solar:calendar-bold" width={16} />
+          <div className="inline-flex w-fit items-center rounded-xl bg-blue-50 border border-blue-200 px-3.5 py-1.5 text-xs font-bold text-[#005baa]">
             Tahun Berjalan: {currentYear}
           </div>
         </div>
       </div>
 
-      {/* Card list of years */}
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="border-b border-slate-200 px-6 py-4.5 bg-slate-50/50">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-[#005baa]">
-              <Icon icon="solar:calendar-date-bold" width={20} />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-800">
-                Data RHPK Per Tahun
-              </h2>
-              <p className="text-xs text-slate-500">
-                Pilih tahun RHPK yang ingin dilihat atau dievaluasi.
-              </p>
-            </div>
-          </div>
+      {/* Daftar Tahun Riil yang Memiliki Data RHPK */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
+        <div className="border-b border-slate-100 px-6 py-4 bg-slate-50/60">
+          <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+            Daftar Tahun Anggaran RHPK
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Menampilkan data riil tahun yang telah didaftarkan pada SIPROVAL.
+          </p>
         </div>
 
         <div className="divide-y divide-slate-100">
-          {years.map((item) => (
-            <div
-              key={item.year}
-              className="flex items-center justify-between px-6 py-5 transition hover:bg-slate-50"
-            >
-              <div className="flex items-center gap-4">
-                <div
-                  className={`flex h-11 w-11 items-center justify-center rounded-xl ${
-                    item.active
-                      ? "bg-blue-50 font-bold text-[#005baa]"
-                      : "bg-slate-100 font-semibold text-slate-400"
-                  }`}
-                >
-                  <span className="text-sm">{item.short}</span>
-                </div>
-
-                <div>
-                  <p
-                    className={`font-semibold ${
-                      item.active ? "text-slate-800" : "text-slate-500"
-                    }`}
-                  >
-                    {item.label}
-                  </p>
-                  <p className="mt-0.5 text-xs text-slate-400">{item.desc}</p>
-                </div>
-              </div>
-
-              {item.active ? (
-                <Link
-                  href={item.href || `/siproval/rhpk/${item.year}`}
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#005baa] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#004b8d]"
-                >
-                  <span>Lihat RHPK</span>
-                  <Icon icon="solar:arrow-right-linear" width={16} />
-                </Link>
-              ) : (
-                <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-400">
-                  Coming Soon
-                </span>
-              )}
+          {loading ? (
+            <div className="p-12 text-center">
+              <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-[#005baa] border-r-transparent" />
+              <p className="mt-2 text-xs text-slate-500">Memuat daftar tahun RHPK...</p>
             </div>
-          ))}
+          ) : years.length === 0 ? (
+            <div className="p-12 text-center text-xs text-slate-500">
+              Belum ada data tahun RHPK yang terdaftar di database.
+            </div>
+          ) : (
+            years.map((item) => (
+              <div
+                key={item.id || item.year_number}
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-4.5 transition hover:bg-slate-50/70"
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-lg bg-blue-50 border border-blue-200 px-2.5 py-1 text-xs font-bold text-[#005baa]">
+                      Tahun {item.year_number}
+                    </span>
+                    <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      Aktif
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-sm font-bold text-slate-900">
+                    {item.desc || `Rekap Data RHPK ${item.year_number} Mataram`}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Data RHPK lokal mandiri (tanpa API) &bull; Siap dievaluasi dan ditambahkan arahan pimpinan.
+                  </p>
+                </div>
+
+                <Link
+                  href={`/siproval/rhpk/${item.year_number}`}
+                  className="inline-flex items-center justify-center rounded-xl bg-[#005baa] px-4 py-2 text-xs font-bold text-white shadow-2xs transition hover:bg-[#004887] self-start sm:self-center"
+                >
+                  Buka & Tambah Arahan &rarr;
+                </Link>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

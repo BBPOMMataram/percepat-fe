@@ -86,7 +86,7 @@ export async function middleware(req: NextRequest) {
             pathname.startsWith("/siproval/arahan-pimpinan") ||
             isRealisasiRoPath;
           if (!allowed) {
-            return NextResponse.redirect(new URL("/siproval/monev", req.url));
+            return NextResponse.redirect(new URL("/siproval/catatan", req.url));
           }
         } else if (groupJabatanId === 2) {
           // TU: boleh akses seluruh fitur TU dan budget-mapping

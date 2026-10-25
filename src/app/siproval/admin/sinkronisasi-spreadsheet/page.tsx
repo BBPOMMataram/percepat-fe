@@ -1,5 +1,5 @@
-import SyncSpreadsheet from "@/components/siproval/admin/SyncSpreadsheet";
+import { redirect } from "next/navigation";
 
 export default function SyncSpreadsheetPage() {
-  return <SyncSpreadsheet />;
+  redirect("/siproval/admin/kelola-akses-rhpk");
 }
