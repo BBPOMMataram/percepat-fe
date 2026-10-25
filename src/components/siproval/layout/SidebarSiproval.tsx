@@ -115,6 +115,18 @@ const menus = {
       url: "/siproval/admin/permission",
       active: "/siproval/admin/permission",
     },
+    {
+      name: "Kelola User",
+      icon: "solar:users-group-rounded-bold",
+      url: "/siproval/admin/kelola-user",
+      active: "/siproval/admin/kelola-user",
+    },
+    {
+      name: "Kelola IKSK",
+      icon: "solar:list-check-bold",
+      url: "/siproval/admin/kelola-iksk",
+      active: "/siproval/admin/kelola-iksk",
+    },
   ],
 } satisfies Record<
   Actor,
