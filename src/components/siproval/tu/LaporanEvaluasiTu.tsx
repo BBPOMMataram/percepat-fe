@@ -165,15 +165,20 @@ export default function LaporanEvaluasiTu() {
   // ==========================================
   // 1. COVER LAPORAN (Terpisah dari Lampiran)
   // ==========================================
+  const DEFAULT_COVER_IMAGE =
+    "/assets/images/siproval/cover-laporan-evaluasi-tw2.png";
   const [showCoverConfig, setShowCoverConfig] = useState<boolean>(false);
   const [coverFile, setCoverFile] = useState<File | null>(null);
-  const [coverFileType, setCoverFileType] = useState<"image" | "pdf" | "none">("none");
-  const [coverPreviewUrl, setCoverPreviewUrl] = useState<string>("");
+  const [coverFileType, setCoverFileType] = useState<"image" | "pdf" | "none">(
+    "image"
+  );
+  const [coverPreviewUrl, setCoverPreviewUrl] =
+    useState<string>(DEFAULT_COVER_IMAGE);
   const [coverTitle, setCoverTitle] = useState<string>(
-    "LAPORAN EVALUASI INTERNAL & BERITA ACARA"
+    "LAPORAN EVALUASI INTERNAL"
   );
   const [coverSubtitle, setCoverSubtitle] = useState<string>(
-    "REALISASI RINCIAN OUTPUT (RO) & CAPAIAN ANGGARAN"
+    "Triwulan II 2026"
   );
   const [coverDate, setCoverDate] = useState<string>("Tahun Anggaran 2026");
 
@@ -189,6 +194,12 @@ export default function LaporanEvaluasiTu() {
     setCoverFile(file);
     setCoverFileType(isPdf ? "pdf" : "image");
     setCoverPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleResetDefaultCover = () => {
+    setCoverFile(null);
+    setCoverFileType("image");
+    setCoverPreviewUrl(DEFAULT_COVER_IMAGE);
   };
 
   const handleRemoveCover = () => {
@@ -1840,24 +1851,35 @@ export default function LaporanEvaluasiTu() {
         {/* ========================================================= */}
         {showCoverConfig && (
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4 print:hidden">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-sm font-bold text-slate-900">
-                  Upload Cover Laporan Evaluasi Internal
+                  Upload & Pengaturan Cover Laporan (Halaman Depan)
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Unggah file cover khusus (Gambar atau PDF) atau gunakan format cover resmi otomatis sistem.
+                  Unggah foto/desain cover khusus (Gambar/PDF) atau gunakan cover resmi bawaan BBPOM.
                 </p>
               </div>
-              {coverFile && (
-                <button
-                  type="button"
-                  onClick={handleRemoveCover}
-                  className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-100 transition"
-                >
-                  Hapus Cover Kustom
-                </button>
-              )}
+              <div className="flex flex-wrap items-center gap-2">
+                {coverPreviewUrl !== DEFAULT_COVER_IMAGE && (
+                  <button
+                    type="button"
+                    onClick={handleResetDefaultCover}
+                    className="rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#005baa] hover:bg-blue-100 transition"
+                  >
+                    Gunakan Cover Bawaan
+                  </button>
+                )}
+                {coverFileType !== "none" && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveCover}
+                    className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-100 transition"
+                  >
+                    Tanpa Gambar Cover
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2925,9 +2947,9 @@ export default function LaporanEvaluasiTu() {
           {/* 5. BAGIAN LAMPIRAN DOKUMENTASI (GAMBAR & PDF)            */}
           {/* ======================================================== */}
           {lampiranList.length > 0 && (
-            <div className="mt-16 pt-8 border-t-2 border-dashed border-slate-300 print:border-none print:pt-0 print:break-before-page space-y-6">
+            <div className="mt-16 pt-8 border-t-2 border-dashed border-slate-300 print:border-none print:pt-0 print:break-before-page space-y-8">
               <div className="text-center mb-6">
-                <h3 className="text-sm sm:text-base font-bold uppercase tracking-wider text-black">
+                <h3 className="text-base sm:text-lg font-bold uppercase tracking-wider text-black">
                   LAMPIRAN DOKUMENTASI & BUKTI DUKUNG EVALUASI INTERNAL
                 </h3>
                 <p className="text-xs text-slate-600 mt-1">
@@ -2935,55 +2957,62 @@ export default function LaporanEvaluasiTu() {
                 </p>
               </div>
 
-              {/* Grid Lampiran (Gambar & PDF) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-2">
+              {/* Vertical Document Flow Sesuai Format Referensi Laporan (Full Width) */}
+              <div className="space-y-10">
                 {lampiranList.map((item, idx) => (
                   <div
                     key={item.id}
-                    className="flex flex-col justify-between rounded-2xl border border-slate-300 bg-white p-3.5 shadow-2xs break-inside-avoid"
+                    className="space-y-3 break-inside-avoid print:break-inside-avoid"
                   >
-                    {item.fileType === "image" ? (
-                      <div className="w-full aspect-[4/3] overflow-hidden rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center">
-                        <img
-                          src={item.previewUrl}
-                          alt={item.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="aspect-[4/3] w-full rounded-xl bg-slate-50 border border-slate-200 flex flex-col items-center justify-center p-4 text-center">
-                        <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shadow-2xs mb-2">
-                          <Icon icon="solar:document-text-bold" width={32} />
-                        </div>
-                        <span className="rounded bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-800 uppercase">
-                          Dokumen PDF
+                    {/* Judul Lampiran persis seperti di referensi: e.g. "1. Persentase Sampel Sediaan Farmasi..." */}
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                      <h4 className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
+                        {idx + 1}. {item.title}
+                      </h4>
+                      <div className="print:hidden flex items-center gap-2 text-xs">
+                        <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                          {item.fileType === "image" ? "Gambar / Foto" : "Dokumen PDF"} ({item.fileSizeFormatted})
                         </span>
-                        <p className="text-xs font-semibold text-slate-800 mt-2 truncate max-w-full">
-                          {item.fileName}
-                        </p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">
-                          {item.fileSizeFormatted}
-                        </p>
                         <a
                           href={item.previewUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50 print:hidden shadow-2xs"
+                          className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-[#005baa] hover:bg-slate-50 shadow-2xs"
                         >
-                          <Icon icon="solar:eye-bold" width={14} />
-                          Buka PDF
+                          <Icon icon="solar:eye-bold" width={13} />
+                          Buka Berkas
                         </a>
                       </div>
-                    )}
-
-                    <div className="mt-3 pt-2 border-t border-slate-100">
-                      <p className="text-xs font-bold text-slate-900 leading-snug">
-                        Lampiran {idx + 1}: {item.title}
-                      </p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">
-                        Tipe: {item.fileType === "image" ? "Gambar / Foto" : "Berkas PDF Pendukung"} &bull; {item.fileSizeFormatted}
-                      </p>
                     </div>
+
+                    {/* Konten Lampiran: Gambar Full-Width atau PDF Viewer Full-Width */}
+                    {item.fileType === "image" ? (
+                      <div className="w-full overflow-hidden rounded-xl border border-slate-300 bg-white shadow-xs">
+                        <img
+                          src={item.previewUrl}
+                          alt={item.title}
+                          className="w-full h-auto object-contain block mx-auto"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-full rounded-xl border border-slate-300 bg-white overflow-hidden shadow-xs">
+                        {/* Di tampilan web: Sematkan PDF interaktif */}
+                        <iframe
+                          src={item.previewUrl}
+                          title={item.title}
+                          className="w-full h-[650px] print:hidden border-none"
+                        />
+                        {/* Di tampilan print: Ringkasan dokumen lampiran resmi */}
+                        <div className="hidden print:flex flex-col items-center justify-center p-8 bg-slate-50 text-center border-t border-slate-200">
+                          <p className="text-xs font-bold text-slate-900">
+                            [Lampiran {idx + 1}: {item.title}]
+                          </p>
+                          <p className="text-[11px] text-slate-600 mt-1">
+                            Berkas Terlampir: {item.fileName} ({item.fileSizeFormatted})
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
