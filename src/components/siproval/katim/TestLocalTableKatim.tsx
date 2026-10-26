@@ -54,12 +54,19 @@ type YearItem = {
   desc?: string;
 };
 
+type IkskItem = {
+  id: number;
+  name: string;
+};
+
 export default function TestLocalTableKatim() {
   const { user } = useSelector((state: RootState) => state.auth);
   const authQuery = user?.id ? `?user_id=${user.id}` : "";
 
   const [years, setYears] = useState<YearItem[]>([{ id: 1, year_number: 2026 }]);
   const [selectedYear, setSelectedYear] = useState<number>(2026);
+  const [iksks, setIksks] = useState<IkskItem[]>([]);
+  const [selectedIkskId, setSelectedIkskId] = useState<number | null>(null);
   const [spreadsheets, setSpreadsheets] = useState<SpreadsheetItem[]>([]);
   const [selectedSpId, setSelectedSpId] = useState<number | null>(null);
   const [selectedTabId, setSelectedTabId] = useState<number | null>(null);
@@ -76,14 +83,21 @@ export default function TestLocalTableKatim() {
     Record<string, { month: number; key: string; value: any }>
   >({});
 
-  const fetchData = async (targetYear = selectedYear, spId?: number, tId?: number) => {
+  const fetchData = async (
+    targetYear = selectedYear,
+    ikskId?: number | null,
+    spId?: number | null,
+    tId?: number | null
+  ) => {
     setLoading(true);
     try {
       const qYear = `&year=${targetYear}`;
+      const effectiveIkskId = ikskId !== undefined ? ikskId : selectedIkskId;
+      const qIksk = effectiveIkskId ? `&iksk_id=${effectiveIkskId}` : "";
       const qSp = spId ? `&spreadsheet_id=${spId}` : "";
       const qTab = tId ? `&tab_id=${tId}` : "";
       const res = await api.get(
-        `${baseUrl}/api/test-local-table${authQuery}${qYear}${qSp}${qTab}`
+        `${baseUrl}/api/test-local-table${authQuery}${qYear}${qIksk}${qSp}${qTab}`
       );
       const d = res.data?.data || {};
 
@@ -92,6 +106,12 @@ export default function TestLocalTableKatim() {
       }
       if (d.selected_year) {
         setSelectedYear(Number(d.selected_year));
+      }
+      if (Array.isArray(d.my_iksks)) {
+        setIksks(d.my_iksks);
+      }
+      if (d.selected_iksk_id) {
+        setSelectedIkskId(Number(d.selected_iksk_id));
       }
       setSpreadsheets(d.spreadsheets || []);
       setCurrentMonth(d.current_month || new Date().getMonth() + 1);
@@ -125,18 +145,25 @@ export default function TestLocalTableKatim() {
 
   const handleSelectYear = (year: number) => {
     setSelectedYear(year);
-    fetchData(year);
+    fetchData(year, selectedIkskId);
+  };
+
+  const handleSelectIksk = (ikskId: number) => {
+    setSelectedIkskId(ikskId);
+    setSelectedSpId(null);
+    setSelectedTabId(null);
+    fetchData(selectedYear, ikskId, null, null);
   };
 
   const handleSelectSpreadsheet = (id: number) => {
     setSelectedSpId(id);
-    fetchData(selectedYear, id);
+    fetchData(selectedYear, selectedIkskId, id);
   };
 
   const handleSelectTab = (tId: number) => {
     setSelectedTabId(tId);
     if (selectedSpId) {
-      fetchData(selectedYear, selectedSpId, tId);
+      fetchData(selectedYear, selectedIkskId, selectedSpId, tId);
     }
   };
 
@@ -305,25 +332,63 @@ export default function TestLocalTableKatim() {
               </select>
             </div>
 
-            {/* Document Selector */}
+            {/* IKSK Selector (Hanya IKSK yang diampu Katim) */}
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-slate-700 whitespace-nowrap">
+                IKSK:
+              </label>
+              <select
+                value={selectedIkskId ?? ""}
+                onChange={(e) => handleSelectIksk(Number(e.target.value))}
+                className="rounded-xl border border-emerald-300 bg-emerald-50/70 px-3 py-1.5 text-xs font-bold text-emerald-900 focus:border-emerald-600 focus:bg-white focus:outline-none max-w-xs md:max-w-sm truncate"
+              >
+                {iksks.length === 0 ? (
+                  <option value="">Tidak ada IKSK diampu</option>
+                ) : (
+                  iksks.map((i) => (
+                    <option key={i.id} value={i.id}>
+                      IKSK {i.id}. {i.name}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+
+            {/* Document Selector (Dimatikan jika hanya 1 file, dinyalakan jika >= 2 file) */}
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold text-slate-700 whitespace-nowrap">
                 Dokumen:
               </label>
               <select
                 value={selectedSpId ?? ""}
+                disabled={spreadsheets.length <= 1}
                 onChange={(e) => handleSelectSpreadsheet(Number(e.target.value))}
-                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-800 focus:border-emerald-600 focus:bg-white focus:outline-none max-w-xs md:max-w-md truncate"
+                className={`rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold focus:outline-none max-w-xs md:max-w-md truncate ${
+                  spreadsheets.length <= 1
+                    ? "bg-slate-100 text-slate-500 cursor-not-allowed opacity-85"
+                    : "bg-slate-50 text-slate-800 hover:bg-white focus:border-emerald-600 focus:bg-white cursor-pointer"
+                }`}
+                title={
+                  spreadsheets.length <= 1
+                    ? "Hanya tersedia 1 dokumen untuk IKSK ini (pilihan otomatis terkunci)"
+                    : "Pilih dokumen untuk IKSK ini"
+                }
               >
-                {spreadsheets.length === 0 && (
-                  <option value="">Belum ada dokumen untuk tahun {selectedYear}</option>
+                {spreadsheets.length === 0 ? (
+                  <option value="">Belum ada dokumen untuk IKSK ini</option>
+                ) : (
+                  spreadsheets.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))
                 )}
-                {spreadsheets.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
               </select>
+              {spreadsheets.length === 1 && (
+                <span className="hidden sm:inline-block rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                  1 Dokumen
+                </span>
+              )}
             </div>
           </div>
 
@@ -371,7 +436,7 @@ export default function TestLocalTableKatim() {
             <div className="flex items-center gap-3 text-xs">
               <span className="flex items-center gap-1.5 text-emerald-700">
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                Kolom Anda (Bisa Diisi)
+                Editable (Bisa Diisi)
               </span>
               <span className="flex items-center gap-1.5 text-slate-500">
                 <span className="h-2 w-2 rounded-full bg-slate-400" />
@@ -412,7 +477,7 @@ export default function TestLocalTableKatim() {
                           </span>
                           {isEditableForMe ? (
                             <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
-                              Hak Anda
+                              Editable
                             </span>
                           ) : col.type === "formula" ? (
                             <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-bold text-purple-800">
