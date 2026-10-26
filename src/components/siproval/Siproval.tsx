@@ -5,7 +5,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch } from "@/redux/store";
+import { getUser } from "@/features/authSlice";
 import { Icon } from "@iconify/react";
 import { RootState } from "@/redux/store";
 import SiprovalDocumentHub from "./SiprovalDocumentHub";
@@ -34,7 +36,12 @@ interface AvailableRole {
 }
 
 export default function Siproval() {
+  const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
+
+  useEffect(() => {
+    dispatch(getUser());
+  }, [dispatch]);
   const [scrolled, setScrolled] = useState(false);
 
   // Dropdown states for multi-role users
@@ -253,22 +260,44 @@ export default function Siproval() {
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8">
-            {[
-              { label: "Beranda", href: "#beranda" },
-              { label: "Dokumen Kinerja", href: "#dokumen-kinerja" },
-            ].map((item) => (
-              <SiprovalNavLink
-                key={item.href}
-                href={item.href}
-                label={item.label}
-                className={`text-sm font-medium ${
+          <nav className="hidden md:flex items-center gap-7">
+            <SiprovalNavLink
+              href="#beranda"
+              label="Beranda"
+              className={`text-sm font-medium ${
+                scrolled
+                  ? "text-slate-700 hover:text-[#003d73]"
+                  : "text-white/90 hover:text-white"
+              }`}
+            />
+            <SiprovalNavLink
+              href="#dokumen-kinerja"
+              label="Dokumen Kinerja"
+              className={`text-sm font-medium ${
+                scrolled
+                  ? "text-slate-700 hover:text-[#003d73]"
+                  : "text-white/90 hover:text-white"
+              }`}
+            />
+            <Link
+              href="/siproval/whats-new"
+              className={`group inline-flex items-center gap-1.5 text-sm font-semibold transition-all duration-300 ${
+                scrolled
+                  ? "text-[#005baa] hover:text-[#003d73]"
+                  : "text-white hover:text-blue-100"
+              }`}
+            >
+              <span>What&apos;s New</span>
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide uppercase transition-colors shadow-2xs ${
                   scrolled
-                    ? "text-slate-700 hover:text-[#003d73]"
-                    : "text-white/90 hover:text-white"
+                    ? "bg-blue-100 text-[#005baa] group-hover:bg-[#005baa] group-hover:text-white"
+                    : "bg-white/20 text-white backdrop-blur-xs group-hover:bg-white group-hover:text-[#005baa]"
                 }`}
-              />
-            ))}
+              >
+                V.2
+              </span>
+            </Link>
           </nav>
 
           {user ? (
@@ -657,6 +686,15 @@ export default function Siproval() {
                   label="Dokumen Kinerja"
                   className="text-xs sm:text-sm text-blue-100 hover:text-white"
                 />
+                <Link
+                  href="/siproval/whats-new"
+                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-blue-100 hover:text-white font-medium"
+                >
+                  <span>What&apos;s New</span>
+                  <span className="bg-white/20 text-white px-2 py-0.5 rounded-full text-[10px] font-bold">
+                    V.2
+                  </span>
+                </Link>
               </div>
             </SiprovalFadeUp>
           </div>

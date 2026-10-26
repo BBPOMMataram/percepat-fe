@@ -108,7 +108,7 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
       } catch (err: unknown) {
         const e = err as { response?: { data?: { message?: string } } };
         setApiNotice(
-          e.response?.data?.message || "Gagal memuat rincian rekapitulasi dari server Google Sheet."
+          e.response?.data?.message || "Gagal memuat rincian rekapitulasi evaluasi RHPK."
         );
         setIndicators([]);
       } finally {
@@ -186,7 +186,7 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
 
       const message =
         res.data?.message ||
-        `Arahan berhasil disimpan ke Google Sheet pada sel ${selectedIndicator.arahan_column || arahanColumn}${selectedIndicator.row_number}!`;
+        `Arahan pimpinan berhasil disimpan ke database SIPROVAL!`;
       setModalSuccessMsg(message);
 
       // Perbarui state lokal secara reaktif
@@ -425,8 +425,8 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
               Tabel Evaluasi Capaian & Arahan Kepala Balai ({selectedMonth})
             </h2>
             <p className="text-xs text-slate-500">
-              Data ditarik langsung dari Google Sheet. Pengisian arahan pimpinan otomatis tersimpan pada kolom{" "}
-              <strong className="text-slate-800 font-mono">{arahanColumn}</strong> (Yogi Abaso Mataram - editable).
+              Data bersumber dari Database RHPK Mandiri SIPROVAL. Arahan pimpinan akan tersimpan dan langsung terhubung dengan Ketua Tim terkait.
+
             </p>
           </div>
           <span className="text-xs font-medium text-slate-500">
@@ -437,7 +437,7 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
         {loading ? (
           <div className="p-16 text-center">
             <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-[#005baa] border-r-transparent" />
-            <p className="mt-2 text-xs text-slate-500">Memuat rincian evaluasi dari Google Sheet...</p>
+            <p className="mt-2 text-xs text-slate-500">Memuat rincian evaluasi RHPK...</p>
           </div>
         ) : filteredIndicators.length === 0 ? (
           <div className="p-12 text-center text-xs text-slate-500">
@@ -733,7 +733,7 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
                       width={16}
                       className={savingArahan ? "animate-spin" : ""}
                     />
-                    {savingArahan ? "Menyimpan ke Sheet..." : "Simpan Arahan ke Google Sheet"}
+                    {savingArahan ? "Menyimpan Arahan..." : "Simpan Arahan Pimpinan"}
                   </button>
                 </div>
               </div>

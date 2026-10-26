@@ -24,6 +24,16 @@ export default function LayoutSiproval({
 
   // Logika Pengalihan (Route Guard & Otorisasi Aktor)
   useEffect(() => {
+    const isPublicPage =
+      pathname === "/siproval" ||
+      pathname?.startsWith("/siproval/whats-new") ||
+      pathname?.startsWith("/whats-new");
+
+    // Jika di halaman publik luar sistem (Landing & What's New), jangan paksa redirect
+    if (isPublicPage) {
+      return;
+    }
+
     // Jika loading selesai dan user tidak ada, arahkan ke login
     if (loading === false && !user) {
       router.push(`/login?redirectUrl=${pathname}`);
@@ -83,8 +93,8 @@ export default function LayoutSiproval({
         Array.isArray(user.katims) && user.katims.length > 0;
       const isKatim = groupJabatanId === 3 || isKatimFromTable;
 
-      // Di landing portal /siproval tetap diizinkan
-      if (pathname === "/siproval") {
+      // Di landing portal /siproval dan What's New tetap diizinkan
+      if (isPublicPage) {
         return;
       }
 

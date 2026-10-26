@@ -20,9 +20,11 @@ export async function middleware(req: NextRequest) {
     "/siproval",
   ];
 
-  const isProtected = protectedPaths.some((path) =>
-    pathname.startsWith(path)
-  );
+  const isSiprovalWhatsNew = pathname.startsWith("/siproval/whats-new");
+
+  const isProtected =
+    protectedPaths.some((path) => pathname.startsWith(path)) &&
+    !isSiprovalWhatsNew;
 
   if (!isProtected) return NextResponse.next();
 
@@ -43,7 +45,11 @@ export async function middleware(req: NextRequest) {
     }
 
     // SIPROVAL role-based authorization
-    if (pathname.startsWith("/siproval") && pathname !== "/siproval") {
+    if (
+      pathname.startsWith("/siproval") &&
+      pathname !== "/siproval" &&
+      !isSiprovalWhatsNew
+    ) {
       const isSuperadmin =
         payload.role === "superadmin" ||
         payload.email === "hilmi.khairan@pom.go.id" ||

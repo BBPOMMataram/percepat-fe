@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Icon } from "@iconify/react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
@@ -240,6 +240,29 @@ export default function TestLocalTableKatim() {
 
   const dirtyCount = Object.keys(dirtyUpdates).length;
 
+  // Pastikan tabel yang belum memiliki konfigurasi tetap menampilkan seluruh kolom
+  const effectiveColumnsSchema = useMemo<ColumnSchema[]>(() => {
+    if (activeTab?.columns_schema && activeTab.columns_schema.length > 0) {
+      return activeTab.columns_schema;
+    }
+    if (activeTab?.rows_data && activeTab.rows_data.length > 0) {
+      const firstCells = activeTab.rows_data[0].cells || {};
+      return Object.keys(firstCells).map((k, idx) => {
+        const letter = String.fromCharCode(65 + (idx % 26));
+        const isBulan = k === "col_0" || idx === 0;
+        return {
+          key: k,
+          col_letter: letter,
+          label: isBulan ? "Bulan" : `Kolom ${letter}`,
+          type: isBulan ? "readonly" : "editable",
+          formula: null,
+          can_edit: !isBulan,
+        };
+      });
+    }
+    return [];
+  }, [activeTab]);
+
   return (
     <div className="space-y-6">
       {/* Banner Katim */}
@@ -354,42 +377,47 @@ export default function TestLocalTableKatim() {
               </select>
             </div>
 
-            {/* Document Selector (Dimatikan jika hanya 1 file, dinyalakan jika >= 2 file) */}
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                Dokumen:
-              </label>
-              <select
-                value={selectedSpId ?? ""}
-                disabled={spreadsheets.length <= 1}
-                onChange={(e) => handleSelectSpreadsheet(Number(e.target.value))}
-                className={`rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold focus:outline-none max-w-xs md:max-w-md truncate ${
-                  spreadsheets.length <= 1
-                    ? "bg-slate-100 text-slate-500 cursor-not-allowed opacity-85"
-                    : "bg-slate-50 text-slate-800 hover:bg-white focus:border-emerald-600 focus:bg-white cursor-pointer"
-                }`}
-                title={
-                  spreadsheets.length <= 1
-                    ? "Hanya tersedia 1 dokumen untuk IKSK ini (pilihan otomatis terkunci)"
-                    : "Pilih dokumen untuk IKSK ini"
-                }
-              >
-                {spreadsheets.length === 0 ? (
-                  <option value="">Belum ada dokumen untuk IKSK ini</option>
+            {/* Document Info / Selector: jika hanya 1 file cukup info tanpa dropdown, jika >= 2 file baru muncul dropdown pilihan */}
+            {spreadsheets.length <= 1 ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
+                  Dokumen:
+                </span>
+                {spreadsheets.length === 1 ? (
+                  <div
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-1.5 text-xs font-semibold text-slate-800 max-w-xs md:max-w-md truncate shadow-2xs"
+                    title={spreadsheets[0].name}
+                  >
+                    <Icon icon="solar:file-spreadsheet-bold" width={16} className="text-emerald-600 shrink-0" />
+                    <span className="truncate">{spreadsheets[0].name}</span>
+                  </div>
                 ) : (
-                  spreadsheets.map((s) => (
+                  <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-400 italic">
+                    Belum ada dokumen untuk IKSK ini
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-bold text-slate-700 whitespace-nowrap">
+                  Pilih Dokumen:
+                </label>
+                <select
+                  value={selectedSpId ?? ""}
+                  onChange={(e) => handleSelectSpreadsheet(Number(e.target.value))}
+                  className="rounded-xl border border-emerald-300 bg-white px-3 py-1.5 text-xs font-bold text-emerald-900 focus:border-emerald-600 focus:outline-none max-w-xs md:max-w-md truncate cursor-pointer shadow-2xs"
+                >
+                  {spreadsheets.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}
                     </option>
-                  ))
-                )}
-              </select>
-              {spreadsheets.length === 1 && (
-                <span className="hidden sm:inline-block rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
-                  1 Dokumen
+                  ))}
+                </select>
+                <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                  {spreadsheets.length} Dokumen
                 </span>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           <div className="text-xs text-slate-500">
@@ -460,7 +488,7 @@ export default function TestLocalTableKatim() {
             <table className="w-full border-collapse text-left text-xs">
               <thead className="border-b border-slate-200 bg-slate-50">
                 <tr>
-                  {activeTab.columns_schema?.map((col) => {
+                  {effectiveColumnsSchema.map((col) => {
                     const isEditableForMe = col.can_edit;
                     return (
                       <th
@@ -513,7 +541,7 @@ export default function TestLocalTableKatim() {
                           : "hover:bg-slate-50/80"
                       }`}
                     >
-                      {activeTab.columns_schema?.map((col) => {
+                      {effectiveColumnsSchema.map((col) => {
                         const val = row.cells?.[col.key] ?? "";
                         const canEditCell = col.can_edit && !isMonthLocked;
                         const isNum = typeof val === "number";

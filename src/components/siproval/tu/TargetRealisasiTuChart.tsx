@@ -86,7 +86,11 @@ const budgetChartConfig = {
   },
 } satisfies ChartConfig;
 
-export default function TargetRealisasiTuChart() {
+export interface TargetRealisasiTuChartProps {
+  isKabalaiView?: boolean;
+}
+
+export default function TargetRealisasiTuChart({ isKabalaiView = false }: TargetRealisasiTuChartProps) {
   const [metricMode, setMetricMode] = useState<DataMetricMode>("volume");
   const [periodMode, setPeriodMode] = useState<DataPeriodMode>("quarterly");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -425,21 +429,43 @@ export default function TargetRealisasiTuChart() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/siproval/tu/realisasi-ro"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#005baa] shadow-2xs transition hover:bg-blue-50 hover:border-blue-300"
-          >
-            <FileSpreadsheet className="h-3.5 w-3.5" />
-            Buka Realisasi RO (Tab 155)
-            <ArrowUpRight className="h-3.5 w-3.5 opacity-60" />
-          </Link>
-          <Link
-            href="/siproval/tu/laporan-evaluasi?month=APRIL"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[#005baa] px-3 py-1.5 text-xs font-semibold text-white shadow-2xs transition hover:bg-[#004887]"
-          >
-            Eksport Laporan Evaluasi
-            <ArrowUpRight className="h-3.5 w-3.5" />
-          </Link>
+          {isKabalaiView ? (
+            <>
+              <Link
+                href="/siproval/rhpk/2026"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#005baa] shadow-2xs transition hover:bg-blue-50 hover:border-blue-300"
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+                Buka Rekap RHPK 2026
+                <ArrowUpRight className="h-3.5 w-3.5 opacity-60" />
+              </Link>
+              <Link
+                href="/siproval/monev"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#005baa] px-3 py-1.5 text-xs font-semibold text-white shadow-2xs transition hover:bg-[#004887]"
+              >
+                Catatan Monev &amp; Arahan
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/siproval/tu/realisasi-ro"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#005baa] shadow-2xs transition hover:bg-blue-50 hover:border-blue-300"
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+                Buka Realisasi RO (Tab 155)
+                <ArrowUpRight className="h-3.5 w-3.5 opacity-60" />
+              </Link>
+              <Link
+                href="/siproval/tu/laporan-evaluasi?month=APRIL"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#005baa] px-3 py-1.5 text-xs font-semibold text-white shadow-2xs transition hover:bg-[#004887]"
+              >
+                Eksport Laporan Evaluasi
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </>
+          )}
         </div>
       </CardFooter>
     </Card>
