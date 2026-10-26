@@ -8,7 +8,16 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { PDFDocument } from "pdf-lib";
 import api from "@/utils/api";
+
+const getFormattedTitle = (title: string, index: number): string => {
+  const trimmed = title.trim();
+  if (/^(\d+[\.\)]|lampiran\s*\d+)/i.test(trimmed)) {
+    return trimmed;
+  }
+  return `${index + 1}. ${trimmed}`;
+};
 
 const baseUrl =
   process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000";
@@ -784,66 +793,49 @@ export default function LaporanEvaluasiTu() {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportPdf = () => {
-    const doc = new jsPDF({
-      orientation: "landscape",
-      unit: "mm",
-      format: "a4",
-    });
+  const handleExportPdf = async () => {
+    setLoading(true);
+    try {
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
 
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const marginX = 14;
-    const contentWidth = pageWidth - marginX * 2;
-    let y = 14;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const marginX = 14;
+      const contentWidth = pageWidth - marginX * 2;
+      let y = 14;
 
-    // ==========================================
-    // 1. HALAMAN COVER LAPORAN (Page 1 in PDF)
-    // ==========================================
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("BADAN PENGAWAS OBAT DAN MAKANAN RI", pageWidth / 2, 45, {
-      align: "center",
-    });
-    doc.setFontSize(13);
-    doc.text(
-      "BALAI BESAR PENGAWAS OBAT DAN MAKANAN DI MATARAM",
-      pageWidth / 2,
-      53,
-      { align: "center" }
-    );
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10.5);
-    doc.setTextColor(0, 91, 170); // #005baa
-    doc.text("SUB-BAGIAN TATA USAHA", pageWidth / 2, 85, { align: "center" });
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(0, 0, 0);
-    doc.text(coverTitle, pageWidth / 2, 97, { align: "center" });
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(12);
-    doc.text(coverSubtitle, pageWidth / 2, 107, { align: "center" });
-
-    doc.setFontSize(10);
-    doc.setTextColor(90, 90, 90);
-    doc.text(`Periode Evaluasi: ${periodeText}`, pageWidth / 2, 117, {
-      align: "center",
-    });
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-    doc.text("MATARAM, NUSA TENGGARA BARAT", pageWidth / 2, 160, {
-      align: "center",
-    });
-    doc.setFont("helvetica", "normal");
-    doc.text(coverDate, pageWidth / 2, 167, { align: "center" });
-
-    // Halaman 2: Berita Acara & Tabel Evaluasi
-    doc.addPage();
-    y = 14;
+      // ==========================================
+      // 1. HALAMAN COVER LAPORAN (Page 1 in PDF)
+      // ==========================================
+      const hasCover = coverFileType !== "none" && !!coverPreviewUrl;
+      if (hasCover && coverFileType === "image") {
+        try {
+          doc.addImage(
+            coverPreviewUrl,
+            "PNG",
+            (pageWidth - 140) / 2,
+            10,
+            140,
+            190
+          );
+        } catch {
+          // fallback jika addImage gagal
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(14);
+          doc.text("BALAI BESAR POM DI MATARAM", pageWidth / 2, 80, {
+            align: "center",
+          });
+          doc.setFontSize(18);
+          doc.text("LAPORAN EVALUASI INTERNAL", pageWidth / 2, 95, {
+            align: "center",
+          });
+        }
+        doc.addPage();
+        y = 14;
+      }
 
     // Header Title (Centered)
     doc.setFont("helvetica", "normal");
@@ -1419,86 +1411,96 @@ export default function LaporanEvaluasiTu() {
     }
 
     // ==========================================
-    // 4. BAGIAN LAMPIRAN DI PDF (Jika ada)
+    // 4. MERGE DENGAN BERKAS LAMPIRAN ASLI (PDF & GAMBAR)
+    // Langsung gabungkan halaman PDF ke bawah dokumen (Bukan dibuatkan tabel baru)
     // ==========================================
-    if (lampiranList.length > 0) {
-      doc.addPage();
-      y = 14;
+    const basePdfBytes = doc.output("arraybuffer");
+    const mergedPdf = await PDFDocument.load(basePdfBytes);
 
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
-      doc.text(
-        "LAMPIRAN DOKUMENTASI & BUKTI DUKUNG EVALUASI INTERNAL",
-        pageWidth / 2,
-        y,
-        { align: "center" }
-      );
-      y += 5;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8.5);
-      doc.text(
-        `Triwulan ${selectedQuarter} Tahun ${selectedYear} - Balai Besar POM di Mataram`,
-        pageWidth / 2,
-        y,
-        { align: "center" }
-      );
-      y += 8;
-
-      autoTable(doc, {
-        startY: y,
-        margin: { left: marginX, right: marginX },
-        theme: "grid",
-        head: [
-          [
-            { content: "No.", styles: { halign: "center", valign: "middle" } },
-            {
-              content: "Judul Lampiran",
-              styles: { halign: "center", valign: "middle" },
-            },
-            {
-              content: "Tipe Berkas",
-              styles: { halign: "center", valign: "middle" },
-            },
-            {
-              content: "Nama Berkas",
-              styles: { halign: "center", valign: "middle" },
-            },
-            { content: "Ukuran", styles: { halign: "center", valign: "middle" } },
-          ],
-        ],
-        body: lampiranList.map((item, idx) => [
-          idx + 1,
-          item.title,
-          item.fileType === "image" ? "Gambar / Foto" : "Dokumen PDF",
-          item.fileName,
-          item.fileSizeFormatted,
-        ]),
-        headStyles: {
-          fillColor: [0, 91, 170],
-          textColor: [255, 255, 255],
-          fontStyle: "bold",
-          fontSize: 8.5,
-          lineColor: [0, 0, 0],
-          lineWidth: 0.2,
-        },
-        bodyStyles: {
-          textColor: [0, 0, 0],
-          fontSize: 8,
-          lineColor: [0, 0, 0],
-          lineWidth: 0.2,
-        },
-        columnStyles: {
-          0: { cellWidth: 12, halign: "center" },
-          1: { cellWidth: 100, halign: "left" },
-          2: { cellWidth: 35, halign: "center" },
-          3: { cellWidth: 85, halign: "left" },
-          4: { cellWidth: 35, halign: "center" },
-        },
-      });
+    // Jika cover berupa dokumen PDF mandiri, sisipkan sebagai Halaman 1
+    if (coverFileType === "pdf" && coverFile) {
+      try {
+        const coverBuf = await coverFile.arrayBuffer();
+        const coverDoc = await PDFDocument.load(coverBuf);
+        const [coverPage] = await mergedPdf.copyPages(coverDoc, [0]);
+        mergedPdf.insertPage(0, coverPage);
+      } catch (e) {
+        console.error("Gagal menyisipkan cover PDF:", e);
+      }
     }
 
-    doc.save(`Berita_Acara_Evaluasi_Internal_${selectedQuarter}_${selectedYear}.pdf`);
-  };
+    // Merge setiap file lampiran langsung ke bawah dokumen
+    if (lampiranList.length > 0) {
+      for (let i = 0; i < lampiranList.length; i++) {
+        const item = lampiranList[i];
+
+        if (item.fileType === "pdf") {
+          try {
+            let pdfBuf: ArrayBuffer;
+            if (item.file) {
+              pdfBuf = await item.file.arrayBuffer();
+            } else {
+              const res = await fetch(item.previewUrl);
+              pdfBuf = await res.arrayBuffer();
+            }
+            const attachmentPdf = await PDFDocument.load(pdfBuf);
+            const copiedPages = await mergedPdf.copyPages(
+              attachmentPdf,
+              attachmentPdf.getPageIndices()
+            );
+            copiedPages.forEach((page) => mergedPdf.addPage(page));
+          } catch (err) {
+            console.error(`Gagal menggabungkan PDF lampiran ${item.title}:`, err);
+          }
+        } else if (item.fileType === "image") {
+          try {
+            let imgBuf: ArrayBuffer;
+            if (item.file) {
+              imgBuf = await item.file.arrayBuffer();
+            } else {
+              const res = await fetch(item.previewUrl);
+              imgBuf = await res.arrayBuffer();
+            }
+            const isPng =
+              item.fileName.toLowerCase().endsWith(".png") ||
+              item.file?.type === "image/png";
+            const embeddedImg = isPng
+              ? await mergedPdf.embedPng(imgBuf)
+              : await mergedPdf.embedJpg(imgBuf);
+
+            const newPage = mergedPdf.addPage([841.89, 595.28]); // A4 landscape
+            const { width: pW, height: pH } = newPage.getSize();
+            const scaled = embeddedImg.scaleToFit(pW - 40, pH - 40);
+            newPage.drawImage(embeddedImg, {
+              x: (pW - scaled.width) / 2,
+              y: (pH - scaled.height) / 2,
+              width: scaled.width,
+              height: scaled.height,
+            });
+          } catch (err) {
+            console.error(`Gagal menyematkan gambar lampiran ${item.title}:`, err);
+          }
+        }
+      }
+    }
+
+    const finalPdfBytes = await mergedPdf.save();
+    const blob = new Blob([finalPdfBytes as any], { type: "application/pdf" });
+    const downloadUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = `Berita_Acara_Evaluasi_Internal_${selectedQuarter}_${selectedYear}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(downloadUrl);
+  } catch (err) {
+    console.error("Gagal mengekspor PDF:", err);
+    alert("Terjadi kendala saat menggabungkan berkas PDF. Silakan coba lagi.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handlePrintPdf = () => {
     window.print();
@@ -1923,43 +1925,77 @@ export default function LaporanEvaluasiTu() {
                 </div>
               </div>
 
-              {/* Pengaturan Teks Cover Otomatis */}
-              <div className="space-y-2.5 rounded-xl border border-slate-200 bg-slate-50/60 p-4 text-xs">
-                <p className="font-bold text-slate-800">
-                  Pengaturan Teks Cover Resmi Otomatis:
-                </p>
+              {/* Pratinjau & Pengelolaan Status Cover */}
+              <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-slate-50/60 p-4 text-xs">
                 <div>
-                  <label className="block font-medium text-slate-600 mb-1">
-                    Judul Utama Cover
-                  </label>
-                  <input
-                    type="text"
-                    value={coverTitle}
-                    onChange={(e) => setCoverTitle(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-800 focus:border-[#005baa] focus:outline-none"
-                  />
+                  <p className="font-bold text-slate-800">
+                    Status Berkas Cover Laporan:
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Cover ini akan menjadi halaman pertama (halaman depan) dokumen laporan.
+                  </p>
+
+                  <div className="mt-3 flex items-center gap-3">
+                    {coverPreviewUrl && coverFileType === "image" ? (
+                      <div className="h-20 w-16 overflow-hidden rounded-lg border border-slate-300 bg-white shadow-2xs shrink-0">
+                        <img
+                          src={coverPreviewUrl}
+                          alt="Cover Thumbnail"
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    ) : coverPreviewUrl && coverFileType === "pdf" ? (
+                      <div className="h-20 w-16 rounded-lg border border-rose-200 bg-rose-50 flex flex-col items-center justify-center text-rose-600 shadow-2xs shrink-0">
+                        <Icon icon="solar:document-text-bold" width={24} />
+                        <span className="text-[9px] font-bold mt-1">PDF</span>
+                      </div>
+                    ) : (
+                      <div className="h-20 w-16 rounded-lg border border-dashed border-slate-300 bg-white flex flex-col items-center justify-center text-slate-400 shrink-0">
+                        <Icon icon="solar:close-circle-bold" width={20} />
+                        <span className="text-[9px] mt-0.5">Kosong</span>
+                      </div>
+                    )}
+
+                    <div className="space-y-1 min-w-0">
+                      <p className="font-bold text-slate-800 truncate">
+                        {coverFile
+                          ? coverFile.name
+                          : coverPreviewUrl === DEFAULT_COVER_IMAGE
+                          ? "Cover Resmi BBPOM (Triwulan II 2026)"
+                          : "Tanpa Gambar Cover"}
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        Tipe:{" "}
+                        <span className="font-semibold text-slate-700 uppercase">
+                          {coverFileType === "none" ? "Tidak Aktif" : coverFileType}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block font-medium text-slate-600 mb-1">
-                    Subjudul Cover
-                  </label>
-                  <input
-                    type="text"
-                    value={coverSubtitle}
-                    onChange={(e) => setCoverSubtitle(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-800 focus:border-[#005baa] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block font-medium text-slate-600 mb-1">
-                    Keterangan Footer / Waktu
-                  </label>
-                  <input
-                    type="text"
-                    value={coverDate}
-                    onChange={(e) => setCoverDate(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-800 focus:border-[#005baa] focus:outline-none"
-                  />
+
+                <div className="mt-4 pt-3 border-t border-slate-200 flex flex-wrap items-center gap-2">
+                  {coverPreviewUrl && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveCover}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 transition shadow-2xs"
+                      title="Hapus cover jika salah"
+                    >
+                      <Icon icon="solar:trash-bin-trash-bold" width={14} />
+                      Hapus Cover
+                    </button>
+                  )}
+                  {coverPreviewUrl !== DEFAULT_COVER_IMAGE && (
+                    <button
+                      type="button"
+                      onClick={handleResetDefaultCover}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-2xs"
+                    >
+                      <Icon icon="solar:restart-bold" width={14} />
+                      Gunakan Cover Bawaan
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -2201,79 +2237,55 @@ export default function LaporanEvaluasiTu() {
           {/* ======================================================== */}
           {/* 1. COVER LAPORAN EVALUASI INTERNAL (HALAMAN 1)          */}
           {/* ======================================================== */}
-          <div className="cover-page-container print:break-after-page min-h-[680px] print:min-h-screen flex flex-col justify-between rounded-2xl border-4 border-double border-slate-300 bg-white p-8 sm:p-14 text-center print:border-4 print:p-8">
-            {coverPreviewUrl && coverFileType === "image" ? (
-              <div className="flex flex-col items-center justify-center w-full h-full py-4 my-auto">
-                <img
-                  src={coverPreviewUrl}
-                  alt="Cover Laporan"
-                  className="max-h-[620px] w-auto max-w-full object-contain rounded-xl shadow-xs print:shadow-none print:max-h-none print:w-full"
-                />
-                <p className="mt-3 text-xs text-slate-500 font-medium print:hidden">
-                  Cover Gambar Terpasang: {coverFile?.name}
-                </p>
-              </div>
-            ) : coverPreviewUrl && coverFileType === "pdf" ? (
-              <div className="flex flex-col items-center justify-center py-16 px-6 bg-slate-50 rounded-xl border border-slate-200 my-auto">
-                <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shadow-2xs mb-4">
-                  <Icon icon="solar:document-text-bold" width={36} />
-                </div>
-                <span className="rounded bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-800 uppercase">
-                  Cover Dokumen PDF
-                </span>
-                <h3 className="text-base font-bold text-slate-800 mt-2">{coverTitle}</h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Berkas Cover: {coverFile?.name}
-                </p>
-                <a
-                  href={coverPreviewUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-rose-700 print:hidden"
+          {coverPreviewUrl && coverFileType !== "none" && (
+            <div className="cover-page-container relative print:break-after-page min-h-[680px] print:min-h-screen flex flex-col justify-center items-center rounded-2xl border-2 border-slate-200 bg-white p-6 sm:p-10 text-center print:border-none print:p-0">
+              <div className="absolute top-4 right-4 print:hidden flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleRemoveCover}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white/95 px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 shadow-xs transition"
+                  title="Hapus cover ini jika salah"
                 >
-                  <Icon icon="solar:eye-bold" width={16} />
-                  Buka Berkas Cover PDF
-                </a>
+                  <Icon icon="solar:trash-bin-trash-bold" width={14} />
+                  Hapus Cover
+                </button>
               </div>
-            ) : (
-              /* Cover Resmi Default */
-              <div className="flex flex-col justify-between h-full py-6">
-                <div>
-                  <p className="text-xs sm:text-sm font-bold tracking-widest text-slate-600 uppercase">
-                    BADAN PENGAWAS OBAT DAN MAKANAN RI
-                  </p>
-                  <p className="text-sm sm:text-base font-black text-slate-900 uppercase mt-1">
-                    BALAI BESAR PENGAWAS OBAT DAN MAKANAN DI MATARAM
+
+              {coverFileType === "image" ? (
+                <div className="flex flex-col items-center justify-center w-full h-full py-4 my-auto">
+                  <img
+                    src={coverPreviewUrl}
+                    alt="Cover Laporan"
+                    className="max-h-[680px] w-auto max-w-full object-contain rounded-xl shadow-xs print:shadow-none print:max-h-none print:w-full"
+                  />
+                  <p className="mt-3 text-xs text-slate-500 font-medium print:hidden">
+                    Cover Gambar Terpasang: {coverFile?.name || "Cover Resmi BBPOM"}
                   </p>
                 </div>
-
-                <div className="my-16 space-y-3">
-                  <div className="inline-block rounded-full bg-blue-50 px-4 py-1 text-xs font-bold text-[#005baa] uppercase tracking-wider">
-                    SUB-BAGIAN TATA USAHA
+              ) : (
+                <div className="flex flex-col items-center justify-center py-16 px-6 bg-slate-50 rounded-xl border border-slate-200 my-auto">
+                  <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shadow-2xs mb-4">
+                    <Icon icon="solar:document-text-bold" width={36} />
                   </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-slate-900 uppercase tracking-tight leading-tight">
-                    {coverTitle}
-                  </h1>
-                  <div className="h-1 w-20 bg-[#005baa] mx-auto rounded-full" />
-                  <p className="text-sm sm:text-base font-bold text-slate-700">
-                    {coverSubtitle}
-                  </p>
-                  <p className="text-xs font-medium text-slate-500">
-                    Periode Evaluasi: {periodeText}
-                  </p>
+                  <span className="rounded bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-800 uppercase">
+                    Cover Dokumen PDF
+                  </span>
+                  <h3 className="text-base font-bold text-slate-800 mt-2">
+                    {coverFile?.name || "Dokumen Cover PDF"}
+                  </h3>
+                  <a
+                    href={coverPreviewUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-4 inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-rose-700 print:hidden"
+                  >
+                    <Icon icon="solar:eye-bold" width={16} />
+                    Buka Berkas Cover PDF
+                  </a>
                 </div>
-
-                <div className="border-t border-slate-200 pt-6">
-                  <p className="text-xs font-bold uppercase text-slate-800">
-                    MATARAM, NUSA TENGGARA BARAT
-                  </p>
-                  <p className="text-xs font-semibold text-slate-600 mt-0.5">
-                    {coverDate}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* ======================================================== */}
           {/* 2. BERITA ACARA & TABEL 1 (REALISASI RO & ANGGARAN)       */}
@@ -2964,10 +2976,10 @@ export default function LaporanEvaluasiTu() {
                     key={item.id}
                     className="space-y-3 break-inside-avoid print:break-inside-avoid"
                   >
-                    {/* Judul Lampiran persis seperti di referensi: e.g. "1. Persentase Sampel Sediaan Farmasi..." */}
+                    {/* Judul Lampiran persis seperti di referensi: e.g. "1. IKSK 1" tanpa duplikasi nomor */}
                     <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                       <h4 className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
-                        {idx + 1}. {item.title}
+                        {getFormattedTitle(item.title, idx)}
                       </h4>
                       <div className="print:hidden flex items-center gap-2 text-xs">
                         <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
@@ -2982,6 +2994,15 @@ export default function LaporanEvaluasiTu() {
                           <Icon icon="solar:eye-bold" width={13} />
                           Buka Berkas
                         </a>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveLampiran(item.id)}
+                          className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600 hover:bg-red-100 shadow-2xs transition"
+                          title="Hapus lampiran ini jika salah"
+                        >
+                          <Icon icon="solar:trash-bin-trash-bold" width={13} />
+                          Hapus
+                        </button>
                       </div>
                     </div>
 
@@ -3005,7 +3026,7 @@ export default function LaporanEvaluasiTu() {
                         {/* Di tampilan print: Ringkasan dokumen lampiran resmi */}
                         <div className="hidden print:flex flex-col items-center justify-center p-8 bg-slate-50 text-center border-t border-slate-200">
                           <p className="text-xs font-bold text-slate-900">
-                            [Lampiran {idx + 1}: {item.title}]
+                            [{getFormattedTitle(item.title, idx)}]
                           </p>
                           <p className="text-[11px] text-slate-600 mt-1">
                             Berkas Terlampir: {item.fileName} ({item.fileSizeFormatted})
