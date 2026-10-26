@@ -9,9 +9,9 @@ import NotificationBell from "../NotificationBell";
 
 export default function HeaderUserArea({ user, callName }: { user: User | null, callName: string }) {
     return (
-        <header className="flex justify-between items-center px-6 py-4 bg-white shadow-md">
-            <div>
-                <h2 className="md:text-lg font-semibold text-gray-800">
+        <header className="flex justify-between items-center px-3 sm:px-6 py-2.5 sm:py-4 bg-white shadow-xs border-b border-slate-100">
+            <div className="min-w-0 pr-2">
+                <h2 className="text-sm sm:text-base md:text-lg font-bold text-gray-800 truncate max-w-[160px] sm:max-w-xs md:max-w-none">
                     {(() => {
                         const hour = dayjs().hour();
                         const greeting =
@@ -23,7 +23,7 @@ export default function HeaderUserArea({ user, callName }: { user: User | null, 
                         return `${greeting}, ${callName || fullName}`;
                     })()}
                 </h2>
-                <p className="text-xs text-gray-500">
+                <p className="text-[11px] sm:text-xs text-gray-500 truncate">
                     {dayjs().format("dddd, DD MMMM YYYY")}
                 </p>
             </div>

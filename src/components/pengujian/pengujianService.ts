@@ -116,6 +116,10 @@ export const pengujianService = {
         return `${PENGUJIAN_BASE_URL}/file-group/${fileGroupId}/pdf-merged`;
     },
 
+    getFileGroupMergedPdfUrl(fileGroupId: string): string {
+        return `${PENGUJIAN_BASE_URL}/file-group/${fileGroupId}/pdf-merged`;
+    },
+
     getItemPdfUrl(id: number): string {
         return `${PENGUJIAN_BASE_URL}/item/${id}/pdf`;
     },

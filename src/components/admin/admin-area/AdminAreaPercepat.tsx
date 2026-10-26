@@ -26,6 +26,7 @@ import AdminKartuStokPerlengkapanPercepat from "../percepat/kartu-stok/perlengka
 import AdminPermintaanPerlengkapanPercepat from "../percepat/permintaan/perlengkapan/AdminPermintaanPerlengkapanPercepat";
 import AdminPermintaanReagenPercepat from "../percepat/permintaan/reagen/AdminPermintaanReagenPercepat";
 import AdminPermintaanBakuPembandingPercepat from "../percepat/permintaan/baku-pembanding/AdminPermintaanBakuPembandingPercepat";
+import AdminStokOpnamePercepat from "../percepat/stok-opname/AdminStokOpnamePercepat";
 import AdminSettingsPercepat from "../percepat/settings/AdminSettingsPercepat";
 import SidebarAdminPercepat from "./sidebar/SidebarAdminPercepat";
 
@@ -60,7 +61,7 @@ export default function AdminAreaPercepat() {
             <SidebarAdminPercepat />
             <div className="flex-1 flex flex-col w-[calc(100%-4rem)] lg:w-[calc(100%-13rem)]">
                 <HeaderUserArea user={user} callName={callName} />
-                <div className="flex-1 p-8 overflow-y-auto">
+                <div className="flex-1 p-3 sm:p-5 md:p-8 overflow-y-auto">
                     {/* ADMIN DASHBOARD PANEL */}
                     {
                         pathname === '/admin/percepat' && user &&
@@ -145,7 +146,10 @@ export default function AdminAreaPercepat() {
                         pathname === '/admin/percepat/permintaan/suku-cadang' && user &&
                         <AdminSukuCadangPercepat />
                     }
-
+                    {
+                        pathname === '/admin/percepat/stok-opname' && user &&
+                        <AdminStokOpnamePercepat />
+                    }
 
                     {
                         pathname === '/admin/percepat/settings' && user &&

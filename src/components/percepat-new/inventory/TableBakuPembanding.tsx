@@ -77,7 +77,7 @@ export default function TableBakuPembanding(props: any) {
                             <th>No</th>
                             <th>Kode Baru</th>
                             <th>Nama</th>
-                            <th>Letak</th>
+                            <th>Lokasi</th>
                             <th>Satuan</th>
                             <th>Kedaluarsa</th>
                             <th>Stok</th>

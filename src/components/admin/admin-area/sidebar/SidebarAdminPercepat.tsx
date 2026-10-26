@@ -144,6 +144,18 @@ export default function SidebarAdminPercepat() {
                     </li>
                 </ul>
             </div>
+
+            <Link
+                href={'/admin/percepat/stok-opname'}
+                className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/percepat/stok-opname')}`}
+                data-tip="Stok Opname"
+            >
+                <span className="material-symbols-outlined">
+                    qr_code_scanner
+                </span>
+                <span className="hidden lg:block whitespace-nowrap">Stok Opname</span>
+            </Link>
+
             <Link href={'/admin/percepat/settings'} className={`mt-auto flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/percepat/settings')}`} data-tip="Settings">
                 <span className="material-symbols-outlined">
                     settings

@@ -6,6 +6,8 @@ import dayjs from "dayjs";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import { QrCode } from "lucide-react";
+import LabelStikerModal, { LabelStikerItem } from "@/components/percepat-new/label/LabelStikerModal";
 
 export default function PermintaanBakuPembandingPercepat() {
     const { user } = useRequireAuth();
@@ -16,6 +18,10 @@ export default function PermintaanBakuPembandingPercepat() {
     const [listBarangPermintaan, setListBarangPermintaan] = useState<any>([]);
     const [showModalListBarangPermintaan, setShowModalListBarangPermintaan] = useState(false);
     const [selectedPermintaan, setSelectedPermintaan] = useState<any>(null);
+
+    // === STATE LABEL STIKER ===
+    const [labelModalOpen, setLabelModalOpen] = useState(false);
+    const [selectedLabelItem, setSelectedLabelItem] = useState<LabelStikerItem | null>(null);
 
     // === STATE DELETE ===
     const [showModalConfirmDelete, setShowModalConfirmDelete] = useState(false);
@@ -280,7 +286,7 @@ export default function PermintaanBakuPembandingPercepat() {
                                             </div>
                                             <div className="text-xs [&>span]:mr-1">
                                                 {bp.kode_baru && <span className="badge badge-soft badge-primary">Kode Baru : {bp.kode_baru}</span>}
-                                                {bp.letak && <span className="badge badge-soft badge-primary">Letak : {bp.letak}</span>}
+                                                {bp.letak && <span className="badge badge-soft badge-primary">Lokasi : {bp.letak}</span>}
                                                 <span className="badge badge-soft badge-primary">Minta : {item.jumlahpermintaan}</span>
                                                 <span className="badge badge-soft badge-primary">Realisasi : {item.jumlahrealisasi || '-'}</span>
                                                 <span className="badge badge-soft badge-primary">Satuan : {bp.satuan || '-'}</span>
@@ -288,6 +294,33 @@ export default function PermintaanBakuPembandingPercepat() {
                                                 <span className="badge badge-soft badge-primary">Ket : {selectedPermintaan?.bidang?.name || selectedPermintaan?.bidang_name_auth_external || item.keterangan || '-'}</span>
                                             </div>
                                         </div>
+                                        <button
+                                            type="button"
+                                            className="btn btn-xs sm:btn-sm btn-info btn-outline gap-1 self-start sm:self-center shrink-0"
+                                            title="Cetak Label Stiker Botol"
+                                            onClick={() => {
+                                                setSelectedLabelItem({
+                                                    id: bp.id || item.baku_pembanding_id || item.barang_id,
+                                                    name: bp.name || 'Baku Pembanding',
+                                                    code: bp.code,
+                                                    kode_baru: bp.kode_baru,
+                                                    letak: bp.letak,
+                                                    satuan: bp.satuan,
+                                                    expired: bp.expired,
+                                                    diterima_tanggal: selectedPermintaan?.tgl_penyerahan || null,
+                                                    diterima_penerima: selectedPermintaan?.tgl_penyerahan
+                                                        ? (selectedPermintaan?.peminta?.name || selectedPermintaan?.pemohon)
+                                                        : null,
+                                                    diterima_lab: selectedPermintaan?.bidang?.name || selectedPermintaan?.bidang_name_auth_external || null,
+                                                    category: 'baku-pembanding',
+                                                    isFromPermintaan: true,
+                                                });
+                                                setLabelModalOpen(true);
+                                            }}
+                                        >
+                                            <QrCode size={13} />
+                                            Cetak Label
+                                        </button>
                                     </li>
                                 );
                             })
@@ -329,6 +362,11 @@ export default function PermintaanBakuPembandingPercepat() {
                 </ModalGeneral>
             )}
 
+            <LabelStikerModal
+                isOpen={labelModalOpen}
+                onClose={() => setLabelModalOpen(false)}
+                item={selectedLabelItem}
+            />
         </>
     );
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import PercepatNavbar from "./header/PercepatNavbar";
 import Hero from "./header/Hero";
+import PendingVerifikasiSection from "./home/PendingVerifikasiSection";
 import ModernInventory, { CategoryKey } from "./inventory/ModernInventory";
 import PercepatFooter from "./footer/PercepatFooter";
 
@@ -17,6 +18,9 @@ export default function Percepat() {
 
                 {/* Simplified Animated Hero with 3D Minimalist Glass Object */}
                 <Hero />
+
+                {/* Pending Verification Tasks for KaTim, Kabag TU, and Admin */}
+                <PendingVerifikasiSection />
 
                 {/* Clean, Interactive Live Inventory Catalog */}
                 <ModernInventory
