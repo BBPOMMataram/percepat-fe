@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbo",
     "dev:turbo": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
@@ -40,7 +40,11 @@
     "lucide-react": "^1.55.0",
     "material-symbols": "^0.35.0",
     "next": "^15.4.10",
+<<<<<<< HEAD
     "pdf-lib": "^1.17.1",
+=======
+    "pdfjs-dist": "^3.11.174",
+>>>>>>> fbcd0f69e43feef6626f1e1a85381f9d12397f23
     "postcss": "^8.5.6",
     "qrcode": "^1.5.4",
     "react": "^19.1.2",

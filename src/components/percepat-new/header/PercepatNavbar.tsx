@@ -181,6 +181,21 @@ export default function PercepatNavbar() {
                                 </div>
                             )}
                         </div>
+
+                        {/* Stok Opname Link (for Admin / Petugas) */}
+                        {(user?.role?.level === "admin" || user?.role?.level === "superadmin") && (
+                            <Link
+                                href="/admin/percepat/stok-opname"
+                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                                    pathname?.includes("/stok-opname")
+                                        ? "bg-indigo-50 text-indigo-700 font-semibold"
+                                        : "text-slate-600 hover:text-indigo-700 hover:bg-indigo-50/50"
+                                }`}
+                            >
+                                <span className="material-symbols-outlined text-base">qr_code_scanner</span>
+                                <span>Stok Opname</span>
+                            </Link>
+                        )}
                     </nav>
 
                     {/* Right User Actions */}
@@ -242,6 +257,22 @@ export default function PercepatNavbar() {
                                                 <span>Riwayat Permintaan</span>
                                             </Link>
                                         </li>
+                                        {(user?.role?.level === "admin" || user?.role?.level === "superadmin") && (
+                                            <>
+                                                <li className="border-t border-slate-100 mt-1 pt-1">
+                                                    <Link href="/admin/percepat/stok-opname" className="flex items-center gap-2 py-2 text-indigo-700 font-medium">
+                                                        <span className="material-symbols-outlined text-lg">qr_code_scanner</span>
+                                                        <span>Stok Opname Gudang</span>
+                                                    </Link>
+                                                </li>
+                                                <li>
+                                                    <Link href="/admin/percepat" className="flex items-center gap-2 py-2 text-blue-700 font-medium">
+                                                        <span className="material-symbols-outlined text-lg">admin_panel_settings</span>
+                                                        <span>Admin Panel Percepat</span>
+                                                    </Link>
+                                                </li>
+                                            </>
+                                        )}
                                         <li className="border-t border-slate-100 mt-1 pt-1">
                                             <button
                                                 type="button"

@@ -38,6 +38,7 @@ interface ReagenDetail {
     msds?: string | boolean;
     diterima_tanggal?: string | null;
     diterima_penerima?: string | null;
+    diterima_lab?: string | null;
     created_at?: string;
     updated_at?: string;
 }
@@ -131,7 +132,9 @@ export default function DetailReagen() {
         expired: data.expired,
         diterima_tanggal: data.diterima_tanggal,
         diterima_penerima: data.diterima_penerima,
+        diterima_lab: data.diterima_lab || (data as any)?.bidang?.name || (data as any)?.bidang_name_auth_external || null,
         category: 'reagen',
+        isFromPermintaan: !!data.diterima_tanggal,
     };
 
     return (

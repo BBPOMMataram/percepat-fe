@@ -25,6 +25,7 @@ import {
     UserCheck,
 } from 'lucide-react';
 import api from '@/utils/api';
+import LabelStikerModal, { LabelStikerItem } from '../label/LabelStikerModal';
 
 dayjs.locale('id');
 
@@ -40,6 +41,7 @@ interface BakuPembandingDetail {
     msds?: string | boolean;
     diterima_tanggal?: string | null;
     diterima_penerima?: string | null;
+    diterima_lab?: string | null;
     created_at?: string;
     updated_at?: string;
 }
@@ -51,6 +53,7 @@ export default function DetailBakuPembanding() {
     const [data, setData] = useState<BakuPembandingDetail | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [labelModalOpen, setLabelModalOpen] = useState<boolean>(false);
     const [copied, setCopied] = useState<boolean>(false);
 
     useEffect(() => {
@@ -124,6 +127,21 @@ export default function DetailBakuPembanding() {
     const isExpired = expDate ? expDate.isBefore(now) : false;
     const isNearExpired = expDate ? !isExpired && expDate.diff(now, 'month') < 6 : false;
     const daysUntilExp = expDate ? expDate.diff(now, 'day') : null;
+
+    const labelItem: LabelStikerItem = {
+        id: data.id,
+        name: data.name,
+        code: data.code,
+        kode_baru: data.kode_baru,
+        letak: data.letak,
+        satuan: data.satuan,
+        expired: data.expired,
+        diterima_tanggal: data.diterima_tanggal,
+        diterima_penerima: data.diterima_penerima,
+        diterima_lab: data.diterima_lab || (data as any)?.bidang?.name || (data as any)?.bidang_name_auth_external || null,
+        category: 'baku-pembanding',
+        isFromPermintaan: !!data.diterima_tanggal,
+    };
 
     return (
         <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 text-slate-800">
@@ -200,7 +218,7 @@ export default function DetailBakuPembanding() {
                                 {data.letak && (
                                     <div className="flex items-center gap-1.5 bg-rose-50 px-2.5 py-1 rounded-lg text-rose-800 font-semibold border border-rose-200">
                                         <MapPin size={14} className="text-rose-600" />
-                                        Letak: {data.letak}
+                                        Lokasi: {data.letak}
                                     </div>
                                 )}
                             </div>
@@ -336,7 +354,7 @@ export default function DetailBakuPembanding() {
                             Teknisi yang pertama kali membuka wadah baku pembanding wajib mengisi kolom <strong>DIBUKA OLEH</strong> dan <strong>TANGGAL</strong> pada stiker fisik menggunakan pulpen tahan luntur.
                         </li>
                         <li>
-                            Segera simpan kembali baku pembanding pada letak penyimpanan: <strong>{data.letak || 'tempat yang telah ditentukan'}</strong> sesuai dengan suhu yang dipersyaratkan.
+                            Segera simpan kembali baku pembanding pada lokasi penyimpanan: <strong>{data.letak || 'tempat yang telah ditentukan'}</strong> sesuai dengan suhu yang dipersyaratkan.
                         </li>
                         <li>
                             Pengambilan untuk pengujian wajib melalui permohonan form permintaan persediaan resmi.
@@ -344,6 +362,12 @@ export default function DetailBakuPembanding() {
                     </ul>
                 </div>
 
+                {/* Sticker Modal */}
+                <LabelStikerModal
+                    isOpen={labelModalOpen}
+                    onClose={() => setLabelModalOpen(false)}
+                    item={labelItem}
+                />
             </div>
         </div>
     );

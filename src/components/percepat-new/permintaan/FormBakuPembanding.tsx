@@ -157,7 +157,7 @@ export default function FormBakuPembanding({ listBarang, setListBarang }: FormBa
                                 <tr>
                                     <th className="p-2 text-left text-sm">Kode Baru</th>
                                     <th className="p-2 text-left text-sm">Nama</th>
-                                    <th className="p-2 text-left text-sm">Letak</th>
+                                    <th className="p-2 text-left text-sm">Lokasi</th>
                                     <th className="p-2 text-left text-sm">Stok</th>
                                     <th className="p-2 text-left text-sm">Satuan</th>
                                     <th className="p-2 text-left text-sm">Expired</th>
@@ -207,7 +207,7 @@ export default function FormBakuPembanding({ listBarang, setListBarang }: FormBa
                     <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
                         <p className="text-sm font-medium">Baku Pembanding Dipilih: {selectedBakuPembanding.name}</p>
                         <p className="text-sm text-gray-600">Kode Baru: {selectedBakuPembanding.kode_baru || '-'}</p>
-                        <p className="text-sm text-gray-600">Letak: {selectedBakuPembanding.letak || '-'}</p>
+                        <p className="text-sm text-gray-600">Lokasi: {selectedBakuPembanding.letak || '-'}</p>
                         <p className="text-sm text-gray-600">Stok Tersedia: {selectedBakuPembanding.stock}</p>
                         <p className="text-sm text-gray-600">Satuan: {selectedBakuPembanding.satuan}</p>
                         <p className="text-sm text-gray-600">Ed: {selectedBakuPembanding.expired ? dayjs(selectedBakuPembanding.expired).format("DD MMM YYYY") : '-'}</p>
@@ -266,7 +266,7 @@ export default function FormBakuPembanding({ listBarang, setListBarang }: FormBa
                                     <th className="p-2 text-left text-sm">No</th>
                                     <th className="p-2 text-left text-sm">Kode Baru</th>
                                     <th className="p-2 text-left text-sm">Nama</th>
-                                    <th className="p-2 text-left text-sm">Letak</th>
+                                    <th className="p-2 text-left text-sm">Lokasi</th>
                                     <th className="p-2 text-left text-sm">Jumlah</th>
                                     <th className="p-2 text-left text-sm">Satuan</th>
                                     <th className="p-2 text-left text-sm">Expired</th>

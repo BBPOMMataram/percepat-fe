@@ -221,7 +221,7 @@ export default function VerifBakuPembandingPercepat() {
                                         {bp.name ? `${bp.kode_baru ? `[${bp.kode_baru}] ` : ''}${bp.name} (Stok: ${bp.stock ?? '-'})` : `Barang tidak ditemukan (ID: ${item.baku_pembanding_id || item.barang_id || '-'})`}
                                         <div className="text-xs [&>span]:mr-1">
                                             <span className="badge badge-soft badge-primary">Kode Baru : {bp.kode_baru || '-'}</span>
-                                            <span className="badge badge-soft badge-primary">Letak : {bp.letak || '-'}</span>
+                                            <span className="badge badge-soft badge-primary">Lokasi : {bp.letak || '-'}</span>
                                             <span className="badge badge-soft badge-primary">Jumlah Permintaan : {item.jumlahpermintaan}</span>
                                             <span className="badge badge-soft badge-primary">Jumlah Realisasi : {item.jumlahrealisasi || '-'}</span>
                                             <span className="badge badge-soft badge-primary">Satuan : {bp.satuan || '-'}</span>

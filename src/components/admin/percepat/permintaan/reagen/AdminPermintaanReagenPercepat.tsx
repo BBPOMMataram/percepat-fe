@@ -384,6 +384,7 @@ export default function AdminPermintaanReagenPercepat() {
                                             diterima_penerima: selectedPermintaan?.tgl_penyerahan
                                                 ? (selectedPermintaan?.peminta?.name || selectedPermintaan?.peminta_name || selectedPermintaan?.pemohon)
                                                 : null,
+                                            diterima_lab: selectedPermintaan?.bidang?.name || selectedPermintaan?.bidang_name_auth_external || null,
                                             category: 'reagen',
                                             isFromPermintaan: true,
                                         });

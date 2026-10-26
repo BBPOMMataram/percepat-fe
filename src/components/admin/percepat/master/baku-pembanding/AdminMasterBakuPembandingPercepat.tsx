@@ -5,8 +5,10 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import AdminMasterFormBakuPembandingPercepat from "./AdminMasterFormBakuPembandingPercepat";
-import { FileSpreadsheet } from "lucide-react";
+import { FileSpreadsheet, QrCode, UploadCloud } from "lucide-react";
 import { exportJsonToExcel } from "@/utils/excelExport";
+import LabelStikerModal, { LabelStikerItem } from "@/components/percepat-new/label/LabelStikerModal";
+import ImportMasterExcelModal from "../ImportMasterExcelModal";
 
 export default function AdminMasterBakuPembandingPercepat() {
     const [data, setData] = useState<any>([]);
@@ -16,6 +18,9 @@ export default function AdminMasterBakuPembandingPercepat() {
     const [editData, setEditData] = useState<any>(null);
     const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
     const [isExporting, setIsExporting] = useState(false);
+    const [labelModalOpen, setLabelModalOpen] = useState<boolean>(false);
+    const [selectedLabelItem, setSelectedLabelItem] = useState<LabelStikerItem | null>(null);
+    const [importModalOpen, setImportModalOpen] = useState<boolean>(false);
 
     const dispatch = useDispatch<AppDispatch>();
 
@@ -114,6 +119,13 @@ export default function AdminMasterBakuPembandingPercepat() {
                             {isExporting ? <span className="loading loading-spinner loading-xs" /> : <FileSpreadsheet size={16} />}
                             Export Excel
                         </button>
+                        <button
+                            className="btn btn-outline btn-info gap-2"
+                            onClick={() => setImportModalOpen(true)}
+                        >
+                            <UploadCloud size={16} />
+                            Import Data (Excel & PDF)
+                        </button>
                     </div>
 
                     <div className="flex items-center gap-2 ml-auto">
@@ -175,6 +187,26 @@ export default function AdminMasterBakuPembandingPercepat() {
                                                 Edit
                                             </button>
                                             <button
+                                                className="btn btn-sm btn-info btn-outline ml-1"
+                                                onClick={() => {
+                                                    setSelectedLabelItem({
+                                                        id: item.id,
+                                                        name: item.name,
+                                                        code: item.code,
+                                                        kode_baru: item.kode_baru,
+                                                        satuan: item.satuan,
+                                                        letak: item.letak,
+                                                        expired: item.expired,
+                                                        category: 'baku-pembanding',
+                                                        isFromMaster: true,
+                                                    });
+                                                    setLabelModalOpen(true);
+                                                }}
+                                                title="Cetak Label Stiker Master"
+                                            >
+                                                <QrCode size={14} /> Label
+                                            </button>
+                                            <button
                                                 className="btn btn-sm btn-error ml-1"
                                                 onClick={() => handleRemove(item.id)}
                                             >
@@ -216,6 +248,19 @@ export default function AdminMasterBakuPembandingPercepat() {
                     </div>
                 </div>
             </div>
+
+            <LabelStikerModal
+                isOpen={labelModalOpen}
+                onClose={() => setLabelModalOpen(false)}
+                item={selectedLabelItem}
+            />
+
+            <ImportMasterExcelModal
+                isOpen={importModalOpen}
+                onClose={() => setImportModalOpen(false)}
+                onSuccess={loadData}
+                category="baku-pembanding"
+            />
         </>
     );
 }

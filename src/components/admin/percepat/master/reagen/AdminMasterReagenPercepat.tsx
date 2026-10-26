@@ -6,7 +6,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import AdminMasterFormAtkPercepat from "./AdminMasterFormReagenPercepat";
 import LabelStikerModal, { LabelStikerItem } from "@/components/percepat-new/label/LabelStikerModal";
-import { QrCode, FileSpreadsheet } from "lucide-react";
+import ImportMasterExcelModal from "../ImportMasterExcelModal";
+import { QrCode, FileSpreadsheet, UploadCloud } from "lucide-react";
 import { exportJsonToExcel } from "@/utils/excelExport";
 
 export default function AdminMasterReagenPercepat() {
@@ -18,6 +19,7 @@ export default function AdminMasterReagenPercepat() {
     const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
     const [labelModalOpen, setLabelModalOpen] = useState<boolean>(false);
     const [selectedLabelItem, setSelectedLabelItem] = useState<LabelStikerItem | null>(null);
+    const [importModalOpen, setImportModalOpen] = useState<boolean>(false);
     const [isExporting, setIsExporting] = useState(false);
 
     const dispatch = useDispatch<AppDispatch>()
@@ -114,6 +116,13 @@ export default function AdminMasterReagenPercepat() {
                         >
                             {isExporting ? <span className="loading loading-spinner loading-xs" /> : <FileSpreadsheet size={16} />}
                             Export Excel
+                        </button>
+                        <button
+                            className="btn btn-outline btn-info gap-2"
+                            onClick={() => setImportModalOpen(true)}
+                        >
+                            <UploadCloud size={16} />
+                            Import Data (Excel & PDF)
                         </button>
                     </div>
 
@@ -232,6 +241,13 @@ export default function AdminMasterReagenPercepat() {
                 isOpen={labelModalOpen}
                 onClose={() => setLabelModalOpen(false)}
                 item={selectedLabelItem}
+            />
+
+            <ImportMasterExcelModal
+                isOpen={importModalOpen}
+                onClose={() => setImportModalOpen(false)}
+                onSuccess={loadData}
+                category="reagen"
             />
         </>
     )
