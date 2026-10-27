@@ -370,7 +370,7 @@ export default function MatriksRekomendasiTu() {
   const handleSyncSheet = async () => {
     if (
       !confirm(
-        `Tarik dan sinkronkan data Matriks Rekomendasi untuk ${selectedQuarter} dari Google Sheet? Data yang ada di database akan diperbarui.`
+        `Sinkronkan data Matriks Rekomendasi untuk ${selectedQuarter}? Data yang ada di database akan disinkronkan.`
       )
     ) {
       return;
@@ -390,13 +390,13 @@ export default function MatriksRekomendasiTu() {
       }
       setNotification({
         type: "success",
-        message: `Sinkronisasi berhasil! Data matriks ${selectedQuarter} telah diperbarui dari Google Sheet.`,
+        message: `Sinkronisasi berhasil! Data matriks ${selectedQuarter} telah diperbarui.`,
       });
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       setNotification({
         type: "error",
-        message: e.response?.data?.message || "Gagal sinkronisasi dari Google Sheet.",
+        message: e.response?.data?.message || "Gagal sinkronisasi data matriks.",
       });
     } finally {
       setSyncing(false);
@@ -1106,7 +1106,7 @@ export default function MatriksRekomendasiTu() {
                 Belum ada data Matriks Rekomendasi untuk {selectedQuarter}
               </h3>
               <p className="mt-1 text-xs text-slate-500">
-                Anda dapat menarik data asli langsung dari Google Sheet atau menambahkannya secara manual.
+                Anda dapat menyinkronkan data atau menambahkannya secara manual.
               </p>
               <div className="mt-4 flex justify-center gap-2">
                 <button

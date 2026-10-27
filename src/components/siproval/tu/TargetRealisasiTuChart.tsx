@@ -341,7 +341,7 @@ export default function TargetRealisasiTuChart({ isKabalaiView = false }: Target
               Sumber Data
             </span>
             <p className="mt-1 text-sm font-bold text-slate-900 truncate" title={liveData.source}>
-              {liveData.is_live_data ? "Google Sheets Live" : "Sedang Menyinkron..."}
+              {liveData.is_live_data ? "Database Mandiri" : "Sedang Memuat..."}
             </p>
             <span className="text-[11px] text-slate-500">{liveData.last_synced_at}</span>
           </div>
@@ -352,7 +352,7 @@ export default function TargetRealisasiTuChart({ isKabalaiView = false }: Target
           {isLoading && activeChartData.length === 0 ? (
             <div className="flex h-[320px] w-full flex-col items-center justify-center gap-2 text-slate-400">
               <RefreshCw className="h-6 w-6 animate-spin text-[#005baa]" />
-              <span className="text-xs">Menyinkronkan data riil dari Google Sheets...</span>
+              <span className="text-xs">Memuat data realisasi anggaran dari database mandiri...</span>
             </div>
           ) : (
             <ChartContainer config={activeConfig} className="aspect-auto h-[320px] w-full">
@@ -425,7 +425,7 @@ export default function TargetRealisasiTuChart({ isKabalaiView = false }: Target
       <CardFooter className="flex flex-col gap-3 border-t border-slate-100 bg-slate-50/50 p-4 sm:flex-row sm:items-center sm:justify-between rounded-b-2xl">
         <div className="flex items-center gap-2 text-xs text-slate-500">
           <span className="inline-block h-2 w-2 rounded-full bg-[#00a651]"></span>
-          <span>Data terintegrasi otomatis secara live dengan Google Sheets Tab 155 (Realisasi RO) &amp; Budget Mapping 2026.</span>
+          <span>Data terintegrasi otomatis dengan database Realisasi RO &amp; Budget Mapping 2026.</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

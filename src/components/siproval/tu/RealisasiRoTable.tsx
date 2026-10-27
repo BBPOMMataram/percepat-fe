@@ -318,17 +318,17 @@ export default function RealisasiRoTable() {
 
       const message =
         res.data?.message ||
-        `${updateList.length} sel Realisasi RO berhasil disimpan ke Google Sheet!`;
+        `${updateList.length} sel Realisasi RO berhasil disimpan ke database mandiri!`;
       setSuccessMsg(message);
 
-      // Refresh data agar audit log dan formula sheet tersinkronisasi
+      // Refresh data agar audit log tersinkronisasi
       await fetchData(selectedMonth);
       setEditedCells({});
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       setErrorMsg(
         e.response?.data?.message ||
-          "Gagal menyimpan perubahan ke Google Sheet.",
+          "Gagal menyimpan perubahan ke database.",
       );
     } finally {
       setSaving(false);
@@ -1147,7 +1147,7 @@ export default function RealisasiRoTable() {
               width={34}
             />
             <p className="mt-2 text-xs font-semibold text-slate-700">
-              Memuat data Realisasi RO dari Google Sheet...
+              Memuat data Realisasi RO dari database mandiri...
             </p>
           </div>
         ) : filteredRows.length === 0 ? (

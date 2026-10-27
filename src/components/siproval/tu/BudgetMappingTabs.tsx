@@ -220,7 +220,7 @@ export default function BudgetMappingTabs() {
               {spreadsheetName}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Pilih tab Google Sheet berikut untuk melihat atau memperbarui data rincian
+              Pilih tab berikut untuk melihat atau memperbarui data rincian alokasi kegiatan
               anggaran.
             </p>
           </div>
@@ -446,7 +446,7 @@ export default function BudgetMappingTabs() {
                   ))}
                 </select>
                 <p className="mt-1 text-[11px] text-slate-500">
-                  Nama dan susunan kegiatan akan disalin secara dinamis dari tab acuan, sedangkan seluruh nilai <strong>Pagu, Realisasi, dan alokasi IKSK otomatis dikosongkan</strong> pada tab Google Sheet baru.
+                  Nama dan susunan kegiatan akan disalin secara dinamis dari tab acuan, sedangkan seluruh nilai <strong>Pagu, Realisasi, dan alokasi IKSK otomatis dikosongkan</strong> pada tab baru.
                 </p>
               </div>
 

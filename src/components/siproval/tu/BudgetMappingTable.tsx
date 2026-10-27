@@ -370,15 +370,15 @@ export default function BudgetMappingTable() {
 
       setSuccessMsg(
         targetKegIndex !== undefined
-          ? `Alokasi kegiatan berhasil disimpan dan disinkronkan ke Google Sheets!`
-          : `Seluruh data alokasi (${updateList.length} sel) berhasil disimpan dan disinkronkan ke Google Sheets!`,
+          ? `Alokasi kegiatan berhasil disimpan ke database mandiri!`
+          : `Seluruh data alokasi (${updateList.length} sel) berhasil disimpan ke database mandiri!`,
       );
       await loadTable();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       setErrorMsg(
         e.response?.data?.message ||
-          "Gagal menyimpan data ke Google Sheets. Pastikan akun service account memiliki wewenang Editor.",
+          "Gagal menyimpan data ke database. Silakan coba kembali.",
       );
     } finally {
       setSaving(false);

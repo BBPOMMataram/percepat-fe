@@ -604,7 +604,7 @@ export default function BudgetMapping() {
                   Unggah Dokumen Budget Mapping (Excel / CSV)
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Mendukung file Excel (.xlsx, .xls) atau CSV. Sistem otomatis memetakan alokasi anggaran dan tab bulanan.
+                  Mendukung file Excel (.xlsx, .xls) atau CSV. Sistem otomatis memetakan seluruh tab alokasi ke database mandiri SIPROVAL.
                 </p>
               </div>
               <button
@@ -629,7 +629,7 @@ export default function BudgetMapping() {
                   <Icon icon="solar:check-circle-bold" className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
                   <div>
                     <p className="font-semibold">{submitSuccess.message}</p>
-                    <p className="mt-0.5 font-mono text-[11px]">Sheet ID: {submitSuccess.sheetId}</p>
+                    <p className="mt-0.5 font-mono text-[11px] text-emerald-700">Status: Tersimpan di Database Mandiri ({submitSuccess.tabsCount} tab)</p>
                   </div>
                 </div>
               )}
