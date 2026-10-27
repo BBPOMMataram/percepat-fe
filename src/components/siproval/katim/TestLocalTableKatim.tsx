@@ -571,6 +571,12 @@ export default function TestLocalTableKatim() {
                           );
                         }
 
+                        const isBulanCol = col.label?.toLowerCase() === 'bulan' || col.label?.toLowerCase().includes('bulan');
+                        const showLockedBadge = isMonthLocked && (
+                          isBulanCol ||
+                          (!effectiveColumnsSchema.some((c) => c.label?.toLowerCase().includes('bulan')) && col.key === "col_0")
+                        );
+
                         return (
                           <td
                             key={col.key}
@@ -584,7 +590,7 @@ export default function TestLocalTableKatim() {
                           >
                             <div className="flex items-center justify-between gap-2">
                               <span>{val !== "" ? String(val) : "-"}</span>
-                              {isMonthLocked && col.key === "col_0" && (
+                              {showLockedBadge && (
                                 <span className="rounded bg-slate-200 px-1 py-0.2 text-[9px] text-slate-600">
                                   Terkunci
                                 </span>
