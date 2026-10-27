@@ -19,6 +19,83 @@ const getFormattedTitle = (title: string, index: number): string => {
   return `${index + 1}. ${trimmed}`;
 };
 
+const getImageBytesForPdf = async (
+  file: File | null,
+  url: string,
+): Promise<{ bytes: ArrayBuffer; format: "png" | "jpg" }> => {
+  if (file) {
+    const isPng =
+      file.type === "image/png" || file.name.toLowerCase().endsWith(".png");
+    const isJpg =
+      file.type === "image/jpeg" ||
+      file.type === "image/jpg" ||
+      file.name.toLowerCase().endsWith(".jpg") ||
+      file.name.toLowerCase().endsWith(".jpeg");
+
+    if (isPng) {
+      return { bytes: await file.arrayBuffer(), format: "png" };
+    }
+    if (isJpg) {
+      return { bytes: await file.arrayBuffer(), format: "jpg" };
+    }
+  }
+
+  // Coba ambil langsung dari fetch
+  try {
+    const res = await fetch(url);
+    const buf = await res.arrayBuffer();
+    const contentType = (res.headers.get("content-type") || "").toLowerCase();
+    const isPng =
+      contentType.includes("png") || url.toLowerCase().includes(".png");
+    const isJpg =
+      contentType.includes("jpeg") ||
+      contentType.includes("jpg") ||
+      url.toLowerCase().includes(".jpg") ||
+      url.toLowerCase().includes(".jpeg");
+
+    if (isPng) {
+      return { bytes: buf, format: "png" };
+    }
+    if (isJpg) {
+      return { bytes: buf, format: "jpg" };
+    }
+  } catch (err) {
+    console.warn("Direct fetch cover image failed, falling back to canvas:", err);
+  }
+
+  // Fallback via HTML Canvas untuk konversi gambar (WebP/SVG/Blob) ke PNG standar
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth || img.width || 1240;
+        canvas.height = img.naturalHeight || img.height || 1754;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Gagal menginisialisasi context canvas"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0);
+        canvas.toBlob(async (blob) => {
+          if (!blob) {
+            reject(new Error("Gagal mengonversi canvas ke blob PNG"));
+            return;
+          }
+          const bytes = await blob.arrayBuffer();
+          resolve({ bytes, format: "png" });
+        }, "image/png");
+      } catch (e) {
+        reject(e);
+      }
+    };
+    img.onerror = () =>
+      reject(new Error("Gagal memuat cover image ke elemen canvas"));
+    img.src = url;
+  });
+};
+
 const baseUrl =
   process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000";
 
@@ -819,34 +896,10 @@ export default function LaporanEvaluasiTu() {
       let y = 14;
 
       // ==========================================
-      // 1. HALAMAN COVER LAPORAN (Page 1 in PDF)
+      // HALAMAN BERITA ACARA & TABEL (Format Landscape A4)
+      // Cover (Halaman 1 Portrait) akan digabungkan di tahap merge PDFDocument
+      // agar cover tetap Portrait murni dan tabel tetap Landscape murni.
       // ==========================================
-      const hasCover = coverFileType !== "none" && !!coverPreviewUrl;
-      if (hasCover && coverFileType === "image") {
-        try {
-          doc.addImage(
-            coverPreviewUrl,
-            "PNG",
-            (pageWidth - 140) / 2,
-            10,
-            140,
-            190,
-          );
-        } catch {
-          // fallback jika addImage gagal
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(14);
-          doc.text("BALAI BESAR POM DI MATARAM", pageWidth / 2, 80, {
-            align: "center",
-          });
-          doc.setFontSize(18);
-          doc.text("LAPORAN EVALUASI INTERNAL", pageWidth / 2, 95, {
-            align: "center",
-          });
-        }
-        doc.addPage();
-        y = 14;
-      }
 
       // Header Title (Centered)
       doc.setFont("helvetica", "normal");
@@ -1488,21 +1541,62 @@ export default function LaporanEvaluasiTu() {
       }
 
       // ==========================================
-      // 4. MERGE DENGAN BERKAS LAMPIRAN ASLI (PDF & GAMBAR)
-      // Langsung gabungkan halaman PDF ke bawah dokumen (Bukan dibuatkan tabel baru)
+      // 4. GABUNGKAN COVER PORTRAIT (HALAMAN 1) & MERGE LAMPIRAN
+      // Cover (Halaman 1) disisipkan berorientasi A4 Portrait murni (210 x 297 mm),
+      // sedangkan Halaman 2 dst (Berita Acara & Tabel Capaian) tetap Landscape A4.
       // ==========================================
       const basePdfBytes = doc.output("arraybuffer");
       const mergedPdf = await PDFDocument.load(basePdfBytes);
 
-      // Jika cover berupa dokumen PDF mandiri, sisipkan sebagai Halaman 1
-      if (coverFileType === "pdf" && coverFile) {
-        try {
-          const coverBuf = await coverFile.arrayBuffer();
-          const coverDoc = await PDFDocument.load(coverBuf);
-          const [coverPage] = await mergedPdf.copyPages(coverDoc, [0]);
-          mergedPdf.insertPage(0, coverPage);
-        } catch (e) {
-          console.error("Gagal menyisipkan cover PDF:", e);
+      const hasCover = coverFileType !== "none" && !!coverPreviewUrl;
+      if (hasCover) {
+        if (coverFileType === "pdf" && (coverFile || coverPreviewUrl)) {
+          try {
+            let coverBuf: ArrayBuffer;
+            if (coverFile) {
+              coverBuf = await coverFile.arrayBuffer();
+            } else {
+              const res = await fetch(coverPreviewUrl);
+              coverBuf = await res.arrayBuffer();
+            }
+            const coverDoc = await PDFDocument.load(coverBuf);
+            const [coverPage] = await mergedPdf.copyPages(coverDoc, [0]);
+            mergedPdf.insertPage(0, coverPage);
+          } catch (e) {
+            console.error("Gagal menyisipkan cover PDF:", e);
+          }
+        } else if (coverFileType === "image" && coverPreviewUrl) {
+          try {
+            const { bytes: imgBytes, format } = await getImageBytesForPdf(
+              coverFile,
+              coverPreviewUrl,
+            );
+            let embeddedImg;
+            try {
+              embeddedImg =
+                format === "png"
+                  ? await mergedPdf.embedPng(imgBytes)
+                  : await mergedPdf.embedJpg(imgBytes);
+            } catch {
+              // Jika format awal gagal, coba format sebaliknya
+              embeddedImg =
+                format === "png"
+                  ? await mergedPdf.embedJpg(imgBytes)
+                  : await mergedPdf.embedPng(imgBytes);
+            }
+
+            // Standar A4 Portrait (210mm x 297mm) dalam satuan poin = [595.28, 841.89]
+            const portraitPage = mergedPdf.insertPage(0, [595.28, 841.89]);
+            const { width: pW, height: pH } = portraitPage.getSize();
+            portraitPage.drawImage(embeddedImg, {
+              x: 0,
+              y: 0,
+              width: pW,
+              height: pH,
+            });
+          } catch (e) {
+            console.error("Gagal menyisipkan cover portrait image:", e);
+          }
         }
       }
 
@@ -1619,7 +1713,27 @@ export default function LaporanEvaluasiTu() {
           }
           @page {
             size: landscape;
-            margin: 12mm;
+            margin: 10mm;
+          }
+          @page cover-portrait-page {
+            size: portrait;
+            margin: 0;
+          }
+          .cover-portrait-sheet {
+            page: cover-portrait-page !important;
+            break-after: page !important;
+            page-break-after: always !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .berita-acara-content {
+            break-before: page !important;
+            page-break-before: always !important;
           }
         }
       `}</style>
@@ -1948,8 +2062,8 @@ export default function LaporanEvaluasiTu() {
                   Upload & Pengaturan Cover Laporan (Halaman Depan)
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Unggah foto/desain cover khusus (Gambar/PDF) atau gunakan
-                  cover resmi bawaan BBPOM.
+                  Unggah file cover khusus (Gambar/PDF) atau gunakan cover resmi bawaan BBPOM.
+                  Cover akan digabungkan sebagai Halaman 1 (Portrait A4), sedangkan tabel laporan tetap berorientasi Landscape A4.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -2022,8 +2136,7 @@ export default function LaporanEvaluasiTu() {
                     Status Berkas Cover Laporan:
                   </p>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    Cover ini akan menjadi halaman pertama (halaman depan)
-                    dokumen laporan.
+                    Cover ini akan menjadi Halaman 1 berorientasi Portrait A4 yang digabungkan sebelum tabel laporan (Landscape A4).
                   </p>
 
                   <div className="mt-3 flex items-center gap-3">
@@ -2333,53 +2446,95 @@ export default function LaporanEvaluasiTu() {
           {/* 1. COVER LAPORAN EVALUASI INTERNAL (HALAMAN 1)          */}
           {/* ======================================================== */}
           {coverPreviewUrl && coverFileType !== "none" && (
-            <div className="cover-page-container relative print:break-after-page min-h-[680px] print:min-h-screen flex flex-col justify-center items-center rounded-2xl border-2 border-slate-200 bg-white p-6 sm:p-10 text-center print:border-none print:p-0">
-              <div className="absolute top-4 right-4 print:hidden flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleRemoveCover}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white/95 px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 shadow-xs transition"
-                  title="Hapus cover ini jika salah"
-                >
-                  <Icon icon="solar:trash-bin-trash-bold" width={14} />
-                  Hapus Cover
-                </button>
+            <div className="cover-page-section">
+              {/* Header Info Cover di Tampilan Layar */}
+              <div className="print:hidden flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-200">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[#005baa] border border-blue-200">
+                    <Icon icon="solar:document-bold" width={15} />
+                    Halaman 1: Cover Dokumen (Format Portrait A4)
+                  </span>
+                  <span className="text-xs text-slate-500 hidden sm:inline">
+                    Ukuran A4 Portrait (210 × 297 mm) • Berita acara & tabel di bawah tetap format Landscape A4
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCoverConfig(true);
+                      setShowLampiranConfig(false);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-[#005baa] shadow-2xs transition"
+                  >
+                    <Icon icon="solar:pen-bold" width={13} />
+                    Ganti Cover
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCover}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 shadow-2xs transition"
+                    title="Hapus cover ini"
+                  >
+                    <Icon icon="solar:trash-bin-trash-bold" width={13} />
+                    Hapus Cover
+                  </button>
+                </div>
               </div>
 
-              {coverFileType === "image" ? (
-                <div className="flex flex-col items-center justify-center w-full h-full py-4 my-auto">
-                  <img
-                    src={coverPreviewUrl}
-                    alt="Cover Laporan"
-                    className="max-h-[680px] w-auto max-w-full object-contain rounded-xl shadow-xs print:shadow-none print:max-h-none print:w-full"
-                  />
-                  <p className="mt-3 text-xs text-slate-500 font-medium print:hidden">
-                    Cover Gambar Terpasang:{" "}
-                    {coverFile?.name || "Cover Resmi BBPOM"}
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-16 px-6 bg-slate-50 rounded-xl border border-slate-200 my-auto">
-                  <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shadow-2xs mb-4">
-                    <Icon icon="solar:document-text-bold" width={36} />
+              {/* Tampilan Lembar Portrait Cover */}
+              <div className="cover-portrait-sheet flex flex-col items-center justify-center print:w-full print:h-full">
+                {coverFileType === "image" ? (
+                  <div className="flex flex-col items-center justify-center w-full py-2">
+                    {/* Frame Lembar A4 Portrait */}
+                    <div className="relative w-full max-w-[420px] aspect-[210/297] rounded-xl shadow-lg border border-slate-300 overflow-hidden bg-slate-900/5 group print:shadow-none print:border-none print:max-w-none print:aspect-auto print:w-full print:h-full flex items-center justify-center">
+                      <img
+                        src={coverPreviewUrl}
+                        alt="Cover Laporan"
+                        className="w-full h-full object-fill print:object-contain"
+                      />
+                    </div>
+                    <p className="mt-2.5 text-xs text-slate-500 font-medium print:hidden text-center">
+                      Cover Terpasang: <strong className="text-slate-700">{coverFile?.name || "Cover Resmi BBPOM"}</strong> (Format Portrait A4)
+                    </p>
                   </div>
-                  <span className="rounded bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-800 uppercase">
-                    Cover Dokumen PDF
-                  </span>
-                  <h3 className="text-base font-bold text-slate-800 mt-2">
-                    {coverFile?.name || "Dokumen Cover PDF"}
-                  </h3>
-                  <a
-                    href={coverPreviewUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-4 inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-rose-700 print:hidden"
-                  >
-                    <Icon icon="solar:eye-bold" width={16} />
-                    Buka Berkas Cover PDF
-                  </a>
+                ) : (
+                  <div className="w-full max-w-[420px] aspect-[210/297] rounded-xl shadow-md border-2 border-dashed border-rose-300 bg-rose-50/40 p-6 flex flex-col items-center justify-center text-center my-2">
+                    <div className="w-16 h-16 rounded-2xl bg-white border border-rose-200 flex items-center justify-center text-rose-600 shadow-sm mb-4">
+                      <Icon icon="solar:document-text-bold" width={36} />
+                    </div>
+                    <span className="rounded bg-rose-100 px-2.5 py-1 text-xs font-bold text-rose-800 uppercase tracking-wide">
+                      Cover Berkas PDF (A4 Portrait)
+                    </span>
+                    <h3 className="text-sm font-bold text-slate-800 mt-3 max-w-[300px] truncate">
+                      {coverFile?.name || "Dokumen Cover PDF"}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Halaman cover ini akan disisipkan sebagai halaman pertama berorientasi Portrait.
+                    </p>
+                    <a
+                      href={coverPreviewUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-4 inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-rose-700 print:hidden"
+                    >
+                      <Icon icon="solar:eye-bold" width={16} />
+                      Buka Berkas Cover PDF
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {/* Garis Pemisah Antar Halaman (Portrait ke Landscape) */}
+              <div className="print:hidden relative my-8 flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t-2 border-dashed border-slate-300" />
                 </div>
-              )}
+                <div className="relative flex items-center gap-2 rounded-full bg-slate-100 px-4 py-1.5 text-xs font-bold text-slate-700 shadow-xs border border-slate-200">
+                  <Icon icon="solar:document-text-bold" width={15} className="text-[#005baa]" />
+                  Halaman 2 dst: Berita Acara & Rincian Capaian (Format Landscape A4)
+                </div>
+              </div>
             </div>
           )}
 
