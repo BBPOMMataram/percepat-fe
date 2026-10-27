@@ -33,11 +33,13 @@ type ColumnSchema = {
 };
 
 type RowData = {
-  row_index: number;
-  month: number;
-  month_name: string;
+  row_index?: number;
+  month?: number;
+  month_name?: string;
   is_locked: boolean;
   is_current: boolean;
+  can_edit_row?: boolean;
+  pic_name?: string;
   cells: Record<string, any>;
 };
 
@@ -526,24 +528,28 @@ export default function TestLocalTableKatim() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {activeTab.rows_data?.map((row) => {
+                {activeTab.rows_data?.map((row, rIdx) => {
+                  const rowKey = row.month ?? (row.row_index ?? rIdx + 1);
                   const isMonthLocked = row.is_locked;
                   const isCurrent = row.is_current;
+                  const canEditThisRow = row.can_edit_row !== false;
 
                   return (
                     <tr
-                      key={row.month}
+                      key={rowKey}
                       className={`transition ${
                         isCurrent
                           ? "bg-blue-50/20 font-medium"
                           : isMonthLocked
                           ? "bg-slate-50/40"
+                          : !canEditThisRow
+                          ? "bg-slate-50/20 opacity-80"
                           : "hover:bg-slate-50/80"
                       }`}
                     >
                       {effectiveColumnsSchema.map((col) => {
                         const val = row.cells?.[col.key] ?? "";
-                        const canEditCell = col.can_edit && !isMonthLocked;
+                        const canEditCell = col.can_edit && !isMonthLocked && canEditThisRow;
                         const isNum = typeof val === "number";
 
                         if (canEditCell) {
@@ -556,7 +562,7 @@ export default function TestLocalTableKatim() {
                                 type={isNum ? "number" : "text"}
                                 value={val}
                                 onChange={(e) =>
-                                  handleCellChange(row.month, col.key, e.target.value)
+                                  handleCellChange(rowKey, col.key, e.target.value)
                                 }
                                 placeholder="0"
                                 className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 focus:outline-none font-medium"
