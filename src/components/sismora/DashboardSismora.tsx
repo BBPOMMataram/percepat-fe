@@ -3,13 +3,15 @@
 import api from "@/utils/api";
 import { useEffect, useState } from "react";
 import {
-    ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+    ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
+import ExportPdfF63Modal from "./export/ExportPdfF63Modal";
 
 interface MutationRow {
     id: number;
     tanggal: string;
     jam: string;
+    room_name: string;
     label: string;
     temperature: number | null;
     humidity: number | null;
@@ -49,6 +51,91 @@ const getMonthDateRange = (monthStr: string) => {
     return { startDate, endDate };
 };
 
+// Custom Tooltip for Temperature with Tanggal, Ruangan, Jam, Suhu, Max, Min
+const CustomTooltipTemperature = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+        const data = payload[0].payload as MutationRow;
+        const temp = data.temperature;
+        const isOutOfRange = (data.temp_min != null && temp != null && temp < data.temp_min) ||
+                             (data.temp_max != null && temp != null && temp > data.temp_max);
+
+        return (
+            <div className="bg-white/95 backdrop-blur-md p-3.5 rounded-xl shadow-2xl border border-gray-100 text-xs space-y-1.5 min-w-[210px]">
+                <div className="font-bold text-gray-800 text-sm border-b border-gray-100 pb-1.5 flex items-center justify-between gap-2">
+                    <span className="truncate max-w-[150px]">{data.room_name}</span>
+                    {isOutOfRange && (
+                        <span className="badge badge-error badge-xs text-white uppercase font-bold text-[9px] px-1.5 py-0.5">
+                            Di Luar Batas
+                        </span>
+                    )}
+                </div>
+                <div className="flex justify-between items-center text-gray-600">
+                    <span className="text-gray-400">Tanggal:</span>
+                    <span className="font-semibold text-gray-800">{data.tanggal || "-"}</span>
+                </div>
+                <div className="flex justify-between items-center text-gray-600">
+                    <span className="text-gray-400">Jam:</span>
+                    <span className="font-semibold text-gray-800">{data.jam ? `${data.jam} WITA` : "-"}</span>
+                </div>
+                <div className="flex justify-between items-center text-orange-600 font-bold text-sm pt-1 border-t border-gray-100">
+                    <span>Suhu (°C):</span>
+                    <span className="text-base">{temp != null ? `${temp}°C` : "-"}</span>
+                </div>
+                <div className="flex justify-between items-center text-gray-500 text-[11px]">
+                    <span className="text-gray-400">Rentang Standar:</span>
+                    <span className="font-medium text-gray-700">
+                        {data.temp_min ?? "-"} ~ {data.temp_max ?? "-"} °C
+                    </span>
+                </div>
+            </div>
+        );
+    }
+    return null;
+};
+
+// Custom Tooltip for Humidity with Tanggal, Ruangan, Jam, Kelembaban, Max, Min
+const CustomTooltipHumidity = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+        const data = payload[0].payload as MutationRow;
+        const hum = data.humidity;
+        const isOutOfRange = data.is_humidity &&
+                             ((data.hum_min != null && hum != null && hum < data.hum_min) ||
+                              (data.hum_max != null && hum != null && hum > data.hum_max));
+
+        return (
+            <div className="bg-white/95 backdrop-blur-md p-3.5 rounded-xl shadow-2xl border border-gray-100 text-xs space-y-1.5 min-w-[210px]">
+                <div className="font-bold text-gray-800 text-sm border-b border-gray-100 pb-1.5 flex items-center justify-between gap-2">
+                    <span className="truncate max-w-[150px]">{data.room_name}</span>
+                    {isOutOfRange && (
+                        <span className="badge badge-info badge-xs text-white uppercase font-bold text-[9px] px-1.5 py-0.5">
+                            Di Luar Batas
+                        </span>
+                    )}
+                </div>
+                <div className="flex justify-between items-center text-gray-600">
+                    <span className="text-gray-400">Tanggal:</span>
+                    <span className="font-semibold text-gray-800">{data.tanggal || "-"}</span>
+                </div>
+                <div className="flex justify-between items-center text-gray-600">
+                    <span className="text-gray-400">Jam:</span>
+                    <span className="font-semibold text-gray-800">{data.jam ? `${data.jam} WITA` : "-"}</span>
+                </div>
+                <div className="flex justify-between items-center text-blue-600 font-bold text-sm pt-1 border-t border-gray-100">
+                    <span>Kelembaban (%):</span>
+                    <span className="text-base">{hum != null ? `${hum}%` : "-"}</span>
+                </div>
+                <div className="flex justify-between items-center text-gray-500 text-[11px]">
+                    <span className="text-gray-400">Rentang Standar:</span>
+                    <span className="font-medium text-gray-700">
+                        {data.hum_min ?? "-"} ~ {data.hum_max ?? "-"} %
+                    </span>
+                </div>
+            </div>
+        );
+    }
+    return null;
+};
+
 export default function DashboardSismora() {
     const [allData, setAllData] = useState<MutationRow[]>([]);
     const [tempWarnings, setTempWarnings] = useState<WarningItem[]>([]);
@@ -58,6 +145,7 @@ export default function DashboardSismora() {
     const [selectedRoom, setSelectedRoom] = useState("");
     const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth);
     const [initialLoading, setInitialLoading] = useState(true);
+    const [exportModalOpen, setExportModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -120,6 +208,7 @@ export default function DashboardSismora() {
                         id: m.id,
                         tanggal: m.tanggal,
                         jam: m.jam,
+                        room_name: roomName || "-",
                         label: `${roomName} ${m.jam}`,
                         temperature: isNaN(temp) ? null : temp,
                         humidity: isNaN(hum) ? null : hum,
@@ -182,7 +271,7 @@ export default function DashboardSismora() {
             <div className="bg-white rounded-2xl shadow px-4 sm:px-8 py-3 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                 <h2 className="text-lg sm:text-xl font-semibold text-gray-800 uppercase">Dashboard Sismora</h2>
                 
-                {/* Filter Ruangan dan Bulan */}
+                {/* Filter Ruangan, Bulan, dan Tombol Ekspor PDF */}
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
                     <select
                         value={selectedRoom}
@@ -219,6 +308,17 @@ export default function DashboardSismora() {
                             Reset
                         </button>
                     )}
+
+                    {/* Tombol Ekspor PDF (F-6.3) */}
+                    <button
+                        type="button"
+                        onClick={() => setExportModalOpen(true)}
+                        className="btn btn-primary btn-sm flex items-center gap-1.5 shadow-sm text-white"
+                        title="Ekspor Form Pemantauan Suhu & Kelembaban (F-6.3)"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+                        <span className="font-medium">Ekspor PDF (F-6.3)</span>
+                    </button>
                 </div>
             </div>
 
@@ -254,7 +354,7 @@ export default function DashboardSismora() {
                 </div>
             </div>
 
-            {/* Charts */}
+            {/* Charts - Line Charts with Min/Max Threshold & Detailed Tooltip */}
             {allData.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
                     {/* Temperature Chart */}
@@ -269,9 +369,18 @@ export default function DashboardSismora() {
                                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                                     <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                                     <YAxis tick={{ fontSize: 11 }} />
-                                    <Tooltip />
+                                    <Tooltip content={<CustomTooltipTemperature />} />
                                     <Legend />
-                                    <Bar dataKey="temperature" name="Suhu (°C)" fill="#f97316" radius={[4, 4, 0, 0]} />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="temperature"
+                                        name="Suhu (°C)"
+                                        stroke="#f97316"
+                                        strokeWidth={3}
+                                        dot={{ r: 4, fill: "#f97316", stroke: "#ffffff", strokeWidth: 1.5 }}
+                                        activeDot={{ r: 7, fill: "#ea580c", stroke: "#ffffff", strokeWidth: 2 }}
+                                        connectNulls
+                                    />
                                     <Line type="monotone" dataKey="temp_max" name="Max" stroke="#ef4444" strokeDasharray="5 5" dot={false} strokeWidth={2} />
                                     <Line type="monotone" dataKey="temp_min" name="Min" stroke="#22c55e" strokeDasharray="5 5" dot={false} strokeWidth={2} />
                                 </ComposedChart>
@@ -291,9 +400,18 @@ export default function DashboardSismora() {
                                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                                     <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                                     <YAxis tick={{ fontSize: 11 }} />
-                                    <Tooltip />
+                                    <Tooltip content={<CustomTooltipHumidity />} />
                                     <Legend />
-                                    <Bar dataKey="humidity" name="Kelembaban (%)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="humidity"
+                                        name="Kelembaban (%)"
+                                        stroke="#3b82f6"
+                                        strokeWidth={3}
+                                        dot={{ r: 4, fill: "#3b82f6", stroke: "#ffffff", strokeWidth: 1.5 }}
+                                        activeDot={{ r: 7, fill: "#2563eb", stroke: "#ffffff", strokeWidth: 2 }}
+                                        connectNulls
+                                    />
                                     <Line type="monotone" dataKey="hum_max" name="Max" stroke="#ef4444" strokeDasharray="5 5" dot={false} strokeWidth={2} />
                                     <Line type="monotone" dataKey="hum_min" name="Min" stroke="#22c55e" strokeDasharray="5 5" dot={false} strokeWidth={2} />
                                 </ComposedChart>
@@ -412,6 +530,15 @@ export default function DashboardSismora() {
                     )}
                 </div>
             </div>
+
+            {/* Export PDF F-6.3 Modal */}
+            <ExportPdfF63Modal
+                isOpen={exportModalOpen}
+                onClose={() => setExportModalOpen(false)}
+                initialRoomId={selectedRoom}
+                initialMonth={selectedMonth}
+                roomsList={roomsList}
+            />
         </>
     );
 }

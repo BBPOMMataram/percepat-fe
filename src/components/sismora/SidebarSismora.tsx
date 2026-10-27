@@ -37,6 +37,12 @@ export default function SidebarSismora() {
                 </span>
                 <span className="hidden lg:block whitespace-nowrap">Ruangan</span>
             </Link>
+            <Link href={'/sismora/penanggung-jawab'} className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/sismora/penanggung-jawab')}`} data-tip="Penanggung Jawab">
+                <span className="material-symbols-outlined">
+                    badge
+                </span>
+                <span className="hidden lg:block whitespace-nowrap">Penanggung Jawab</span>
+            </Link>
             <Link href={'/sismora/settings'} className={`mt-auto flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/sismora/settings')}`} data-tip="Settings">
                 <span className="material-symbols-outlined">
                     settings
