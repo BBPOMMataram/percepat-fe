@@ -93,12 +93,12 @@ export default function PercepatNavbar() {
 
                     {/* Desktop Navigation */}
                     <nav className="hidden md:flex items-center gap-1">
-                        <a
-                            href="#inventory"
+                        <Link
+                            href="/percepat-new#inventory"
                             className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 transition-colors"
                         >
                             Katalog Inventaris
-                        </a>
+                        </Link>
                         {/* Dropdown Permintaan */}
                         <div className="relative">
                             <button
@@ -323,20 +323,33 @@ export default function PercepatNavbar() {
 
                 {/* Mobile Dropdown Menu */}
                 {mobileMenuOpen && (
-                    <div className="md:hidden py-3 border-t border-slate-100 space-y-1">
-                        <a
-                            href="#inventory"
+                    <div className="md:hidden py-3 border-t border-slate-100 space-y-2">
+                        <Link
+                            href="/percepat-new#inventory"
                             onClick={() => setMobileMenuOpen(false)}
                             className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50"
                         >
                             Katalog Inventaris
-                        </a>
+                        </Link>
                         <div className="pt-2 border-t border-slate-100">
-                            <div className="px-3 py-1 text-xs font-semibold text-slate-600">Permintaan:</div>
+                            <div className="px-3 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">Permintaan</div>
                             {categories.map(c => (
                                 <Link
                                     key={c.hrefPermintaan}
                                     href={c.hrefPermintaan}
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className="block px-4 py-1.5 text-sm text-slate-600 hover:text-blue-600"
+                                >
+                                    • {c.label}
+                                </Link>
+                            ))}
+                        </div>
+                        <div className="pt-2 border-t border-slate-100">
+                            <div className="px-3 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">Verifikasi</div>
+                            {categories.map(c => (
+                                <Link
+                                    key={c.hrefVerif}
+                                    href={c.hrefVerif}
                                     onClick={() => setMobileMenuOpen(false)}
                                     className="block px-4 py-1.5 text-sm text-slate-600 hover:text-blue-600"
                                 >

@@ -31,35 +31,35 @@ const CATEGORY_CONFIGS: Record<CategoryKey, CategoryConfig> = {
     reagen: {
         key: "reagen",
         label: "Reagen",
-        url: "api/v1/barang/reagen",
+        url: "api/v1/barang/reagen?has_stock=1",
         description: "Bahan kimia, reagen analisis laboratorium, dan media mikrobiologi.",
         icon: "biotech",
     },
     bakuPembanding: {
         key: "bakuPembanding",
         label: "Baku Pembanding",
-        url: "api/v1/barang/baku-pembanding",
+        url: "api/v1/barang/baku-pembanding?has_stock=1",
         description: "Senyawa referensi terkalibrasi dan baku mutu pengujian resmi.",
         icon: "scale",
     },
     atk: {
         key: "atk",
         label: "ATK",
-        url: "api/v1/barang/atk",
+        url: "api/v1/barang/atk?has_stock=1",
         description: "Kertas, formulir pengujian, dan perlengkapan administrasi perkantoran.",
         icon: "edit_note",
     },
     sukuCadang: {
         key: "sukuCadang",
         label: "Suku Cadang",
-        url: "api/v1/barang/suku-cadang",
+        url: "api/v1/barang/suku-cadang?has_stock=1",
         description: "Komponen pengganti dan suku cadang instrumen uji laboratorium.",
         icon: "settings_input_component",
     },
     perlengkapan: {
         key: "perlengkapan",
         label: "Perlengkapan",
-        url: "api/v1/barang/perlengkapan",
+        url: "api/v1/barang/perlengkapan?has_stock=1",
         description: "Pembersih kaca, desinfektan, sabun laboratorium, dan sanitasi lab.",
         icon: "cleaning_services",
     },
@@ -362,28 +362,38 @@ export default function ModernInventory({ activeCategory, onCategoryChange }: Mo
                                             <td className="py-3 px-4 text-center"><div className="h-4 w-6 bg-slate-200 rounded mx-auto" /></td>
                                         </tr>
                                     ))
-                                ) : !data?.data || data.data.length === 0 ? (
-                                    <tr>
-                                        <td
-                                            colSpan={isBakuPembanding ? 8 : (isReagen ? 6 : 5)}
-                                            className="py-12 px-4 text-center text-slate-500"
-                                        >
-                                            <div className="flex flex-col items-center justify-center">
-                                                <span className="material-symbols-outlined text-3xl text-slate-300 mb-1">
-                                                    inventory
-                                                </span>
-                                                <div className="font-semibold text-slate-700 text-sm">Tidak ada data ditemukan</div>
-                                                <div className="text-xs text-slate-400 mt-0.5">
-                                                    {config.isExpiring
-                                                        ? "Tidak ada barang yang akan kedaluwarsa dalam 3 bulan ke depan dengan stok tersedia."
-                                                        : "Coba ganti kata kunci pencarian."}
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    <AnimatePresence mode="popLayout">
-                                        {data.data.map((item: any, idx: number) => (
+                                ) : (() => {
+                                    const validStockItems = (data?.data || []).filter((item: any) => {
+                                        const stockVal = Number(item?.stock);
+                                        return !isNaN(stockVal) && stockVal > 0;
+                                    });
+
+                                    if (validStockItems.length === 0) {
+                                        return (
+                                            <tr>
+                                                <td
+                                                    colSpan={isBakuPembanding ? 8 : (isReagen ? 6 : 5)}
+                                                    className="py-12 px-4 text-center text-slate-500"
+                                                >
+                                                    <div className="flex flex-col items-center justify-center">
+                                                        <span className="material-symbols-outlined text-3xl text-slate-300 mb-1">
+                                                            inventory
+                                                        </span>
+                                                        <div className="font-semibold text-slate-700 text-sm">Tidak ada data ditemukan</div>
+                                                        <div className="text-xs text-slate-400 mt-0.5">
+                                                            {config.isExpiring
+                                                                ? "Tidak ada barang yang akan kedaluwarsa dalam 3 bulan ke depan dengan stok tersedia."
+                                                                : "Tidak ada barang dengan stok tersedia saat ini."}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    }
+
+                                    return (
+                                        <AnimatePresence mode="popLayout">
+                                            {validStockItems.map((item: any, idx: number) => (
                                             <motion.tr
                                                 key={item.id || idx}
                                                 initial={{ opacity: 0 }}
@@ -470,7 +480,8 @@ export default function ModernInventory({ activeCategory, onCategoryChange }: Mo
                                             </motion.tr>
                                         ))}
                                     </AnimatePresence>
-                                )}
+                                );
+                            })()}
                             </tbody>
                         </table>
                     </div>

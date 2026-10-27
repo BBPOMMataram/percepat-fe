@@ -20,10 +20,25 @@ export default function VerifBakuPembandingPercepat() {
 
     const dispatch = useDispatch();
 
+    const isKabagTu = Boolean(
+        user?.employee?.group_jabatan_id === 2 ||
+        user?.role?.level === "superadmin"
+    );
+
+    const isMatchKatim = (item: any) => {
+        if (!user?.id) return false;
+        const userIdStr = String(user.id).toLowerCase();
+        const externalKatimId = item.katim?.external_user_id ? String(item.katim.external_user_id).toLowerCase() : null;
+        const katimSelected = item.katim_selected ? String(item.katim_selected).toLowerCase() : null;
+        const katimId = item.katim_id ? String(item.katim_id).toLowerCase() : null;
+
+        return externalKatimId === userIdStr || katimSelected === userIdStr || katimId === userIdStr;
+    };
+
     const rowNumber = (index: number) => (currentPage - 1) * perPage + index + 1;
 
     const getData = useCallback(() => {
-        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/verif-baku-pembanding?per_page=${perPage}&kode_or_name=${kodeBarangOrNameFilter}&katim_id=${user?.id}&is_kabagtu=${user?.employee?.group_jabatan_id === 2 ? 1 : 0}`)
+        api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/verif-baku-pembanding?per_page=${perPage}&kode_or_name=${kodeBarangOrNameFilter}&katim_id=${user?.id}&is_kabagtu=${isKabagTu ? 1 : 0}`)
             .then(({ data }) => {
                 setDataBarang(data);
                 setCurrentPage(data?.current_page);
@@ -32,7 +47,7 @@ export default function VerifBakuPembandingPercepat() {
             .catch((err) => {
                 console.log(err);
             });
-    }, [perPage, kodeBarangOrNameFilter, user?.id, user?.employee?.group_jabatan_id]);
+    }, [perPage, kodeBarangOrNameFilter, user?.id, isKabagTu]);
 
     useEffect(() => {
         getData();
@@ -54,7 +69,7 @@ export default function VerifBakuPembandingPercepat() {
             return;
         }
 
-        api.post(`/api/v1/verif-katim-baku-pembanding/${id}`)
+        api.post(`/api/v1/verif-katim-baku-pembanding/${id}`, { user })
             .then(res => {
                 dispatch(showAlert({ type: "success", message: res.data.message, description: res.data.message }));
                 getData();
@@ -143,7 +158,7 @@ export default function VerifBakuPembandingPercepat() {
                                             </span>
                                         </span>
                                         {
-                                            (user?.id === item.katim?.external_user_id && item.status_id === 1) &&
+                                            (isMatchKatim(item) && item.status_id === 1) &&
                                             <span className="btn btn-sm btn-success tooltip tooltip-success tooltip-left" data-tip="Verif sebagai KaTim" onClick={() => verifHandler(item.id)}>
                                                 <span className="material-symbols-outlined">
                                                     check_small
@@ -151,7 +166,7 @@ export default function VerifBakuPembandingPercepat() {
                                             </span>
                                         }
                                         {
-                                            (item.status_id === 2) &&
+                                            (isKabagTu && item.status_id === 2) &&
                                             <span className="btn btn-sm btn-error tooltip tooltip-error tooltip-left" data-tip="Verif sebagai KabagTU" onClick={() => verifKabagTuHandler(item.id)}>
                                                 <span className="material-symbols-outlined">
                                                     check_small
