@@ -43,11 +43,6 @@ export function generateSismoraF63Pdf(options: SismoraPdfExportOptions): jsPDF {
     const pageWidth = 1008;
     const pageHeight = 612;
 
-    // 1. Outer Border
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.75);
-    doc.rect(45, 22, pageWidth - 90, pageHeight - 44);
-
     // 2. Title & Form Code Header
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
