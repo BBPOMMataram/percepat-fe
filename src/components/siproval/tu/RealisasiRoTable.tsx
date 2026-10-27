@@ -386,6 +386,142 @@ export default function RealisasiRoTable() {
   const belumTercapaiCount = totalRO - tercapaiCount;
   const pendingCount = Object.keys(editedCells).length;
 
+  const renderUploadModal = () => {
+    if (!showUploadModal) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+        <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <h3 className="text-base font-bold text-slate-900">
+              Unggah File Excel Realisasi RO
+            </h3>
+            <button
+              type="button"
+              onClick={() => setShowUploadModal(false)}
+              className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+            >
+              &times;
+            </button>
+          </div>
+
+          <form onSubmit={handleUploadSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Tahun Anggaran *
+                </label>
+                <input
+                  type="number"
+                  min={2020}
+                  max={2099}
+                  value={uploadYear}
+                  onChange={(e) => setUploadYear(Number(e.target.value))}
+                  required
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-800 focus:border-[#005baa] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Nama Dokumen (Opsional)
+                </label>
+                <input
+                  type="text"
+                  value={uploadDocName}
+                  onChange={(e) => setUploadDocName(e.target.value)}
+                  placeholder={`Realisasi RO ${uploadYear}`}
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-800 focus:border-[#005baa] focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Dropzone Area Sesuai Format Referensi Gambar */}
+            <div
+              onClick={() => document.getElementById("ro-file-input")?.click()}
+              onDragEnter={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragging(false);
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                  setUploadFile(e.dataTransfer.files[0]);
+                }
+              }}
+              className={`rounded-2xl border-2 border-dashed p-6 text-center cursor-pointer transition ${
+                isDragging ? "border-[#005baa] bg-blue-50/50" : "border-slate-200 hover:border-[#005baa]/60 hover:bg-slate-50/50"
+              }`}
+            >
+              <input
+                id="ro-file-input"
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setUploadFile(e.target.files[0]);
+                  }
+                }}
+                className="hidden"
+              />
+
+              {/* 3 Glyph Badges */}
+              <div className="flex items-center justify-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shadow-2xs">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                    <polyline strokeLinecap="round" strokeLinejoin="round" points="14 2 14 8 20 8"></polyline>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 13l3 3m0-3l-3 3m5-3h4m-4 3h4"></path>
+                  </svg>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shadow-2xs">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                    <polyline strokeLinecap="round" strokeLinejoin="round" points="14 2 14 8 20 8"></polyline>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 15h6M9 11h6"></path>
+                  </svg>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#005baa] shadow-2xs">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  </svg>
+                </div>
+              </div>
+
+              <p className="text-sm font-bold text-slate-800">
+                {uploadFile ? uploadFile.name : "Pilih atau seret file ke area ini"}
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                Format didukung: <strong>.xlsx, .xls</strong> (Maksimal 25 MB)
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+              <p className="text-xs text-slate-500">
+                File yang diunggah akan langsung dipetakan ke tabel di bawah ini.
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowUploadModal(false)}
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={uploadingFile || !uploadFile}
+                  className="rounded-xl bg-[#005baa] px-5 py-2 text-xs font-bold text-white hover:bg-[#004b8d] disabled:opacity-50"
+                >
+                  {uploadingFile ? "Mengunggah..." : "Proses & Simpan File"}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
   if (showYearList) {
     return (
       <div className="space-y-8">
@@ -554,7 +690,24 @@ export default function RealisasiRoTable() {
 
               <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-xs font-semibold text-[#005baa]">
                 <span>Buka Rincian RO &rarr;</span>
-                <Icon icon="solar:arrow-right-linear" width={16} className="transition group-hover:translate-x-1" />
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setUploadYear(item.year);
+                      setUploadDocName(`Realisasi RO ${item.year}`);
+                      setUploadFile(null);
+                      setShowUploadModal(true);
+                    }}
+                    title={`Unggah / Perbarui file Excel Realisasi RO ${item.year}`}
+                    className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 transition shadow-2xs"
+                  >
+                    <Icon icon="solar:upload-track-2-bold" width={13} className="text-[#00a651]" />
+                    <span>Perbarui Excel</span>
+                  </button>
+                  <Icon icon="solar:arrow-right-linear" width={16} className="transition group-hover:translate-x-1" />
+                </div>
               </div>
             </div>
           ))}
@@ -628,138 +781,7 @@ export default function RealisasiRoTable() {
         )}
 
         {/* Modal 2: Upload File Excel RO */}
-        {showUploadModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-            <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-                <h3 className="text-base font-bold text-slate-900">
-                  Unggah File Excel Realisasi RO
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setShowUploadModal(false)}
-                  className="text-slate-400 hover:text-slate-600 text-lg font-bold"
-                >
-                  &times;
-                </button>
-              </div>
-
-              <form onSubmit={handleUploadSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Tahun Anggaran *
-                    </label>
-                    <input
-                      type="number"
-                      min={2020}
-                      max={2099}
-                      value={uploadYear}
-                      onChange={(e) => setUploadYear(Number(e.target.value))}
-                      required
-                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-800 focus:border-[#005baa] focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Nama Dokumen (Opsional)
-                    </label>
-                    <input
-                      type="text"
-                      value={uploadDocName}
-                      onChange={(e) => setUploadDocName(e.target.value)}
-                      placeholder={`Realisasi RO ${uploadYear}`}
-                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-800 focus:border-[#005baa] focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Dropzone Area Sesuai Format Referensi Gambar */}
-                <div
-                  onClick={() => document.getElementById("ro-file-input")?.click()}
-                  onDragEnter={(e) => { e.preventDefault(); setIsDragging(true); }}
-                  onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
-                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setIsDragging(false);
-                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                      setUploadFile(e.dataTransfer.files[0]);
-                    }
-                  }}
-                  className={`rounded-2xl border-2 border-dashed p-6 text-center cursor-pointer transition ${
-                    isDragging ? "border-[#005baa] bg-blue-50/50" : "border-slate-200 hover:border-[#005baa]/60 hover:bg-slate-50/50"
-                  }`}
-                >
-                  <input
-                    id="ro-file-input"
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        setUploadFile(e.target.files[0]);
-                      }
-                    }}
-                    className="hidden"
-                  />
-                  
-                  {/* 3 Glyph Badges */}
-                  <div className="flex items-center justify-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shadow-2xs">
-                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
-                        <polyline strokeLinecap="round" strokeLinejoin="round" points="14 2 14 8 20 8"></polyline>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 13l3 3m0-3l-3 3m5-3h4m-4 3h4"></path>
-                      </svg>
-                    </div>
-                    <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shadow-2xs">
-                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
-                        <polyline strokeLinecap="round" strokeLinejoin="round" points="14 2 14 8 20 8"></polyline>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 15h6M9 11h6"></path>
-                      </svg>
-                    </div>
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#005baa] shadow-2xs">
-                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                      </svg>
-                    </div>
-                  </div>
-
-                  <p className="text-sm font-bold text-slate-800">
-                    {uploadFile ? uploadFile.name : "Pilih atau seret file ke area ini"}
-                  </p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Format didukung: <strong>.xlsx, .xls</strong> (Maksimal 25 MB)
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                  <p className="text-xs text-slate-500">
-                    File yang diunggah akan langsung dipetakan ke tabel di bawah ini.
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowUploadModal(false)}
-                      className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
-                    >
-                      Batal
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={uploadingFile || !uploadFile}
-                      className="rounded-xl bg-[#005baa] px-5 py-2 text-xs font-bold text-white hover:bg-[#004b8d] disabled:opacity-50"
-                    >
-                      {uploadingFile ? "Mengunggah..." : "Proses & Simpan File"}
-                    </button>
-                  </div>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        {renderUploadModal()}
       </div>
     );
   }
@@ -1420,6 +1442,9 @@ export default function RealisasiRoTable() {
           </div>
         </div>
       </div>
+
+      {/* Modal Upload File Excel RO */}
+      {renderUploadModal()}
     </div>
   );
 }

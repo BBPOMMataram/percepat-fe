@@ -518,12 +518,12 @@ export default function LaporanEvaluasiTu() {
                 <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.no}</td>
                 <td style="border:1px solid #000; padding:4px 6px; text-align:left; vertical-align:middle; white-space:nowrap;">${r.kode_ro}</td>
                 <td style="border:1px solid #000; padding:4px 8px; text-align:left; vertical-align:middle;">${r.nama_ro}</td>
-                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.volume.target_formatted}</td>
-                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.volume.realisasi_formatted}</td>
-                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.volume.capaian_formatted}</td>
-                <td style="border:1px solid #000; padding:4px 8px; text-align:center; vertical-align:middle;">${r.anggaran.pagu_formatted}</td>
-                <td style="border:1px solid #000; padding:4px 8px; text-align:center; vertical-align:middle;">${r.anggaran.realisasi_formatted}</td>
-                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.anggaran.capaian_formatted}</td>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.volume?.target_formatted ?? "-"}</td>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.volume?.realisasi_formatted ?? "-"}</td>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.volume?.capaian_formatted ?? "-"}</td>
+                <td style="border:1px solid #000; padding:4px 8px; text-align:center; vertical-align:middle;">${r.anggaran?.pagu_formatted ?? "-"}</td>
+                <td style="border:1px solid #000; padding:4px 8px; text-align:center; vertical-align:middle;">${r.anggaran?.realisasi_formatted ?? "-"}</td>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.anggaran?.capaian_formatted ?? "-"}</td>
               </tr>`,
               )
               .join("")}
@@ -937,12 +937,12 @@ export default function LaporanEvaluasiTu() {
           r.no,
           r.kode_ro,
           r.nama_ro,
-          r.volume.target_formatted,
-          r.volume.realisasi_formatted,
-          r.volume.capaian_formatted,
-          r.anggaran.pagu_formatted,
-          r.anggaran.realisasi_formatted,
-          r.anggaran.capaian_formatted,
+          r.volume?.target_formatted ?? "-",
+          r.volume?.realisasi_formatted ?? "-",
+          r.volume?.capaian_formatted ?? "-",
+          r.anggaran?.pagu_formatted ?? "-",
+          r.anggaran?.realisasi_formatted ?? "-",
+          r.anggaran?.capaian_formatted ?? "-",
         ]);
 
         if (m.summary) {
@@ -2565,22 +2565,22 @@ export default function LaporanEvaluasiTu() {
                               {row.nama_ro}
                             </td>
                             <td className="border border-black px-2 py-1.5 text-center align-middle">
-                              {row.volume.target_formatted}
+                              {row.volume?.target_formatted ?? "-"}
                             </td>
                             <td className="border border-black px-2 py-1.5 text-center align-middle">
-                              {row.volume.realisasi_formatted}
+                              {row.volume?.realisasi_formatted ?? "-"}
                             </td>
                             <td className="border border-black px-2 py-1.5 text-center align-middle">
-                              {row.volume.capaian_formatted}
+                              {row.volume?.capaian_formatted ?? "-"}
                             </td>
                             <td className="border border-black px-2.5 py-1.5 text-center align-middle">
-                              {row.anggaran.pagu_formatted}
+                              {row.anggaran?.pagu_formatted ?? "-"}
                             </td>
                             <td className="border border-black px-2.5 py-1.5 text-center align-middle">
-                              {row.anggaran.realisasi_formatted}
+                              {row.anggaran?.realisasi_formatted ?? "-"}
                             </td>
                             <td className="border border-black px-2 py-1.5 text-center align-middle">
-                              {row.anggaran.capaian_formatted}
+                              {row.anggaran?.capaian_formatted ?? "-"}
                             </td>
                           </tr>
                         ))}
@@ -2604,13 +2604,13 @@ export default function LaporanEvaluasiTu() {
                               -
                             </td>
                             <td className="border border-black px-2.5 py-2 text-center align-middle font-bold">
-                              {m.summary.total_pagu_formatted}
+                              {m.summary?.total_pagu_formatted ?? "-"}
                             </td>
                             <td className="border border-black px-2.5 py-2 text-center align-middle font-bold">
-                              {m.summary.total_realisasi_formatted}
+                              {m.summary?.total_realisasi_formatted ?? "-"}
                             </td>
                             <td className="border border-black px-2 py-2 text-center align-middle font-bold">
-                              {m.summary.total_capaian_anggaran_formatted}%
+                              {m.summary?.total_capaian_anggaran_formatted ? `${m.summary.total_capaian_anggaran_formatted}%` : "-"}
                             </td>
                           </tr>
                         )}
