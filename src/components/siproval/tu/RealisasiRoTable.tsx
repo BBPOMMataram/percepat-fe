@@ -100,7 +100,7 @@ export default function RealisasiRoTable() {
       spreadsheet_name: "REKAP DATA RHPK 2026 Mataram (Tab Realisasi RO)",
       original_filename: "REKAP_DATA_RHPK_2026_Mataram_Realisasi_RO.xlsx",
       uploaded_at_formatted: "26 Oktober 2026, 15:30 WITA",
-      is_locked: true,
+      is_locked: false,
     },
   ]);
 
@@ -310,6 +310,8 @@ export default function RealisasiRoTable() {
 
     try {
       const res = await api.post(`${baseUrl}/api/tu/realisasi-ro/update`, {
+        year: activeYear,
+        month: selectedMonth,
         user_id: user?.id,
         user_name: user?.name,
         user_email: user?.email,
@@ -322,7 +324,7 @@ export default function RealisasiRoTable() {
       setSuccessMsg(message);
 
       // Refresh data agar audit log tersinkronisasi
-      await fetchData(selectedMonth);
+      await fetchData(selectedMonth, activeYear);
       setEditedCells({});
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
@@ -845,15 +847,33 @@ export default function RealisasiRoTable() {
                 </option>
               ))}
             </select>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700 border border-slate-300">
-              <Icon icon="solar:lock-bold" width={13} className="text-slate-600" />
-              Dokumen Resmi Terkunci
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-300">
+              <Icon icon="solar:pen-new-square-bold" width={13} className="text-[#00a651]" />
+              Mode Edit Terbuka
             </span>
           </div>
         </div>
 
         {/* Action Buttons Top */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Tombol Simpan Perubahan (Saat ada perubahan sel) */}
+          {pendingCount > 0 && (
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              title="Simpan perubahan tabel ke database"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-[#00a651] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#008f45] transition shadow-2xs"
+            >
+              {saving ? (
+                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent" />
+              ) : (
+                <Icon icon="solar:diskette-bold" width={16} />
+              )}
+              Simpan Perubahan ({pendingCount})
+            </button>
+          )}
+
           {/* Tombol Eksport Laporan Berita Acara */}
           <Link
             href={`/siproval/tu/laporan-evaluasi?month=${encodeURIComponent(selectedMonth || "APRIL")}`}
@@ -914,12 +934,12 @@ export default function RealisasiRoTable() {
                 {fileInfo?.original_filename || `Realisasi_RO_${activeYear}_Final.xlsx`}
               </h2>
               <span className="inline-flex items-center gap-1 rounded-md bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[11px] font-bold border border-emerald-300">
-                <Icon icon="solar:lock-bold" width={12} />
-                Dokumen Resmi Terkunci
+                <Icon icon="solar:pen-new-square-bold" width={12} />
+                Mode Edit Terbuka
               </span>
             </div>
             <p className="mt-0.5 text-xs text-slate-500">
-              File RO ini berstatus dokumen final resmi. Tabel dikunci dan siap digunakan untuk keperluan pelaporan evaluasi internal.
+              Data Realisasi RO terbuka untuk diperbarui oleh seluruh anggota tim Tata Usaha (TU). Ubah nilai pada tabel lalu klik Simpan Perubahan.
             </p>
           </div>
         </div>
@@ -980,16 +1000,16 @@ export default function RealisasiRoTable() {
         </div>
         <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2 shadow-2xs">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Status Berkas
+            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+              Status Mode
             </p>
-            <p className="text-sm font-extrabold text-slate-800 leading-tight mt-0.5 flex items-center gap-1">
-              <Icon icon="solar:lock-bold" width={14} className="text-slate-600" />
-              Terkunci (File Fix)
+            <p className="text-sm font-extrabold text-emerald-800 leading-tight mt-0.5 flex items-center gap-1">
+              <Icon icon="solar:pen-bold" width={14} className="text-[#00a651]" />
+              Terbuka (Dapat Diedit)
             </p>
           </div>
-          <div className="rounded-lg bg-slate-200/70 p-1.5 text-slate-600">
-            <Icon icon="solar:shield-check-bold" width={20} />
+          <div className="rounded-lg bg-emerald-100/70 p-1.5 text-[#00a651]">
+            <Icon icon="solar:pen-new-square-bold" width={20} />
           </div>
         </div>
       </div>
@@ -1324,17 +1344,31 @@ export default function RealisasiRoTable() {
                       </td>
 
                       {/* 3. TARGET TAHUNAN (Sticky Left: 410px, w: 140px) - Solid Opaque Background + Divider Shadow */}
-                      <td className="sticky left-[410px] z-20 bg-white group-hover:bg-[#f8fafc] px-3 py-3 border-r-2 border-slate-300 shadow-[4px_0_12px_rgba(0,0,0,0.12)] align-middle text-center w-[140px] min-w-[140px] max-w-[140px]">
-                        <span className="font-mono text-xs font-extrabold text-slate-800">
-                          {tgtTahunanVal || "0"}
-                        </span>
+                      <td className="sticky left-[410px] z-20 bg-white group-hover:bg-[#f8fafc] p-2 border-r-2 border-slate-300 shadow-[4px_0_12px_rgba(0,0,0,0.12)] align-middle text-center w-[140px] min-w-[140px] max-w-[140px]">
+                        <input
+                          type="text"
+                          value={tgtTahunanVal}
+                          onChange={(e) =>
+                            handleCellChange(tgtTahunanCellCoord, e.target.value)
+                          }
+                          className={`w-full rounded-lg border text-center font-mono text-xs font-extrabold px-2 py-1.5 transition focus:outline-none focus:ring-2 focus:ring-[#005baa] ${
+                            isTgtTahunanEdited
+                              ? "bg-amber-50 border-amber-400 text-amber-900 ring-1 ring-amber-400"
+                              : isTargetChanged
+                                ? "bg-blue-50/60 border-blue-200 text-blue-900 font-bold"
+                                : "bg-slate-50/60 border-slate-200 text-slate-800 hover:bg-white hover:border-slate-300"
+                          }`}
+                          title={`Edit Target Tahunan (${tgtTahunanCellCoord})`}
+                        />
                       </td>
 
-                      {/* 4. Kolom-kolom Dinamis Bulan (Scrollable - Read-Only Resmi) */}
+                      {/* 4. Kolom-kolom Dinamis Bulan (Scrollable - Mode Edit Aktif) */}
                       {monthHeaders.map((col) => {
                         const monthCols = row.month_columns || (row as any).month_data || {};
                         const cellData = monthCols[col.key];
+                        const cellCoord = cellData?.cell || `${col.col_letter}${row.row_number}`;
                         const cellVal = getCellValue(cellData);
+                        const isEdited = isCellEdited(cellCoord);
                         const isFormula =
                           cellData?.is_formula || col.key === "capaian";
 
@@ -1349,8 +1383,18 @@ export default function RealisasiRoTable() {
                           col.key === "upaya" ||
                           col.key === "arahan_pimpinan";
 
-                        // JIKA KOLOM RUMUS (CAPAIAN %) -> BADGE
+                        // JIKA KOLOM RUMUS (CAPAIAN %) -> BADGE (Hitung Real-Time jika ada edit)
                         if (isFormula) {
+                          const tgtNum = parseFloat(tgtTahunanVal) || 0;
+                          const realNum = parseFloat(getCellValue(monthCols["realisasi"])) || 0;
+                          let displayCap = cellVal;
+                          let dynTercapai = isTercapai;
+                          if (tgtNum > 0) {
+                            const pct = ((realNum / tgtNum) * 100).toFixed(2);
+                            displayCap = pct;
+                            dynTercapai = parseFloat(pct) >= 100;
+                          }
+
                           return (
                             <td
                               key={col.col_index}
@@ -1359,58 +1403,87 @@ export default function RealisasiRoTable() {
                               <div className="flex items-center justify-center py-1">
                                 <span
                                   className={`inline-flex items-center justify-center rounded-lg px-2.5 py-1 text-xs font-extrabold ${
-                                    isTercapai
+                                    dynTercapai
                                       ? "bg-emerald-100 text-[#00a651]"
                                       : "bg-amber-100 text-amber-700"
                                   }`}
+                                  title={`Formula Capaian (${cellCoord}) = (Realisasi / Target Tahunan) * 100%`}
                                 >
-                                  {cellVal ? `${cellVal}%` : "0%"}
+                                  {displayCap ? `${displayCap}%` : "0%"}
                                 </span>
                               </div>
                             </td>
                           );
                         }
 
-                        // JIKA KOLOM NUMERIK (TARGET / REALISASI)
+                        // JIKA KOLOM NUMERIK (TARGET / REALISASI) -> INPUT EDITABLE
                         if (isNumericCol) {
                           return (
                             <td
                               key={col.col_index}
-                              className="px-3 py-3 border-r border-slate-200 align-middle text-center bg-white group-hover:bg-[#f8fafc]"
+                              className="p-2 border-r border-slate-200 align-middle text-center bg-white group-hover:bg-[#f8fafc]"
                             >
-                              <span className="font-mono text-xs font-bold text-slate-800">
-                                {cellVal || "0"}
-                              </span>
+                              <input
+                                type="text"
+                                value={cellVal}
+                                onChange={(e) =>
+                                  handleCellChange(cellCoord, e.target.value)
+                                }
+                                className={`w-full rounded-lg border text-center font-mono text-xs font-bold px-2 py-1.5 transition focus:outline-none focus:ring-2 focus:ring-[#005baa] ${
+                                  isEdited
+                                    ? "bg-amber-50 border-amber-400 text-amber-900 ring-1 ring-amber-400"
+                                    : "bg-slate-50/60 border-slate-200 text-slate-800 hover:bg-white hover:border-slate-300"
+                                }`}
+                                title={`Edit ${col.label} (${cellCoord})`}
+                              />
                             </td>
                           );
                         }
 
-                        // JIKA KOLOM TEKS PANJANG (KENDALA, REKOMENDASI, RTL, UPAYA, ARAHAN)
+                        // JIKA KOLOM TEKS PANJANG (KENDALA, REKOMENDASI, RTL, UPAYA, ARAHAN) -> TEXTAREA EDITABLE
                         if (isLongText) {
                           return (
                             <td
                               key={col.col_index}
-                              className="px-3 py-2.5 border-r border-slate-200 align-top bg-white group-hover:bg-[#f8fafc]"
+                              className="p-2 border-r border-slate-200 align-top bg-white group-hover:bg-[#f8fafc]"
                             >
-                              <p
-                                className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed line-clamp-3 hover:line-clamp-none transition"
-                                title={cellVal || "-"}
-                              >
-                                {cellVal || "-"}
-                              </p>
+                              <textarea
+                                rows={2}
+                                value={cellVal === "-" ? "" : cellVal}
+                                onChange={(e) =>
+                                  handleCellChange(cellCoord, e.target.value)
+                                }
+                                placeholder="Isi catatan..."
+                                className={`w-full rounded-lg border text-xs px-2.5 py-1.5 leading-relaxed transition resize-y focus:outline-none focus:ring-2 focus:ring-[#005baa] ${
+                                  isEdited
+                                    ? "bg-amber-50 border-amber-400 text-amber-900 ring-1 ring-amber-400"
+                                    : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+                                }`}
+                                title={`Edit ${col.label} (${cellCoord})`}
+                              />
                             </td>
                           );
                         }
 
-                        // KOLOM UMUM
+                        // KOLOM UMUM -> INPUT EDITABLE
                         return (
                           <td
                             key={col.col_index}
-                            className="px-3 py-2.5 border-r border-slate-200 align-middle bg-white group-hover:bg-[#f8fafc]"
+                            className="p-2 border-r border-slate-200 align-middle bg-white group-hover:bg-[#f8fafc]"
                           >
-                            <span className="text-xs text-slate-700">
-                              {cellVal || "-"}
-                            </span>
+                            <input
+                              type="text"
+                              value={cellVal === "-" ? "" : cellVal}
+                              onChange={(e) =>
+                                handleCellChange(cellCoord, e.target.value)
+                              }
+                              className={`w-full rounded-lg border text-xs px-2 py-1.5 transition focus:outline-none focus:ring-2 focus:ring-[#005baa] ${
+                                isEdited
+                                  ? "bg-amber-50 border-amber-400 text-amber-900 ring-1 ring-amber-400"
+                                  : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+                              }`}
+                              title={`Edit ${col.label} (${cellCoord})`}
+                            />
                           </td>
                         );
                       })}
@@ -1436,13 +1509,62 @@ export default function RealisasiRoTable() {
               <span className="h-2 w-2 rounded-full bg-amber-500" />
               Belum (&lt; 100%)
             </span>
-            <span className="inline-flex items-center gap-1 text-slate-600 font-semibold bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
-              <Icon icon="solar:lock-bold" width={13} className="text-slate-500" />
-              Tabel Terkunci (Mode Laporan)
+            <span className="inline-flex items-center gap-1.5 text-emerald-800 font-bold bg-emerald-50 px-3 py-1 rounded-full border border-emerald-300">
+              <Icon icon="solar:pen-new-square-bold" width={13} className="text-[#00a651]" />
+              Mode Edit Terbuka (Semua Anggota TU)
             </span>
           </div>
         </div>
       </div>
+
+      {/* Floating Save Notification Bar */}
+      {pendingCount > 0 && (
+        <div className="fixed bottom-6 inset-x-0 z-50 flex justify-center px-4 pointer-events-none animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="pointer-events-auto flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl bg-slate-900/95 text-white px-5 py-3.5 shadow-2xl backdrop-blur-md border border-slate-700 max-w-xl w-full">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-400/20 text-amber-400 shrink-0">
+                <Icon icon="solar:pen-new-square-bold" width={20} />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-white">
+                  {pendingCount} Perubahan Sel Belum Disimpan
+                </p>
+                <p className="text-[11px] text-slate-300">
+                  Data dapat diubah oleh seluruh anggota TU. Klik simpan untuk menerapkan ke sistem.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleReset}
+                disabled={saving}
+                className="rounded-xl border border-slate-600 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-800 transition"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#00a651] px-4 py-1.5 text-xs font-bold text-white hover:bg-[#008f45] shadow-md transition disabled:opacity-50"
+              >
+                {saving ? (
+                  <>
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent" />
+                    <span>Menyimpan...</span>
+                  </>
+                ) : (
+                  <>
+                    <Icon icon="solar:diskette-bold" width={16} />
+                    <span>Simpan Perubahan</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Upload File Excel RO */}
       {renderUploadModal()}
