@@ -224,7 +224,7 @@ export default function RealisasiRoTable() {
 
       if (res.data && res.data.data) {
         const d = res.data.data;
-        setMonthHeaders(d.month_columns_header || []);
+        setMonthHeaders(d.month_columns_header || d.columns || []);
         setRows(d.rows || []);
         if (d.file_info) {
           setFileInfo(d.file_info);
@@ -293,7 +293,7 @@ export default function RealisasiRoTable() {
       const matchedRow = rows.find(
         (r) =>
           r.target_tahunan.cell === cell ||
-          Object.values(r.month_columns || {}).some((c) => c.cell === cell),
+          Object.values(r.month_columns || (r as any).month_data || {}).some((c: any) => c?.cell === cell),
       );
 
       const isTargetTahunan = matchedRow?.target_tahunan.cell === cell;
@@ -355,10 +355,10 @@ export default function RealisasiRoTable() {
         const q = searchQuery.toLowerCase();
         const matchKode = (r.kode_ro || "").toLowerCase().includes(q);
         const matchNama = (r.nama_ro || "").toLowerCase().includes(q);
-        const matchKendala = (getCellValue(r.month_columns?.kendala) || "")
+        const matchKendala = (getCellValue(r.month_columns?.kendala || (r as any).month_data?.kendala) || "")
           .toLowerCase()
           .includes(q);
-        const matchRtl = (getCellValue(r.month_columns?.rtl) || "")
+        const matchRtl = (getCellValue(r.month_columns?.rtl || (r as any).month_data?.rtl) || "")
           .toLowerCase()
           .includes(q);
         if (!matchKode && !matchNama && !matchKendala && !matchRtl) {
@@ -370,8 +370,8 @@ export default function RealisasiRoTable() {
       if (filterStatus === "belum") return r.status === "belum";
       if (filterStatus === "edited") {
         const hasEditedTarget = isCellEdited(r.target_tahunan?.cell);
-        const hasEditedMonth = Object.values(r.month_columns || {}).some((c) =>
-          isCellEdited(c.cell),
+        const hasEditedMonth = Object.values(r.month_columns || (r as any).month_data || {}).some((c: any) =>
+          isCellEdited(c?.cell),
         );
         return hasEditedTarget || hasEditedMonth;
       }
@@ -1332,7 +1332,8 @@ export default function RealisasiRoTable() {
 
                       {/* 4. Kolom-kolom Dinamis Bulan (Scrollable - Read-Only Resmi) */}
                       {monthHeaders.map((col) => {
-                        const cellData = row.month_columns[col.key];
+                        const monthCols = row.month_columns || (row as any).month_data || {};
+                        const cellData = monthCols[col.key];
                         const cellVal = getCellValue(cellData);
                         const isFormula =
                           cellData?.is_formula || col.key === "capaian";
