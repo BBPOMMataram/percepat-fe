@@ -197,6 +197,7 @@ export function SiprovalPillButton({
   href,
   label,
   external = false,
+  download,
   useNextLink = false,
   showArrow = true,
   arrowDirection = "right",
@@ -206,6 +207,7 @@ export function SiprovalPillButton({
   href: string;
   label: string;
   external?: boolean;
+  download?: string | boolean;
   useNextLink?: boolean;
   showArrow?: boolean;
   arrowDirection?: "right" | "up" | "external";
@@ -242,6 +244,7 @@ export function SiprovalPillButton({
   return (
     <a
       href={href}
+      download={download}
       target={external ? "_blank" : undefined}
       rel={external ? "noopener noreferrer" : undefined}
       onClick={onClick}
