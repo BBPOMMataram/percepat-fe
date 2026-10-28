@@ -4,7 +4,12 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Plus_Jakarta_Sans } from "next/font/google";
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import {
+  motion,
+  useScroll,
+  useTransform,
+  AnimatePresence,
+} from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch } from "@/redux/store";
 import { getUser } from "@/features/authSlice";
@@ -110,7 +115,9 @@ export default function Siproval() {
     "019ab8b3-1fb0-73ef-af89-ad09ef30f76f", // Nanang Setyadi Santoso
   ];
 
-  const userId = String(user?.id || "").toLowerCase().trim();
+  const userId = String(user?.id || "")
+    .toLowerCase()
+    .trim();
   const userEmail = (user?.email || "").toLowerCase().trim();
   const userNameClean = (user?.name || "").toLowerCase().trim();
 
@@ -402,7 +409,9 @@ export default function Siproval() {
                   useNextLink={true}
                   label="Masuk ke Sistem"
                   className={`text-xs font-semibold px-4 py-2 ${
-                    scrolled ? "bg-[#003d73] text-white" : "bg-white text-[#001d3d]"
+                    scrolled
+                      ? "bg-[#003d73] text-white"
+                      : "bg-white text-[#001d3d]"
                   }`}
                 />
               )}
@@ -503,7 +512,7 @@ export default function Siproval() {
               transition={{ duration: 0.95, delay: 0.2, ease: SIPROVAL_EASE }}
               className="text-4xl sm:text-5xl lg:text-[56px] font-extrabold text-white tracking-[-0.025em] leading-[1.12] mb-5"
             >
-              SIPROVAL BBPOM di Mataram
+              SIPROVAL 2.0 BBPOM di Mataram
             </motion.h1>
 
             <motion.p
