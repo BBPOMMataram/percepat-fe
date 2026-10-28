@@ -114,16 +114,6 @@ export default function RekapitulasiAnggaran() {
   const [loadingData, setLoadingData] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Construct Direct Google Spreadsheet URL
-  const spreadsheetUrl = useMemo(() => {
-    if (!spreadsheet?.spreadsheet_id) return null;
-    const gidParam =
-      sheetTab?.google_sheet_id !== undefined && sheetTab?.google_sheet_id !== null
-        ? `#gid=${sheetTab.google_sheet_id}`
-        : "";
-    return `https://docs.google.com/spreadsheets/d/${spreadsheet.spreadsheet_id}/edit${gidParam}`;
-  }, [spreadsheet, sheetTab]);
-
   // Fetch Available Tabs for Year
   const fetchMonthTabs = useCallback(async (yearToFetch: string) => {
     setLoadingTabs(true);
@@ -320,21 +310,6 @@ export default function RekapitulasiAnggaran() {
 
         {/* Action Buttons Top */}
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Direct link to external Google Spreadsheet */}
-          {spreadsheetUrl && (
-            <a
-              href={spreadsheetUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-xs transition hover:border-slate-300 hover:bg-slate-50"
-              title="Buka dokumen Google Spreadsheet secara langsung di tab baru"
-            >
-              <Icon icon="solar:link-square-bold" width={16} className="text-emerald-600" />
-              <span>Buka Google Spreadsheet</span>
-              <Icon icon="solar:arrow-right-up-linear" width={14} className="text-slate-400" />
-            </a>
-          )}
-
           {/* Quick jump to input page for this tab */}
           {selectedTabId && (
             <Link

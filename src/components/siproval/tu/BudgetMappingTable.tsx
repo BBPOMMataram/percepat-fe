@@ -94,17 +94,6 @@ export default function BudgetMappingTable() {
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Construct Direct Google Spreadsheet URL
-  const spreadsheetUrl = useMemo(() => {
-    if (!spreadsheet?.spreadsheet_id) return null;
-    const gidParam =
-      sheetTab?.google_sheet_id !== undefined &&
-      sheetTab?.google_sheet_id !== null
-        ? `#gid=${sheetTab.google_sheet_id}`
-        : "";
-    return `https://docs.google.com/spreadsheets/d/${spreadsheet.spreadsheet_id}/edit${gidParam}`;
-  }, [spreadsheet, sheetTab]);
-
   // Load Table Data from Server
   async function loadTable() {
     setLoading(true);
@@ -471,29 +460,6 @@ export default function BudgetMappingTable() {
             <Icon icon="solar:arrow-left-linear" width={16} />
             Daftar Bulan
           </Link>
-
-          {/* Direct link to external Google Spreadsheet */}
-          {spreadsheetUrl && (
-            <a
-              href={spreadsheetUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-xs transition hover:border-slate-300 hover:bg-slate-50"
-              title="Buka dokumen Google Spreadsheet secara langsung di tab baru"
-            >
-              <Icon
-                icon="solar:link-square-bold"
-                width={16}
-                className="text-emerald-600"
-              />
-              <span>Buka Google Spreadsheet</span>
-              <Icon
-                icon="solar:arrow-right-up-linear"
-                width={14}
-                className="text-slate-400"
-              />
-            </a>
-          )}
 
           {/* Link to New Data View Page */}
           <Link
@@ -1028,21 +994,9 @@ export default function BudgetMappingTable() {
           <span>
             Halaman ini khusus untuk penginputan alokasi dan realisasi anggaran.
             Untuk melihat rekapitulasi data secara menyeluruh, Anda dapat
-            mengakses menu <strong>Rekapitulasi Anggaran</strong> di sidebar
-            atau langsung membuka dokumen spreadsheet.
+            mengakses menu <strong>Rekapitulasi Anggaran</strong> di sidebar.
           </span>
         </div>
-        {spreadsheetUrl && (
-          <a
-            href={spreadsheetUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 font-semibold text-[#005baa] hover:underline shrink-0"
-          >
-            Buka Spreadsheet Penuh
-            <Icon icon="solar:arrow-right-up-linear" width={14} />
-          </a>
-        )}
       </div>
     </div>
   );

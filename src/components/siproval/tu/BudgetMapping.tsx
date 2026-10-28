@@ -90,6 +90,38 @@ export default function BudgetMapping() {
     tabs: string[];
   } | null>(null);
 
+  const [deletingYear, setDeletingYear] = useState<number | null>(null);
+
+  const handleDeleteYear = async (yr: number) => {
+    if (
+      !confirm(
+        `Apakah Anda yakin ingin menghapus Tahun Anggaran ${yr}?\n\nSeluruh data alokasi bulanan, rincian kegiatan, dan file template untuk tahun ini akan dihapus permanen.`
+      )
+    ) {
+      return;
+    }
+    setDeletingYear(yr);
+    try {
+      const res = await api.delete(`${baseUrl}/api/budget-mapping/years/${yr}`);
+      alert(res.data?.message || `Tahun anggaran ${yr} berhasil dihapus.`);
+      await fetchYears();
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      alert(e.response?.data?.message || `Gagal menghapus tahun anggaran ${yr}.`);
+    } finally {
+      setDeletingYear(null);
+    }
+  };
+
+  const handleOpenUpdateFile = (yr: number, currentName?: string) => {
+    setSelectedYear(yr);
+    setDocName(currentName || `Mapping Anggaran ${yr}`);
+    setSelectedFile(null);
+    setSubmitError("");
+    setSubmitSuccess(null);
+    setShowAddModal(true);
+  };
+
   const [copiedEmail, setCopiedEmail] = useState(false);
   const serviceAccountEmail = "siproval-sheets@siproval.iam.gserviceaccount.com";
   const SERVICE_ACCOUNT_EMAIL = serviceAccountEmail;
@@ -412,42 +444,72 @@ export default function BudgetMapping() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {years.map(({ year, spreadsheet_name, google_sheet_id }) => (
-            <Link
+            <div
               key={year}
-              href={`/siproval/budget-mapping/year?year=${year}`}
-              className="group block rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
+              className="group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:border-blue-200 hover:shadow-md"
             >
-              <div className="flex items-center justify-between">
-                <span className="rounded-xl bg-blue-50 px-3 py-1 text-sm font-bold text-[#005baa]">
-                  {year}
-                </span>
-                <span className="text-xs font-semibold uppercase text-slate-400">
-                  Tahun Anggaran
-                </span>
-              </div>
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="rounded-xl bg-blue-50 px-3 py-1 text-sm font-bold text-[#005baa]">
+                    {year}
+                  </span>
 
-              <div className="mt-4">
-                <h3 className="text-lg font-bold text-slate-900 group-hover:text-[#005baa]">
-                  Budget Mapping {year}
-                </h3>
-                <p className="mt-1 text-xs text-slate-500 truncate" title={spreadsheet_name || "Maping Anggaran"}>
-                  {spreadsheet_name || "Klik untuk membuka rincian tab spreadsheet"}
-                </p>
-                {google_sheet_id && (
-                  <p className="mt-1 text-[10px] text-slate-400 font-mono truncate" title={google_sheet_id}>
-                    ID: {google_sheet_id}
+                  {/* Tombol Aksi: Update File & Hapus */}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenUpdateFile(year, spreadsheet_name)}
+                      className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 transition"
+                      title={`Ganti / Update File Excel Tahun ${year}`}
+                    >
+                      <Icon icon="solar:upload-track-2-bold" width={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteYear(year)}
+                      disabled={deletingYear === year}
+                      className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-600 transition disabled:opacity-50"
+                      title={`Hapus Tahun Anggaran ${year}`}
+                    >
+                      <Icon
+                        icon={deletingYear === year ? "solar:refresh-circle-linear" : "solar:trash-bin-trash-bold"}
+                        width={16}
+                        className={deletingYear === year ? "animate-spin" : ""}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <h3 className="text-base font-bold text-slate-900 group-hover:text-[#005baa] transition">
+                    Budget Mapping {year}
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500 truncate" title={spreadsheet_name || `Mapping Anggaran ${year}`}>
+                    {spreadsheet_name || "Pemetaan alokasi anggaran kegiatan"}
                   </p>
-                )}
+                </div>
               </div>
 
-              <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-xs font-semibold text-[#005baa]">
-                <span>Buka Rincian Tab</span>
-                <Icon
-                  icon="solar:arrow-right-linear"
-                  className="h-4 w-4 transition group-hover:translate-x-1"
-                />
+              <div className="mt-5 border-t border-slate-100 pt-3 flex items-center justify-between">
+                <Link
+                  href={`/siproval/budget-mapping/year?year=${year}`}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#005baa] hover:text-[#004a8b] transition"
+                >
+                  <span>Buka Rincian Tab</span>
+                  <Icon
+                    icon="solar:arrow-right-linear"
+                    className="h-4 w-4 transition group-hover:translate-x-1"
+                  />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => handleOpenUpdateFile(year, spreadsheet_name)}
+                  className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition"
+                >
+                  Update File
+                </button>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}
@@ -601,10 +663,14 @@ export default function BudgetMapping() {
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
                 <h3 className="text-base font-bold text-slate-900">
-                  Unggah Dokumen Budget Mapping (Excel / CSV)
+                  {years.some((y) => y.year === selectedYear)
+                    ? `Update / Ganti File Excel (Tahun ${selectedYear})`
+                    : "Unggah Dokumen Budget Mapping (Excel)"}
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Mendukung file Excel (.xlsx, .xls) atau CSV. Sistem otomatis memetakan seluruh tab alokasi ke database mandiri SIPROVAL.
+                  {years.some((y) => y.year === selectedYear)
+                    ? `Unggah file Excel (.xlsx, .xls) baru untuk memperbarui susunan kegiatan dan alokasi anggaran tahun ${selectedYear}.`
+                    : "Mendukung file Excel (.xlsx, .xls) atau CSV. Sistem otomatis memetakan seluruh tab alokasi ke database mandiri SIPROVAL."}
                 </p>
               </div>
               <button
