@@ -1,11 +1,9 @@
 "use client";
 
-import { showAlert } from "@/features/alertSlice";
-import { AppDispatch } from "@/redux/store";
 import api from "@/utils/api";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { toast } from "react-toastify";
 
 const getTodayString = () => {
     const d = new Date();
@@ -23,7 +21,6 @@ const getCurrentTimeString = () => {
 };
 
 function FormMutationContent() {
-    const dispatch = useDispatch<AppDispatch>();
     const router = useRouter();
     const searchParams = useSearchParams();
     const editId = searchParams.get("id");
@@ -37,6 +34,8 @@ function FormMutationContent() {
     const [deskripsi, setDeskripsi] = useState("");
     const [listRooms, setListRooms] = useState<any[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const tempInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_SISMORA}/api/v1/rooms?per_page=1000`)
@@ -60,10 +59,10 @@ function FormMutationContent() {
                 })
                 .catch((err) => {
                     console.error(err);
-                    dispatch(showAlert({ type: "error", message: "Gagal memuat data mutasi", description: "Terjadi kesalahan saat mengambil data." }));
+                    toast.error("Data mutasi dengan ID tersebut tidak ditemukan atau server tidak merespons.");
                 });
         }
-    }, [editId, dispatch]);
+    }, [editId]);
 
     // Ambil object ruangan yang sedang terpilih beserta tipe ruangannya untuk monitoring
     const selectedRoom = listRooms.find((r) => String(r.id) === String(roomId));
@@ -73,17 +72,17 @@ function FormMutationContent() {
         e.preventDefault();
 
         if (!roomId) {
-            alert("Ruangan wajib dipilih");
+            toast.error("Ruangan pemantauan wajib dipilih terlebih dahulu!");
             return;
         }
 
         if (!tanggal) {
-            alert("Tanggal wajib diisi");
+            toast.error("Tanggal pemantauan wajib diisi!");
             return;
         }
 
         if (!jam) {
-            alert("Jam wajib diisi");
+            toast.error("Jam pemantauan wajib diisi!");
             return;
         }
 
@@ -104,32 +103,99 @@ function FormMutationContent() {
 
         api[method](url, isEditMode ? { ...payload, _method: "PUT" } : payload)
             .then((res) => {
-                dispatch(
-                    showAlert({
-                        type: "success",
-                        message: res.data.message || `Berhasil ${isEditMode ? "memperbarui" : "menambahkan"} mutasi`,
-                        description: res.data.message || `Berhasil ${isEditMode ? "memperbarui" : "menambahkan"} mutasi`,
-                    })
-                );
-                router.push("/sismora/mutasi");
+                if (isEditMode) {
+                    toast.success("Mutasi berhasil diperbarui!");
+                    router.push("/sismora/mutasi");
+                } else {
+                    // MODE TAMBAH (INPUT BERULANG):
+                    // 1. Reset isi form TANPA mereset ruangannya (roomId tetap)
+                    setTemperature("");
+                    setHumidity("");
+                    setDeskripsi("");
+                    setJam(getCurrentTimeString());
+
+                    // 2. Tampilkan notifikasi berhasil (sama persis dengan notifikasi hapus)
+                    toast.success("Mutasi berhasil disimpan!");
+
+                    // 3. Fokuskan kembali kursor ke input suhu untuk kemudahan input berulang
+                    setTimeout(() => {
+                        tempInputRef.current?.focus();
+                    }, 100);
+                }
             })
             .catch((err) => {
-                dispatch(
-                    showAlert({
-                        type: "error",
-                        message: err?.response?.data?.message || "Terjadi kesalahan",
-                        description: err?.response?.data?.message || "Terjadi kesalahan saat memproses data.",
-                    })
-                );
+                // Parsing alasan spesifik mengapa gagal
+                let reason = "";
+                const resData = err?.response?.data;
+
+                if (resData?.errors) {
+                    if (typeof resData.errors === "object" && !Array.isArray(resData.errors)) {
+                        const errorMessages: string[] = [];
+                        Object.entries(resData.errors).forEach(([field, msgs]) => {
+                            if (Array.isArray(msgs)) {
+                                errorMessages.push(...msgs);
+                            } else if (typeof msgs === "string") {
+                                errorMessages.push(msgs);
+                            }
+                        });
+                        if (errorMessages.length > 0) {
+                            reason = errorMessages.join(". ");
+                        }
+                    } else if (typeof resData.errors === "string") {
+                        reason = resData.errors;
+                    }
+                }
+
+                if (!reason && resData?.message) {
+                    reason = resData.message;
+                }
+
+                if (!reason) {
+                    if (err?.code === "ERR_NETWORK" || !err?.response) {
+                        reason = "Tidak dapat terhubung ke server backend Sismora. Pastikan service backend aktif.";
+                    } else if (err?.response?.status === 401) {
+                        reason = "Sesi login Anda telah berakhir. Silakan login kembali ke sistem.";
+                    } else if (err?.response?.status === 403) {
+                        reason = "Akun Anda tidak memiliki hak akses untuk menyimpan data mutasi ini.";
+                    } else if (err?.response?.status === 404) {
+                        reason = "Ruangan yang dipilih tidak ditemukan di database server.";
+                    } else if (err?.response?.status === 422) {
+                        reason = "Format input atau isian form belum memenuhi ketentuan.";
+                    } else if (err?.response?.status >= 500) {
+                        reason = "Terjadi gangguan pada database server Sismora saat memproses data.";
+                    } else {
+                        reason = "Terjadi kendala pada pengiriman data.";
+                    }
+                }
+
+                toast.error(`Gagal: ${reason}`);
             })
             .finally(() => setIsSubmitting(false));
     };
 
     return (
         <div className="max-w-2xl mx-auto p-2 sm:p-6">
-            <h1 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">
-                {isEditMode ? "Edit Mutasi" : "Tambah Mutasi"}
-            </h1>
+            <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
+                <div>
+                    <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
+                        {isEditMode ? "Edit Mutasi Ruangan" : "Input Mutasi Ruangan"}
+                    </h1>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                        {isEditMode
+                            ? "Perbarui data pemantauan suhu dan kelembaban ruangan"
+                            : "Input data pemantauan ruangan (mendukung input berulang di ruangan yang sama)"}
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onClick={() => router.push("/sismora/mutasi")}
+                    className="btn btn-sm btn-outline border-gray-300 text-gray-700 hover:bg-gray-100 hover:border-gray-400 shrink-0 cursor-pointer"
+                >
+                    Lihat Tabel Mutasi
+                </button>
+            </div>
+
+
 
             <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 space-y-4">
                 <div>
@@ -244,6 +310,7 @@ function FormMutationContent() {
                             Temperatur (°C)
                         </label>
                         <input
+                            ref={tempInputRef}
                             type="number"
                             step="any"
                             value={temperature}
@@ -277,17 +344,17 @@ function FormMutationContent() {
                     />
                 </div>
 
-                <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
+                <div className="flex flex-col-reverse sm:flex-row gap-3 pt-3 items-center justify-between border-t border-gray-100">
                     <button
                         type="button"
-                        className="btn btn-ghost w-full sm:w-auto"
+                        className="btn btn-ghost w-full sm:w-auto text-gray-600 hover:bg-gray-100 cursor-pointer"
                         onClick={() => router.push("/sismora/mutasi")}
                     >
-                        Batal
+                        {isEditMode ? "Batal" : "Selesai & Ke Tabel Mutasi"}
                     </button>
                     <button
                         type="submit"
-                        className="btn btn-primary w-full sm:w-auto"
+                        className="btn btn-primary w-full sm:w-auto px-7 shadow-sm cursor-pointer"
                         disabled={isSubmitting}
                     >
                         {isSubmitting ? (
@@ -295,9 +362,9 @@ function FormMutationContent() {
                                 <span className="loading loading-spinner loading-sm"></span> Menyimpan...
                             </>
                         ) : isEditMode ? (
-                            "Perbarui"
+                            "Perbarui Data"
                         ) : (
-                            "Simpan"
+                            "Simpan Data"
                         )}
                     </button>
                 </div>

@@ -4,6 +4,20 @@ import React, { useState, useMemo } from "react";
 import { BatchItem, PengujianItem, pengujianService } from "../pengujianService";
 import { QrModalData } from "../types";
 
+const IGNORED_COLS = [
+    "manager_administrasi",
+    "nip_manager_administrasi",
+    "kepala_balai",
+    "nip_kepala_balai",
+    "petugas_penerima",
+    "nip_petugas_penerima",
+    "tanggal_spu",
+    "no_spu",
+    "nomor spu",
+    "nomor_spu",
+    "_meta",
+];
+
 interface PengujianTableProps {
     items: PengujianItem[];
     headers: string[];
@@ -24,9 +38,16 @@ export default function PengujianTable({
     const [pageSize, setPageSize] = useState<number>(10);
     const [currentPage, setCurrentPage] = useState<number>(1);
 
-    // Filter out columns whose title contains 'qr' (case-insensitive) as QR is rendered in its own dedicated column
+    // Filter out internal metadata and QR columns (case-insensitive) as QR is rendered in its own dedicated column
     const displayHeaders = useMemo(
-        () => headers.filter((h) => !h.toLowerCase().includes("qr")),
+        () =>
+            headers.filter((h) => {
+                const hLower = h.toLowerCase().trim();
+                if (hLower.includes("qr")) return false;
+                if (h.startsWith("_")) return false;
+                if (IGNORED_COLS.includes(hLower)) return false;
+                return true;
+            }),
         [headers]
     );
 
@@ -347,6 +368,13 @@ export default function PengujianTable({
                                                                 <img
                                                                     src={`data:image/svg+xml;base64,${item.qr_base64}`}
                                                                     alt="QR Code"
+                                                                    className="w-full h-full object-contain"
+                                                                />
+                                                            ) : item.qr_token ? (
+                                                                <img
+                                                                    src={pengujianService.getQrImageUrl(item.qr_token)}
+                                                                    alt="QR Code"
+                                                                    loading="lazy"
                                                                     className="w-full h-full object-contain"
                                                                 />
                                                             ) : (

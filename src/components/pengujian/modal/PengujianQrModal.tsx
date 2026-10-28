@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { QrModalData } from "../types";
+import { pengujianService } from "../pengujianService";
 
 interface PengujianQrModalProps {
     data: QrModalData;
@@ -51,6 +52,8 @@ export default function PengujianQrModal({
 
         const qrSrc = data.qrBase64
             ? `data:image/svg+xml;base64,${data.qrBase64}`
+            : data.qrToken
+            ? pengujianService.getQrImageUrl(data.qrToken)
             : data.targetUrl;
 
         const canvas = document.createElement("canvas");
@@ -106,7 +109,173 @@ export default function PengujianQrModal({
 
     const qrImageSrc = data.qrBase64
         ? `data:image/svg+xml;base64,${data.qrBase64}`
+        : data.qrToken
+        ? pengujianService.getQrImageUrl(data.qrToken)
         : data.targetUrl;
+
+    // Cetak langsung Barcode / Label QR Code ke printer
+    const handlePrintBarcode = () => {
+        const sampleCode = (data.code || "QR_Code").trim();
+        const qrSrc = data.qrBase64
+            ? `data:image/svg+xml;base64,${data.qrBase64}`
+            : data.qrToken
+            ? pengujianService.getQrImageUrl(data.qrToken)
+            : data.targetUrl;
+        const cleanInfo = (data.info || "").replace(/^Wilayah:\s*/gim, "Lokasi Sampel: ");
+
+        const printWindow = window.open("", "_blank", "width=600,height=600");
+        if (!printWindow) {
+            alert("Harap izinkan pop-up pada browser untuk mencetak label barcode!");
+            return;
+        }
+
+        printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Cetak Label Barcode - ${sampleCode}</title>
+    <style>
+        @page {
+            size: auto;
+            margin: 3mm;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #fff;
+            color: #000;
+            padding: 8px;
+            display: flex;
+            justify-content: center;
+        }
+        .label-card {
+            width: 105mm;
+            min-height: 52mm;
+            border: 2px solid #000;
+            border-radius: 6px;
+            padding: 10px;
+            background: #fff;
+        }
+        .label-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1.5px solid #000;
+            padding-bottom: 5px;
+            margin-bottom: 8px;
+        }
+        .header-title {
+            font-size: 9.5pt;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .header-sub {
+            font-size: 7.5pt;
+            color: #333;
+        }
+        .badge {
+            font-size: 7.5pt;
+            font-weight: bold;
+            border: 1px solid #000;
+            padding: 1px 5px;
+            border-radius: 3px;
+        }
+        .label-body {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        .qr-box {
+            width: 155px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .qr-box img {
+            width: 150px;
+            height: 150px;
+            display: block;
+            margin: 0 auto;
+            object-fit: contain;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+        }
+        .info-box {
+            flex: 1;
+            min-width: 0;
+        }
+        .code-title {
+            font-family: monospace;
+            font-size: 11pt;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 4px;
+            word-break: break-all;
+            border-bottom: 1px dashed #666;
+            padding-bottom: 3px;
+        }
+        .sample-title {
+            font-size: 8.5pt;
+            font-weight: bold;
+            line-height: 1.25;
+            margin-bottom: 5px;
+        }
+        .info-text {
+            font-size: 7.5pt;
+            line-height: 1.35;
+            color: #111;
+            white-space: pre-line;
+            max-height: 140px;
+            overflow: hidden;
+            word-break: break-word;
+        }
+        @media print {
+            body {
+                padding: 0;
+            }
+            .label-card {
+                border-width: 1.5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="label-card">
+        <div class="label-header">
+            <div>
+                <div class="header-title">BALAI BESAR POM DI MATARAM</div>
+                <div class="header-sub">Laboratorium Pengujian &bull; Kode Sampel</div>
+            </div>
+            <div class="badge">RESMI</div>
+        </div>
+        <div class="label-body">
+            <div class="qr-box">
+                <img src="${qrSrc}" alt="QR" />
+            </div>
+            <div class="info-box">
+                <div class="code-title">${sampleCode}</div>
+                <div class="sample-title">${data.title || "Sampel Uji"}</div>
+                <div class="info-text">${cleanInfo}</div>
+            </div>
+        </div>
+    </div>
+    <script>
+        window.onload = function() {
+            setTimeout(function() {
+                window.print();
+            }, 300);
+        };
+    </script>
+</body>
+</html>`);
+        printWindow.document.close();
+    };
+
+    const displayInfo = (data.info || "").replace(/^Wilayah:\s*/gim, "Lokasi Sampel: ");
 
     return (
         <div
@@ -198,28 +367,37 @@ export default function PengujianQrModal({
                             </button>
                         </div>
                         <div className="text-xs font-mono text-slate-800 bg-white p-2.5 rounded-xl border border-slate-200 break-words whitespace-pre-line select-all font-medium leading-relaxed max-h-36 overflow-y-auto custom-scrollbar">
-                            {data.info || "-"}
+                            {displayInfo || "-"}
                         </div>
                     </div>
 
                     {/* Action Buttons in Modal */}
-                    <div className="grid grid-cols-2 gap-2.5 pt-1">
+                    <div className="grid grid-cols-3 gap-2 pt-1">
+                        <button
+                            type="button"
+                            onClick={handlePrintBarcode}
+                            className="inline-flex items-center justify-center py-2.5 px-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all cursor-pointer"
+                            title="Cetak langsung stiker label barcode ke printer label"
+                        >
+                            <span>Cetak Barcode</span>
+                        </button>
+
                         <button
                             type="button"
                             onClick={downloadQrPng}
-                            className="inline-flex items-center justify-center py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-all border border-slate-200 cursor-pointer"
+                            className="inline-flex items-center justify-center py-2.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-all border border-slate-200 cursor-pointer"
                             title="Unduh gambar QR Code berformat PNG siap cetak / print"
                         >
-                            <span>Unduh QR (PNG)</span>
+                            <span>Unduh PNG</span>
                         </button>
 
                         <a
                             href={data.pdfUrl || data.targetUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center justify-center py-2.5 px-3 rounded-xl bg-[#005baa] hover:bg-[#004887] text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                            className="inline-flex items-center justify-center py-2.5 px-2 rounded-xl bg-[#005baa] hover:bg-[#004887] text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer"
                         >
-                            <span>Buka PDF Baris Ini</span>
+                            <span>Buka PDF</span>
                         </a>
                     </div>
                 </div>

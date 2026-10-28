@@ -2,14 +2,13 @@
 
 import { getUser } from "@/features/authSlice";
 import { AppDispatch, RootState } from "@/redux/store";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import LoadingWithoutText from "@/components/main/loading/LoadingWithoutText";
 import HeaderUserArea from "@/components/main/user-area/Header";
 import FooterUserArea from "@/components/main/user-area/Footer";
 import SidebarSismora from "./SidebarSismora";
-import LoginPrompt from "./LoginPrompt";
 import DashboardSismora from "./DashboardSismora";
 import Ruangan from "./ruangan/Ruangan";
 import Mutasi from "./mutasi/Mutasi";
@@ -20,10 +19,17 @@ export default function MainSismora() {
     const dispatch = useDispatch<AppDispatch>()
     const { user, loading } = useSelector((state: RootState) => state.auth)
     const pathname = usePathname();
+    const router = useRouter();
 
     useEffect(() => {
         dispatch(getUser());
     }, [dispatch]);
+
+    useEffect(() => {
+        if (!loading && !user) {
+            router.push(`/login?redirectUrl=${pathname || "/sismora"}`);
+        }
+    }, [user, loading, router, pathname]);
 
     useEffect(() => {
         if (user) {
@@ -31,10 +37,12 @@ export default function MainSismora() {
         }
     }, [user]);
 
-    if (loading) return <div className="flex h-screen w-full items-center justify-center bg-gray-100"><LoadingWithoutText /></div>;
-
-    if (!user) {
-        return <LoginPrompt />;
+    if (loading || !user) {
+        return (
+            <div className="flex h-screen w-full items-center justify-center bg-gray-100">
+                <LoadingWithoutText />
+            </div>
+        );
     }
 
     return (
