@@ -79,13 +79,14 @@ type QuarterConfig = {
   label: string;
   tab_title: string;
   short: string;
+  month: string;
 };
 
 const QUARTERS: QuarterConfig[] = [
-  { key: "TW1", label: "Triwulan I (TW 1)", tab_title: "Kendala TW 1 2026", short: "TW I" },
-  { key: "TW2", label: "Triwulan II (TW 2)", tab_title: "Kendala TW 2 2026", short: "TW II" },
-  { key: "TW3", label: "Triwulan III (TW 3)", tab_title: "Kendala TW 3 2026", short: "TW III" },
-  { key: "TW4", label: "Triwulan IV (TW 4)", tab_title: "Kendala TW 4 2026", short: "TW IV" },
+  { key: "TW1", label: "Triwulan I (TW 1)", tab_title: "Kendala TW 1 2026", short: "TW I", month: "Maret" },
+  { key: "TW2", label: "Triwulan II (TW 2)", tab_title: "Kendala TW 2 2026", short: "TW II", month: "Juni" },
+  { key: "TW3", label: "Triwulan III (TW 3)", tab_title: "Kendala TW 3 2026", short: "TW III", month: "September" },
+  { key: "TW4", label: "Triwulan IV (TW 4)", tab_title: "Kendala TW 4 2026", short: "TW IV", month: "Desember" },
 ];
 
 export default function MatriksRekomendasiTu() {
@@ -110,6 +111,11 @@ export default function MatriksRekomendasiTu() {
   const [activeType, setActiveType] = useState<"laporan" | "tarikan">(paramTab ? "tarikan" : "laporan");
   const [selectedQuarter, setSelectedQuarter] = useState<string>(initialQuarter);
   const [selectedTarikanSheet, setSelectedTarikanSheet] = useState<string>(paramTab || "HTL TW 1 2026");
+
+  const currentQuarterConfig = useMemo(
+    () => QUARTERS.find((q) => q.key === selectedQuarter) || QUARTERS[1],
+    [selectedQuarter]
+  );
 
   // Tabs metadata
   const [availableTabs, setAvailableTabs] = useState<{
@@ -367,10 +373,17 @@ export default function MatriksRekomendasiTu() {
     router.replace(`/siproval/tu/matriks-rekomendasi?year=${selectedYear}&tab=${encodeURIComponent(sheetName)}`, { scroll: false });
   };
 
-  const handleSyncSheet = async () => {
+  const handleSyncSheet = async (quarterTarget?: string) => {
+    const q = quarterTarget || selectedQuarter;
+    const isAll = q === "ALL";
+    const qCfg = QUARTERS.find((x) => x.key === q);
+    const label = isAll
+      ? "Semua Triwulan (TW 1 s/d TW 4)"
+      : `${q} (Bulan ${qCfg?.month || ""})`;
+
     if (
       !confirm(
-        `Sinkronkan data Matriks Rekomendasi untuk ${selectedQuarter}? Data yang ada di database akan disinkronkan.`
+        `Tarik data indikator, kendala, rekomendasi, dan RTL untuk ${label} dari Tab 'A. Capaian RAPK Mataram'?\n\nData kendala & rekomendasi di database akan disinkronkan sesuai data file recap RAPK.`
       )
     ) {
       return;
@@ -381,7 +394,7 @@ export default function MatriksRekomendasiTu() {
     try {
       const query = user?.id ? `?user_id=${encodeURIComponent(String(user.id))}` : "";
       const res = await api.post(`${baseUrl}/api/tu/matriks-rekomendasi/${selectedYear}/sync-sheet${query}`, {
-        quarter: selectedQuarter,
+        quarter: q,
       });
       if (res.data?.data?.records) {
         setItems(res.data.data.records);
@@ -390,7 +403,7 @@ export default function MatriksRekomendasiTu() {
       }
       setNotification({
         type: "success",
-        message: `Sinkronisasi berhasil! Data matriks ${selectedQuarter} telah diperbarui.`,
+        message: res.data?.message || `Sinkronisasi berhasil! Data matriks ${label} telah diperbarui dari Tab A. Capaian RAPK Mataram.`,
       });
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
@@ -904,15 +917,45 @@ export default function MatriksRekomendasiTu() {
             </button>
 
             {activeType === "laporan" && (
-              <button
-                type="button"
-                onClick={handleOpenAddModal}
-                disabled={loading}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#005baa] px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#004b8d] disabled:opacity-50"
-              >
-                <Icon icon="solar:add-circle-bold" width={16} />
-                Tambah Rekomendasi
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleSyncSheet(selectedQuarter)}
+                  disabled={syncing || loading}
+                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 disabled:opacity-50"
+                  title={`Tarik data indikator, kendala, rekomendasi, dan RTL dari Tab A. Capaian RAPK Mataram bulan ${currentQuarterConfig?.month}`}
+                >
+                  <Icon
+                    icon={syncing ? "solar:refresh-circle-bold" : "solar:cloud-download-bold"}
+                    width={16}
+                    className={syncing ? "animate-spin" : ""}
+                  />
+                  <span>
+                    {syncing ? "Menyinkronkan..." : `Tarik Data dari Recap RAPK (${currentQuarterConfig?.month})`}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSyncSheet("ALL")}
+                  disabled={syncing || loading}
+                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 shadow-2xs transition hover:bg-emerald-100 disabled:opacity-50"
+                  title="Tarik data semua triwulan (TW 1 s/d TW 4) dari Tab A. Capaian RAPK Mataram"
+                >
+                  <Icon icon="solar:double-alt-arrow-down-bold" width={16} />
+                  <span>Tarik Semua TW</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleOpenAddModal}
+                  disabled={loading}
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#005baa] px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#004b8d] disabled:opacity-50"
+                >
+                  <Icon icon="solar:add-circle-bold" width={16} />
+                  Tambah Rekomendasi
+                </button>
+              </>
             )}
 
             <Link
@@ -954,7 +997,7 @@ export default function MatriksRekomendasiTu() {
                     }`}
                   >
                     <span>{q.short}</span>
-                    <span className="text-[11px] opacity-80">({q.tab_title})</span>
+                    <span className="text-[11px] opacity-80">(Bulan {q.month})</span>
                   </button>
                 );
               })}
@@ -1111,10 +1154,11 @@ export default function MatriksRekomendasiTu() {
               <div className="mt-4 flex justify-center gap-2">
                 <button
                   type="button"
-                  onClick={handleSyncSheet}
-                  className="rounded-xl bg-[#005baa] px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-[#004b8d]"
+                  onClick={() => handleSyncSheet(selectedQuarter)}
+                  disabled={syncing}
+                  className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50"
                 >
-                  Tarik Data dari Spreadsheet
+                  {syncing ? "Menyinkronkan..." : `Tarik Data dari Recap RAPK (Bulan ${currentQuarterConfig?.month})`}
                 </button>
                 <button
                   type="button"
@@ -1128,14 +1172,18 @@ export default function MatriksRekomendasiTu() {
           ) : (
             <div className="overflow-hidden rounded-2xl border border-amber-300 bg-white shadow-xs">
               {/* Table Header Accent banner with Gold/Amber Theme */}
-              <div className="flex items-center justify-between border-b border-amber-300 bg-amber-50 px-5 py-3">
+              <div className="flex flex-col gap-2 border-b border-amber-300 bg-amber-50 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
                   <span className="h-3 w-3 rounded-full bg-[#ffc000] ring-2 ring-amber-400" />
                   <span className="text-xs font-black text-slate-950">
                     ⭐ Tabel Matriks Rekomendasi Triwulan ({selectedQuarter} - {items.length} Indikator)
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-blue-100 border border-blue-300 px-2.5 py-1 text-[11px] font-bold text-blue-900 shadow-2xs">
+                    <Icon icon="solar:database-bold" width={14} className="text-[#005baa]" />
+                    Sumber Data: Tab A. Capaian RAPK Mataram (Bulan {currentQuarterConfig?.month})
+                  </span>
                   <span className="rounded-md bg-amber-200/90 px-2 py-0.5 text-[11px] font-bold text-amber-950 border border-amber-300">
                     ⭐ Digunakan untuk Laporan Kinerja & Evaluasi Internal (Header Kuning #ffc000)
                   </span>
