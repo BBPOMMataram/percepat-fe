@@ -8,7 +8,8 @@ import { RootState } from "@/redux/store";
 import { Icon } from "@iconify/react";
 import api from "@/utils/api";
 
-const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8006";
+const baseUrl =
+  process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8006";
 
 const MONTHS = [
   "Januari",
@@ -84,13 +85,15 @@ export default function DashboardKatim() {
   const currentMonthIdx = new Date().getMonth(); // 0-indexed
   const currentYear = new Date().getFullYear();
 
-  const [selectedMonthIdx, setSelectedMonthIdx] = useState<number>(currentMonthIdx + 1); // 1-indexed
+  const [selectedMonthIdx, setSelectedMonthIdx] = useState<number>(
+    currentMonthIdx + 1,
+  ); // 1-indexed
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [arahanList, setArahanList] = useState<any[]>([]);
   const [spreadsheetUrl, setSpreadsheetUrl] = useState<string>(
-    "https://docs.google.com/spreadsheets/d/1olc0eU3cffI-d-dtZVSaw_sFNaW_ggxeX3KR-ElzcZU/edit#gid=180451485"
+    "https://docs.google.com/spreadsheets/d/1olc0eU3cffI-d-dtZVSaw_sFNaW_ggxeX3KR-ElzcZU/edit#gid=180451485",
   );
   const [loadingArahan, setLoadingArahan] = useState<boolean>(true);
 
@@ -111,7 +114,9 @@ export default function DashboardKatim() {
         }
       } catch (err: any) {
         console.error("Gagal memuat metrik dashboard Katim:", err);
-        setErrorMsg("Gagal terhubung ke API backend Siproval. Silakan periksa koneksi server.");
+        setErrorMsg(
+          "Gagal terhubung ke API backend Siproval. Silakan periksa koneksi server.",
+        );
       } finally {
         setLoading(false);
       }
@@ -128,7 +133,7 @@ export default function DashboardKatim() {
         if (user?.id) queryParams.set("user_id", String(user.id));
         queryParams.set("month", selectedMonthName.toUpperCase());
         const res = await api.get(
-          `${baseUrl}/api/katim/arahan-pimpinan?${queryParams.toString()}`
+          `${baseUrl}/api/katim/arahan-pimpinan?${queryParams.toString()}`,
         );
         if (res.data?.status === "success" && res.data?.data) {
           setArahanList(res.data.data.arahan_list || []);
@@ -165,7 +170,8 @@ export default function DashboardKatim() {
   };
 
   // Real indicators list for this month
-  const currentMonthIndicators = metrics?.indicators_by_month?.[selectedMonthIdx] || [];
+  const currentMonthIndicators =
+    metrics?.indicators_by_month?.[selectedMonthIdx] || [];
 
   return (
     <div className="space-y-8">
@@ -174,11 +180,19 @@ export default function DashboardKatim() {
         <div className="relative z-10 max-w-2xl">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
-              <Icon icon="solar:user-check-bold" width={15} className="text-emerald-300" />
+              <Icon
+                icon="solar:user-check-bold"
+                width={15}
+                className="text-emerald-300"
+              />
               PIC / Ketua Tim Kerja
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium backdrop-blur-sm">
-              <Icon icon="solar:database-bold" width={14} className="text-blue-200" />
+              <Icon
+                icon="solar:database-bold"
+                width={14}
+                className="text-blue-200"
+              />
               Data Riil RHPK Internal 2026
             </span>
           </div>
@@ -187,8 +201,9 @@ export default function DashboardKatim() {
             Selamat Datang, {userName}
           </h1>
           <p className="mt-2 text-sm text-blue-100 lg:text-base leading-relaxed">
-            Pantau ringkasan hasil pengukuran kinerja asli, capaian target indikator tugas Anda,
-            serta tindak lanjut arahan Kepala Balai secara real-time.
+            Pantau ringkasan hasil pengukuran kinerja asli, capaian target
+            indikator tugas Anda, serta tindak lanjut arahan Kepala Balai secara
+            real-time.
           </p>
 
           <div className="mt-5 flex flex-wrap gap-3">
@@ -204,7 +219,11 @@ export default function DashboardKatim() {
               href="/siproval/katim/arahan-pimpinan"
               className="inline-flex items-center gap-2 rounded-xl bg-white/15 px-4 py-2.5 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-white/25"
             >
-              <Icon icon="solar:chat-round-line-bold" width={16} className="text-emerald-300" />
+              <Icon
+                icon="solar:chat-round-line-bold"
+                width={16}
+                className="text-emerald-300"
+              />
               <span>Lihat Arahan Pimpinan</span>
               <Icon icon="solar:arrow-right-linear" width={13} />
             </Link>
@@ -219,7 +238,11 @@ export default function DashboardKatim() {
 
       {errorMsg && (
         <div className="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs font-medium text-rose-800">
-          <Icon icon="solar:danger-triangle-bold" width={20} className="shrink-0 text-rose-600" />
+          <Icon
+            icon="solar:danger-triangle-bold"
+            width={20}
+            className="shrink-0 text-rose-600"
+          />
           <span>{errorMsg}</span>
         </div>
       )}
@@ -231,8 +254,12 @@ export default function DashboardKatim() {
             <Icon icon="solar:calendar-bold" width={18} />
           </div>
           <div>
-            <span className="font-bold text-slate-900 block">Periode Pengukuran Bulan:</span>
-            <span className="text-[11px] text-slate-500">Data hasil rekapitulasi capaian indikator RHPK</span>
+            <span className="font-bold text-slate-900 block">
+              Periode Pengukuran Bulan:
+            </span>
+            <span className="text-[11px] text-slate-500">
+              Data hasil rekapitulasi capaian indikator RHPK
+            </span>
           </div>
         </div>
 
@@ -333,7 +360,9 @@ export default function DashboardKatim() {
                 Arahan Pimpinan
               </span>
               <div className="mt-2 text-3xl font-extrabold text-amber-700">
-                {loading ? "..." : arahanList.filter((a) => a.has_arahan).length}
+                {loading
+                  ? "..."
+                  : arahanList.filter((a) => a.has_arahan).length}
               </div>
               <p className="mt-1 text-xs text-slate-600">
                 Arahan Kepala Balai ({selectedMonthName})
@@ -345,7 +374,9 @@ export default function DashboardKatim() {
           </div>
           <div className="mt-4 pt-3 border-t border-amber-100/80 flex items-center justify-between text-[11px] text-amber-900">
             <span className="font-medium">Total Rekap Tahunan</span>
-            <span className="font-bold">{metrics?.total_arahan_pimpinan ?? 0} Arahan</span>
+            <span className="font-bold">
+              {metrics?.total_arahan_pimpinan ?? 0} Arahan
+            </span>
           </div>
         </div>
       </div>
@@ -367,24 +398,13 @@ export default function DashboardKatim() {
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                Catatan evaluasi dan instruksi tindak lanjut terhadap IKSK yang Anda pimpin.
+                Catatan evaluasi dan instruksi tindak lanjut terhadap IKSK yang
+                Anda pimpin.
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <a
-              href={spreadsheetUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-semibold text-emerald-800 shadow-2xs transition hover:bg-emerald-100"
-              title="Buka dokumen Google Spreadsheet Rekap Data RHPK di tab baru"
-            >
-              <Icon icon="ri:file-excel-2-fill" width={15} className="text-emerald-700" />
-              <span>Spreadsheet Rekap RHPK</span>
-              <Icon icon="solar:arrow-right-up-linear" width={12} className="text-emerald-600" />
-            </a>
-
             <Link
               href="/siproval/katim/arahan-pimpinan"
               className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-white px-3.5 py-2 text-xs font-semibold text-[#005baa] shadow-2xs transition hover:bg-blue-50"
@@ -398,67 +418,78 @@ export default function DashboardKatim() {
         <div className="mt-4">
           {loadingArahan ? (
             <div className="flex items-center justify-center py-6 text-xs text-slate-400">
-              <Icon icon="solar:restart-linear" width={20} className="animate-spin text-[#005baa] mr-2" />
+              <Icon
+                icon="solar:restart-linear"
+                width={20}
+                className="animate-spin text-[#005baa] mr-2"
+              />
               <span>Memuat arahan pimpinan...</span>
             </div>
-          ) : (() => {
-            const withDirectives = arahanList.filter((a) => a.has_arahan);
-            if (withDirectives.length > 0) {
+          ) : (
+            (() => {
+              const withDirectives = arahanList.filter((a) => a.has_arahan);
+              if (withDirectives.length > 0) {
+                return (
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {withDirectives.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="rounded-xl border border-blue-200/90 bg-white p-4 shadow-2xs"
+                      >
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-blue-900">
+                            IKSK #{item.iksk_id}:{" "}
+                            {item.indikator.length > 50
+                              ? `${item.indikator.substring(0, 50)}...`
+                              : item.indikator}
+                          </span>
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                            {item.capaian_persen}%
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs italic font-medium text-slate-800 bg-amber-50/70 p-2.5 rounded-lg border-l-4 border-amber-500">
+                          &ldquo;{item.arahan_pimpinan}&rdquo;
+                        </p>
+                        <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
+                          <span>Pemberi: {item.pemberi_arahan}</span>
+                          <Link
+                            href={`/siproval/katim/entry-data-rhpk?iksk_id=${item.iksk_id}`}
+                            className="font-semibold text-[#005baa] hover:underline"
+                          >
+                            Entry Data RHPK →
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              }
+
               return (
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {withDirectives.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="rounded-xl border border-blue-200/90 bg-white p-4 shadow-2xs"
-                    >
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-blue-900">
-                          IKSK #{item.iksk_id}: {item.indikator.length > 50 ? `${item.indikator.substring(0, 50)}...` : item.indikator}
-                        </span>
-                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                          {item.capaian_persen}%
-                        </span>
-                      </div>
-                      <p className="mt-2 text-xs italic font-medium text-slate-800 bg-amber-50/70 p-2.5 rounded-lg border-l-4 border-amber-500">
-                        &ldquo;{item.arahan_pimpinan}&rdquo;
-                      </p>
-                      <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
-                        <span>Pemberi: {item.pemberi_arahan}</span>
-                        <Link
-                          href={`/siproval/katim/entry-data-rhpk?iksk_id=${item.iksk_id}`}
-                          className="font-semibold text-[#005baa] hover:underline"
-                        >
-                          Entry Data RHPK →
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between rounded-xl border border-dashed border-slate-200 bg-white/70 px-4 py-3 text-xs text-slate-600">
+                  <div className="flex items-center gap-2">
+                    <Icon
+                      icon="solar:info-circle-linear"
+                      width={16}
+                      className="text-slate-400"
+                    />
+                    <span>
+                      Belum ada arahan khusus dari Kepala Balai untuk bulan{" "}
+                      {selectedMonthName}.
+                    </span>
+                  </div>
+                  <Link
+                    href="/siproval/katim/arahan-pimpinan"
+                    className="font-semibold text-[#005baa] hover:underline text-[11px]"
+                  >
+                    Lihat Riwayat Arahan Lengkap
+                  </Link>
                 </div>
               );
-            }
-
-            return (
-              <div className="flex items-center justify-between rounded-xl border border-dashed border-slate-200 bg-white/70 px-4 py-3 text-xs text-slate-600">
-                <div className="flex items-center gap-2">
-                  <Icon icon="solar:info-circle-linear" width={16} className="text-slate-400" />
-                  <span>
-                    Belum ada arahan khusus dari Kepala Balai untuk bulan {selectedMonthName}.
-                  </span>
-                </div>
-                <Link
-                  href="/siproval/katim/arahan-pimpinan"
-                  className="font-semibold text-[#005baa] hover:underline text-[11px]"
-                >
-                  Lihat Riwayat Arahan Lengkap
-                </Link>
-              </div>
-            );
-          })()}
+            })()
+          )}
         </div>
       </div>
-
-
-
 
       {/* Real Indicators Table for This Katim */}
       {currentMonthIndicators.length > 0 && (
@@ -467,19 +498,25 @@ export default function DashboardKatim() {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-bold text-slate-900">
-                  Rekapitulasi Data Asli Indikator Tim ({selectedMonthName} 2026)
+                  Rekapitulasi Data Asli Indikator Tim ({selectedMonthName}{" "}
+                  2026)
                 </h3>
                 <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-[#005baa]">
                   {currentMonthIndicators.length} Indikator
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                Nilai capaian riil yang tersimpan di sistem basis data RHPK Balai. Klik indikator untuk langsung mengisi data capaian.
+                Nilai capaian riil yang tersimpan di sistem basis data RHPK
+                Balai. Klik indikator untuk langsung mengisi data capaian.
               </p>
             </div>
 
             <div className="text-xs text-slate-500 font-medium">
-              Klik tombol <strong className="text-[#005baa] font-bold">&quot;Buka IKSK&quot;</strong> pada baris terkait untuk langsung membuka formulir pengisian RHPK.
+              Klik tombol{" "}
+              <strong className="text-[#005baa] font-bold">
+                &quot;Buka IKSK&quot;
+              </strong>{" "}
+              pada baris terkait untuk langsung membuka formulir pengisian RHPK.
             </div>
           </div>
 
@@ -488,28 +525,51 @@ export default function DashboardKatim() {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   <th className="px-4 py-3 w-12 text-center">No</th>
-                  <th className="px-4 py-3 min-w-[260px]">Indikator & Sasaran Kegiatan</th>
-                  <th className="px-3 py-3 text-center whitespace-nowrap">Target 2026</th>
-                  <th className="px-3 py-3 text-center whitespace-nowrap">Target {selectedMonthName}</th>
-                  <th className="px-3 py-3 text-center whitespace-nowrap">Realisasi {selectedMonthName}</th>
-                  <th className="px-3 py-3 text-center whitespace-nowrap">% Capaian</th>
-                  <th className="px-3 py-3 text-center whitespace-nowrap">Status</th>
-                  <th className="px-4 py-3 min-w-[200px]">Arahan Kepala Balai</th>
-                  <th className="px-4 py-3 text-center whitespace-nowrap">Aksi Pengisian RHPK</th>
+                  <th className="px-4 py-3 min-w-[260px]">
+                    Indikator & Sasaran Kegiatan
+                  </th>
+                  <th className="px-3 py-3 text-center whitespace-nowrap">
+                    Target 2026
+                  </th>
+                  <th className="px-3 py-3 text-center whitespace-nowrap">
+                    Target {selectedMonthName}
+                  </th>
+                  <th className="px-3 py-3 text-center whitespace-nowrap">
+                    Realisasi {selectedMonthName}
+                  </th>
+                  <th className="px-3 py-3 text-center whitespace-nowrap">
+                    % Capaian
+                  </th>
+                  <th className="px-3 py-3 text-center whitespace-nowrap">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 min-w-[200px]">
+                    Arahan Kepala Balai
+                  </th>
+                  <th className="px-4 py-3 text-center whitespace-nowrap">
+                    Aksi Pengisian RHPK
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {currentMonthIndicators.map((ind) => {
                   const isTercapai = ind.status === "tercapai";
-                  const hasReal = ind.realisasi_bulan && ind.realisasi_bulan !== "#DIV/0!" && ind.realisasi_bulan !== "";
+                  const hasReal =
+                    ind.realisasi_bulan &&
+                    ind.realisasi_bulan !== "#DIV/0!" &&
+                    ind.realisasi_bulan !== "";
                   const queryParts: string[] = [];
                   if (ind.iksk_id) queryParts.push(`iksk_id=${ind.iksk_id}`);
-                  if (ind.spreadsheet_id) queryParts.push(`spreadsheet=${ind.spreadsheet_id}`);
+                  if (ind.spreadsheet_id)
+                    queryParts.push(`spreadsheet=${ind.spreadsheet_id}`);
                   if (ind.tab_id) queryParts.push(`tab=${ind.tab_id}`);
                   const targetSheetUrl = `/siproval/katim/entry-data-rhpk${queryParts.length > 0 ? `?${queryParts.join("&")}` : ""}`;
 
                   return (
-                    <tr key={ind.row_number} className="hover:bg-blue-50/30 transition">
+                    <tr
+                      key={ind.row_number}
+                      className="hover:bg-blue-50/30 transition"
+                    >
                       <td className="px-4 py-3.5 text-center font-bold text-slate-600 align-top">
                         <Link
                           href={`/siproval/katim/entry-data-rhpk?iksk_id=${ind.iksk_id}`}
@@ -549,7 +609,9 @@ export default function DashboardKatim() {
                             {ind.realisasi_bulan}
                           </span>
                         ) : (
-                          <span className="text-slate-400 italic text-[11px]">-</span>
+                          <span className="text-slate-400 italic text-[11px]">
+                            -
+                          </span>
                         )}
                       </td>
 
@@ -589,10 +651,14 @@ export default function DashboardKatim() {
                             <span className="font-bold text-amber-800 block text-[10px] uppercase">
                               Arahan:
                             </span>
-                            <span className="italic">&ldquo;{ind.arahan}&rdquo;</span>
+                            <span className="italic">
+                              &ldquo;{ind.arahan}&rdquo;
+                            </span>
                           </div>
                         ) : (
-                          <span className="text-[11px] text-slate-400 italic">Belum ada arahan</span>
+                          <span className="text-[11px] text-slate-400 italic">
+                            Belum ada arahan
+                          </span>
                         )}
                       </td>
 
@@ -602,7 +668,11 @@ export default function DashboardKatim() {
                           className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#003d73] via-[#005baa] to-[#00a651] px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:opacity-90 hover:shadow-sm"
                           title={`Buka formulir RHPK IKSK #${ind.iksk_id}`}
                         >
-                          <Icon icon="ri:file-excel-2-fill" width={15} className="text-emerald-300" />
+                          <Icon
+                            icon="ri:file-excel-2-fill"
+                            width={15}
+                            className="text-emerald-300"
+                          />
                           <span>Buka IKSK #{ind.iksk_id}</span>
                           <Icon icon="solar:arrow-right-linear" width={13} />
                         </Link>

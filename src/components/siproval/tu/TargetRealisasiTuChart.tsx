@@ -1,18 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import Link from "next/link";
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid } from "recharts";
 import {
   TrendingUp,
-  TrendingDown,
   Layers,
   DollarSign,
   Calendar,
-  FileSpreadsheet,
-  ArrowUpRight,
   RefreshCw,
-  CheckCircle2,
+  Info,
 } from "lucide-react";
 
 import {
@@ -66,18 +62,18 @@ type LiveDataState = {
 // Target color is vibrant BBPOM Green (#00a651) - solid
 const volumeChartConfig = {
   target: {
-    label: "Target Volume (RO)",
+    label: "Target Volume (23 RO)",
     color: "#00a651", // BBPOM Green
   },
   realisasi: {
-    label: "Realisasi Volume (RO)",
+    label: "Realisasi Volume (23 RO)",
     color: "#005baa", // BBPOM Royal Blue
   },
 } satisfies ChartConfig;
 
 const budgetChartConfig = {
   target: {
-    label: "Pagu Anggaran (Target)",
+    label: "Pagu Anggaran (DIPA)",
     color: "#00a651", // BBPOM Green
   },
   realisasi: {
@@ -91,7 +87,8 @@ export interface TargetRealisasiTuChartProps {
 }
 
 export default function TargetRealisasiTuChart({ isKabalaiView = false }: TargetRealisasiTuChartProps) {
-  const [metricMode, setMetricMode] = useState<DataMetricMode>("volume");
+  // Default to 'budget' (Anggaran Rp) instead of 'volume'
+  const [metricMode, setMetricMode] = useState<DataMetricMode>("budget");
   const [periodMode, setPeriodMode] = useState<DataPeriodMode>("quarterly");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -99,7 +96,7 @@ export default function TargetRealisasiTuChart({ isKabalaiView = false }: Target
   // Live data fetched from /api/tu/dashboard-chart/2026
   const [liveData, setLiveData] = useState<LiveDataState>({
     is_live_data: false,
-    source: "Memuat dari Spreadsheet...",
+    source: "Memuat dari Basis Data Mandiri...",
     last_synced_at: "-",
     quarterly_volume: [],
     quarterly_budget: [],
@@ -121,7 +118,7 @@ export default function TargetRealisasiTuChart({ isKabalaiView = false }: Target
         const d = res.data.data;
         setLiveData({
           is_live_data: Boolean(d.is_live_data),
-          source: d.source || "Spreadsheet Realisasi RO (Tab 155) & Maping Anggaran 2026",
+          source: d.source || "Basis Data Realisasi RO & Budget Mapping 2026",
           last_synced_at: d.last_synced_at || "Terkini",
           quarterly_volume: Array.isArray(d.quarterly_volume) ? d.quarterly_volume : [],
           quarterly_budget: Array.isArray(d.quarterly_budget) ? d.quarterly_budget : [],
@@ -164,16 +161,16 @@ export default function TargetRealisasiTuChart({ isKabalaiView = false }: Target
     return {
       totalTarget,
       totalRealisasi,
-      avgCapaian: avgCapaian.toFixed(1),
-      deltaPercent: deltaPercent.toFixed(1),
+      avgCapaian: Number(avgCapaian.toFixed(1)),
+      deltaFormatted: `${deltaPercent > 0 ? "+" : ""}${deltaPercent.toFixed(1)}%`,
       isSurplus: deltaPercent >= 0,
       totalTargetFormatted:
         metricMode === "volume"
-          ? `${totalTarget.toLocaleString("id-ID")} Unit`
+          ? `${totalTarget.toLocaleString("id-ID")} Output`
           : formatCurrency(totalTarget),
       totalRealisasiFormatted:
         metricMode === "volume"
-          ? `${totalRealisasi.toLocaleString("id-ID")} Unit`
+          ? `${totalRealisasi.toLocaleString("id-ID")} Output`
           : formatCurrency(totalRealisasi),
     };
   }, [activeChartData, metricMode]);
@@ -181,12 +178,12 @@ export default function TargetRealisasiTuChart({ isKabalaiView = false }: Target
   const activeConfig = metricMode === "volume" ? volumeChartConfig : budgetChartConfig;
 
   return (
-    <Card className="rounded-2xl border border-slate-200/90 bg-white text-slate-900 shadow-xs transition hover:shadow-sm">
-      <CardHeader className="flex flex-col gap-4 border-b border-slate-100 p-6 sm:flex-row sm:items-center sm:justify-between">
+    <Card className="rounded-2xl border border-slate-200/80 bg-white shadow-xs transition hover:shadow-sm">
+      <CardHeader className="flex flex-col gap-4 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-[#005baa]/10 px-2.5 py-1 text-xs font-semibold text-[#005baa]">
-              <Layers className="h-3.5 w-3.5" />
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#005baa]">
+              <span className="h-2 w-2 rounded-full bg-[#005baa]"></span>
               Monitoring Kinerja TU 2026
             </span>
 
@@ -197,7 +194,7 @@ export default function TargetRealisasiTuChart({ isKabalaiView = false }: Target
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                Data Riil Live (Spreadsheet &amp; DB)
+                Basis Data Realisasi Live
               </span>
             )}
 
@@ -209,11 +206,7 @@ export default function TargetRealisasiTuChart({ isKabalaiView = false }: Target
                   : "bg-blue-500/10 text-blue-700"
               }`}
             >
-              {stats.isSurplus ? (
-                <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
-              ) : (
-                <TrendingUp className="h-3.5 w-3.5 text-blue-600" />
-              )}
+              <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
               <span>
                 Rasio Capaian {stats.avgCapaian}%
               </span>
@@ -221,10 +214,10 @@ export default function TargetRealisasiTuChart({ isKabalaiView = false }: Target
           </div>
 
           <CardTitle className="mt-2 text-xl font-bold tracking-tight text-slate-900">
-            Perbandingan Target vs. Realisasi {metricMode === "volume" ? "Volume RO" : "Anggaran Belanja"}
+            Perbandingan Target vs. Realisasi {metricMode === "volume" ? "Volume 23 Rincian Output (RO)" : "Anggaran Belanja (Pagu DIPA)"}
           </CardTitle>
-          <CardDescription className="text-xs text-slate-500">
-            Data riil langsung dari <span className="font-semibold text-slate-700">Tab Realisasi RO 155</span> &amp; <span className="font-semibold text-slate-700">Budget Mapping 2026</span> (Sinkron: {liveData.last_synced_at}).
+          <CardDescription className="text-xs text-slate-500 mt-1">
+            Data riil bersumber dari Basis Data Realisasi RO &amp; Budget Mapping 2026 (Terkini: {liveData.last_synced_at}).
           </CardDescription>
         </div>
 
@@ -236,128 +229,149 @@ export default function TargetRealisasiTuChart({ isKabalaiView = false }: Target
             onClick={() => loadChartData(true)}
             disabled={isRefreshing || isLoading}
             className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:text-[#005baa] disabled:opacity-50"
-            title="Tarik pembaruan data langsung dari Google Sheets"
+            title="Sinkronkan pembaruan data"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin text-[#005baa]" : ""}`} />
-            <span>{isRefreshing ? "Sinkron..." : "Perbarui Data"}</span>
+            <span>{isRefreshing ? "Menyinkronkan..." : "Perbarui Data"}</span>
           </button>
 
-          {/* Metric Mode Toggle */}
-          <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50/80 p-1 text-xs font-medium text-slate-600">
-            <button
-              type="button"
-              onClick={() => setMetricMode("volume")}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
-                metricMode === "volume"
-                  ? "bg-white font-bold text-[#005baa] shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <Layers className="h-3.5 w-3.5" />
-              Volume RO
-            </button>
+          {/* Metric Selector: Anggaran (Rp) vs Volume RO */}
+          <div className="flex items-center rounded-xl bg-slate-100 p-1">
             <button
               type="button"
               onClick={() => setMetricMode("budget")}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition ${
                 metricMode === "budget"
-                  ? "bg-white font-bold text-[#005baa] shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white text-[#005baa] shadow-xs"
+                  : "text-slate-500 hover:text-slate-800"
               }`}
             >
               <DollarSign className="h-3.5 w-3.5" />
-              Anggaran (Rp)
+              <span>Anggaran (Rp)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMetricMode("volume")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition ${
+                metricMode === "volume"
+                  ? "bg-white text-[#005baa] shadow-xs"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              <Layers className="h-3.5 w-3.5" />
+              <span>Volume RO</span>
             </button>
           </div>
 
-          {/* Period Mode Toggle */}
-          <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50/80 p-1 text-xs font-medium text-slate-600">
+          {/* Period Selector: Triwulan vs Bulanan */}
+          <div className="flex items-center rounded-xl bg-slate-100 p-1">
             <button
               type="button"
               onClick={() => setPeriodMode("quarterly")}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition ${
                 periodMode === "quarterly"
-                  ? "bg-white font-bold text-[#005baa] shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white text-slate-800 shadow-xs"
+                  : "text-slate-500 hover:text-slate-800"
               }`}
             >
               <Calendar className="h-3.5 w-3.5" />
-              Per Triwulan
+              <span>Per Triwulan</span>
             </button>
             <button
               type="button"
               onClick={() => setPeriodMode("monthly")}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition ${
                 periodMode === "monthly"
-                  ? "bg-white font-bold text-[#005baa] shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white text-slate-800 shadow-xs"
+                  : "text-slate-500 hover:text-slate-800"
               }`}
             >
               <Calendar className="h-3.5 w-3.5" />
-              Per Bulan
+              <span>Per Bulan</span>
             </button>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="p-6">
-        {/* Top KPI highlights bar */}
-        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              {metricMode === "volume" ? "Total Target Volume" : "Total Pagu Anggaran"}
-            </span>
-            <p className="mt-1 text-lg font-bold text-slate-900">{stats.totalTargetFormatted}</p>
-            <div className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-[#00a651]">
-              <span className="inline-block h-2 w-2 rounded-full bg-[#00a651]"></span>
-              Target BBPOM ({periodMode === "quarterly" ? "4 Triwulan" : "12 Bulan"})
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              {metricMode === "volume" ? "Total Realisasi Volume" : "Total Serapan Belanja"}
-            </span>
-            <p className="mt-1 text-lg font-bold text-[#005baa]">{stats.totalRealisasiFormatted}</p>
-            <div className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-[#005baa]">
-              <span className="inline-block h-2 w-2 rounded-full bg-[#005baa]"></span>
-              Realisasi Akumulatif
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Rasio Ketercapaian
-            </span>
-            <p className="mt-1 text-lg font-bold text-slate-900">{stats.avgCapaian}%</p>
-            <div className="mt-1 flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
-              <CheckCircle2 className="h-3 w-3" />
-              {Number(stats.avgCapaian) >= 50 ? "Progress Berjalan Baik" : "Dalam Pemantauan"}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Sumber Data
-            </span>
-            <p className="mt-1 text-sm font-bold text-slate-900 truncate" title={liveData.source}>
-              {liveData.is_live_data ? "Database Mandiri" : "Sedang Memuat..."}
+      <CardContent className="pt-6">
+        {/* Ringkasan Akumulasi Total Target & Realisasi */}
+        <div className="mb-6 grid grid-cols-2 gap-4 rounded-xl border border-slate-100 bg-slate-50/70 p-4 sm:grid-cols-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              {metricMode === "volume" ? "Total Target Fisik" : "Total Target Pagu"}
             </p>
-            <span className="text-[11px] text-slate-500">{liveData.last_synced_at}</span>
+            <p className="mt-1 text-xl font-bold text-slate-900">
+              {stats.totalTargetFormatted}
+            </p>
+            <span className="text-[11px] text-slate-500">
+              {periodMode === "quarterly" ? "Target 4 Triwulan (2026)" : "Target 12 Bulan (2026)"}
+            </span>
+          </div>
+
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              {metricMode === "volume" ? "Total Realisasi Fisik" : "Total Realisasi Belanja"}
+            </p>
+            <p className="mt-1 text-xl font-bold text-[#005baa]">
+              {stats.totalRealisasiFormatted}
+            </p>
+            <span className="text-[11px] text-slate-500">
+              Realisasi Akumulatif
+            </span>
+          </div>
+
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              Rasio Ketercapaian
+            </p>
+            <p className="mt-1 text-xl font-bold text-emerald-600">
+              {stats.avgCapaian}%
+            </p>
+            <span className="text-[11px] text-slate-500">
+              Rata-rata Capaian
+            </span>
+          </div>
+
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              Status Evaluasi
+            </p>
+            <p className="mt-1 text-xl font-bold text-slate-800">
+              {stats.isSurplus ? "Sesuai Target" : "Proses Berjalan"}
+            </p>
+            <span className="text-[11px] text-slate-500">
+              {stats.deltaFormatted} dari target
+            </span>
           </div>
         </div>
 
-        {/* Clean Bar Chart: Clean white background, solid flat bars */}
-        <div className="relative w-full rounded-xl border border-slate-100 bg-white p-2 sm:p-4 min-h-[340px]">
-          {isLoading && activeChartData.length === 0 ? (
-            <div className="flex h-[320px] w-full flex-col items-center justify-center gap-2 text-slate-400">
-              <RefreshCw className="h-6 w-6 animate-spin text-[#005baa]" />
-              <span className="text-xs">Memuat data realisasi anggaran dari database mandiri...</span>
+        {/* Info Banner Khusus Mode Volume RO */}
+        {metricMode === "volume" && (
+          <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-blue-200/80 bg-blue-50/70 p-3 text-xs text-blue-900">
+            <Info className="h-4 w-4 shrink-0 text-[#005baa] mt-0.5" />
+            <p className="leading-relaxed">
+              <strong>Penjelasan Angka Volume:</strong> Data di atas merupakan akumulasi kuantitatif output fisik dari seluruh <strong>23 Rincian Output (RO)</strong> BBPOM di Mataram (antara lain sampel obat/makanan yang diuji laboratorium, sarana distribusi/produksi yang diawasi, berkas penyidikan perkara, sertifikat/rekomendasi layanan publik, serta laporan evaluasi kinerja).
+            </p>
+          </div>
+        )}
+
+        {/* Bar Chart Container */}
+        <div className="h-[340px] w-full">
+          {isLoading ? (
+            <div className="flex h-full w-full items-center justify-center">
+              <div className="flex flex-col items-center gap-2">
+                <RefreshCw className="h-6 w-6 animate-spin text-[#005baa]" />
+                <span className="text-xs text-slate-500">Memuat visualisasi data kinerja...</span>
+              </div>
             </div>
           ) : (
-            <ChartContainer config={activeConfig} className="aspect-auto h-[320px] w-full">
-              <BarChart accessibilityLayer data={activeChartData} margin={{ top: 20, right: 12, left: 12, bottom: 5 }}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-slate-100" />
+            <ChartContainer config={activeConfig} className="h-full w-full">
+              <BarChart
+                accessibilityLayer
+                data={activeChartData}
+                margin={{ top: 20, right: 12, left: 12, bottom: 5 }}
+              >
+                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis
                   dataKey="label"
                   tickLine={false}
@@ -388,7 +402,7 @@ export default function TargetRealisasiTuChart({ isKabalaiView = false }: Target
                         const formatted =
                           metricMode === "budget"
                             ? `Rp ${num.toLocaleString("id-ID")}`
-                            : `${num.toLocaleString("id-ID")} Unit`;
+                            : `${num.toLocaleString("id-ID")} Output`;
                         return (
                           <div className="flex w-full items-center justify-between gap-4 font-medium">
                             <span className="text-slate-500">{name}:</span>
@@ -404,7 +418,7 @@ export default function TargetRealisasiTuChart({ isKabalaiView = false }: Target
                 {/* Bar Target: Solid Polos Vibrant BBPOM Green (#00a651) */}
                 <Bar
                   dataKey="target"
-                  name={metricMode === "volume" ? "Target Volume (RO)" : "Pagu Anggaran"}
+                  name={metricMode === "volume" ? "Target Volume (23 RO)" : "Pagu Anggaran (DIPA)"}
                   fill="var(--color-target)"
                   radius={[4, 4, 0, 0]}
                 />
@@ -412,7 +426,7 @@ export default function TargetRealisasiTuChart({ isKabalaiView = false }: Target
                 {/* Bar Realisasi: Solid Polos BBPOM Royal Blue (#005baa) */}
                 <Bar
                   dataKey="realisasi"
-                  name={metricMode === "volume" ? "Realisasi Volume (RO)" : "Realisasi Anggaran"}
+                  name={metricMode === "volume" ? "Realisasi Volume (23 RO)" : "Realisasi Anggaran (Serapan)"}
                   fill="var(--color-realisasi)"
                   radius={[4, 4, 0, 0]}
                 />
@@ -425,47 +439,7 @@ export default function TargetRealisasiTuChart({ isKabalaiView = false }: Target
       <CardFooter className="flex flex-col gap-3 border-t border-slate-100 bg-slate-50/50 p-4 sm:flex-row sm:items-center sm:justify-between rounded-b-2xl">
         <div className="flex items-center gap-2 text-xs text-slate-500">
           <span className="inline-block h-2 w-2 rounded-full bg-[#00a651]"></span>
-          <span>Data terintegrasi otomatis dengan database Realisasi RO &amp; Budget Mapping 2026.</span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {isKabalaiView ? (
-            <>
-              <Link
-                href="/siproval/rhpk/2026"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#005baa] shadow-2xs transition hover:bg-blue-50 hover:border-blue-300"
-              >
-                <FileSpreadsheet className="h-3.5 w-3.5" />
-                Buka Rekap RHPK 2026
-                <ArrowUpRight className="h-3.5 w-3.5 opacity-60" />
-              </Link>
-              <Link
-                href="/siproval/monev"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[#005baa] px-3 py-1.5 text-xs font-semibold text-white shadow-2xs transition hover:bg-[#004887]"
-              >
-                Catatan Monev &amp; Arahan
-                <ArrowUpRight className="h-3.5 w-3.5" />
-              </Link>
-            </>
-          ) : (
-            <>
-              <Link
-                href="/siproval/tu/realisasi-ro"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#005baa] shadow-2xs transition hover:bg-blue-50 hover:border-blue-300"
-              >
-                <FileSpreadsheet className="h-3.5 w-3.5" />
-                Buka Realisasi RO (Tab 155)
-                <ArrowUpRight className="h-3.5 w-3.5 opacity-60" />
-              </Link>
-              <Link
-                href="/siproval/tu/laporan-evaluasi?month=APRIL"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[#005baa] px-3 py-1.5 text-xs font-semibold text-white shadow-2xs transition hover:bg-[#004887]"
-              >
-                Eksport Laporan Evaluasi
-                <ArrowUpRight className="h-3.5 w-3.5" />
-              </Link>
-            </>
-          )}
+          <span>Data terintegrasi otomatis dengan Basis Data Realisasi RO &amp; Budget Mapping 2026.</span>
         </div>
       </CardFooter>
     </Card>
