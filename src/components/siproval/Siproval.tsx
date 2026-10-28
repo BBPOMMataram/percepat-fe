@@ -512,7 +512,7 @@ export default function Siproval() {
               transition={{ duration: 0.95, delay: 0.2, ease: SIPROVAL_EASE }}
               className="text-4xl sm:text-5xl lg:text-[56px] font-extrabold text-white tracking-[-0.025em] leading-[1.12] mb-5"
             >
-              SIPROVAL 2.0 BBPOM di Mataram
+              SIPROVAL BBPOM di Mataram 2.0
             </motion.h1>
 
             <motion.p
