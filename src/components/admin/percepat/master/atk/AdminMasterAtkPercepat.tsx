@@ -5,8 +5,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import AdminMasterFormAtkPercepat from "./AdminMasterFormAtkPercepat";
 import dayjs from "dayjs";
-import { FileSpreadsheet } from "lucide-react";
+import { FileSpreadsheet, Trash2, UploadCloud, QrCode } from "lucide-react";
 import { exportJsonToExcel } from "@/utils/excelExport";
+import ImportMasterExcelModal from "../ImportMasterExcelModal";
+import PemusnahanMasterModal from "../PemusnahanMasterModal";
+import LabelStikerModal, { LabelStikerItem } from "@/components/percepat-new/label/LabelStikerModal";
 
 export default function AdminMasterAtkPercepat() {
     const [data, setData] = useState<any>([])
@@ -16,6 +19,10 @@ export default function AdminMasterAtkPercepat() {
     const [editData, setEditData] = useState<any>(null)
     const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
     const [isExporting, setIsExporting] = useState(false);
+    const [importModalOpen, setImportModalOpen] = useState<boolean>(false);
+    const [pemusnahanModalOpen, setPemusnahanModalOpen] = useState<boolean>(false);
+    const [labelModalOpen, setLabelModalOpen] = useState<boolean>(false);
+    const [selectedLabelItem, setSelectedLabelItem] = useState<LabelStikerItem | null>(null);
 
     const dispatch = useDispatch<AppDispatch>()
 
@@ -111,6 +118,21 @@ export default function AdminMasterAtkPercepat() {
                             {isExporting ? <span className="loading loading-spinner loading-xs" /> : <FileSpreadsheet size={16} />}
                             Export Excel
                         </button>
+                        <button
+                            className="btn btn-outline btn-info gap-2"
+                            onClick={() => setImportModalOpen(true)}
+                        >
+                            <UploadCloud size={16} />
+                            Import Data (Excel & PDF)
+                        </button>
+                        <button
+                            className="btn btn-outline btn-error gap-2"
+                            onClick={() => setPemusnahanModalOpen(true)}
+                            title="Pemusnahan seluruh data ATK"
+                        >
+                            <Trash2 size={16} />
+                            Hapus Semua (Pemusnahan)
+                        </button>
                     </div>
 
                     <div className="flex items-center gap-2 ml-auto">
@@ -160,6 +182,23 @@ export default function AdminMasterAtkPercepat() {
                                                 Edit
                                             </button>
                                             <button
+                                                className="btn btn-sm btn-info btn-outline ml-1"
+                                                onClick={() => {
+                                                    setSelectedLabelItem({
+                                                        id: item.id,
+                                                        name: item.name,
+                                                        code: 'ATK-' + String(item.id).padStart(4, '0'),
+                                                        satuan: item.satuan,
+                                                        category: 'atk',
+                                                        isFromMaster: true,
+                                                    });
+                                                    setLabelModalOpen(true);
+                                                }}
+                                                title="Cetak Label Barcode Master Gudang"
+                                            >
+                                                <QrCode size={14} /> Label
+                                            </button>
+                                            <button
                                                 className="btn btn-sm btn-error ml-1"
                                                 onClick={() => handleRemove(item.id)}
                                             >
@@ -202,6 +241,27 @@ export default function AdminMasterAtkPercepat() {
                     </div>
                 </div>
             </div>
+            <ImportMasterExcelModal
+                isOpen={importModalOpen}
+                onClose={() => setImportModalOpen(false)}
+                onSuccess={loadData}
+                category="atk"
+            />
+
+            <PemusnahanMasterModal
+                isOpen={pemusnahanModalOpen}
+                onClose={() => setPemusnahanModalOpen(false)}
+                onSuccess={loadData}
+                category="atk"
+                categoryLabel="ATK"
+                totalItems={data?.total || data?.data?.length || 0}
+            />
+
+            <LabelStikerModal
+                isOpen={labelModalOpen}
+                onClose={() => setLabelModalOpen(false)}
+                item={selectedLabelItem}
+            />
         </>
     )
-}
+}

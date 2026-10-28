@@ -4,6 +4,7 @@ import { AppDispatch } from "@/redux/store";
 import api from "@/utils/api";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
+import dayjs from "dayjs";
 
 interface Props {
     open: boolean;
@@ -19,6 +20,7 @@ export default function AdminMasterFormReagenPercepat({ open, onClose, initialDa
         name: "",
         satuan: "",
         expired: "",
+        lokasi: "",
     });
     const [tanggal, setTanggal] = useState<string>("");
 
@@ -27,13 +29,14 @@ export default function AdminMasterFormReagenPercepat({ open, onClose, initialDa
     useEffect(() => {
         if (initialData) {
             setFormData(initialData);
-            setTanggal(initialData.expired || "");
+            setTanggal(initialData.expired ? dayjs(initialData.expired).format('YYYY-MM-DD') : "");
         } else {
             setFormData({
                 stock: 0,
                 name: "",
                 satuan: "",
                 expired: "",
+                lokasi: "",
             });
             setTanggal("");
         }
@@ -144,6 +147,20 @@ export default function AdminMasterFormReagenPercepat({ open, onClose, initialDa
                                 value={formData.satuan}
                                 onChange={handleChange}
                                 required
+                                className="input input-bordered w-full"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-1">
+                                Lokasi Gudang <span className="text-xs text-slate-500 font-normal">(Tempat Penyimpanan Stok di Gudang)</span>
+                            </label>
+                            <input
+                                type="text"
+                                name="lokasi"
+                                value={formData.lokasi || ""}
+                                onChange={handleChange}
+                                placeholder="Contoh: Rak A1 / Lemari Reagen 1 / Kulkas 2-8°C"
                                 className="input input-bordered w-full"
                             />
                         </div>

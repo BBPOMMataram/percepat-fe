@@ -7,7 +7,8 @@ import { useDispatch } from "react-redux";
 import AdminMasterFormAtkPercepat from "./AdminMasterFormReagenPercepat";
 import LabelStikerModal, { LabelStikerItem } from "@/components/percepat-new/label/LabelStikerModal";
 import ImportMasterExcelModal from "../ImportMasterExcelModal";
-import { QrCode, FileSpreadsheet, UploadCloud } from "lucide-react";
+import PemusnahanMasterModal from "../PemusnahanMasterModal";
+import { QrCode, FileSpreadsheet, UploadCloud, Trash2 } from "lucide-react";
 import { exportJsonToExcel } from "@/utils/excelExport";
 
 export default function AdminMasterReagenPercepat() {
@@ -20,6 +21,7 @@ export default function AdminMasterReagenPercepat() {
     const [labelModalOpen, setLabelModalOpen] = useState<boolean>(false);
     const [selectedLabelItem, setSelectedLabelItem] = useState<LabelStikerItem | null>(null);
     const [importModalOpen, setImportModalOpen] = useState<boolean>(false);
+    const [pemusnahanModalOpen, setPemusnahanModalOpen] = useState<boolean>(false);
     const [isExporting, setIsExporting] = useState(false);
 
     const dispatch = useDispatch<AppDispatch>()
@@ -124,6 +126,13 @@ export default function AdminMasterReagenPercepat() {
                             <UploadCloud size={16} />
                             Import Data (Excel & PDF)
                         </button>
+                        <button
+                            className="btn btn-outline btn-error gap-2 text-rose-600 hover:text-white hover:bg-rose-600"
+                            onClick={() => setPemusnahanModalOpen(true)}
+                        >
+                            <Trash2 size={16} />
+                            Hapus Semua (Pemusnahan)
+                        </button>
                     </div>
 
                     <div className="flex items-center gap-2 ml-auto">
@@ -152,6 +161,7 @@ export default function AdminMasterReagenPercepat() {
                                 <th>Stock</th>
                                 <th>Satuan</th>
                                 <th>Expired</th>
+                                <th>Lokasi Gudang</th>
                                 <th>##</th>
                             </tr>
                         </thead>
@@ -164,6 +174,11 @@ export default function AdminMasterReagenPercepat() {
                                         <td>{item.stock}</td>
                                         <td>{item.satuan}</td>
                                         <td>{item.expired ? dayjs(item.expired).format("DD MMM YYYY") : '-'}</td>
+                                        <td>
+                                            <span className="text-xs font-medium text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                                                {item.lokasi || '-'}
+                                            </span>
+                                        </td>
                                         <td>
                                             <button
                                                 className="btn btn-sm"
@@ -184,6 +199,7 @@ export default function AdminMasterReagenPercepat() {
                                                         code: item.code,
                                                         satuan: item.satuan,
                                                         expired: item.expired,
+                                                        letak: item.lokasi,
                                                         diterima_tanggal: null,
                                                         diterima_penerima: null,
                                                         category: 'reagen',
@@ -248,6 +264,15 @@ export default function AdminMasterReagenPercepat() {
                 onClose={() => setImportModalOpen(false)}
                 onSuccess={loadData}
                 category="reagen"
+            />
+
+            <PemusnahanMasterModal
+                isOpen={pemusnahanModalOpen}
+                onClose={() => setPemusnahanModalOpen(false)}
+                onSuccess={loadData}
+                category="reagen"
+                categoryLabel="Reagen"
+                totalItemsCount={data?.total}
             />
         </>
     )

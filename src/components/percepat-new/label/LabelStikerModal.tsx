@@ -21,7 +21,7 @@ export interface LabelStikerItem {
     diterima_tanggal?: string | null;
     diterima_penerima?: string | null;
     diterima_lab?: string | null;
-    category: 'reagen' | 'baku-pembanding';
+    category: 'reagen' | 'baku-pembanding' | 'atk' | 'perlengkapan' | 'suku-cadang';
     isFromPermintaan?: boolean;
     isFromMaster?: boolean;
 }
@@ -31,6 +31,14 @@ interface LabelStikerModalProps {
     onClose: () => void;
     item: LabelStikerItem | null;
 }
+
+const CATEGORY_LABELS: Record<string, string> = {
+    'reagen': 'Reagen',
+    'baku-pembanding': 'Baku Pembanding',
+    'atk': 'ATK',
+    'perlengkapan': 'Perlengkapan Kebersihan',
+    'suku-cadang': 'Suku Cadang',
+};
 
 export default function LabelStikerModal({ isOpen, onClose, item }: LabelStikerModalProps) {
     const [qrDataUrl, setQrDataUrl] = useState<string>('');
@@ -65,8 +73,10 @@ export default function LabelStikerModal({ isOpen, onClose, item }: LabelStikerM
 
         setDetailItem(item);
 
+        const supportsPermintaan = item.category === 'reagen' || item.category === 'baku-pembanding';
+
         // Determine initial label mode
-        if (item.isFromMaster) {
+        if (!supportsPermintaan || item.isFromMaster) {
             setLabelMode('master');
         } else if (item.isFromPermintaan) {
             setLabelMode('permintaan');
@@ -76,11 +86,13 @@ export default function LabelStikerModal({ isOpen, onClose, item }: LabelStikerM
             setLabelMode('master');
         }
 
-        // Target URL for scanning: directed to percepat-new public page
+        // Target URL for scanning: directed to percepat-new public page or direct lookup code
         const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, '');
         const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
         const origin = configuredOrigin || currentOrigin;
-        const targetUrl = `${origin}/percepat-new/${item.category}/${item.id}`;
+        const targetUrl = supportsPermintaan
+            ? `${origin}/percepat-new/${item.category}/${item.id}`
+            : `${origin}/admin/percepat/stok-opname?code=${encodeURIComponent(item.kode_baru || item.code || `${item.category.toUpperCase()}-${item.id}`)}`;
 
         QRCode.toDataURL(targetUrl, {
             errorCorrectionLevel: 'M',
@@ -106,7 +118,7 @@ export default function LabelStikerModal({ isOpen, onClose, item }: LabelStikerM
                         let finalPenerima: string | null = null;
                         let finalLab: string | null = null;
 
-                        if (item.isFromMaster) {
+                        if (!supportsPermintaan || item.isFromMaster) {
                             finalTanggal = null;
                             finalPenerima = null;
                             finalLab = null;
@@ -128,6 +140,7 @@ export default function LabelStikerModal({ isOpen, onClose, item }: LabelStikerM
                             expired: res.data.expired ?? current.expired,
                             kode_baru: res.data.kode_baru ?? current.kode_baru,
                             letak: res.data.letak ?? current.letak,
+                            satuan: res.data.satuan ?? current.satuan,
                             code: res.data.code ?? current.code,
                             name: res.data.name ?? current.name,
                         };
@@ -143,7 +156,9 @@ export default function LabelStikerModal({ isOpen, onClose, item }: LabelStikerM
     if (!isOpen || !item) return null;
 
     const currentItem = detailItem || item;
-    const isMaster = labelMode === 'master';
+    const supportsPermintaan = currentItem.category === 'reagen' || currentItem.category === 'baku-pembanding';
+    const isMaster = !supportsPermintaan || labelMode === 'master';
+
 
     const handlePrint = () => {
         window.print();
@@ -190,19 +205,30 @@ export default function LabelStikerModal({ isOpen, onClose, item }: LabelStikerM
             // Draw QR Code
             ctx.drawImage(qrImg, 40, 40, 180, 180);
 
-            // Right header: BPOM & Expired Date
+            // Right header: BPOM & Expired Date / Satuan Barang
             ctx.fillStyle = '#0f172a';
             ctx.font = 'bold 22px Arial, sans-serif';
             ctx.fillText('BADAN POM', 450, 75);
 
-            ctx.fillStyle = '#0369a1';
-            ctx.font = 'bold 28px Arial, sans-serif';
-            ctx.fillText('Expired Date', 430, 130);
+            if (currentItem.expired) {
+                ctx.fillStyle = '#0369a1';
+                ctx.font = 'bold 28px Arial, sans-serif';
+                ctx.fillText('Expired Date', 430, 130);
 
-            ctx.fillStyle = '#0f172a';
-            ctx.font = '900 38px Arial, sans-serif';
-            const expFormatted = formatIndoDate(currentItem.expired);
-            ctx.fillText(expFormatted, 430, 180);
+                ctx.fillStyle = '#0f172a';
+                ctx.font = '900 38px Arial, sans-serif';
+                const expFormatted = formatIndoDate(currentItem.expired);
+                ctx.fillText(expFormatted, 430, 180);
+            } else {
+                ctx.fillStyle = '#0369a1';
+                ctx.font = 'bold 24px Arial, sans-serif';
+                ctx.fillText('SATUAN BARANG', 430, 130);
+
+                ctx.fillStyle = '#0f172a';
+                ctx.font = '900 34px Arial, sans-serif';
+                const satFormatted = (currentItem.satuan || 'UNIT').toUpperCase();
+                ctx.fillText(satFormatted, 430, 180);
+            }
 
             // Divider line before item name
             ctx.strokeStyle = '#e2e8f0';
@@ -221,8 +247,8 @@ export default function LabelStikerModal({ isOpen, onClose, item }: LabelStikerM
             const truncatedName = fullTitle.length > 55 ? fullTitle.slice(0, 52) + '...' : fullTitle;
             ctx.fillText(truncatedName, 40, 275);
 
-            // If PERMINTAAN MODE, render the additional Lab receipt sections
-            if (!isMaster) {
+            // If PERMINTAAN MODE & supportsPermintaan, render the additional Lab receipt sections
+            if (!isMaster && supportsPermintaan) {
                 // Section: DITERIMA DI LAB
                 ctx.fillStyle = '#0f172a';
                 ctx.font = 'bold 22px Arial, sans-serif';
@@ -362,15 +388,15 @@ export default function LabelStikerModal({ isOpen, onClose, item }: LabelStikerM
                             <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                                     <h3 className="font-bold text-sm sm:text-base md:text-lg text-slate-900 leading-tight truncate">
-                                        Label Tempelan Botol
+                                        {supportsPermintaan ? 'Label Tempelan Botol Lab' : 'Label Barcode Barang Gudang'}
                                     </h3>
                                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-sky-100 text-sky-800 uppercase tracking-wide">
-                                        {currentItem.category === 'baku-pembanding' ? 'Baku Pembanding' : 'Reagen'}
+                                        {CATEGORY_LABELS[currentItem.category] || currentItem.category}
                                     </span>
                                 </div>
                                 <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 truncate">
                                     {isMaster
-                                        ? 'Format label master gudang untuk opname persediaan'
+                                        ? 'Format label master gudang untuk rak & opname persediaan'
                                         : 'Format label penyerahan lab lengkap paraf & lab'}
                                 </p>
                             </div>
@@ -387,33 +413,40 @@ export default function LabelStikerModal({ isOpen, onClose, item }: LabelStikerM
                     {/* Preview Box: Clean Soft Light Gray Canvas */}
                     <div className="p-3 sm:p-6 bg-slate-100/70 border-b border-slate-200 flex flex-col justify-center items-center gap-3.5 overflow-x-auto max-w-full grow">
                         
-                        {/* Mode Selector Tabs (Master vs Permintaan) */}
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1 bg-slate-200/80 p-1 rounded-xl text-xs font-semibold shadow-inner w-full sm:w-auto">
-                            <button
-                                type="button"
-                                onClick={() => setLabelMode('master')}
-                                className={`px-3 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 text-center ${
-                                    isMaster
-                                        ? 'bg-white text-sky-700 shadow-xs font-bold'
-                                        : 'text-slate-600 hover:text-slate-900'
-                                }`}
-                            >
-                                <Tag size={13} />
-                                <span>Label Master (Gudang & Opname)</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setLabelMode('permintaan')}
-                                className={`px-3 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 text-center ${
-                                    !isMaster
-                                        ? 'bg-white text-sky-700 shadow-xs font-bold'
-                                        : 'text-slate-600 hover:text-slate-900'
-                                }`}
-                            >
-                                <CheckCircle2 size={13} />
-                                <span>Label Selesai Permintaan (Lab)</span>
-                            </button>
-                        </div>
+                        {/* Mode Selector Tabs (Master vs Permintaan) - Only for Reagen & Baku Pembanding */}
+                        {supportsPermintaan ? (
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1 bg-slate-200/80 p-1 rounded-xl text-xs font-semibold shadow-inner w-full sm:w-auto">
+                                <button
+                                    type="button"
+                                    onClick={() => setLabelMode('master')}
+                                    className={`px-3 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 text-center ${
+                                        isMaster
+                                            ? 'bg-white text-sky-700 shadow-xs font-bold'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                >
+                                    <Tag size={13} />
+                                    <span>Label Master (Gudang & Opname)</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setLabelMode('permintaan')}
+                                    className={`px-3 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 text-center ${
+                                        !isMaster
+                                            ? 'bg-white text-sky-700 shadow-xs font-bold'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                >
+                                    <CheckCircle2 size={13} />
+                                    <span>Label Selesai Permintaan (Lab)</span>
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-200/70 text-slate-700 rounded-full text-xs font-semibold">
+                                <Tag size={13} className="text-sky-700" />
+                                <span>Label Barcode Master Gudang ({CATEGORY_LABELS[currentItem.category] || 'Gudang'})</span>
+                            </div>
+                        )}
 
                         {/* Printable Sticker Card */}
                         <div
@@ -421,72 +454,127 @@ export default function LabelStikerModal({ isOpen, onClose, item }: LabelStikerM
                             ref={stickerRef}
                             className="w-full max-w-[360px] sm:w-[370px] bg-white text-slate-900 border-2 border-sky-600 rounded-xl p-3 sm:p-3.5 shadow-md font-sans text-xs select-none transition-all"
                         >
-                            {/* Top Row: QR Code + BADAN POM & Expired Date */}
-                            <div className="flex items-center justify-between gap-3 pb-2">
-                                {/* QR Code with subtle border */}
-                                <div className="w-[102px] h-[102px] shrink-0 border border-slate-200 rounded p-1 bg-white flex items-center justify-center">
-                                    {qrDataUrl ? (
-                                        <img
-                                            src={qrDataUrl}
-                                            alt="QR Code Barang"
-                                            className="w-full h-full object-contain"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full bg-slate-100 animate-pulse rounded" />
-                                    )}
-                                </div>
-
-                                {/* Right: Logo + Expired Date */}
-                                <div className="flex-1 flex flex-col items-center justify-center text-center">
-                                    {/* Logo BPOM */}
-                                    <div className="flex items-center gap-1.5 mb-1.5">
-                                        <div className="relative w-8 h-8">
-                                            <Image
-                                                src="/assets/images/bpom_without_label.webp"
-                                                alt="BPOM"
-                                                fill
-                                                className="object-contain"
-                                                sizes="32px"
-                                            />
+                            {/* CONDITIONAL LAYOUT: REAGEN / BAKU PEMBANDING vs ATK / SUKU CADANG */}
+                            {supportsPermintaan ? (
+                                <>
+                                    {/* Top Row: QR Code + BADAN POM & Expired Date */}
+                                    <div className="flex items-center justify-between gap-3 pb-2">
+                                        {/* QR Code with subtle border */}
+                                        <div className="w-[102px] h-[102px] shrink-0 border border-slate-200 rounded p-1 bg-white flex items-center justify-center">
+                                            {qrDataUrl ? (
+                                                <img
+                                                    src={qrDataUrl}
+                                                    alt="QR Code Barang"
+                                                    className="w-full h-full object-contain"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full bg-slate-100 animate-pulse rounded" />
+                                            )}
                                         </div>
-                                        <span className="font-extrabold text-[13px] tracking-tight text-slate-800">
-                                            BADAN POM
-                                        </span>
+
+                                        {/* Right: Logo + Expired Date */}
+                                        <div className="flex-1 flex flex-col items-center justify-center text-center">
+                                            {/* Logo BPOM */}
+                                            <div className="flex items-center gap-1.5 mb-1.5">
+                                                <div className="relative w-8 h-8">
+                                                    <Image
+                                                        src="/assets/images/bpom_without_label.webp"
+                                                        alt="BPOM"
+                                                        fill
+                                                        className="object-contain"
+                                                        sizes="32px"
+                                                    />
+                                                </div>
+                                                <span className="font-extrabold text-[13px] tracking-tight text-slate-800">
+                                                    BADAN POM
+                                                </span>
+                                            </div>
+
+                                            {/* Expired Date Title & Value */}
+                                            <div className="font-black text-[15px] text-slate-900 tracking-tight leading-none mt-1">
+                                                Expired Date
+                                            </div>
+                                            <div className="font-black text-[17px] text-slate-900 tracking-tight mt-1">
+                                                {formatIndoDate(currentItem.expired)}
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    {/* Expired Date Title & Value */}
-                                    <div className="font-black text-[15px] text-slate-900 tracking-tight leading-none mt-1">
-                                        Expired Date
+                                    {/* Item Identifier fine print (Kode & Nama Barang) */}
+                                    <div className="text-[10px] text-slate-700 font-medium truncate border-t border-slate-200 pt-1.5 pb-0.5 leading-snug">
+                                        <span className="font-extrabold text-slate-900">
+                                            {currentItem.kode_baru || currentItem.code || `ID #${currentItem.id}`}:
+                                        </span>{' '}
+                                        {currentItem.name}
+                                        {currentItem.letak && (
+                                            <span className="text-slate-500 font-normal ml-1">
+                                                (Lokasi: {currentItem.letak})
+                                            </span>
+                                        )}
                                     </div>
-                                    <div className="font-black text-[17px] text-slate-900 tracking-tight mt-1">
-                                        {formatIndoDate(currentItem.expired)}
+
+                                    {/* Additional metadata for master labeling */}
+                                    {isMaster && (
+                                        <div className="flex items-center justify-between text-[9px] text-slate-400 font-mono pt-1">
+                                            <span>ID: #{currentItem.id} ({CATEGORY_LABELS[currentItem.category] || 'Gudang'})</span>
+                                            <span>BPOM DI MATARAM</span>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    {/* ATK & SUKU CADANG: Barcode di Kiri, Logo BPOM di Kanan, Nama Barang di Bawah */}
+                                    <div className="flex items-center justify-between gap-3 pb-2.5">
+                                        {/* Barcode / QR Code di Kiri */}
+                                        <div className="w-[102px] h-[102px] shrink-0 border border-slate-200 rounded p-1 bg-white flex items-center justify-center">
+                                            {qrDataUrl ? (
+                                                <img
+                                                    src={qrDataUrl}
+                                                    alt="Barcode Barang"
+                                                    className="w-full h-full object-contain"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full bg-slate-100 animate-pulse rounded" />
+                                            )}
+                                        </div>
+
+                                        {/* Logo BPOM di Kanan */}
+                                        <div className="flex-1 flex flex-col items-center justify-center text-center px-1">
+                                            <div className="relative w-12 h-12 mb-1.5">
+                                                <Image
+                                                    src="/assets/images/bpom_without_label.webp"
+                                                    alt="Logo BPOM"
+                                                    fill
+                                                    className="object-contain"
+                                                    sizes="48px"
+                                                />
+                                            </div>
+                                            <span className="font-black text-[15px] tracking-wide text-slate-900 leading-tight">
+                                                BADAN POM
+                                            </span>
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">
+                                                BBPOM DI MATARAM
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
 
-                            {/* Item Identifier fine print (Kode & Nama Barang) */}
-                            <div className="text-[10px] text-slate-700 font-medium truncate border-t border-slate-200 pt-1.5 pb-0.5 leading-snug">
-                                <span className="font-extrabold text-slate-900">
-                                    {currentItem.kode_baru || currentItem.code || `ID #${currentItem.id}`}:
-                                </span>{' '}
-                                {currentItem.name}
-                                {currentItem.letak && (
-                                    <span className="text-slate-500 font-normal ml-1">
-                                        (Lokasi: {currentItem.letak})
-                                    </span>
-                                )}
-                            </div>
-
-                            {/* Additional metadata for master labeling */}
-                            {isMaster && (
-                                <div className="flex items-center justify-between text-[9px] text-slate-400 font-mono pt-1">
-                                    <span>ID Barang: #{currentItem.id}</span>
-                                    <span>BPOM DI MATARAM</span>
-                                </div>
+                                    {/* Nama Barang di Bawah */}
+                                    <div className="border-t-2 border-slate-200 pt-2 pb-0.5">
+                                        <div className="font-bold text-[12px] sm:text-[13px] text-slate-900 leading-snug line-clamp-2">
+                                            {currentItem.name}
+                                        </div>
+                                        <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono mt-1">
+                                            <span>{currentItem.kode_baru || currentItem.code || `KODE: #${currentItem.id}`}</span>
+                                            <span className="font-semibold text-sky-700 uppercase">
+                                                {CATEGORY_LABELS[currentItem.category] || currentItem.category}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </>
                             )}
 
                             {/* EXCLUSIVE FOR PERMINTAAN LAB: DITERIMA DI LAB + DIBUKA + BADGE */}
-                            {!isMaster && (
+                            {!isMaster && supportsPermintaan && (
                                 <>
                                     {/* DITERIMA DI LAB section */}
                                     <div className="mt-1.5 pt-1.5 border-t border-slate-200">
@@ -560,9 +648,10 @@ export default function LabelStikerModal({ isOpen, onClose, item }: LabelStikerM
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-4 sm:px-6 py-3.5 sm:py-4 bg-white border-t border-slate-200 shrink-0">
                         <div className="text-[11px] sm:text-xs text-slate-500 text-center sm:text-left">
                             {isMaster
-                                ? 'Ukuran cetak ringkas stiker botol gudang (~8x3.5 cm) siap untuk opname'
+                                ? 'Ukuran cetak ringkas stiker gudang (~8x3.5 cm) siap untuk opname & inventaris'
                                 : 'Ukuran cetak botol lab (~8x6.5 cm) dengan paraf buka & lab'}
                         </div>
+
                         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto justify-end">
                             <button
                                 type="button"

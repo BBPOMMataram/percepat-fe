@@ -25,35 +25,16 @@ export default function SidebarAdminPercepat() {
                 </span>
                 <span className="hidden lg:block whitespace-nowrap">Dashboard</span>
             </Link>
-            <div className="dropdown dropdown-right dropdown-center lg:w-full">
-                <button className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/percepat/master')}`}
-                    data-tip="Master Data">
-                    <span className="material-symbols-outlined">
-                        database
-                    </span>
-                    <span className="hidden lg:block whitespace-nowrap">Master</span>
-                </button>
-                <ul
-                    tabIndex={0}
-                    className="menu dropdown-content bg-base-100 rounded-box z-1 ml-4 max-w-fit p-2 shadow"
-                >
-                    <li>
-                        <Link href={'/admin/percepat/master/reagen'}>Reagen</Link>
-                    </li>
-                    <li>
-                        <Link href={'/admin/percepat/master/baku-pembanding'} className="whitespace-nowrap">Baku Pembanding</Link>
-                    </li>
-                    <li>
-                        <Link href={'/admin/percepat/master/atk'}>ATK</Link>
-                    </li>
-                    <li>
-                        <Link href={'/admin/percepat/master/perlengkapan'} className="whitespace-nowrap">Perlengkapan Kebersihan</Link>
-                    </li>
-                    <li>
-                        <Link href={'/admin/percepat/master/suku-cadang'} className="whitespace-nowrap">Suku Cadang</Link>
-                    </li>
-                </ul>
-            </div>
+            <Link
+                href={'/admin/percepat/master'}
+                className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/percepat/master')}`}
+                data-tip="Master Data"
+            >
+                <span className="material-symbols-outlined">
+                    database
+                </span>
+                <span className="hidden lg:block whitespace-nowrap">Master</span>
+            </Link>
             <div className="dropdown dropdown-right dropdown-center lg:w-full">
                 <button className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/percepat/permintaan')}`}
                     data-tip="Permintaan">

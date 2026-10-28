@@ -24,12 +24,13 @@ import {
     Package
 } from "lucide-react";
 import dayjs from "dayjs";
+import { parsePdfDocumentDynamic } from "@/utils/dynamicPdfParser";
 
 export interface ImportMasterExcelModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
-    category: "reagen" | "baku-pembanding";
+    category: "reagen" | "baku-pembanding" | "atk" | "perlengkapan" | "suku-cadang";
 }
 
 export interface StagingItem {
@@ -84,8 +85,14 @@ export default function ImportMasterExcelModal({
     const [massExpired, setMassExpired] = useState<string>("");
     const [massLetak, setMassLetak] = useState<string>("");
 
-    const categoryLabel = category === "baku-pembanding" ? "Baku Pembanding" : "Reagen";
-    const defaultSatuan = category === "baku-pembanding" ? "Vial" : "Botol";
+    const categoryLabel =
+        category === "baku-pembanding" ? "Baku Pembanding" :
+        category === "atk" ? "ATK" :
+        category === "perlengkapan" ? "Perlengkapan Kebersihan" :
+        category === "suku-cadang" ? "Suku Cadang" : "Reagen";
+    const defaultSatuan =
+        category === "baku-pembanding" ? "Vial" :
+        category === "reagen" ? "Botol" : "Pcs";
     const defaultExpired = "2028-12-31"; // Default 2-3 tahun ke depan untuk data awal
 
     // Fetch master items when modal opens to allow smart matching
@@ -95,9 +102,12 @@ export default function ImportMasterExcelModal({
         const fetchMaster = async () => {
             setIsFetchingMaster(true);
             try {
-                const endpoint = category === "baku-pembanding"
-                    ? `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/baku-pembanding?per_page=99999`
-                    : `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/barang-reagen-all`;
+                const endpoint =
+                    category === "baku-pembanding" ? `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/baku-pembanding?per_page=99999` :
+                    category === "atk" ? `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/atk?per_page=99999` :
+                    category === "perlengkapan" ? `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/perlengkapan-kebersihan?per_page=99999` :
+                    category === "suku-cadang" ? `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/barang-suku-cadang?per_page=99999` :
+                    `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/barang-reagen-all`;
                 const res = await api.get(endpoint);
                 const items: any[] = res.data?.data || res.data || [];
                 const map: Record<string, any> = {};
@@ -428,10 +438,51 @@ export default function ImportMasterExcelModal({
             }
 
             if (extractedRows.length === 0) {
+                // Fallback to Super Dynamic PDF Table Parser (e.g. 09_BA SO.pdf)
+                const dynamicRes = await parsePdfDocumentDynamic(file);
+                if (dynamicRes.items.length > 0) {
+                    // Filter matching current category, or if category has matching items
+                    const matchedItems = dynamicRes.items.filter(
+                        (it) => it.barang_type === category
+                    );
+                    const targetList = matchedItems.length > 0 ? matchedItems : dynamicRes.items;
+
+                    const items: StagingItem[] = targetList.map((row, idx) => {
+                        const cleanKey = row.name.toLowerCase().trim().replace(/\s+/g, " ");
+                        const existing = existingMasterMap[cleanKey];
+
+                        return {
+                            id: `pdf-dyn-${idx}-${Date.now()}`,
+                            selected: true,
+                            name: row.name,
+                            code: row.code,
+                            noKontrol: row.code,
+                            kode_baru: existing ? existing.kode_baru : (row.code || ""),
+                            satuan: existing ? (existing.satuan || defaultSatuan) : (row.satuan || defaultSatuan),
+                            stock: row.stock,
+                            expired: existing?.expired ? dayjs(existing.expired).format("YYYY-MM-DD") : (row.expired || defaultExpired),
+                            letak: existing ? (existing.letak || row.lokasi) : (row.lokasi || "Gudang BPOM"),
+                            isExisting: !!existing,
+                            existingStock: existing ? Number(existing.stock) : 0,
+                            status: existing ? "update" : "new",
+                            isValid: row.name.length > 0,
+                        };
+                    });
+
+                    setStagingData(items);
+                    setStockMode("replace"); // Jika dokumen BA SO / Opname, stok adalah stok fisik akhir
+                    dispatch(showAlert({
+                        type: "success",
+                        message: "Dokumen Berita Acara Berhasil Dibaca",
+                        description: `Terdeteksi ${dynamicRes.totalItems} barang dari dokumen (${items.length} item dimasukkan ke master ${categoryName}).`,
+                    }));
+                    return;
+                }
+
                 dispatch(showAlert({
                     type: "error",
-                    message: "Tabel Surat Tidak Terdeteksi",
-                    description: "Pastikan file PDF berupa surat BAST / Pengiriman resmi dengan tabel spesifikasi barang.",
+                    message: "Tabel Dokumen Tidak Terdeteksi",
+                    description: "Pastikan file PDF berupa Berita Acara Stok Opname atau Surat BAST resmi yang memiliki tabel barang.",
                 }));
                 return;
             }

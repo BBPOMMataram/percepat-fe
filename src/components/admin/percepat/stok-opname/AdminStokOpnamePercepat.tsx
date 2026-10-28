@@ -17,6 +17,7 @@ import {
     Save,
     RotateCcw,
     FileSpreadsheet,
+    FileText,
     Printer,
     Package,
     Building2,
@@ -28,16 +29,19 @@ import {
     Loader2,
     History,
     Sparkles,
+    Edit3,
+    Trash2,
     X,
 } from "lucide-react";
 import PercepatQRScannerModal from "@/components/percepat-new/stok-opname/PercepatQRScannerModal";
 import LabelStikerModal, { LabelStikerItem } from "@/components/percepat-new/label/LabelStikerModal";
+import ImportBeritaAcaraPdfModal from "./ImportBeritaAcaraPdfModal";
 import { exportJsonToExcel } from "@/utils/excelExport";
 
 dayjs.locale("id");
 
 interface ActiveItem {
-    barang_type: "reagen" | "baku-pembanding";
+    barang_type: "reagen" | "baku-pembanding" | "atk" | "perlengkapan" | "suku-cadang";
     barang_type_label: string;
     id: number;
     name: string;
@@ -71,7 +75,7 @@ export default function AdminStokOpnamePercepat() {
     // Scanner & Lookup State
     const [scannerOpen, setScannerOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
-    const [categoryFilter, setCategoryFilter] = useState<"all" | "baku-pembanding" | "reagen">("all");
+    const [categoryFilter, setCategoryFilter] = useState<"all" | "baku-pembanding" | "reagen" | "atk" | "suku-cadang">("all");
     const [isSearching, setIsSearching] = useState(false);
     const [lookupResults, setLookupResults] = useState<ActiveItem[]>([]);
 
@@ -79,11 +83,23 @@ export default function AdminStokOpnamePercepat() {
     const [selectedItem, setSelectedItem] = useState<ActiveItem | null>(null);
     const [stokFisikInput, setStokFisikInput] = useState<string>("");
     const [keteranganInput, setKeteranganInput] = useState<string>("");
+    const [tanggalOpname, setTanggalOpname] = useState<string>(dayjs().format("YYYY-MM-DD"));
     const [isSaving, setIsSaving] = useState(false);
 
     // Label Stiker Modal State
     const [labelModalOpen, setLabelModalOpen] = useState(false);
     const [labelItem, setLabelItem] = useState<LabelStikerItem | null>(null);
+
+    // Import Berita Acara PDF Modal State
+    const [importPdfOpen, setImportPdfOpen] = useState(false);
+
+    // Edit History Modal State
+    const [editHistoryModalOpen, setEditHistoryModalOpen] = useState(false);
+    const [selectedHistoryItem, setSelectedHistoryItem] = useState<OpnameHistoryItem | null>(null);
+    const [editKeterangan, setEditKeterangan] = useState("");
+    const [editTanggal, setEditTanggal] = useState("");
+    const [editStokFisik, setEditStokFisik] = useState("");
+    const [isUpdatingHistory, setIsUpdatingHistory] = useState(false);
 
     // History Table State
     const [historyData, setHistoryData] = useState<OpnameHistoryItem[]>([]);
@@ -207,12 +223,13 @@ export default function AdminStokOpnamePercepat() {
                 stok_fisik: stokFisik,
                 keterangan: keteranganInput.trim() || (selisih === 0 ? "Stok Sesuai" : "Penyesuaian Fisik"),
                 petugas_name: "Admin Gudang BPOM",
+                tanggal_opname: tanggalOpname,
             });
 
             dispatch(showAlert({
                 type: "success",
                 message: "Stok Opname Berhasil Disimpan!",
-                description: `Stok ${selectedItem.name} berhasil diperbarui dari ${stokSistem} menjadi ${stokFisik} ${selectedItem.satuan || "Botol"}.`,
+                description: `Stok ${selectedItem.name} berhasil diperbarui dari ${stokSistem} menjadi ${stokFisik} ${selectedItem.satuan || "Unit"}.`,
             }));
 
             // Perbarui item yang aktif
@@ -239,12 +256,84 @@ export default function AdminStokOpnamePercepat() {
             name: item.name,
             code: item.code || undefined,
             kode_baru: item.kode_baru || undefined,
+            satuan: item.satuan || undefined,
             expired: item.expired || undefined,
             letak: item.lokasi || undefined,
             category: item.barang_type,
             isFromMaster: true,
         });
         setLabelModalOpen(true);
+    };
+
+    // Cetak Label langsung dari baris riwayat opname
+    const handlePrintHistoryLabel = (row: OpnameHistoryItem) => {
+        setLabelItem({
+            id: row.barang_id,
+            name: row.nama_barang,
+            code: row.kode_barang || undefined,
+            satuan: row.satuan || undefined,
+            letak: row.lokasi || undefined,
+            category: row.barang_type as any,
+            isFromMaster: true,
+        });
+        setLabelModalOpen(true);
+    };
+
+    // Buka Modal Edit Riwayat Opname
+    const handleOpenEditHistory = (row: OpnameHistoryItem) => {
+        setSelectedHistoryItem(row);
+        setEditKeterangan(row.keterangan || "");
+        setEditTanggal(dayjs(row.tanggal_opname).format("YYYY-MM-DD"));
+        setEditStokFisik(String(row.stok_fisik));
+        setEditHistoryModalOpen(true);
+    };
+
+    // Simpan Perubahan Riwayat Opname
+    const handleSaveEditHistory = async () => {
+        if (!selectedHistoryItem) return;
+        setIsUpdatingHistory(true);
+        try {
+            await api.put(`/api/v1/stok-opname/${selectedHistoryItem.id}`, {
+                keterangan: editKeterangan,
+                tanggal_opname: editTanggal,
+                stok_fisik: Number(editStokFisik),
+            });
+            dispatch(showAlert({
+                type: "success",
+                message: "Riwayat Diperbarui",
+                description: "Catatan riwayat stok opname berhasil diperbarui.",
+            }));
+            setEditHistoryModalOpen(false);
+            loadHistory();
+        } catch (err: any) {
+            dispatch(showAlert({
+                type: "error",
+                message: "Gagal Mengupdate",
+                description: err.response?.data?.message || err.message || "Gagal memperbarui riwayat opname.",
+            }));
+        } finally {
+            setIsUpdatingHistory(false);
+        }
+    };
+
+    // Hapus Riwayat Opname
+    const handleDeleteHistory = async (id: number) => {
+        if (!confirm("Apakah Anda yakin ingin menghapus catatan riwayat stok opname ini?")) return;
+        try {
+            await api.delete(`/api/v1/stok-opname/${id}`);
+            dispatch(showAlert({
+                type: "success",
+                message: "Riwayat Dihapus",
+                description: "Catatan riwayat stok opname berhasil dihapus.",
+            }));
+            loadHistory();
+        } catch (err: any) {
+            dispatch(showAlert({
+                type: "error",
+                message: "Gagal Menghapus",
+                description: err.response?.data?.message || err.message || "Gagal menghapus riwayat opname.",
+            }));
+        }
     };
 
     // Export Riwayat ke Excel
@@ -254,16 +343,24 @@ export default function AdminStokOpnamePercepat() {
             const res = await api.get(`/api/v1/stok-opname?per_page=99999`);
             const allItems: OpnameHistoryItem[] = res.data?.data || [];
 
+            const categoryNameMap: Record<string, string> = {
+                "baku-pembanding": "Baku Pembanding",
+                "reagen": "Reagen",
+                "atk": "ATK",
+                "perlengkapan": "Perlengkapan Kebersihan",
+                "suku-cadang": "Suku Cadang",
+            };
+
             exportJsonToExcel({
                 data: allItems,
                 columns: [
                     { header: "No", key: "id", formatter: (_, __, idx) => idx + 1, width: 6 },
                     { header: "Tanggal Opname", key: "tanggal_opname", formatter: (val) => dayjs(val).format("YYYY-MM-DD HH:mm"), width: 18 },
-                    { header: "Kategori", key: "barang_type", formatter: (val) => val === "baku-pembanding" ? "Baku Pembanding" : "Reagen", width: 16 },
+                    { header: "Kategori", key: "barang_type", formatter: (val) => categoryNameMap[val] || val, width: 18 },
                     { header: "Kode Barang", key: "kode_barang", formatter: (val) => val || "-", width: 15 },
                     { header: "Nama Barang", key: "nama_barang", width: 35 },
                     { header: "Lokasi", key: "lokasi", formatter: (val) => val || "-", width: 14 },
-                    { header: "Satuan", key: "satuan", formatter: (val) => val || "Botol", width: 10 },
+                    { header: "Satuan", key: "satuan", formatter: (val) => val || "Unit", width: 10 },
                     { header: "Stok Sistem (Awal)", key: "stok_sistem", width: 14 },
                     { header: "Stok Fisik (Hasil Hitung)", key: "stok_fisik", width: 14 },
                     { header: "Selisih", key: "selisih", formatter: (val) => val > 0 ? `+${val}` : `${val}`, width: 10 },
@@ -272,6 +369,7 @@ export default function AdminStokOpnamePercepat() {
                 ],
                 fileName: `Berita_Acara_Stok_Opname_${dayjs().format("YYYYMMDD_HHmm")}`,
             });
+
         } catch (err) {
             console.error("Export error", err);
             dispatch(showAlert({
@@ -303,14 +401,24 @@ export default function AdminStokOpnamePercepat() {
                     </div>
                 </div>
 
-                <div className="w-full sm:w-auto flex items-center justify-end shrink-0">
+                <div className="w-full sm:w-auto flex flex-wrap items-center justify-end gap-2 shrink-0">
                     <button
+                        type="button"
+                        onClick={() => setImportPdfOpen(true)}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-colors"
+                    >
+                        <FileText size={15} />
+                        Import Berita Acara (PDF)
+                    </button>
+
+                    <button
+                        type="button"
                         onClick={handleExportExcel}
                         disabled={isExporting}
                         className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors"
                     >
                         {isExporting ? <Loader2 size={15} className="animate-spin" /> : <FileSpreadsheet size={15} />}
-                        Export Berita Acara Excel
+                        Export Excel
                     </button>
                 </div>
             </div>
@@ -350,35 +458,30 @@ export default function AdminStokOpnamePercepat() {
                     </div>
 
                     {/* Category Filter */}
-                    <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl text-xs font-semibold">
-                        <button
-                            type="button"
-                            onClick={() => setCategoryFilter("all")}
-                            className={`py-1.5 rounded-lg transition-all text-center ${
-                                categoryFilter === "all" ? "bg-white text-blue-700 shadow-xs font-bold" : "text-slate-600 hover:text-slate-900"
-                            }`}
-                        >
-                            Semua
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setCategoryFilter("baku-pembanding")}
-                            className={`py-1.5 rounded-lg transition-all text-center truncate px-1 ${
-                                categoryFilter === "baku-pembanding" ? "bg-white text-blue-700 shadow-xs font-bold" : "text-slate-600 hover:text-slate-900"
-                            }`}
-                        >
-                            Baku Pembanding
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setCategoryFilter("reagen")}
-                            className={`py-1.5 rounded-lg transition-all text-center ${
-                                categoryFilter === "reagen" ? "bg-white text-blue-700 shadow-xs font-bold" : "text-slate-600 hover:text-slate-900"
-                            }`}
-                        >
-                            Reagen
-                        </button>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl text-xs font-semibold">
+                        {[
+                            { id: "all", label: "Semua Kategori" },
+                            { id: "reagen", label: "Reagen" },
+                            { id: "baku-pembanding", label: "Baku Pembanding" },
+                            { id: "atk", label: "ATK" },
+                            { id: "suku-cadang", label: "Suku Cadang" },
+                        ].map((cat) => (
+                            <button
+                                key={cat.id}
+                                type="button"
+                                onClick={() => setCategoryFilter(cat.id as any)}
+                                className={`py-1.5 px-1 rounded-lg transition-all text-center truncate ${
+                                    categoryFilter === cat.id
+                                        ? "bg-white text-blue-700 shadow-xs font-bold"
+                                        : "text-slate-600 hover:text-slate-900"
+                                }`}
+                                title={cat.label}
+                            >
+                                {cat.label}
+                            </button>
+                        ))}
                     </div>
+
 
                     {/* Search Field */}
                     <div className="space-y-1">
@@ -480,6 +583,12 @@ export default function AdminStokOpnamePercepat() {
                                             <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
                                                 selectedItem.barang_type === "baku-pembanding"
                                                     ? "bg-indigo-100 text-indigo-800"
+                                                    : selectedItem.barang_type === "atk"
+                                                    ? "bg-emerald-100 text-emerald-800"
+                                                    : selectedItem.barang_type === "perlengkapan"
+                                                    ? "bg-amber-100 text-amber-800"
+                                                    : selectedItem.barang_type === "suku-cadang"
+                                                    ? "bg-purple-100 text-purple-800"
                                                     : "bg-blue-100 text-blue-800"
                                             }`}>
                                                 {selectedItem.barang_type_label}
@@ -507,7 +616,7 @@ export default function AdminStokOpnamePercepat() {
                                         </div>
                                     </div>
 
-                                    {/* Action button to print label for this bottle */}
+                                    {/* Action button to print label for this item */}
                                     <button
                                         type="button"
                                         onClick={() => handleOpenLabel(selectedItem)}
@@ -529,7 +638,7 @@ export default function AdminStokOpnamePercepat() {
                                             {selectedItem.stock}
                                         </div>
                                         <span className="text-[10px] sm:text-[11px] text-slate-500 font-medium">
-                                            {selectedItem.satuan || "Botol"}
+                                            {selectedItem.satuan || "Unit"}
                                         </span>
                                     </div>
 
@@ -603,12 +712,45 @@ export default function AdminStokOpnamePercepat() {
                                     </div>
                                 </div>
 
+                                {/* Tanggal Pelaksanaan Opname */}
+                                <div className="p-3 sm:p-3.5 rounded-xl border border-slate-200 bg-slate-50/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                                            <Calendar size={15} />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-800 block">
+                                                Tanggal Pelaksanaan Opname
+                                            </label>
+                                            <span className="text-[10px] text-slate-500">
+                                                Pilih tanggal fisik barang dihitung di gudang
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                                        <input
+                                            type="date"
+                                            value={tanggalOpname}
+                                            onChange={(e) => setTanggalOpname(e.target.value)}
+                                            className="px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 focus:outline-hidden"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setTanggalOpname(dayjs().format("YYYY-MM-DD"))}
+                                            className="text-[11px] font-bold text-blue-700 hover:text-blue-900 bg-blue-100/70 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg border border-blue-200 transition-colors shrink-0"
+                                        >
+                                            Hari Ini
+                                        </button>
+                                    </div>
+                                </div>
+
                                 {/* Keterangan / Alasan Penyesuaian */}
                                 <div className="space-y-1.5 sm:space-y-2">
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
                                         <label className="text-xs font-semibold text-slate-700">
                                             Catatan / Alasan Penyesuaian
                                         </label>
+
                                         <div className="flex flex-wrap gap-1">
                                             {["Stok Sesuai", "Barang Rusak/Bocor", "Kedaluwarsa", "Koreksi Catatan"].map((chip) => (
                                                 <button
@@ -743,9 +885,23 @@ export default function AdminStokOpnamePercepat() {
                                         <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${
                                             row.barang_type === "baku-pembanding"
                                                 ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                                : row.barang_type === "atk"
+                                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                                : row.barang_type === "perlengkapan"
+                                                ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                                : row.barang_type === "suku-cadang"
+                                                ? "bg-purple-50 text-purple-700 border border-purple-200"
                                                 : "bg-blue-50 text-blue-700 border border-blue-200"
                                         }`}>
-                                            {row.barang_type === "baku-pembanding" ? "BP" : "Reagen"}
+                                            {row.barang_type === "baku-pembanding"
+                                                ? "BP"
+                                                : row.barang_type === "atk"
+                                                ? "ATK"
+                                                : row.barang_type === "perlengkapan"
+                                                ? "Kebersihan"
+                                                : row.barang_type === "suku-cadang"
+                                                ? "Suku Cadang"
+                                                : "Reagen"}
                                         </span>
                                         <span className="font-mono text-[11px] text-slate-500">
                                             {dayjs(row.tanggal_opname).format("DD/MM/YY HH:mm")}
@@ -794,6 +950,37 @@ export default function AdminStokOpnamePercepat() {
                                         {row.petugas_name || "Admin"}
                                     </span>
                                 </div>
+
+                                {/* Action Buttons for Mobile */}
+                                <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-slate-100">
+                                    {row.barang_type !== "perlengkapan" && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handlePrintHistoryLabel(row)}
+                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 font-semibold text-[11px] hover:bg-blue-100 transition-colors"
+                                            title="Cetak Label Barcode"
+                                        >
+                                            <QrCode size={12} />
+                                            Label
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => handleOpenEditHistory(row)}
+                                        className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-blue-600 transition-colors"
+                                        title="Edit Riwayat"
+                                    >
+                                        <Edit3 size={13} />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeleteHistory(row.id)}
+                                        className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors"
+                                        title="Hapus Riwayat"
+                                    >
+                                        <Trash2 size={13} />
+                                    </button>
+                                </div>
                             </div>
                         ))
                     )}
@@ -815,19 +1002,20 @@ export default function AdminStokOpnamePercepat() {
                                     <th className="py-3 px-3.5 w-24 text-center">Selisih</th>
                                     <th className="py-3 px-3.5">Keterangan / Alasan</th>
                                     <th className="py-3 px-3.5 w-32">Petugas</th>
+                                    <th className="py-3 px-3.5 w-32 text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 text-slate-700">
                                 {historyLoading ? (
                                     <tr>
-                                        <td colSpan={10} className="py-8 text-center text-slate-400">
+                                        <td colSpan={11} className="py-8 text-center text-slate-400">
                                             <Loader2 size={24} className="animate-spin mx-auto mb-1 text-blue-600" />
                                             Memuat riwayat opname...
                                         </td>
                                     </tr>
                                 ) : historyData.length === 0 ? (
                                     <tr>
-                                        <td colSpan={10} className="py-8 text-center text-slate-400">
+                                        <td colSpan={11} className="py-8 text-center text-slate-400">
                                             Belum ada riwayat stok opname. Mulai scan barang untuk melakukan opname pertama.
                                         </td>
                                     </tr>
@@ -844,11 +1032,26 @@ export default function AdminStokOpnamePercepat() {
                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
                                                     row.barang_type === "baku-pembanding"
                                                         ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                                        : row.barang_type === "atk"
+                                                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                                        : row.barang_type === "perlengkapan"
+                                                        ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                                        : row.barang_type === "suku-cadang"
+                                                        ? "bg-purple-50 text-purple-700 border border-purple-200"
                                                         : "bg-blue-50 text-blue-700 border border-blue-200"
                                                 }`}>
-                                                    {row.barang_type === "baku-pembanding" ? "Baku Pembanding" : "Reagen"}
+                                                    {row.barang_type === "baku-pembanding"
+                                                        ? "Baku Pembanding"
+                                                        : row.barang_type === "atk"
+                                                        ? "ATK"
+                                                        : row.barang_type === "perlengkapan"
+                                                        ? "Perlengkapan"
+                                                        : row.barang_type === "suku-cadang"
+                                                        ? "Suku Cadang"
+                                                        : "Reagen"}
                                                 </span>
                                             </td>
+
                                             <td className="py-2.5 px-3.5">
                                                 <div className="font-bold text-slate-800">{row.nama_barang}</div>
                                                 {row.kode_barang && (
@@ -883,6 +1086,37 @@ export default function AdminStokOpnamePercepat() {
                                             <td className="py-2.5 px-3.5 text-slate-700 font-medium text-[11px]">
                                                 {row.petugas_name || "Admin Gudang"}
                                             </td>
+                                            <td className="py-2.5 px-3.5 text-center">
+                                                <div className="flex items-center justify-center gap-1.5">
+                                                    {row.barang_type !== "perlengkapan" && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handlePrintHistoryLabel(row)}
+                                                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold transition-colors"
+                                                            title="Cetak Label Barcode"
+                                                        >
+                                                            <QrCode size={11} />
+                                                            Label
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenEditHistory(row)}
+                                                        className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-blue-600 transition-colors"
+                                                        title="Edit Riwayat"
+                                                    >
+                                                        <Edit3 size={12} />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDeleteHistory(row.id)}
+                                                        className="p-1.5 rounded-lg border border-slate-200 hover:bg-rose-50 hover:border-rose-200 text-slate-500 hover:text-rose-600 transition-colors"
+                                                        title="Hapus Riwayat"
+                                                    >
+                                                        <Trash2 size={12} />
+                                                    </button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     ))
                                 )}
@@ -890,6 +1124,36 @@ export default function AdminStokOpnamePercepat() {
                         </table>
                     </div>
                 </div>
+
+                {/* Pagination */}
+                {historyTotal > 15 && (
+                    <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-600">
+                        <div>
+                            Menampilkan {(historyPage - 1) * 15 + 1} - {Math.min(historyPage * 15, historyTotal)} dari {historyTotal} data
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <button
+                                type="button"
+                                disabled={historyPage <= 1}
+                                onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                                className="px-2.5 py-1 rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-40"
+                            >
+                                Sebelumnya
+                            </button>
+                            <span className="px-2 font-semibold">
+                                Hal {historyPage} / {Math.ceil(historyTotal / 15)}
+                            </span>
+                            <button
+                                type="button"
+                                disabled={historyPage >= Math.ceil(historyTotal / 15)}
+                                onClick={() => setHistoryPage((p) => p + 1)}
+                                className="px-2.5 py-1 rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-40"
+                            >
+                                Selanjutnya
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* QR Scanner Camera Modal */}
@@ -909,6 +1173,110 @@ export default function AdminStokOpnamePercepat() {
                 onClose={() => setLabelModalOpen(false)}
                 item={labelItem}
             />
+
+            {/* Import Berita Acara PDF Modal */}
+            <ImportBeritaAcaraPdfModal
+                isOpen={importPdfOpen}
+                onClose={() => setImportPdfOpen(false)}
+                onSuccess={() => {
+                    loadHistory();
+                }}
+            />
+
+            {/* Modal Edit Riwayat Opname */}
+            {editHistoryModalOpen && selectedHistoryItem && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-5 space-y-4 animate-in fade-in zoom-in duration-150">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+                                    <Edit3 size={16} />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-bold text-slate-800">Edit Riwayat Stok Opname</h3>
+                                    <p className="text-[10px] text-slate-500">Perbarui catatan atau data stok fisik</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setEditHistoryModalOpen(false)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                            <div className="text-xs font-bold text-slate-800 truncate">{selectedHistoryItem.nama_barang}</div>
+                            <div className="text-[11px] text-slate-500 font-mono">
+                                {selectedHistoryItem.kode_barang || "Tanpa Kode"} • Stok Sistem: {selectedHistoryItem.stok_sistem} {selectedHistoryItem.satuan || "Unit"}
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div>
+                                <label className="text-xs font-bold text-slate-700 block mb-1">
+                                    Tanggal Pelaksanaan Opname
+                                </label>
+                                <input
+                                    type="date"
+                                    value={editTanggal}
+                                    onChange={(e) => setEditTanggal(e.target.value)}
+                                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-semibold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 focus:outline-hidden"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-bold text-slate-700 block mb-1">
+                                    Stok Fisik Gudang
+                                </label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={editStokFisik}
+                                    onChange={(e) => setEditStokFisik(e.target.value)}
+                                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 focus:outline-hidden"
+                                />
+                                <span className="text-[10px] text-slate-400 mt-0.5 block">
+                                    Selisih baru: {Number(editStokFisik) - selectedHistoryItem.stok_sistem}
+                                </span>
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-bold text-slate-700 block mb-1">
+                                    Keterangan / Alasan
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editKeterangan}
+                                    onChange={(e) => setEditKeterangan(e.target.value)}
+                                    placeholder="Alasan penyesuaian..."
+                                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 focus:outline-hidden"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                            <button
+                                type="button"
+                                onClick={() => setEditHistoryModalOpen(false)}
+                                className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSaveEditHistory}
+                                disabled={isUpdatingHistory}
+                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs disabled:opacity-50"
+                            >
+                                {isUpdatingHistory ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                                Simpan Perubahan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

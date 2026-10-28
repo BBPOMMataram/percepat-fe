@@ -5,10 +5,11 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import AdminMasterFormBakuPembandingPercepat from "./AdminMasterFormBakuPembandingPercepat";
-import { FileSpreadsheet, QrCode, UploadCloud } from "lucide-react";
+import { FileSpreadsheet, QrCode, Trash2, UploadCloud } from "lucide-react";
 import { exportJsonToExcel } from "@/utils/excelExport";
 import LabelStikerModal, { LabelStikerItem } from "@/components/percepat-new/label/LabelStikerModal";
 import ImportMasterExcelModal from "../ImportMasterExcelModal";
+import PemusnahanMasterModal from "../PemusnahanMasterModal";
 
 export default function AdminMasterBakuPembandingPercepat() {
     const [data, setData] = useState<any>([]);
@@ -21,6 +22,7 @@ export default function AdminMasterBakuPembandingPercepat() {
     const [labelModalOpen, setLabelModalOpen] = useState<boolean>(false);
     const [selectedLabelItem, setSelectedLabelItem] = useState<LabelStikerItem | null>(null);
     const [importModalOpen, setImportModalOpen] = useState<boolean>(false);
+    const [pemusnahanModalOpen, setPemusnahanModalOpen] = useState<boolean>(false);
 
     const dispatch = useDispatch<AppDispatch>();
 
@@ -125,6 +127,14 @@ export default function AdminMasterBakuPembandingPercepat() {
                         >
                             <UploadCloud size={16} />
                             Import Data (Excel & PDF)
+                        </button>
+                        <button
+                            className="btn btn-outline btn-error gap-2"
+                            onClick={() => setPemusnahanModalOpen(true)}
+                            title="Pemusnahan seluruh data baku pembanding"
+                        >
+                            <Trash2 size={16} />
+                            Hapus Semua (Pemusnahan)
                         </button>
                     </div>
 
@@ -260,6 +270,15 @@ export default function AdminMasterBakuPembandingPercepat() {
                 onClose={() => setImportModalOpen(false)}
                 onSuccess={loadData}
                 category="baku-pembanding"
+            />
+
+            <PemusnahanMasterModal
+                isOpen={pemusnahanModalOpen}
+                onClose={() => setPemusnahanModalOpen(false)}
+                onSuccess={loadData}
+                category="baku-pembanding"
+                categoryLabel="Baku Pembanding"
+                totalItems={data?.total || data?.data?.length || 0}
             />
         </>
     );

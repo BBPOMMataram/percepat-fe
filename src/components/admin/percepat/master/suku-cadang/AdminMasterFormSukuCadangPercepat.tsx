@@ -47,8 +47,8 @@ export default function AdminMasterFormSukuCadangPercepat({ open, onClose, initi
         setLoading(true);
 
         const url = initialData
-            ? `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/barang-suku-cadang/${initialData.id}`
-            : `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/barang-suku-cadang`;
+            ? `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/suku-cadang/${initialData.id}`
+            : `${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/suku-cadang`;
 
         const method = "POST";
 

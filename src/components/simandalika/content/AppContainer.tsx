@@ -1,14 +1,24 @@
 import { AppData } from '@/types/app-data';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/store';
 
 const AppContainer = ({ appData }: { appData: AppData }) => {
+    const { user } = useSelector((state: RootState) => state.auth);
+
     // Link dianggap eksternal hanya jika URL lengkap dan bukan domain milik BBPOM
     const isBpomDomain = appData.link?.includes('bbpommataram.id') || appData.link?.includes('infokom-bbpommataram.workers.dev');
     const isExternal = (appData.link?.startsWith('http://') || appData.link?.startsWith('https://')) && !isBpomDomain;
     // link internal di DB bisa "/percepat" atau "percepat" → normalisasi supaya tidak jadi "//"
     const slug = (appData.link ?? '').replace(/^\/+/, '');
-    const href = isExternal ? appData.link : `/${slug}`;
+
+    // Khusus untuk PERCEPAT: jika user belum login, arahkan ke halaman login terlebih dahulu
+    const isPercepat = appData.name?.toUpperCase().includes('PERCEPAT') || slug.startsWith('percepat');
+    const href = isExternal 
+        ? appData.link 
+        : (isPercepat && !user ? `/login?redirectUrl=/${slug || 'percepat-new'}` : `/${slug}`);
+
     const hasDesc = appData.desc && appData.desc !== '-';
 
     const body = (

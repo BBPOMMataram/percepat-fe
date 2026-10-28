@@ -5,8 +5,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import AdminMasterFormPerlengkapanPercepat from "./AdminMasterFormPerlengkapanPercepat";
 import dayjs from "dayjs";
-import { FileSpreadsheet } from "lucide-react";
+import { FileSpreadsheet, Trash2, UploadCloud, QrCode } from "lucide-react";
 import { exportJsonToExcel } from "@/utils/excelExport";
+import ImportMasterExcelModal from "../ImportMasterExcelModal";
+import PemusnahanMasterModal from "../PemusnahanMasterModal";
+import LabelStikerModal, { LabelStikerItem } from "@/components/percepat-new/label/LabelStikerModal";
 
 export default function AdminMasterPerlengkapanPercepat() {
     const [data, setData] = useState<any>([])
@@ -16,6 +19,8 @@ export default function AdminMasterPerlengkapanPercepat() {
     const [editData, setEditData] = useState<any>(null)
     const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
     const [isExporting, setIsExporting] = useState(false);
+    const [importModalOpen, setImportModalOpen] = useState<boolean>(false);
+    const [pemusnahanModalOpen, setPemusnahanModalOpen] = useState<boolean>(false);
 
     const dispatch = useDispatch<AppDispatch>()
 
@@ -111,6 +116,21 @@ export default function AdminMasterPerlengkapanPercepat() {
                             {isExporting ? <span className="loading loading-spinner loading-xs" /> : <FileSpreadsheet size={16} />}
                             Export Excel
                         </button>
+                        <button
+                            className="btn btn-outline btn-info gap-2"
+                            onClick={() => setImportModalOpen(true)}
+                        >
+                            <UploadCloud size={16} />
+                            Import Data (Excel & PDF)
+                        </button>
+                        <button
+                            className="btn btn-outline btn-error gap-2"
+                            onClick={() => setPemusnahanModalOpen(true)}
+                            title="Pemusnahan seluruh data perlengkapan kebersihan"
+                        >
+                            <Trash2 size={16} />
+                            Hapus Semua (Pemusnahan)
+                        </button>
                     </div>
 
                     <div className="flex items-center gap-2 ml-auto">
@@ -202,6 +222,21 @@ export default function AdminMasterPerlengkapanPercepat() {
                     </div>
                 </div>
             </div>
+            <ImportMasterExcelModal
+                isOpen={importModalOpen}
+                onClose={() => setImportModalOpen(false)}
+                onSuccess={loadData}
+                category="perlengkapan"
+            />
+
+            <PemusnahanMasterModal
+                isOpen={pemusnahanModalOpen}
+                onClose={() => setPemusnahanModalOpen(false)}
+                onSuccess={loadData}
+                category="perlengkapan"
+                categoryLabel="Perlengkapan Kebersihan"
+                totalItems={data?.total || data?.data?.length || 0}
+            />
         </>
     )
-}
+}
