@@ -150,7 +150,7 @@ export default function ArahanPimpinanKatim() {
           </a>
 
           <Link
-            href="/siproval/google-sheets"
+            href="/siproval/katim/entry-data-rhpk"
             className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
             title="Buka lembar pengisian indikator IKSK Anda"
           >
@@ -389,12 +389,12 @@ export default function ArahanPimpinanKatim() {
                     </a>
 
                     <Link
-                      href={`/siproval/google-sheets?iksk_id=${item.iksk_id}`}
+                      href={`/siproval/katim/entry-data-rhpk?iksk_id=${item.iksk_id}`}
                       className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-2xs hover:bg-slate-50"
                       title="Buka form input IKSK ini di Google Sheet"
                     >
                       <Icon icon="solar:pen-new-square-bold" width={13} className="text-[#005baa]" />
-                      <span>Edit di Sheet</span>
+                      <span>Input di RHPK</span>
                     </Link>
                   </div>
                 </div>

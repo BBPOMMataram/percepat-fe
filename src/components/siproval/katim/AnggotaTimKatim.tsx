@@ -160,7 +160,7 @@ export default function AnggotaTimKatim() {
 
         <div className="flex flex-wrap items-center gap-2.5">
           <Link
-            href="/siproval/google-sheets"
+            href="/siproval/katim/entry-data-rhpk"
             className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-3.5 py-2 text-xs font-semibold text-[#005baa] shadow-sm transition hover:bg-blue-50"
           >
             <Icon icon="solar:document-text-bold" width={16} />
@@ -337,11 +337,11 @@ export default function AnggotaTimKatim() {
                   </div>
 
                   <Link
-                    href={`/siproval/google-sheets?iksk_id=${iksk.id}`}
+                    href={`/siproval/katim/entry-data-rhpk?iksk_id=${iksk.id}`}
                     className="inline-flex items-center gap-1.5 self-start lg:self-center rounded-xl border border-blue-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-[#005baa] hover:bg-blue-50 transition"
                   >
                     <Icon icon="solar:document-text-bold" width={14} />
-                    <span>Buka Spreadsheet IKSK</span>
+                    <span>Buka Tabel RHPK IKSK</span>
                     <Icon icon="solar:arrow-right-up-linear" width={12} />
                   </Link>
                 </div>

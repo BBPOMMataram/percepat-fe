@@ -293,6 +293,18 @@ export default function TestLocalTableKatim() {
                 {dirtyCount} sel belum disimpan
               </span>
             )}
+            {selectedSpId && (
+              <a
+                href={`${baseUrl}/api/test-local-table/spreadsheet/${selectedSpId}/download`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl border border-emerald-600 bg-emerald-50 px-4 py-2.5 text-xs font-bold text-emerald-800 shadow-sm transition hover:bg-emerald-100"
+                title="Unduh dokumen Excel lengkap berisi seluruh tabs dan hasil isian terbaru"
+              >
+                <Icon icon="ri:file-excel-2-fill" width={16} className="text-emerald-700" />
+                <span>Unduh Excel (.xlsx)</span>
+              </a>
+            )}
             <button
               type="button"
               onClick={handleSave}

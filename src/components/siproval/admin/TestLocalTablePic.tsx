@@ -644,6 +644,18 @@ export default function TestLocalTablePic() {
 
           {selectedSpId && (
             <div className="flex items-center gap-2">
+              {activeSpreadsheet && (
+                <a
+                  href={`${baseUrl}/api/test-local-table/spreadsheet/${activeSpreadsheet.id}/download`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-600 bg-emerald-50 px-4 py-2 text-xs font-bold text-emerald-800 shadow-xs transition hover:bg-emerald-100"
+                  title="Unduh file Excel lengkap hasil pengisian RHPK untuk dokumen ini"
+                >
+                  <Icon icon="ri:file-excel-2-fill" width={16} className="text-emerald-700" />
+                  <span>Unduh File Excel Lengkap (.xlsx)</span>
+                </a>
+              )}
               <button
                 type="button"
                 onClick={handleOpenColModal}

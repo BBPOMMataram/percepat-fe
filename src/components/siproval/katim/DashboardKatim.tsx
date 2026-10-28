@@ -179,7 +179,7 @@ export default function DashboardKatim() {
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium backdrop-blur-sm">
               <Icon icon="solar:database-bold" width={14} className="text-blue-200" />
-              Data Riil Google Spreadsheet 2026
+              Data Riil RHPK Internal 2026
             </span>
           </div>
 
@@ -193,23 +193,21 @@ export default function DashboardKatim() {
 
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
-              href="/siproval/google-sheets"
+              href="/siproval/katim/entry-data-rhpk"
               className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-[#005baa] shadow-sm transition hover:bg-blue-50"
             >
-              <Icon icon="solar:document-text-bold" width={16} />
-              <span>Input Data Google Sheet</span>
+              <Icon icon="solar:pen-new-square-bold" width={16} />
+              <span>Entry Data RHPK</span>
             </Link>
 
-            <a
-              href={spreadsheetUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/siproval/katim/arahan-pimpinan"
               className="inline-flex items-center gap-2 rounded-xl bg-white/15 px-4 py-2.5 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-white/25"
             >
-              <Icon icon="ri:file-excel-2-fill" width={16} className="text-emerald-300" />
-              <span>Buka Dokumen RHPK di Sheets</span>
-              <Icon icon="solar:arrow-right-up-linear" width={13} />
-            </a>
+              <Icon icon="solar:chat-round-line-bold" width={16} className="text-emerald-300" />
+              <span>Lihat Arahan Pimpinan</span>
+              <Icon icon="solar:arrow-right-linear" width={13} />
+            </Link>
           </div>
         </div>
 
@@ -427,10 +425,10 @@ export default function DashboardKatim() {
                       <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
                         <span>Pemberi: {item.pemberi_arahan}</span>
                         <Link
-                          href={`/siproval/google-sheets?iksk_id=${item.iksk_id}`}
+                          href={`/siproval/katim/entry-data-rhpk?iksk_id=${item.iksk_id}`}
                           className="font-semibold text-[#005baa] hover:underline"
                         >
-                          Buka di Sheet →
+                          Entry Data RHPK →
                         </Link>
                       </div>
                     </div>
@@ -476,12 +474,12 @@ export default function DashboardKatim() {
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                Nilai capaian riil yang tersimpan di Google Spreadsheet RHPK Balai. Klik indikator untuk langsung mengisi di Google Sheet.
+                Nilai capaian riil yang tersimpan di sistem basis data RHPK Balai. Klik indikator untuk langsung mengisi data capaian.
               </p>
             </div>
 
             <div className="text-xs text-slate-500 font-medium">
-              Klik tombol <strong className="text-[#005baa] font-bold">&quot;Buka IKSK&quot;</strong> pada baris terkait untuk langsung membuka Google Sheet.
+              Klik tombol <strong className="text-[#005baa] font-bold">&quot;Buka IKSK&quot;</strong> pada baris terkait untuk langsung membuka formulir pengisian RHPK.
             </div>
           </div>
 
@@ -497,7 +495,7 @@ export default function DashboardKatim() {
                   <th className="px-3 py-3 text-center whitespace-nowrap">% Capaian</th>
                   <th className="px-3 py-3 text-center whitespace-nowrap">Status</th>
                   <th className="px-4 py-3 min-w-[200px]">Arahan Kepala Balai</th>
-                  <th className="px-4 py-3 text-center whitespace-nowrap">Aksi / Google Sheet</th>
+                  <th className="px-4 py-3 text-center whitespace-nowrap">Aksi Pengisian RHPK</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -508,14 +506,14 @@ export default function DashboardKatim() {
                   if (ind.iksk_id) queryParts.push(`iksk_id=${ind.iksk_id}`);
                   if (ind.spreadsheet_id) queryParts.push(`spreadsheet=${ind.spreadsheet_id}`);
                   if (ind.tab_id) queryParts.push(`tab=${ind.tab_id}`);
-                  const targetSheetUrl = `/siproval/google-sheets${queryParts.length > 0 ? `?${queryParts.join("&")}` : ""}`;
+                  const targetSheetUrl = `/siproval/katim/entry-data-rhpk${queryParts.length > 0 ? `?${queryParts.join("&")}` : ""}`;
 
                   return (
                     <tr key={ind.row_number} className="hover:bg-blue-50/30 transition">
                       <td className="px-4 py-3.5 text-center font-bold text-slate-600 align-top">
                         <Link
-                          href={`/siproval/google-sheets?iksk_id=${ind.iksk_id}`}
-                          title={`Buka Google Sheet untuk IKSK #${ind.iksk_id}`}
+                          href={`/siproval/katim/entry-data-rhpk?iksk_id=${ind.iksk_id}`}
+                          title={`Buka formulir RHPK untuk IKSK #${ind.iksk_id}`}
                           className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 font-bold text-blue-700 text-xs transition hover:bg-[#005baa] hover:text-white"
                         >
                           {ind.iksk_id}
@@ -524,9 +522,9 @@ export default function DashboardKatim() {
 
                       <td className="px-4 py-3.5 align-top">
                         <Link
-                          href={`/siproval/google-sheets?iksk_id=${ind.iksk_id}`}
+                          href={`/siproval/katim/entry-data-rhpk?iksk_id=${ind.iksk_id}`}
                           className="font-bold text-slate-900 hover:text-[#005baa] transition"
-                          title={`Buka Google Sheet untuk IKSK #${ind.iksk_id}`}
+                          title={`Buka formulir RHPK untuk IKSK #${ind.iksk_id}`}
                         >
                           {ind.label}
                         </Link>
@@ -600,9 +598,9 @@ export default function DashboardKatim() {
 
                       <td className="px-4 py-3.5 text-center align-top whitespace-nowrap">
                         <Link
-                          href={`/siproval/google-sheets?iksk_id=${ind.iksk_id}`}
+                          href={`/siproval/katim/entry-data-rhpk?iksk_id=${ind.iksk_id}`}
                           className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#003d73] via-[#005baa] to-[#00a651] px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:opacity-90 hover:shadow-sm"
-                          title={`Buka Google Sheet IKSK #${ind.iksk_id}`}
+                          title={`Buka formulir RHPK IKSK #${ind.iksk_id}`}
                         >
                           <Icon icon="ri:file-excel-2-fill" width={15} className="text-emerald-300" />
                           <span>Buka IKSK #{ind.iksk_id}</span>
