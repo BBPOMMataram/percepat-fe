@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
@@ -172,13 +173,25 @@ export default function TestLocalTableKatim() {
   const { user } = useSelector((state: RootState) => state.auth);
   const authQuery = user?.id ? `?user_id=${user.id}` : "";
 
+  const searchParams = useSearchParams();
+  const paramIkskId = searchParams?.get("iksk_id") || searchParams?.get("iksk");
+  const paramSpreadsheetId =
+    searchParams?.get("spreadsheet_id") || searchParams?.get("spreadsheet");
+  const paramTabId = searchParams?.get("tab_id") || searchParams?.get("tab");
+
   const [years, setYears] = useState<YearItem[]>([{ id: 1, year_number: 2026 }]);
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [iksks, setIksks] = useState<IkskItem[]>([]);
-  const [selectedIkskId, setSelectedIkskId] = useState<number | null>(null);
+  const [selectedIkskId, setSelectedIkskId] = useState<number | null>(
+    paramIkskId ? Number(paramIkskId) : null
+  );
   const [spreadsheets, setSpreadsheets] = useState<SpreadsheetItem[]>([]);
-  const [selectedSpId, setSelectedSpId] = useState<number | null>(null);
-  const [selectedTabId, setSelectedTabId] = useState<number | null>(null);
+  const [selectedSpId, setSelectedSpId] = useState<number | null>(
+    paramSpreadsheetId ? Number(paramSpreadsheetId) : null
+  );
+  const [selectedTabId, setSelectedTabId] = useState<number | null>(
+    paramTabId ? Number(paramTabId) : null
+  );
   const [activeTab, setActiveTab] = useState<ActiveTabDetail | null>(null);
   const [currentMonth, setCurrentMonth] = useState<number>(
     new Date().getMonth() + 1
@@ -207,10 +220,35 @@ export default function TestLocalTableKatim() {
     setLoading(true);
     try {
       const qYear = `&year=${targetYear}`;
-      const effectiveIkskId = ikskId !== undefined ? ikskId : selectedIkskId;
+      const effectiveIkskId =
+        ikskId !== undefined && ikskId !== null
+          ? ikskId
+          : selectedIkskId !== null
+          ? selectedIkskId
+          : paramIkskId
+          ? Number(paramIkskId)
+          : null;
       const qIksk = effectiveIkskId ? `&iksk_id=${effectiveIkskId}` : "";
-      const qSp = spId ? `&spreadsheet_id=${spId}` : "";
-      const qTab = tId ? `&tab_id=${tId}` : "";
+
+      const effectiveSpId =
+        spId !== undefined && spId !== null
+          ? spId
+          : selectedSpId !== null
+          ? selectedSpId
+          : paramSpreadsheetId
+          ? Number(paramSpreadsheetId)
+          : null;
+      const qSp = effectiveSpId ? `&spreadsheet_id=${effectiveSpId}` : "";
+
+      const effectiveTabId =
+        tId !== undefined && tId !== null
+          ? tId
+          : selectedTabId !== null
+          ? selectedTabId
+          : paramTabId
+          ? Number(paramTabId)
+          : null;
+      const qTab = effectiveTabId ? `&tab_id=${effectiveTabId}` : "";
 
       const res = await api.get(
         `${baseUrl}/api/test-local-table${authQuery}${qYear}${qIksk}${qSp}${qTab}`
@@ -255,9 +293,14 @@ export default function TestLocalTableKatim() {
 
   useEffect(() => {
     if (user?.id) {
-      fetchData(selectedYear);
+      const initialIksk = paramIkskId ? Number(paramIkskId) : selectedIkskId;
+      const initialSp = paramSpreadsheetId
+        ? Number(paramSpreadsheetId)
+        : selectedSpId;
+      const initialTab = paramTabId ? Number(paramTabId) : selectedTabId;
+      fetchData(selectedYear, initialIksk, initialSp, initialTab);
     }
-  }, [user?.id, selectedYear]);
+  }, [user?.id, selectedYear, paramIkskId, paramSpreadsheetId, paramTabId]);
 
   const handleSelectYear = (year: number) => {
     setSelectedYear(year);
@@ -268,16 +311,41 @@ export default function TestLocalTableKatim() {
     setSelectedIkskId(ikskId);
     setSelectedSpId(null);
     setSelectedTabId(null);
+
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("iksk_id", String(ikskId));
+      url.searchParams.delete("spreadsheet_id");
+      url.searchParams.delete("tab_id");
+      window.history.replaceState({}, "", url.toString());
+    }
+
     fetchData(selectedYear, ikskId, null, null);
   };
 
   const handleSelectSpreadsheet = (id: number) => {
     setSelectedSpId(id);
-    fetchData(selectedYear, selectedIkskId, id);
+    setSelectedTabId(null);
+
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("spreadsheet_id", String(id));
+      url.searchParams.delete("tab_id");
+      window.history.replaceState({}, "", url.toString());
+    }
+
+    fetchData(selectedYear, selectedIkskId, id, null);
   };
 
   const handleSelectTab = (tId: number) => {
     setSelectedTabId(tId);
+
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab_id", String(tId));
+      window.history.replaceState({}, "", url.toString());
+    }
+
     if (selectedSpId) {
       fetchData(selectedYear, selectedIkskId, selectedSpId, tId);
     }
