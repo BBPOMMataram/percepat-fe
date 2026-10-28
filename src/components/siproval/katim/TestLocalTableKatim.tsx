@@ -30,6 +30,9 @@ type ColumnSchema = {
   type: "readonly" | "editable" | "formula";
   formula: string | null;
   can_edit: boolean;
+  is_collaborative?: boolean;
+  is_kendala?: boolean;
+  is_rtl?: boolean;
 };
 
 type RowData = {
@@ -61,6 +64,110 @@ type IkskItem = {
   name: string;
 };
 
+export type NoteItem = {
+  num?: number | null;
+  text: string;
+  author: string;
+};
+
+export function isKendalaCol(headerName?: string): boolean {
+  const h = (headerName || "").toLowerCase();
+  return h.includes("kendala");
+}
+
+export function isRtlCol(headerName?: string): boolean {
+  const h = (headerName || "").toLowerCase();
+  if (h.includes("rencana tindak lanjut") || /\brtl\b/i.test(h)) return true;
+  if (
+    h.includes("tindak lanjut") &&
+    !/(%|persen|bobot|jumlah|sampel|surat|sesuai)/i.test(h)
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function isCollaborativeCol(col: ColumnSchema): boolean {
+  if (col.is_collaborative) return true;
+  const label = (col.label || "").toLowerCase();
+  if (isKendalaCol(label) || isRtlCol(label)) return true;
+  const isNumericHeader =
+    /(jumlah|target|persentase|%|realisasi|skor|nilai|rasio|bobot|anggaran|total|\ba[1-9]\b|\bb[1-9]?\b|\bc[1-9]?\b)/i.test(
+      label
+    );
+  if (isNumericHeader) return false;
+  return /(catatan|keterangan|deskripsi|uraian|rekomendasi)/i.test(label);
+}
+
+export function parseNotes(raw: unknown): NoteItem[] {
+  const rawText = String(raw ?? "").trim();
+  if (!rawText || rawText === "-" || rawText === "/") return [];
+
+  const lines = rawText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const result: NoteItem[] = [];
+
+  lines.forEach((line, idx) => {
+    // 1. Check (+ Name) or (Name) at end
+    let match = line.match(
+      /^(?:(\d+)[\.\)]\s*)?(.*?)(?:\s*\(\+?\s*([^\(\)]+)\))$/
+    );
+    if (match && match[2]) {
+      result.push({
+        num: match[1] ? parseInt(match[1], 10) : idx + 1,
+        text: match[2].trim(),
+        author: match[3].trim().replace(/^\+\s*/, ""),
+      });
+      return;
+    }
+    // 2. Check + Name at end
+    match = line.match(
+      /^(?:(\d+)[\.\)]\s*)?(.*?)(?:\s*\+\s*([a-zA-Z\s\.,]+))$/
+    );
+    if (match && match[2] && match[3]) {
+      result.push({
+        num: match[1] ? parseInt(match[1], 10) : idx + 1,
+        text: match[2].trim(),
+        author: match[3].trim().replace(/^\+\s*/, ""),
+      });
+      return;
+    }
+    // 3. Fallback without author
+    match = line.match(/^(?:(\d+)[\.\)]\s*)?(.*)$/);
+    result.push({
+      num: match && match[1] ? parseInt(match[1], 10) : idx + 1,
+      text: (match && match[2] ? match[2] : line).trim(),
+      author: "",
+    });
+  });
+
+  return result;
+}
+
+export function formatNotes(notes: NoteItem[]): string {
+  return notes
+    .filter((n) => n.text.trim())
+    .map((n, idx) => {
+      const cleanAuthor = (n.author || "").replace(/^\+\s*/, "").trim();
+      const authorPart = cleanAuthor ? ` (+ ${cleanAuthor})` : "";
+      return `${idx + 1}. ${n.text.trim()}${authorPart}`;
+    })
+    .join("\n");
+}
+
+type CollabModalState = {
+  isOpen: boolean;
+  rowKey: number;
+  colKey: string;
+  colLabel: string;
+  colLetter: string;
+  monthName: string;
+  isLocked: boolean;
+  notes: NoteItem[];
+  newNoteText: string;
+  editingIndex: number | null;
+  editingText: string;
+};
+
 export default function TestLocalTableKatim() {
   const { user } = useSelector((state: RootState) => state.auth);
   const authQuery = user?.id ? `?user_id=${user.id}` : "";
@@ -73,12 +180,18 @@ export default function TestLocalTableKatim() {
   const [selectedSpId, setSelectedSpId] = useState<number | null>(null);
   const [selectedTabId, setSelectedTabId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTabDetail | null>(null);
-  const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth() + 1);
+  const [currentMonth, setCurrentMonth] = useState<number>(
+    new Date().getMonth() + 1
+  );
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+
+  // Modal catatan kolaboratif (Kendala / RTL / Catatan PIC)
+  const [collabModal, setCollabModal] = useState<CollabModalState | null>(null);
+  const [savingCollab, setSavingCollab] = useState(false);
 
   // Tracking dirty edits before saving
   const [dirtyUpdates, setDirtyUpdates] = useState<
@@ -98,6 +211,7 @@ export default function TestLocalTableKatim() {
       const qIksk = effectiveIkskId ? `&iksk_id=${effectiveIkskId}` : "";
       const qSp = spId ? `&spreadsheet_id=${spId}` : "";
       const qTab = tId ? `&tab_id=${tId}` : "";
+
       const res = await api.get(
         `${baseUrl}/api/test-local-table${authQuery}${qYear}${qIksk}${qSp}${qTab}`
       );
@@ -170,11 +284,12 @@ export default function TestLocalTableKatim() {
   };
 
   // Handle cell edit lokal
-  const handleCellChange = (month: number, colKey: string, val: string) => {
+  const handleCellChange = (month: number, colKey: string, val: string | number) => {
     if (!activeTab) return;
 
-    // Convert numeric if possible
-    const parsedVal = val === "" ? "" : isNaN(Number(val)) ? val : Number(val);
+    // Convert numeric if possible and not empty string
+    const parsedVal =
+      val === "" ? "" : isNaN(Number(val)) ? val : Number(val);
 
     // Update state activeTab lokal
     setActiveTab((prev) => {
@@ -182,7 +297,8 @@ export default function TestLocalTableKatim() {
       return {
         ...prev,
         rows_data: prev.rows_data.map((r) => {
-          if (r.month === month) {
+          const rMonth = r.month ?? r.row_index;
+          if (rMonth === month) {
             return {
               ...r,
               cells: {
@@ -208,7 +324,7 @@ export default function TestLocalTableKatim() {
     }));
   };
 
-  // Kirim data ke backend lokal
+  // Kirim data ke backend lokal (Simpan Massal)
   const handleSave = async () => {
     if (!activeTab) return;
     const updatesList = Object.values(dirtyUpdates);
@@ -240,19 +356,133 @@ export default function TestLocalTableKatim() {
     }
   };
 
+  // Handlers untuk Modal Catatan Kolaboratif (Kendala / RTL PIC)
+  const handleOpenCollabModal = (
+    rowKey: number,
+    col: ColumnSchema,
+    currentVal: any,
+    monthName: string,
+    canEdit: boolean
+  ) => {
+    const parsed = parseNotes(currentVal);
+    setCollabModal({
+      isOpen: true,
+      rowKey,
+      colKey: col.key,
+      colLabel: col.label,
+      colLetter: col.col_letter,
+      monthName,
+      isLocked: !canEdit,
+      notes: parsed,
+      newNoteText: "",
+      editingIndex: null,
+      editingText: "",
+    });
+  };
+
+  const handleAddCollabNote = () => {
+    if (!collabModal || !collabModal.newNoteText.trim()) return;
+    const author = user?.name || user?.call_name || "PIC Katim";
+    const newNote: NoteItem = {
+      num: collabModal.notes.length + 1,
+      text: collabModal.newNoteText.trim(),
+      author,
+    };
+    setCollabModal({
+      ...collabModal,
+      notes: [...collabModal.notes, newNote],
+      newNoteText: "",
+    });
+  };
+
+  const handleDeleteCollabNote = (index: number) => {
+    if (!collabModal) return;
+    const updated = collabModal.notes
+      .filter((_, idx) => idx !== index)
+      .map((n, idx) => ({ ...n, num: idx + 1 }));
+    setCollabModal({
+      ...collabModal,
+      notes: updated,
+      editingIndex: null,
+    });
+  };
+
+  const handleSaveEditedCollabNote = (index: number) => {
+    if (!collabModal || !collabModal.editingText.trim()) return;
+    const updated = [...collabModal.notes];
+    updated[index] = {
+      ...updated[index],
+      text: collabModal.editingText.trim(),
+    };
+    setCollabModal({
+      ...collabModal,
+      notes: updated,
+      editingIndex: null,
+      editingText: "",
+    });
+  };
+
+  const handleApplyCollabModal = () => {
+    if (!collabModal) return;
+    const formatted = formatNotes(collabModal.notes);
+    handleCellChange(collabModal.rowKey, collabModal.colKey, formatted);
+    setCollabModal(null);
+  };
+
+  // Fitur simpan instan ke database dari modal
+  const handleDirectSaveCollabModal = async () => {
+    if (!collabModal || !activeTab) return;
+    setSavingCollab(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    const formatted = formatNotes(collabModal.notes);
+    try {
+      const res = await api.post(
+        `${baseUrl}/api/test-local-table/tab/${activeTab.id}/update${authQuery}`,
+        {
+          updates: [
+            {
+              month: collabModal.rowKey,
+              key: collabModal.colKey,
+              value: formatted,
+            },
+          ],
+        }
+      );
+      setSuccessMsg(res.data?.message || "Catatan kendala/RTL berhasil disimpan!");
+      handleCellChange(collabModal.rowKey, collabModal.colKey, formatted);
+      if (res.data?.data?.rows_data) {
+        setActiveTab((prev) =>
+          prev ? { ...prev, rows_data: res.data.data.rows_data } : prev
+        );
+      }
+      setCollabModal(null);
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || "Gagal menyimpan catatan.");
+    } finally {
+      setSavingCollab(false);
+    }
+  };
+
   const dirtyCount = Object.keys(dirtyUpdates).length;
 
   // Pastikan tabel yang belum memiliki konfigurasi tetap menampilkan seluruh kolom
   const effectiveColumnsSchema = useMemo<ColumnSchema[]>(() => {
     if (activeTab?.columns_schema && activeTab.columns_schema.length > 0) {
-      return activeTab.columns_schema;
+      return activeTab.columns_schema.map((c) => ({
+        ...c,
+        is_collaborative: isCollaborativeCol(c),
+        is_kendala: isKendalaCol(c.label),
+        is_rtl: isRtlCol(c.label),
+      }));
     }
     if (activeTab?.rows_data && activeTab.rows_data.length > 0) {
       const firstCells = activeTab.rows_data[0].cells || {};
       return Object.keys(firstCells).map((k, idx) => {
         const letter = String.fromCharCode(65 + (idx % 26));
         const isBulan = k === "col_0" || idx === 0;
-        return {
+        const colObj: ColumnSchema = {
           key: k,
           col_letter: letter,
           label: isBulan ? "Bulan" : `Kolom ${letter}`,
@@ -260,6 +490,10 @@ export default function TestLocalTableKatim() {
           formula: null,
           can_edit: !isBulan,
         };
+        colObj.is_collaborative = isCollaborativeCol(colObj);
+        colObj.is_kendala = isKendalaCol(colObj.label);
+        colObj.is_rtl = isRtlCol(colObj.label);
+        return colObj;
       });
     }
     return [];
@@ -288,35 +522,30 @@ export default function TestLocalTableKatim() {
           </div>
 
           <div className="flex items-center gap-3">
-            {dirtyCount > 0 && (
-              <span className="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl animate-pulse">
-                {dirtyCount} sel belum disimpan
-              </span>
-            )}
-            {selectedSpId && (
-              <a
-                href={`${baseUrl}/api/test-local-table/spreadsheet/${selectedSpId}/download`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl border border-emerald-600 bg-emerald-50 px-4 py-2.5 text-xs font-bold text-emerald-800 shadow-sm transition hover:bg-emerald-100"
-                title="Unduh dokumen Excel lengkap berisi seluruh tabs dan hasil isian terbaru"
-              >
-                <Icon icon="ri:file-excel-2-fill" width={16} className="text-emerald-700" />
-                <span>Unduh Excel (.xlsx)</span>
-              </a>
-            )}
             <button
               type="button"
               onClick={handleSave}
               disabled={saving || dirtyCount === 0}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-40"
+              className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold shadow-sm transition ${
+                dirtyCount > 0
+                  ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-600/20"
+                  : "bg-slate-200 text-slate-400 cursor-not-allowed"
+              }`}
             >
               {saving ? (
-                <Icon icon="solar:refresh-circle-linear" width={16} className="animate-spin" />
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent" />
+                  <span>Menyimpan...</span>
+                </>
               ) : (
-                <Icon icon="solar:diskette-bold" width={16} />
+                <>
+                  <Icon icon="solar:diskette-bold" width={16} />
+                  <span>
+                    Simpan Perubahan{" "}
+                    {dirtyCount > 0 ? `(${dirtyCount})` : ""}
+                  </span>
+                </>
               )}
-              <span>{saving ? "Menyimpan..." : "Simpan Perubahan"}</span>
             </button>
           </div>
         </div>
@@ -561,9 +790,113 @@ export default function TestLocalTableKatim() {
                     >
                       {effectiveColumnsSchema.map((col) => {
                         const val = row.cells?.[col.key] ?? "";
-                        const canEditCell = col.can_edit && !isMonthLocked && canEditThisRow;
+                        const canEditCell =
+                          col.can_edit && !isMonthLocked && canEditThisRow;
                         const isNum = typeof val === "number";
+                        const isCollab = isCollaborativeCol(col);
 
+                        // Render khusus untuk kolom Catatan Kolaboratif (Kendala / Rencana Tindak Lanjut)
+                        if (isCollab) {
+                          const notes = parseNotes(val);
+                          const rowMonthName =
+                            row.month_name || `Bulan ${rowKey}`;
+
+                          return (
+                            <td
+                              key={col.key}
+                              className={`p-2 border-r border-slate-100 last:border-r-0 min-w-[240px] max-w-[340px] align-top ${
+                                canEditCell ? "bg-emerald-50/15" : "bg-slate-50/20"
+                              }`}
+                            >
+                              <div
+                                onClick={() =>
+                                  handleOpenCollabModal(
+                                    Number(rowKey),
+                                    col,
+                                    val,
+                                    rowMonthName,
+                                    canEditCell
+                                  )
+                                }
+                                className={`group relative flex flex-col justify-between rounded-xl border p-2.5 transition cursor-pointer ${
+                                  notes.length > 0
+                                    ? "border-slate-200 bg-white hover:border-blue-400 hover:shadow-xs"
+                                    : canEditCell
+                                    ? "border-dashed border-emerald-300 bg-emerald-50/30 hover:bg-emerald-100/50"
+                                    : "border-dashed border-slate-200 bg-slate-50/50"
+                                }`}
+                                title={`Klik untuk mengelola catatan PIC: ${col.label}`}
+                              >
+                                {notes.length > 0 ? (
+                                  <div className="space-y-1.5">
+                                    {notes.map((n, idx) => (
+                                      <div
+                                        key={idx}
+                                        className="text-xs leading-relaxed text-slate-800 flex items-start gap-1.5"
+                                      >
+                                        <span className="font-bold text-slate-400 shrink-0 text-[11px]">
+                                          {idx + 1}.
+                                        </span>
+                                        <div className="flex-1 break-words">
+                                          <span>{n.text}</span>
+                                          {n.author && (
+                                            <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-blue-100 text-[#005baa] font-bold px-2 py-0.2 text-[10px] whitespace-nowrap">
+                                              + {n.author}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1.5 py-1 text-xs">
+                                    <Icon
+                                      icon="solar:chat-round-line-linear"
+                                      width={15}
+                                      className={
+                                        canEditCell
+                                          ? "text-emerald-600"
+                                          : "text-slate-400"
+                                      }
+                                    />
+                                    <span
+                                      className={`italic text-[11px] ${
+                                        canEditCell
+                                          ? "text-emerald-700 font-medium"
+                                          : "text-slate-400"
+                                      }`}
+                                    >
+                                      {canEditCell
+                                        ? `+ Tambah catatan (+ ${
+                                            user?.name || "Anda"
+                                          })`
+                                        : "Belum ada catatan"}
+                                    </span>
+                                  </div>
+                                )}
+
+                                <div className="flex items-center justify-between pt-2 mt-1.5 border-t border-slate-100 text-[10px]">
+                                  <span className="font-bold text-[#005baa] flex items-center gap-1">
+                                    <Icon
+                                      icon="solar:chat-round-dots-bold"
+                                      width={11}
+                                    />
+                                    {notes.length} Catatan PIC
+                                  </span>
+                                  <span className="text-slate-400 group-hover:text-[#005baa] flex items-center gap-0.5 font-semibold transition">
+                                    <Icon
+                                      icon="solar:pen-new-square-bold"
+                                      width={12}
+                                    />
+                                    {canEditCell ? "Kelola Catatan" : "Lihat"}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+                          );
+                        }
+
+                        // Kolom standar editable (input angka/teks)
                         if (canEditCell) {
                           return (
                             <td
@@ -574,7 +907,11 @@ export default function TestLocalTableKatim() {
                                 type={isNum ? "number" : "text"}
                                 value={val}
                                 onChange={(e) =>
-                                  handleCellChange(rowKey, col.key, e.target.value)
+                                  handleCellChange(
+                                    Number(rowKey),
+                                    col.key,
+                                    e.target.value
+                                  )
                                 }
                                 placeholder="0"
                                 className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 focus:outline-none font-medium"
@@ -583,17 +920,24 @@ export default function TestLocalTableKatim() {
                           );
                         }
 
-                        const isBulanCol = col.label?.toLowerCase() === 'bulan' || col.label?.toLowerCase().includes('bulan');
-                        const showLockedBadge = isMonthLocked && (
-                          isBulanCol ||
-                          (!effectiveColumnsSchema.some((c) => c.label?.toLowerCase().includes('bulan')) && col.key === "col_0")
-                        );
+                        const isBulanCol =
+                          col.label?.toLowerCase() === "bulan" ||
+                          col.label?.toLowerCase().includes("bulan");
+                        const showLockedBadge =
+                          isMonthLocked &&
+                          (isBulanCol ||
+                            (!effectiveColumnsSchema.some((c) =>
+                              c.label?.toLowerCase().includes("bulan")
+                            ) &&
+                              col.key === "col_0"));
 
                         return (
                           <td
                             key={col.key}
                             className={`py-2.5 px-3.5 border-r border-slate-100 last:border-r-0 text-xs ${
-                              isNum ? "text-right font-mono" : "text-left text-slate-700"
+                              isNum
+                                ? "text-right font-mono"
+                                : "text-left text-slate-700"
                             } ${
                               col.type === "formula"
                                 ? "bg-purple-50/20 text-purple-900 font-semibold"
@@ -619,7 +963,311 @@ export default function TestLocalTableKatim() {
           </div>
         )}
       </div>
+
+      {/* Modal Kelola Catatan Kolaboratif (Kendala & RTL PIC) */}
+      {collabModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs">
+          <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-200">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-slate-200 bg-gradient-to-r from-emerald-50/80 via-white to-slate-50 px-6 py-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white">
+                    <Icon icon="solar:chat-round-dots-bold" width={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">
+                      Kelola Catatan PIC: {collabModal.colLabel}
+                    </h3>
+                    <p className="text-[11px] text-slate-500">
+                      {collabModal.monthName} • Kolom [{collabModal.colLetter}]
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setCollabModal(null)}
+                className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              >
+                <Icon icon="solar:close-circle-bold" width={22} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
+              {/* Info Aturan Penomoran & Penanda PIC */}
+              <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3 text-xs text-emerald-900 flex items-start gap-2.5">
+                <Icon
+                  icon="solar:info-circle-bold"
+                  width={18}
+                  className="text-emerald-600 shrink-0 mt-0.5"
+                />
+                <div className="space-y-0.5 leading-relaxed text-[11px]">
+                  <strong>Sistem Penanda Otomatis PIC:</strong> Setiap catatan
+                  yang ditambahkan akan otomatis diberi nomor urut dan penanda nama
+                  PIC{" "}
+                  <code className="bg-white/90 px-1.5 py-0.5 rounded font-mono font-bold text-emerald-800">
+                    + {user?.name || "Nama Anda"}
+                  </code>{" "}
+                  di akhir kalimat. Penambahan oleh PIC lain akan melanjutkan nomor
+                  berikutnya secara aman tanpa menghapus catatan sebelumnya.
+                </div>
+              </div>
+
+              {/* Daftar Catatan yang Ada */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    Daftar Catatan Terdaftar ({collabModal.notes.length})
+                  </h4>
+                </div>
+
+                {collabModal.notes.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-xs text-slate-400">
+                    <Icon
+                      icon="solar:document-text-linear"
+                      width={28}
+                      className="mx-auto mb-1.5 text-slate-300"
+                    />
+                    Belum ada catatan pada periode ini.
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {collabModal.notes.map((note, nIdx) => {
+                      const isCurrentUserAuthor = Boolean(
+                        user?.name &&
+                          note.author &&
+                          (note.author
+                            .toLowerCase()
+                            .includes(user.name.toLowerCase()) ||
+                            user.name
+                              .toLowerCase()
+                              .includes(note.author.toLowerCase()))
+                      );
+                      const isEditingThis = collabModal.editingIndex === nIdx;
+
+                      return (
+                        <div
+                          key={nIdx}
+                          className={`rounded-xl border p-3.5 transition ${
+                            isCurrentUserAuthor
+                              ? "border-emerald-200 bg-emerald-50/30"
+                              : "border-slate-200 bg-white"
+                          }`}
+                        >
+                          {isEditingThis ? (
+                            <div className="space-y-2">
+                              <textarea
+                                value={collabModal.editingText}
+                                onChange={(e) =>
+                                  setCollabModal({
+                                    ...collabModal,
+                                    editingText: e.target.value,
+                                  })
+                                }
+                                rows={2}
+                                className="w-full rounded-lg border border-emerald-300 p-2 text-xs text-slate-900 focus:border-emerald-600 focus:outline-none"
+                              />
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setCollabModal({
+                                      ...collabModal,
+                                      editingIndex: null,
+                                      editingText: "",
+                                    })
+                                  }
+                                  className="rounded-lg px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-100"
+                                >
+                                  Batal
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleSaveEditedCollabNote(nIdx)
+                                  }
+                                  className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-700"
+                                >
+                                  Simpan Perubahan
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-start gap-2.5">
+                                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-700">
+                                  {nIdx + 1}
+                                </span>
+                                <div className="space-y-1">
+                                  <p className="text-xs text-slate-800 leading-relaxed font-medium">
+                                    {note.text}
+                                  </p>
+                                  <div className="flex items-center gap-1.5">
+                                    {isCurrentUserAuthor ? (
+                                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                                        <Icon
+                                          icon="solar:user-bold"
+                                          width={11}
+                                        />
+                                        Anda (+ {note.author || user?.name})
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-semibold text-[#005baa]">
+                                        <Icon
+                                          icon="solar:user-linear"
+                                          width={11}
+                                        />
+                                        + {note.author || "PIC"}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {!collabModal.isLocked &&
+                                (isCurrentUserAuthor ||
+                                  user?.role?.level === "superadmin") && (
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setCollabModal({
+                                          ...collabModal,
+                                          editingIndex: nIdx,
+                                          editingText: note.text,
+                                        })
+                                      }
+                                      title="Edit catatan ini"
+                                      className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-emerald-600"
+                                    >
+                                      <Icon icon="solar:pen-bold" width={14} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleDeleteCollabNote(nIdx)
+                                      }
+                                      title="Hapus catatan ini"
+                                      className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                                    >
+                                      <Icon
+                                        icon="solar:trash-bin-trash-bold"
+                                        width={14}
+                                      />
+                                    </button>
+                                  </div>
+                                )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Form Tambah Catatan Baru */}
+              {!collabModal.isLocked ? (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/20 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-800">
+                      Tambah Catatan Baru (Nomor #{collabModal.notes.length + 1})
+                    </label>
+                    <span className="text-[11px] text-slate-500">
+                      Disimpan atas nama:{" "}
+                      <strong className="text-slate-800">
+                        + {user?.name || "Anda"}
+                      </strong>
+                    </span>
+                  </div>
+
+                  <textarea
+                    value={collabModal.newNoteText}
+                    onChange={(e) =>
+                      setCollabModal({
+                        ...collabModal,
+                        newNoteText: e.target.value,
+                      })
+                    }
+                    placeholder="Tuliskan rincian kendala atau rencana tindak lanjut baru di sini..."
+                    rows={3}
+                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-900 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                  />
+
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      disabled={!collabModal.newNoteText.trim()}
+                      onClick={handleAddCollabNote}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
+                    >
+                      <Icon icon="solar:add-circle-bold" width={16} />
+                      + Tambah Catatan (+ {user?.name || "PIC"})
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center text-xs text-slate-500">
+                  Kolom atau bulan ini sedang dalam status terkunci, hanya dapat
+                  melihat catatan terdaftar.
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-3.5">
+              <div className="text-xs text-slate-600">
+                Total Catatan: <strong>{collabModal.notes.length}</strong>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCollabModal(null)}
+                  className="rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                >
+                  Tutup
+                </button>
+                {!collabModal.isLocked && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleApplyCollabModal}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-600 bg-emerald-50 px-3.5 py-1.5 text-xs font-bold text-emerald-800 transition hover:bg-emerald-100"
+                      title="Terapkan perubahan ke tabel sebelum disimpan secara massal"
+                    >
+                      <Icon icon="solar:check-read-linear" width={15} />
+                      Terapkan ke Tabel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={savingCollab}
+                      onClick={handleDirectSaveCollabModal}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
+                      title="Simpan langsung ke database sekarang"
+                    >
+                      {savingCollab ? (
+                        <>
+                          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent" />
+                          <span>Menyimpan...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Icon icon="solar:diskette-bold" width={15} />
+                          <span>Simpan Langsung ke Database</span>
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

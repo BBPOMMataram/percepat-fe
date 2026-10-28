@@ -474,7 +474,7 @@ export default function ImportMasterExcelModal({
                     dispatch(showAlert({
                         type: "success",
                         message: "Dokumen Berita Acara Berhasil Dibaca",
-                        description: `Terdeteksi ${dynamicRes.totalItems} barang dari dokumen (${items.length} item dimasukkan ke master ${categoryName}).`,
+                        description: `Terdeteksi ${dynamicRes.totalItems} barang dari dokumen (${items.length} item dimasukkan ke master ${category}).`,
                     }));
                     return;
                 }
