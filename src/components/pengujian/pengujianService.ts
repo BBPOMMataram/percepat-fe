@@ -28,6 +28,7 @@ export interface PengujianItem {
     qr_content?: string;
     qr_content_display?: string;
     target_url?: string;
+    qr_url?: string;
     qr_svg_small?: string;
     qr_svg_large?: string;
     qr_base64?: string;
@@ -41,6 +42,7 @@ export interface BatchItem {
     file_group_id?: string;
     filename?: string;
     sheet_name?: string;
+    komoditi?: string;
     created_at?: string;
     total_items: number;
 }
@@ -71,10 +73,15 @@ export const pengujianService = {
         return res.data;
     },
 
-    // 2. Upload file (xlsx, xls, csv, pdf)
-    async uploadFile(file: File): Promise<{ success: boolean; message: string; batch_id?: string; count?: number }> {
+    // 2. Upload file(s) (xlsx, xls, csv, pdf)
+    async uploadFiles(files: File[]): Promise<{ success: boolean; message: string; batch_id?: string; count?: number; file_count?: number }> {
         const formData = new FormData();
-        formData.append("excel_file", file);
+        files.forEach((file) => {
+            formData.append("files[]", file);
+        });
+        if (files[0]) {
+            formData.append("excel_file", files[0]); // Backward compatibility
+        }
 
         const res = await pengujianApi.post("/api/pengujian/upload", formData, {
             headers: {
@@ -82,6 +89,10 @@ export const pengujianService = {
             },
         });
         return res.data;
+    },
+
+    async uploadFile(file: File): Promise<{ success: boolean; message: string; batch_id?: string; count?: number; file_count?: number }> {
+        return this.uploadFiles([file]);
     },
 
     // 3. Quick load sample data (2col, full, pdf)

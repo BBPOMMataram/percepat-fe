@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { BatchItem, pengujianService } from "../pengujianService";
 
 interface PengujianBatchSelectorProps {
@@ -22,6 +22,33 @@ export default function PengujianBatchSelector({
     onSelectBatch,
     onDeleteBatch,
 }: PengujianBatchSelectorProps) {
+    const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
+
+    // Ekstraksi daftar komoditi unik dari batches
+    const categories = useMemo(() => {
+        const map = new Map<string, number>();
+        batches.forEach((b) => {
+            const cat = b.komoditi || "Lainnya";
+            map.set(cat, (map.get(cat) || 0) + 1);
+        });
+        return Array.from(map.entries()).map(([name, count]) => ({
+            name,
+            count,
+        }));
+    }, [batches]);
+
+    // Sinkronisasi kategori aktif jika daftar batch berubah
+    useEffect(() => {
+        if (selectedCategory !== "ALL" && !categories.some((c) => c.name === selectedCategory)) {
+            setSelectedCategory("ALL");
+        }
+    }, [categories, selectedCategory]);
+
+    const filteredBatches = useMemo(() => {
+        if (selectedCategory === "ALL") return batches;
+        return batches.filter((b) => (b.komoditi || "Lainnya") === selectedCategory);
+    }, [batches, selectedCategory]);
+
     if (batches.length === 0) return null;
 
     const handleDelete = () => {
@@ -33,35 +60,87 @@ export default function PengujianBatchSelector({
 
     return (
         <div className="space-y-3">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs">
-                <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                        File / Batch:
-                    </span>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                        {batches.map((b) => {
-                            const isSelected = selectedBatchId === b.batch_id;
-                            return (
-                                <button
-                                    key={b.batch_id}
-                                    type="button"
-                                    onClick={() => onSelectBatch(b.batch_id)}
-                                    className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
-                                        isSelected
-                                            ? "bg-[#005baa] text-white border-[#005baa] shadow-2xs font-semibold"
-                                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                                    }`}
-                                >
-                                    {b.filename || b.batch_id}{" "}
-                                    {b.sheet_name && b.sheet_name !== "Sheet1" && (
-                                        <span className="opacity-80">[{b.sheet_name}]</span>
-                                    )}{" "}
-                                    ({b.total_items})
-                                </button>
-                            );
-                        })}
+            <div className="flex flex-col gap-3 bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs">
+                {/* BARIS KATEGORI KOMODITI */}
+                {categories.length > 0 && (
+                    <div className="flex items-center gap-1.5 flex-wrap pb-2.5 border-b border-slate-100">
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">
+                            Kategori Komoditi:
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => setSelectedCategory("ALL")}
+                            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                                selectedCategory === "ALL"
+                                    ? "bg-[#005baa] text-white shadow-xs"
+                                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                            }`}
+                        >
+                            Semua ({batches.length})
+                        </button>
+                        {categories.map((cat) => (
+                            <button
+                                key={cat.name}
+                                type="button"
+                                onClick={() => setSelectedCategory(cat.name)}
+                                className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                                    selectedCategory === cat.name
+                                        ? "bg-[#005baa] text-white shadow-xs"
+                                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                }`}
+                            >
+                                {cat.name} ({cat.count})
+                            </button>
+                        ))}
                     </div>
-                </div>
+                )}
+
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            Pilihan Batch:
+                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                            {filteredBatches.length === 0 ? (
+                                <span className="text-xs text-slate-400 italic">
+                                    Tidak ada file dalam kategori ini
+                                </span>
+                            ) : (
+                                filteredBatches.map((b) => {
+                                    const isSelected = selectedBatchId === b.batch_id;
+                                    return (
+                                        <button
+                                            key={b.batch_id}
+                                            type="button"
+                                            onClick={() => onSelectBatch(b.batch_id)}
+                                            className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer flex items-center gap-1.5 ${
+                                                isSelected
+                                                    ? "bg-[#005baa] text-white border-[#005baa] shadow-2xs font-semibold"
+                                                    : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                                            }`}
+                                        >
+                                            <span>{b.filename || b.batch_id}</span>
+                                            {b.komoditi && selectedCategory === "ALL" && (
+                                                <span
+                                                    className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                                                        isSelected
+                                                            ? "bg-white/20 text-white"
+                                                            : "bg-blue-50 text-blue-700 border border-blue-200/60"
+                                                    }`}
+                                                >
+                                                    {b.komoditi}
+                                                </span>
+                                            )}
+                                            {b.sheet_name && b.sheet_name !== "Sheet1" && (
+                                                <span className="opacity-80">[{b.sheet_name}]</span>
+                                            )}
+                                            <span className="font-semibold">({b.total_items})</span>
+                                        </button>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </div>
 
                 {/* Batch Export and Delete Actions */}
                 <div className="flex items-center gap-2 flex-wrap">
@@ -88,6 +167,7 @@ export default function PengujianBatchSelector({
                     )}
                 </div>
             </div>
+        </div>
 
             {/* SUB-BAR JIKA FILE MEMILIKI BEBERAPA TAB / SHEETS */}
             {siblingSheets && siblingSheets.length > 1 && (

@@ -208,8 +208,8 @@ export function generateSismoraF63Pdf(options: SismoraPdfExportOptions): jsPDF {
         // -----------------------------------------------------------
         // DRAW LINE CHARTS: Suhu (Biru) & Kelembaban (Hitam)
         // -----------------------------------------------------------
-        const tempPoints: { x: number; y: number; val: number }[] = [];
-        const humPoints: { x: number; y: number; val: number }[] = [];
+        const tempPoints: { day: number; x: number; y: number; val: number }[] = [];
+        const humPoints: { day: number; x: number; y: number; val: number }[] = [];
 
         for (let d = 1; d <= Math.min(31, daysInMonth); d++) {
             const item = shiftData.find((it) => it.day === d);
@@ -222,7 +222,7 @@ export function generateSismoraF63Pdf(options: SismoraPdfExportOptions): jsPDF {
                 const clampedTemp = Math.min(31, Math.max(20, item.temp));
                 const fraction = (31 - clampedTemp) / 11;
                 const cy = (y1 + 0.5 * levelRowHeight) + fraction * (11 * levelRowHeight);
-                tempPoints.push({ x: cx, y: cy, val: item.temp });
+                tempPoints.push({ day: d, x: cx, y: cy, val: item.temp });
             }
 
             // Map humidity: range 30 to 85 (span = 55 levels across 11 row steps)
@@ -230,7 +230,7 @@ export function generateSismoraF63Pdf(options: SismoraPdfExportOptions): jsPDF {
                 const clampedHum = Math.min(85, Math.max(30, item.hum));
                 const fraction = (85 - clampedHum) / 55;
                 const cy = (y1 + 0.5 * levelRowHeight) + fraction * (11 * levelRowHeight);
-                humPoints.push({ x: cx, y: cy, val: item.hum });
+                humPoints.push({ day: d, x: cx, y: cy, val: item.hum });
             }
         }
 
@@ -240,7 +240,10 @@ export function generateSismoraF63Pdf(options: SismoraPdfExportOptions): jsPDF {
             doc.setLineWidth(1.4);
 
             for (let i = 0; i < tempPoints.length - 1; i++) {
-                doc.line(tempPoints[i].x, tempPoints[i].y, tempPoints[i + 1].x, tempPoints[i + 1].y);
+                // Hanya hubungkan garis jika data berada di hari yang berturut-turut
+                if (tempPoints[i + 1].day === tempPoints[i].day + 1) {
+                    doc.line(tempPoints[i].x, tempPoints[i].y, tempPoints[i + 1].x, tempPoints[i + 1].y);
+                }
             }
 
             // Draw Blue Dots
@@ -256,7 +259,10 @@ export function generateSismoraF63Pdf(options: SismoraPdfExportOptions): jsPDF {
             doc.setLineWidth(1.4);
 
             for (let i = 0; i < humPoints.length - 1; i++) {
-                doc.line(humPoints[i].x, humPoints[i].y, humPoints[i + 1].x, humPoints[i + 1].y);
+                // Hanya hubungkan garis jika data berada di hari yang berturut-turut
+                if (humPoints[i + 1].day === humPoints[i].day + 1) {
+                    doc.line(humPoints[i].x, humPoints[i].y, humPoints[i + 1].x, humPoints[i + 1].y);
+                }
             }
 
             // Draw Black Dots

@@ -130,6 +130,7 @@ export const config = {
     "/siap-melayani/presensi/:path*",
     "/percepat-new/:path*", // Added to protect all /percepat/* paths except /percepat
     "/simako/:path*",
+    "/sismora",
     "/sismora/:path*",
     "/siproval/:path*",
   ],

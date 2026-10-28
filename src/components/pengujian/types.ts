@@ -16,3 +16,11 @@ export interface QrModalData {
     fpdfUrl?: string;
     qrBase64?: string;
 }
+
+export interface PhotoModalData {
+    isOpen: boolean;
+    itemId: number;
+    code: string;
+    title: string;
+}
+

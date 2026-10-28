@@ -68,14 +68,14 @@ export default function PengujianMain() {
         loadData();
     }, [loadData]);
 
-    // Handle Upload File
-    const handleUpload = async (file: File) => {
+    // Handle Upload File(s)
+    const handleUpload = async (files: File[]) => {
         setActionLoading(true);
         setSuccessMessage(null);
         setErrorMessage(null);
 
         try {
-            const res = await pengujianService.uploadFile(file);
+            const res = await pengujianService.uploadFiles(files);
             setSuccessMessage(res.message);
             await loadData(res.batch_id);
         } catch (err: any) {
