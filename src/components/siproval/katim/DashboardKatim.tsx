@@ -456,7 +456,7 @@ export default function DashboardKatim() {
                             href={`/siproval/katim/entry-data-rhpk?iksk_id=${item.iksk_id}`}
                             className="font-semibold text-[#005baa] hover:underline"
                           >
-                            Entry Data RHPK →
+                            Entry Data RHPK
                           </Link>
                         </div>
                       </div>

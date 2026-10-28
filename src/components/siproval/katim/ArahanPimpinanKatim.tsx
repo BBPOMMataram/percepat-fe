@@ -60,10 +60,6 @@ export default function ArahanPimpinanKatim() {
   const [selectedIkskId, setSelectedIkskId] = useState<string>(initialIksk || "");
   const [userIksks, setUserIksks] = useState<UserIksk[]>([]);
   const [arahanList, setArahanList] = useState<ArahanRecord[]>([]);
-  const [spreadsheetUrl, setSpreadsheetUrl] = useState<string>(
-    "https://docs.google.com/spreadsheets/d/1KXN2ukZTcDUZ-9kfc3BbM-qi3VumvcHUSELK91nGqnU/edit#gid=180451485"
-  );
-  const [spreadsheetName, setSpreadsheetName] = useState<string>("REKAP DATA RHPK 2026 Mataram");
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -83,12 +79,6 @@ export default function ArahanPimpinanKatim() {
       if (res.data?.status === "success" && res.data?.data) {
         setUserIksks(res.data.data.iksks || []);
         setArahanList(res.data.data.arahan_list || []);
-        if (res.data.data.spreadsheet_url) {
-          setSpreadsheetUrl(res.data.data.spreadsheet_url);
-        }
-        if (res.data.data.spreadsheet_name) {
-          setSpreadsheetName(res.data.data.spreadsheet_name);
-        }
       }
     } catch (err: any) {
       console.error("Gagal memuat arahan pimpinan:", err);
@@ -137,18 +127,6 @@ export default function ArahanPimpinanKatim() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <a
-            href={spreadsheetUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-semibold text-emerald-800 shadow-sm transition hover:bg-emerald-100 hover:border-emerald-400"
-            title={`Buka dokumen Google Spreadsheet ${spreadsheetName} di tab baru untuk melihat rincian lengkap`}
-          >
-            <Icon icon="ri:file-excel-2-fill" width={16} className="text-emerald-700" />
-            <span>Lihat Spreadsheet Rekap RHPK</span>
-            <Icon icon="solar:arrow-right-up-linear" width={13} className="text-emerald-600" />
-          </a>
-
           <Link
             href="/siproval/katim/entry-data-rhpk"
             className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
@@ -307,7 +285,7 @@ export default function ArahanPimpinanKatim() {
           <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-3 border-solid border-indigo-600 border-r-transparent" />
             <p className="mt-3 text-xs font-medium text-slate-500">
-              Memuat data arahan pimpinan dari Google Sheet...
+              Memuat data arahan pimpinan...
             </p>
           </div>
         ) : arahanList.length === 0 ? (
@@ -375,23 +353,10 @@ export default function ArahanPimpinanKatim() {
                       {isTercapai ? "Tercapai" : hasCap ? "Belum Tercapai" : "Belum Berjalan"}
                     </span>
 
-                    {/* Quick link ke baris Google Sheet Rekap RHPK */}
-                    <a
-                      href={item.sheet_row_url || `${spreadsheetUrl}&range=A${item.row_number}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-800 shadow-2xs hover:bg-emerald-100 hover:border-emerald-300"
-                      title={`Buka baris ${item.row_number} pada Google Spreadsheet Rekap Data RHPK`}
-                    >
-                      <Icon icon="ri:file-excel-2-fill" width={13} className="text-emerald-700" />
-                      <span>Rincian Rekap (Brs {item.row_number})</span>
-                      <Icon icon="solar:arrow-right-up-linear" width={11} className="text-emerald-600" />
-                    </a>
-
                     <Link
                       href={`/siproval/katim/entry-data-rhpk?iksk_id=${item.iksk_id}`}
                       className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-2xs hover:bg-slate-50"
-                      title="Buka form input IKSK ini di Google Sheet"
+                      title="Buka form input IKSK ini"
                     >
                       <Icon icon="solar:pen-new-square-bold" width={13} className="text-[#005baa]" />
                       <span>Input di RHPK</span>
