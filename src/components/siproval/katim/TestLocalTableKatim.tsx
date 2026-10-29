@@ -227,6 +227,7 @@ export default function TestLocalTableKatim() {
   // Pagination state untuk tabel dengan banyak baris (misal KIE Medsos)
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(50);
+  const [isPicUser, setIsPicUser] = useState(false);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -276,6 +277,9 @@ export default function TestLocalTableKatim() {
       );
       const d = res.data?.data || {};
 
+      if (d.is_pic !== undefined) {
+        setIsPicUser(Boolean(d.is_pic));
+      }
       if (Array.isArray(d.years) && d.years.length > 0) {
         setYears(d.years);
       }
@@ -632,9 +636,17 @@ export default function TestLocalTableKatim() {
               <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
                 Tahun {selectedYear}
               </span>
+              {isPicUser && (
+                <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-bold text-[#005baa] flex items-center gap-1 shadow-2xs">
+                  <Icon icon="solar:shield-check-bold" width={13} />
+                  Akses Penuh PIC / Admin
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
-              Pengisian data capaian target dan indikator kegiatan bulanan Katim secara langsung ke sistem internal BBPOM.
+              {isPicUser
+                ? "Pengisian data capaian target dan indikator bulanan. Sebagai PIC/Admin, Anda memiliki akses penuh untuk mengisi angka target dan data realisasi di seluruh file dokumen RHPK."
+                : "Pengisian data capaian target dan indikator kegiatan bulanan Katim secara langsung ke sistem internal BBPOM."}
             </p>
           </div>
 
