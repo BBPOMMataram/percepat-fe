@@ -105,6 +105,90 @@ export function isCollaborativeCol(col: ColumnSchema): boolean {
   return /(catatan|keterangan|deskripsi|uraian|rekomendasi)/i.test(label);
 }
 
+export function getMonthColor(monthName?: string | null) {
+  const m = (monthName || "").toUpperCase().trim();
+  switch (m) {
+    case "JANUARI":
+      return {
+        header: "bg-[#fce8e6] text-[#991b1b] border-r border-rose-300",
+        sub: "bg-[#fff5f5] text-slate-700",
+        dot: "bg-[#e11d48]"
+      };
+    case "FEBRUARI":
+      return {
+        header: "bg-[#f3e8fd] text-[#581c87] border-r border-purple-300",
+        sub: "bg-[#faf5ff] text-slate-700",
+        dot: "bg-[#9333ea]"
+      };
+    case "MARET":
+      return {
+        header: "bg-[#fef7e0] text-[#78350f] border-r border-amber-300",
+        sub: "bg-[#fffbeb] text-slate-700",
+        dot: "bg-[#d97706]"
+      };
+    case "APRIL":
+      return {
+        header: "bg-[#e6f4ea] text-[#064e3b] border-r border-emerald-300",
+        sub: "bg-[#f0fdf4] text-slate-700",
+        dot: "bg-[#059669]"
+      };
+    case "MEI":
+      return {
+        header: "bg-[#e8f0fe] text-[#1e3a8a] border-r border-blue-300",
+        sub: "bg-[#eff6ff] text-slate-700",
+        dot: "bg-[#2563eb]"
+      };
+    case "JUNI":
+      return {
+        header: "bg-[#ede9fe] text-[#3730a3] border-r border-indigo-300",
+        sub: "bg-[#f5f3ff] text-slate-700",
+        dot: "bg-[#4f46e5]"
+      };
+    case "JULI":
+      return {
+        header: "bg-[#ffedd5] text-[#9a3412] border-r border-orange-300",
+        sub: "bg-[#fff7ed] text-slate-700",
+        dot: "bg-[#ea580c]"
+      };
+    case "AGUSTUS":
+      return {
+        header: "bg-[#ccfbf1] text-[#115e59] border-r border-teal-300",
+        sub: "bg-[#f0fdfa] text-slate-700",
+        dot: "bg-[#0d9488]"
+      };
+    case "SEPTEMBER":
+      return {
+        header: "bg-[#fef9c3] text-[#854d0e] border-r border-yellow-300",
+        sub: "bg-[#fefce8] text-slate-700",
+        dot: "bg-[#ca8a04]"
+      };
+    case "OKTOBER":
+      return {
+        header: "bg-[#cffafe] text-[#155e75] border-r border-cyan-300",
+        sub: "bg-[#ecfeff] text-slate-700",
+        dot: "bg-[#0891b2]"
+      };
+    case "NOVEMBER":
+      return {
+        header: "bg-[#e0f2fe] text-[#075985] border-r border-sky-300",
+        sub: "bg-[#f0f9ff] text-slate-700",
+        dot: "bg-[#0284c7]"
+      };
+    case "DESEMBER":
+      return {
+        header: "bg-[#ffe4e6] text-[#9f1239] border-r border-rose-300",
+        sub: "bg-[#fff1f2] text-slate-700",
+        dot: "bg-[#e11d48]"
+      };
+    default:
+      return {
+        header: "bg-slate-100 text-slate-800 border-r border-slate-300",
+        sub: "bg-slate-50 text-slate-700",
+        dot: "bg-slate-500"
+      };
+  }
+}
+
 export function parseNotes(raw: unknown): NoteItem[] {
   const rawText = String(raw ?? "").trim();
   if (!rawText || rawText === "-" || rawText === "/") return [];
@@ -936,14 +1020,15 @@ export default function TestLocalTableKatim() {
                           ));
                         }
 
+                        const mColor = getMonthColor(grp.parent);
                         return (
                           <th
                             key={`grp-${gIdx}-${grp.parent}`}
                             colSpan={grp.cols.length}
-                            className="py-2.5 px-3 font-bold border-r border-slate-200 bg-rose-50/80 text-rose-950 text-center text-xs tracking-wider uppercase"
+                            className={`py-2 px-3 font-bold border-b border-r border-slate-300 text-center text-xs tracking-wider uppercase ${mColor.header}`}
                           >
                             <div className="flex items-center justify-center gap-1.5">
-                              <span className="size-2 rounded-full bg-rose-400 inline-block" />
+                              <span className={`size-2 rounded-full inline-block ${mColor.dot}`} />
                               <span>{grp.parent}</span>
                             </div>
                           </th>
@@ -953,6 +1038,7 @@ export default function TestLocalTableKatim() {
                     <tr className="border-b border-slate-200 bg-slate-50">
                       {headerGroups.map((grp) => {
                         if (!grp.parent) return null;
+                        const mColor = getMonthColor(grp.parent);
                         return grp.cols.map((col) => {
                           const isEditableForMe = col.can_edit;
                           const subTitle = col.sub_label || col.label;
@@ -962,7 +1048,7 @@ export default function TestLocalTableKatim() {
                               className={`py-2 px-3 font-semibold border-r border-slate-200 last:border-r-0 min-w-[125px] ${
                                 isEditableForMe
                                   ? "bg-emerald-50/60 text-emerald-950"
-                                  : "text-slate-700 bg-slate-50"
+                                  : mColor.sub
                               }`}
                             >
                               <div className="flex items-center justify-between gap-1 mb-1">

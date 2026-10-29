@@ -33,6 +33,8 @@ type ColumnSchema = {
   type: "readonly" | "editable" | "formula";
   formula: string | null;
   allowed_katim_ids: string[];
+  parent_header?: string | null;
+  sub_label?: string | null;
 };
 
 type RowData = {
@@ -40,7 +42,94 @@ type RowData = {
   month: number;
   month_name: string;
   cells: Record<string, any>;
+  row_name?: string;
+  is_month_row?: boolean;
+  is_total?: boolean;
 };
+
+export function getMonthColor(monthName?: string | null) {
+  const m = (monthName || "").toUpperCase().trim();
+  switch (m) {
+    case "JANUARI":
+      return {
+        header: "bg-[#fce8e6] text-[#991b1b] border-r border-rose-300",
+        sub: "bg-[#fff5f5] text-slate-700",
+        dot: "bg-[#e11d48]"
+      };
+    case "FEBRUARI":
+      return {
+        header: "bg-[#f3e8fd] text-[#581c87] border-r border-purple-300",
+        sub: "bg-[#faf5ff] text-slate-700",
+        dot: "bg-[#9333ea]"
+      };
+    case "MARET":
+      return {
+        header: "bg-[#fef7e0] text-[#78350f] border-r border-amber-300",
+        sub: "bg-[#fffbeb] text-slate-700",
+        dot: "bg-[#d97706]"
+      };
+    case "APRIL":
+      return {
+        header: "bg-[#e6f4ea] text-[#064e3b] border-r border-emerald-300",
+        sub: "bg-[#f0fdf4] text-slate-700",
+        dot: "bg-[#059669]"
+      };
+    case "MEI":
+      return {
+        header: "bg-[#e8f0fe] text-[#1e3a8a] border-r border-blue-300",
+        sub: "bg-[#eff6ff] text-slate-700",
+        dot: "bg-[#2563eb]"
+      };
+    case "JUNI":
+      return {
+        header: "bg-[#ede9fe] text-[#3730a3] border-r border-indigo-300",
+        sub: "bg-[#f5f3ff] text-slate-700",
+        dot: "bg-[#4f46e5]"
+      };
+    case "JULI":
+      return {
+        header: "bg-[#ffedd5] text-[#9a3412] border-r border-orange-300",
+        sub: "bg-[#fff7ed] text-slate-700",
+        dot: "bg-[#ea580c]"
+      };
+    case "AGUSTUS":
+      return {
+        header: "bg-[#ccfbf1] text-[#115e59] border-r border-teal-300",
+        sub: "bg-[#f0fdfa] text-slate-700",
+        dot: "bg-[#0d9488]"
+      };
+    case "SEPTEMBER":
+      return {
+        header: "bg-[#fef9c3] text-[#854d0e] border-r border-yellow-300",
+        sub: "bg-[#fefce8] text-slate-700",
+        dot: "bg-[#ca8a04]"
+      };
+    case "OKTOBER":
+      return {
+        header: "bg-[#cffafe] text-[#155e75] border-r border-cyan-300",
+        sub: "bg-[#ecfeff] text-slate-700",
+        dot: "bg-[#0891b2]"
+      };
+    case "NOVEMBER":
+      return {
+        header: "bg-[#e0f2fe] text-[#075985] border-r border-sky-300",
+        sub: "bg-[#f0f9ff] text-slate-700",
+        dot: "bg-[#0284c7]"
+      };
+    case "DESEMBER":
+      return {
+        header: "bg-[#ffe4e6] text-[#9f1239] border-r border-rose-300",
+        sub: "bg-[#fff1f2] text-slate-700",
+        dot: "bg-[#e11d48]"
+      };
+    default:
+      return {
+        header: "bg-slate-100 text-slate-800 border-r border-slate-300",
+        sub: "bg-slate-50 text-slate-700",
+        dot: "bg-slate-500"
+      };
+  }
+}
 
 type ActiveTabDetail = {
   id: number;
@@ -149,6 +238,39 @@ export default function TestLocalTablePic() {
     });
     return totals;
   }, [activeTab]);
+
+  const headerGroups = useMemo(() => {
+    if (!activeTab?.columns_schema) return null;
+    const hasGroups = activeTab.columns_schema.some((c) => Boolean(c.parent_header));
+    if (!hasGroups) return null;
+
+    type HeaderGroup = {
+      parent: string | null;
+      cols: ColumnSchema[];
+    };
+
+    const groups: HeaderGroup[] = [];
+    let currentGroup: HeaderGroup | null = null;
+
+    activeTab.columns_schema.forEach((col) => {
+      const parentName = col.parent_header || null;
+      if (currentGroup && currentGroup.parent === parentName) {
+        currentGroup.cols.push(col);
+      } else {
+        currentGroup = { parent: parentName, cols: [col] };
+        groups.push(currentGroup);
+      }
+    });
+
+    return groups;
+  }, [activeTab]);
+
+  const hasExplicitTotalRow = useMemo(() => {
+    if (!activeTab?.rows_data) return false;
+    return activeTab.rows_data.some(
+      (r) => r.is_total || r.cells?.col_0 === "Total" || r.cells?.col_0 === "TOTAL"
+    );
+  }, [activeTab?.rows_data]);
 
   const fetchData = async (targetYear = selectedYear, spId?: number, tId?: number) => {
     setLoading(true);
@@ -873,84 +995,196 @@ export default function TestLocalTablePic() {
             <table className="w-full border-collapse text-left text-xs">
               {/* Sticky Table Header */}
               <thead className="bg-slate-50 text-slate-700 border-b border-slate-200 sticky top-0 z-20">
-                <tr>
-                  {/* Kolom Pertama [A] Bulan - Sticky Left */}
-                  <th className="py-3 px-4 font-bold text-slate-800 border-r border-slate-200 sticky left-0 z-30 bg-slate-100 min-w-[130px] shadow-r">
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="font-mono text-[10px] text-slate-500 font-bold">[A]</span>
-                      <span className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[9px] font-bold text-slate-600 uppercase">
-                        Kunci
-                      </span>
-                    </div>
-                    <div className="text-xs font-bold text-slate-900">
-                      {activeTab.columns_schema?.[0]?.label || "Bulan"}
-                    </div>
-                  </th>
-
-                  {/* Sisa Kolom-Kolom Tabel */}
-                  {activeTab.columns_schema?.slice(1).map((col) => {
-                    const katimNames = katims
-                      .filter((k) => col.allowed_katim_ids?.includes(k.user_id))
-                      .map((k) => k.name);
-
-                    return (
-                      <th
-                        key={col.key}
-                        className="py-3 px-4 font-bold text-slate-800 border-r border-slate-200 last:border-r-0 min-w-[150px] align-top bg-slate-50"
-                      >
-                        <div className="flex items-center justify-between gap-1 mb-1">
-                          <span className="font-mono text-[10px] text-slate-400 font-bold">
-                            [{col.col_letter}]
-                          </span>
-                          <span
-                            className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase ${
-                              col.type === "editable"
-                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                : col.type === "formula"
-                                ? "bg-purple-50 text-purple-700 border border-purple-200"
-                                : "bg-slate-100 text-slate-600 border border-slate-200"
-                            }`}
-                          >
-                            {col.type}
-                          </span>
-                        </div>
-
-                        <div className="text-xs text-slate-900 font-bold leading-snug">
-                          {col.label}
-                        </div>
-
-                        {/* Formula Indicator fx */}
-                        {col.type === "formula" && col.formula && (
-                          <div
-                            title={`Rumus: ${col.formula}`}
-                            className="mt-1.5 font-mono text-[10px] text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200/80 truncate font-semibold"
-                          >
-                            fx {col.formula}
-                          </div>
-                        )}
-
-                        {/* Katim PIC Indicator */}
-                        {col.type === "editable" && (
-                          <div className="mt-1.5 pt-1 border-t border-slate-200/60">
-                            {katimNames.length > 0 ? (
-                              <div
-                                title={`Hak isi: ${katimNames.join(", ")}`}
-                                className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-[#005baa] border border-blue-200 max-w-full truncate"
-                              >
-                                <Icon icon="solar:user-bold" width={11} className="shrink-0" />
-                                <span className="truncate">{katimNames.join(", ")}</span>
+                {headerGroups ? (
+                  <>
+                    <tr className="border-b border-slate-200">
+                      {headerGroups.map((grp, gIdx) => {
+                        if (!grp.parent) {
+                          return grp.cols.map((col, cIdx) => (
+                            <th
+                              key={col.key}
+                              rowSpan={2}
+                              className={`py-3 px-3.5 font-bold border-r border-slate-200 text-left min-w-[130px] ${
+                                cIdx === 0
+                                  ? "sticky left-0 z-30 bg-slate-100 shadow-r text-slate-900"
+                                  : "bg-slate-50 text-slate-800"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-1 mb-1">
+                                <span className="font-mono text-[10px] text-slate-400">
+                                  [{col.col_letter}]
+                                </span>
+                                <span className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[9px] font-bold text-slate-600 uppercase">
+                                  Kunci
+                                </span>
                               </div>
-                            ) : (
-                              <span className="text-[10px] font-medium text-slate-400 italic">
-                                Terbuka untuk semua Katim
-                              </span>
-                            )}
+                              <div className="text-xs font-bold leading-snug">
+                                {col.label}
+                              </div>
+                            </th>
+                          ));
+                        }
+
+                        const mColor = getMonthColor(grp.parent);
+                        return (
+                          <th
+                            key={`grp-${gIdx}-${grp.parent}`}
+                            colSpan={grp.cols.length}
+                            className={`py-2 px-3 font-bold border-b border-r border-slate-300 text-center text-xs tracking-wider uppercase ${mColor.header}`}
+                          >
+                            <div className="flex items-center justify-center gap-1.5">
+                              <span className={`size-2 rounded-full inline-block ${mColor.dot}`} />
+                              <span>{grp.parent}</span>
+                            </div>
+                          </th>
+                        );
+                      })}
+                    </tr>
+                    <tr className="border-b border-slate-200 bg-slate-50">
+                      {headerGroups.map((grp) => {
+                        if (!grp.parent) return null;
+                        const mColor = getMonthColor(grp.parent);
+                        return grp.cols.map((col) => {
+                          const subTitle = col.sub_label || col.label;
+                          const katimNames = katims
+                            .filter((k) => col.allowed_katim_ids?.includes(k.user_id))
+                            .map((k) => k.name);
+
+                          return (
+                            <th
+                              key={col.key}
+                              className={`py-2 px-3 font-semibold border-r border-slate-200 last:border-r-0 min-w-[125px] ${mColor.sub}`}
+                            >
+                              <div className="flex items-center justify-between gap-1 mb-1">
+                                <span className="font-mono text-[10px] text-slate-400">
+                                  [{col.col_letter}]
+                                </span>
+                                <span
+                                  className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${
+                                    col.type === "editable"
+                                      ? "bg-emerald-100 text-emerald-800"
+                                      : col.type === "formula"
+                                      ? "bg-purple-100 text-purple-800"
+                                      : "bg-slate-200 text-slate-700"
+                                  }`}
+                                >
+                                  {col.type}
+                                </span>
+                              </div>
+                              <div className="text-[11px] font-bold leading-snug text-slate-800 line-clamp-2">
+                                {subTitle}
+                              </div>
+                              {col.type === "formula" && col.formula && (
+                                <div
+                                  title={`Rumus: ${col.formula}`}
+                                  className="mt-1 font-mono text-[9px] text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 truncate"
+                                >
+                                  fx {col.formula}
+                                </div>
+                              )}
+                              {col.type === "editable" && (
+                                <div className="mt-1 pt-0.5 border-t border-slate-200/60">
+                                  {katimNames.length > 0 ? (
+                                    <div
+                                      title={`Hak isi: ${katimNames.join(", ")}`}
+                                      className="inline-flex items-center gap-1 rounded bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold text-[#005baa] border border-blue-200 max-w-full truncate"
+                                    >
+                                      <Icon icon="solar:user-bold" width={10} className="shrink-0" />
+                                      <span className="truncate">{katimNames.join(", ")}</span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-[9px] font-medium text-slate-400 italic">
+                                      Semua Katim
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </th>
+                          );
+                        });
+                      })}
+                    </tr>
+                  </>
+                ) : (
+                  <tr>
+                    {/* Kolom Pertama [A] Bulan - Sticky Left */}
+                    <th className="py-3 px-4 font-bold text-slate-800 border-r border-slate-200 sticky left-0 z-30 bg-slate-100 min-w-[130px] shadow-r">
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className="font-mono text-[10px] text-slate-500 font-bold">[A]</span>
+                        <span className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[9px] font-bold text-slate-600 uppercase">
+                          Kunci
+                        </span>
+                      </div>
+                      <div className="text-xs font-bold text-slate-900">
+                        {activeTab.columns_schema?.[0]?.label || "Bulan"}
+                      </div>
+                    </th>
+
+                    {/* Sisa Kolom-Kolom Tabel */}
+                    {activeTab.columns_schema?.slice(1).map((col) => {
+                      const katimNames = katims
+                        .filter((k) => col.allowed_katim_ids?.includes(k.user_id))
+                        .map((k) => k.name);
+
+                      return (
+                        <th
+                          key={col.key}
+                          className="py-3 px-4 font-bold text-slate-800 border-r border-slate-200 last:border-r-0 min-w-[150px] align-top bg-slate-50"
+                        >
+                          <div className="flex items-center justify-between gap-1 mb-1">
+                            <span className="font-mono text-[10px] text-slate-400 font-bold">
+                              [{col.col_letter}]
+                            </span>
+                            <span
+                              className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase ${
+                                col.type === "editable"
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                  : col.type === "formula"
+                                  ? "bg-purple-50 text-purple-700 border border-purple-200"
+                                  : "bg-slate-100 text-slate-600 border border-slate-200"
+                              }`}
+                            >
+                              {col.type}
+                            </span>
                           </div>
-                        )}
-                      </th>
-                    );
-                  })}
-                </tr>
+
+                          <div className="text-xs text-slate-900 font-bold leading-snug">
+                            {col.label}
+                          </div>
+
+                          {/* Formula Indicator fx */}
+                          {col.type === "formula" && col.formula && (
+                            <div
+                              title={`Rumus: ${col.formula}`}
+                              className="mt-1.5 font-mono text-[10px] text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200/80 truncate font-semibold"
+                            >
+                              fx {col.formula}
+                            </div>
+                          )}
+
+                          {/* Katim PIC Indicator */}
+                          {col.type === "editable" && (
+                            <div className="mt-1.5 pt-1 border-t border-slate-200/60">
+                              {katimNames.length > 0 ? (
+                                <div
+                                  title={`Hak isi: ${katimNames.join(", ")}`}
+                                  className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-[#005baa] border border-blue-200 max-w-full truncate"
+                                >
+                                  <Icon icon="solar:user-bold" width={11} className="shrink-0" />
+                                  <span className="truncate">{katimNames.join(", ")}</span>
+                                </div>
+                              ) : (
+                                <span className="text-[10px] font-medium text-slate-400 italic">
+                                  Terbuka untuk semua Katim
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </th>
+                      );
+                    })}
+                  </tr>
+                )}
               </thead>
 
               {/* Table Body */}
@@ -968,14 +1202,28 @@ export default function TestLocalTablePic() {
                   filteredRows.map((row, rIdx) => {
                     const firstColKey = activeTab.columns_schema?.[0]?.key || "col_0";
                     const monthVal = row.cells?.[firstColKey] || row.month_name;
+                    const isTotalRow =
+                      row.is_total ||
+                      row.cells?.col_0 === "Total" ||
+                      row.cells?.col_0 === "TOTAL";
 
                     return (
                       <tr
                         key={row.row_index ?? rIdx}
-                        className="hover:bg-blue-50/30 transition group"
+                        className={`transition group ${
+                          isTotalRow
+                            ? "bg-emerald-50/70 border-t-2 border-emerald-300 font-bold"
+                            : "hover:bg-blue-50/30"
+                        }`}
                       >
-                        {/* Kolom Bulan - Sticky Left */}
-                        <td className="py-2.5 px-4 border-r border-slate-200 sticky left-0 z-10 bg-white group-hover:bg-blue-50/40 font-bold text-[#005baa] shadow-r whitespace-nowrap">
+                        {/* Kolom Pertama - Sticky Left */}
+                        <td
+                          className={`py-2.5 px-4 border-r border-slate-200 sticky left-0 z-10 shadow-r whitespace-nowrap font-bold ${
+                            isTotalRow
+                              ? "bg-emerald-100/80 text-emerald-950 font-black"
+                              : "bg-white group-hover:bg-blue-50/40 text-[#005baa]"
+                          }`}
+                        >
                           <span>{monthVal}</span>
                         </td>
 
@@ -990,7 +1238,9 @@ export default function TestLocalTablePic() {
                               className={`py-2.5 px-4 border-r border-slate-100 last:border-r-0 text-xs transition ${
                                 isNum ? "text-right font-mono" : "text-left text-slate-700"
                               } ${
-                                col.type === "formula"
+                                isTotalRow
+                                  ? "bg-emerald-50/60 text-emerald-950 font-bold"
+                                  : col.type === "formula"
                                   ? "bg-purple-50/20 text-purple-900 font-bold"
                                   : col.type === "editable"
                                   ? "bg-white group-hover:bg-blue-50/20 text-slate-900"
@@ -1007,8 +1257,8 @@ export default function TestLocalTablePic() {
                 )}
               </tbody>
 
-              {/* Table Footer: Rekapitulasi / Total Row (Sesuai Desain TU) */}
-              {activeTab.rows_data && activeTab.rows_data.length > 0 && (
+              {/* Table Footer: Rekapitulasi / Total Row (Hanya jika belum ada baris Total eksplisit) */}
+              {activeTab.rows_data && activeTab.rows_data.length > 0 && !hasExplicitTotalRow && (
                 <tfoot className="border-t-2 border-slate-300 bg-slate-50/90 font-bold text-xs sticky bottom-0 z-10">
                   <tr>
                     <td className="py-3 px-4 text-slate-900 border-r border-slate-200 sticky left-0 z-20 bg-slate-100 shadow-r">
@@ -1037,6 +1287,17 @@ export default function TestLocalTablePic() {
                 </tfoot>
               )}
             </table>
+          </div>
+        )}
+
+        {/* Note Alert jika tab Caput RO Sampel Obat dll */}
+        {activeTab?.id === 70 && (
+          <div className="mt-3 p-3.5 bg-amber-50/90 border border-amber-200 rounded-xl text-xs text-amber-950 flex items-start gap-2 shadow-xs">
+            <Icon icon="solar:info-circle-bold" width={18} className="text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold">Keterangan Dokumen: </span>
+              Data Realisasi RO Sampel Obat, OBA, SK dan Kos dihitung dari data Realisasi Sampling tiap bulannya.
+            </div>
           </div>
         )}
       </div>
