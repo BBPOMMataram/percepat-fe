@@ -63,9 +63,45 @@ export function SiprovalSlidingArrow({
   className = "",
 }: {
   hovered: boolean;
-  direction?: "right" | "up" | "external";
+  direction?: "right" | "up" | "external" | "download";
   className?: string;
 }) {
+  if (direction === "download") {
+    return (
+      <span
+        className={`relative inline-flex size-[1.18em] items-center justify-center overflow-hidden ${className}`}
+      >
+        <span
+          className="flex flex-col h-max w-full items-center"
+          style={{
+            transform: hovered ? "translateY(0%)" : "translateY(-50%)",
+            transition: "transform 0.5s cubic-bezier(0.625, 0.05, 0, 1)",
+            willChange: "transform",
+          }}
+        >
+          {[0, 1].map((i) => (
+            <svg
+              key={i}
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="size-[1.18em] shrink-0"
+              aria-hidden="true"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <path d="m7 10 5 5 5-5" />
+              <path d="M12 15V3" />
+            </svg>
+          ))}
+        </span>
+      </span>
+    );
+  }
+
   if (direction === "up") {
     return (
       <span
@@ -201,6 +237,7 @@ export function SiprovalPillButton({
   useNextLink = false,
   showArrow = true,
   arrowDirection = "right",
+  icon,
   className = "",
   onClick,
 }: {
@@ -210,7 +247,8 @@ export function SiprovalPillButton({
   download?: string | boolean;
   useNextLink?: boolean;
   showArrow?: boolean;
-  arrowDirection?: "right" | "up" | "external";
+  arrowDirection?: "right" | "up" | "external" | "download";
+  icon?: React.ReactNode;
   className?: string;
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
 }) {
@@ -219,9 +257,11 @@ export function SiprovalPillButton({
   const content = (
     <>
       <SiprovalWaveText text={label} hovered={hovered} staggerStep={0.006} />
-      {showArrow && (
+      {icon ? (
+        icon
+      ) : showArrow ? (
         <SiprovalSlidingArrow hovered={hovered} direction={arrowDirection} />
-      )}
+      ) : null}
     </>
   );
 

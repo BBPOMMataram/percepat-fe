@@ -617,6 +617,7 @@ export default function Siproval() {
                 download="buku_panduan_siproval.pdf"
                 external={true}
                 label="Unduh Buku Panduan"
+                arrowDirection="download"
                 className="px-7 py-3.5 bg-white hover:bg-slate-50 text-[#001d3d] text-sm font-semibold shadow-lg shadow-[#001d3d]/15"
               />
             </motion.div>
