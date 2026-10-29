@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Plus_Jakarta_Sans } from "next/font/google";
-import { motion, AnimatePresence } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
 import { getUser } from "@/features/authSlice";
@@ -15,24 +14,17 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   display: "swap",
 });
 
-type CategoryFilter =
-  | "all"
-  | "performa"
-  | "kabalai"
-  | "katim"
-  | "tu"
-  | "design";
-
-interface FeatureCard {
-  id: string;
-  category: "performa" | "kabalai" | "katim" | "tu" | "design";
-  categoryLabel: string;
-  versionBadge: string;
+interface ComparisonAspect {
+  category: string;
   title: string;
-  summary: string;
-  highlights: string[];
-  roleTarget: string;
-  visualType: "architecture" | "kabalai_dash" | "katim_entry" | "tu_report" | "ro_lock" | "design_system";
+  v1: {
+    badge: string;
+    description: string;
+  };
+  v2: {
+    badge: string;
+    description: string;
+  };
 }
 
 export default function WhatsNewSiproval() {
@@ -72,126 +64,134 @@ export default function WhatsNewSiproval() {
     else workspaceUrl = "/siproval/katim";
   }
 
-  const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
-
-  const categories: { id: CategoryFilter; label: string }[] = [
-    { id: "all", label: "Semua Pembaruan" },
-    { id: "performa", label: "Performa & Database" },
-    { id: "kabalai", label: "Dashboard Pimpinan" },
-    { id: "katim", label: "Entry RHPK Katim" },
-    { id: "tu", label: "Evaluasi & Berita Acara" },
-    { id: "design", label: "Antarmuka & Desain" },
+  const comparisonData: ComparisonAspect[] = [
+    {
+      category: "Arsitektur & Operasional",
+      title: "Model Operasional & Penyimpanan Data",
+      v1: {
+        badge: "Kumpulan Link Eksternal",
+        description:
+          "Hanya berupa portal kumpulan tautan (links) ke Google Spreadsheet eksternal. Pengguna harus membuka banyak lembar spreadsheet di tab peramban terpisah untuk melihat atau mengedit data.",
+      },
+      v2: {
+        badge: "Full By System (Mandiri)",
+        description:
+          "Seluruh proses berjalan terintegrasi penuh by system di dalam aplikasi SIPROVAL. Data disimpan otonom di database lokal berkecepatan tinggi tanpa perlu membuka berkas spreadsheet luar.",
+      },
+    },
+    {
+      category: "Antarmuka & Pengalaman Pengguna",
+      title: "Desain Antarmuka (UI/UX)",
+      v1: {
+        badge: "UI Tautan Statis",
+        description:
+          "Halaman web statis sederhana yang hanya menyajikan tombol link keluar. Format data, estetika, dan tata letak tabel bergantung sepenuhnya pada tampilan Google Sheets bawaan.",
+      },
+      v2: {
+        badge: "Modern, Responsif & Terpadu",
+        description:
+          "Antarmuka modern (Plus Jakarta Sans) yang terpadu dan responsif, dilengkapi kolom beku (sticky columns), filter pencarian instan, visualisasi grafik, dan hierarki visual yang jelas.",
+      },
+    },
+    {
+      category: "Pengisian Kinerja Katim",
+      title: "Entry & Pengendalian Data RHPK",
+      v1: {
+        badge: "Manual di Spreadsheet",
+        description:
+          "Ketua Tim (Katim) harus mencari dokumen dan mengisi langsung pada sheet Google Spreadsheet. Risiko formula terhapus, sel tidak sengaja bergeser, atau tab salah edit sangat tinggi.",
+      },
+      v2: {
+        badge: "By System & Formula Terproteksi",
+        description:
+          "Form dan tabel data interaktif langsung di dalam sistem. Formula terkunci aman, terdapat penanda warna kolom hak akses yang tegas, dan otomatisasi kolom target serta bulan berjalan.",
+      },
+    },
+    {
+      category: "Keamanan & Pengendalian",
+      title: "Enkapsulasi Hak Akses (Role-Based Access)",
+      v1: {
+        badge: "Akses Terbuka Bersama",
+        description:
+          "Tautan dokumen spreadsheet bersifat global per berkas. Seluruh Katim dan staf memiliki akses pandang ke seluruh lembar kerja tanpa isolasi hak akses per indikator yang ketat.",
+      },
+      v2: {
+        badge: "Terenkapsulasi Sesuai Peran",
+        description:
+          "Terenkapsulasi ketat sesuai akun login: Katim hanya dapat melihat dan mengedit IKSK yang diampunya saja. Dropdown dokumen otomatis terkunci jika hanya terdapat 1 dokumen acuan.",
+      },
+    },
+    {
+      category: "Monitoring Pimpinan",
+      title: "Dashboard Eksekutif Kepala Balai",
+      v1: {
+        badge: "Terpisah & Manual",
+        description:
+          "Pimpinan harus membuka berkas spreadsheet satu per satu secara manual. Belum ada ringkasan eksekutif atau grafik terpadu untuk pemantauan cepat capaian balai.",
+      },
+      v2: {
+        badge: "Dashboard Terpadu By System",
+        description:
+          "Dashboard eksekutif lengkap by system: grafik tren target vs realisasi RO dari TU, rekapitulasi capaian indikator, inspeksi rincian IKSK belum tercapai, dan form arahan langsung pimpinan.",
+      },
+    },
+    {
+      category: "Penganggaran Tata Usaha",
+      title: "Budget Mapping & Realisasi RO",
+      v1: {
+        badge: "Spreadsheet Terpisah",
+        description:
+          "Pagu program, budget mapping, dan realisasi anggaran dikelola pada file spreadsheet terpisah melalui link eksternal yang rentan desinkronisasi data antar seksi.",
+      },
+      v2: {
+        badge: "Otomatis & Terintegrasi",
+        description:
+          "Dikelola langsung by system: fitur manajemen file per tahun, kalkulasi total target dan realisasi per IKSK berdasarkan pagu program secara otomatis, serta grafik real-time.",
+      },
+    },
+    {
+      category: "Pelaporan & Evaluasi",
+      title: "Penyusunan Berita Acara Evaluasi Internal",
+      v1: {
+        badge: "Kompilasi Manual",
+        description:
+          "Data capaian volume RO, realisasi anggaran, kendala, dan RTL harus dikompilasi dan diketik ulang secara manual dari berbagai tab spreadsheet triwulanan.",
+      },
+      v2: {
+        badge: "Otomasi Generator 1-Klik",
+        description:
+          "Penarikan otomatis data triwulan per indikator (bulan akhir Maret, Juni, September, Desember) lengkap dengan generator ekspor 1-klik ke format resmi PDF, Word (.doc), dan Excel (.xls).",
+      },
+    },
+    {
+      category: "Keandalan & Kecepatan",
+      title: "Kecepatan Respon & Kuota Akses (API Quota)",
+      v1: {
+        badge: "Batas 60 Req/Menit API",
+        description:
+          "Bergantung pada koneksi dan kuota Google Sheets API (60 req/menit). Sering mengalami jeda, batasan kuota (rate-limit), atau freeze saat jam sibuk entry bersamaan.",
+      },
+      v2: {
+        badge: "Cepat < 50ms & Tanpa Kuota",
+        description:
+          "Bebas batasan kuota pihak ketiga dengan respon kueri database lokal mandiri di bawah 50 ms. Mendukung multi-user entry bersamaan dengan stabilitas tinggi.",
+      },
+    },
+    {
+      category: "Akuntabilitas Pelaporan",
+      title: "Integritas Dokumen & Jejak Waktu (Audit Trail)",
+      v1: {
+        badge: "Tanpa Penguncian Otomatis",
+        description:
+          "Dokumen pelaporan dapat teredit sewaktu-waktu tanpa jejak verifikasi, dan tanggal serta jam unggah berkas pelaporan resmi tidak terekam otomatis di sistem.",
+      },
+      v2: {
+        badge: "Read-Only & Timestamp WITA",
+        description:
+          "Tabel Realisasi RO terkunci otomatis (Read-Only) untuk melindungi data pelaporan resmi, disertai pencatatan stempel waktu unggah (WITA) otomatis yang akuntabel.",
+      },
+    },
   ];
-
-  const featureCards: FeatureCard[] = [
-    {
-      id: "performa-database",
-      category: "performa",
-      categoryLabel: "Arsitektur Data",
-      versionBadge: "Inovasi Inti",
-      title: "Database Mandiri RHPK: Kecepatan Respon Tanpa Batasan Kuota API",
-      summary:
-        "Seluruh ekosistem data RHPK berjalan secara otonom di database lokal SIPROVAL. Menghilangkan kendala batas kuota API Google Sheets, mencegah freeze saat jam sibuk entry, dan meningkatkan stabilitas sistem.",
-      highlights: [
-        "Waktu respon query di bawah 50 milidetik",
-        "Dukungan multi-user entry secara bersamaan",
-        "Skema penyimpanan data lokal terstruktur",
-        "Mekanisme pencadangan dan pemulihan data instan",
-      ],
-      roleTarget: "Semua Pengguna",
-      visualType: "architecture",
-    },
-    {
-      id: "kabalai-dashboard",
-      category: "kabalai",
-      categoryLabel: "Kepemimpinan & Evaluasi",
-      versionBadge: "Fitur Pimpinan",
-      title: "Dashboard Eksekutif Kepala Balai dengan Integrasi Grafik & Arahan Terpusat",
-      summary:
-        "Pemantauan komprehensif yang mengintegrasikan grafik target-realisasi Tata Usaha, rekapitulasi capaian indikator kinerja, serta inspeksi rincian IKSK yang belum tercapai dalam satu halaman.",
-      highlights: [
-        "Grafik tren target vs realisasi RO terintegrasi dari TU",
-        "Interaksi klik kartu KPI untuk rincian IKSK belum tercapai",
-        "Form pemberian arahan pimpinan langsung ke baris data",
-        "Tinjauan komprehensif tanpa membuka banyak berkas spreadsheet",
-      ],
-      roleTarget: "Kepala Balai",
-      visualType: "kabalai_dash",
-    },
-    {
-      id: "katim-encapsulation",
-      category: "katim",
-      categoryLabel: "Entry & Hak Akses",
-      versionBadge: "Pembaruan Alur Kerja",
-      title: "Enkapsulasi IKSK Katim & Seleksi Dokumen Otomatis",
-      summary:
-        "Ketua Tim (Katim) kini terlindungi dengan enkapsulasi data: hanya dokumen dan IKSK yang diampunya saja yang ditampilkan. Dropdown dokumen otomatis terkunci jika hanya terdapat satu dokumen acuan.",
-      highlights: [
-        "Penyaringan otomatis dokumen sesuai IKSK binaan",
-        "Pemilihan dokumen cerdas (nonaktif jika hanya 1 dokumen)",
-        "Penanda kolom hak akses yang tegas dan mudah dibaca",
-        "Otomasi kolom 12 bulan pada tab tanpa konfigurasi manual",
-      ],
-      roleTarget: "Ketua Tim & PIC",
-      visualType: "katim_entry",
-    },
-    {
-      id: "tu-laporan-evaluasi",
-      category: "tu",
-      categoryLabel: "Pelaporan Evaluasi",
-      versionBadge: "Generator Dokumen",
-      title: "Penyusunan Berita Acara Evaluasi Internal Triwulan Terpadu",
-      summary:
-        "Generator Berita Acara terpadu untuk Tata Usaha yang menyatukan Capaian Volume RO, Realisasi Anggaran, Matriks Rekomendasi, Kendala, RTL, serta Manajemen Risiko dalam format resmi siap cetak.",
-      highlights: [
-        "Ekspor terpadu ke format PDF resmi, Word (.doc), dan Excel (.xls)",
-        "Pengaturan Cover resmi dengan penomoran dokumen otomatis",
-        "Dukungan lampiran dinamis berkas PDF dan foto dokumentasi",
-        "Manajemen berkas lampiran dengan pratinjau langsung",
-      ],
-      roleTarget: "Subbagian Tata Usaha",
-      visualType: "tu_report",
-    },
-    {
-      id: "ro-official-lock",
-      category: "tu",
-      categoryLabel: "Validasi & Audit",
-      versionBadge: "Integritas Data",
-      title: "Penguncian Dokumen Resmi & Audit Trail Waktu Unggah Realisasi RO",
-      summary:
-        "Berkas Realisasi RO yang diunggah Tata Usaha diperlakukan sebagai dokumen pelaporan resmi. Tabel dikunci dari pengeditan tidak disengaja dan waktu unggah dicatat secara akurat ke dalam sistem.",
-      highlights: [
-        "Mode baca terkunci (Read-Only) untuk keperluan pelaporan resmi",
-        "Pencatatan tanggal dan jam unggah berkas (WITA) otomatis",
-        "Label status dokumen resmi pada tabel dan kartu tahun",
-        "Pemisahan data operasional harian dengan arsip pelaporan",
-      ],
-      roleTarget: "Tata Usaha & Tim Evaluasi",
-      visualType: "ro_lock",
-    },
-    {
-      id: "design-system-v2",
-      category: "design",
-      categoryLabel: "Antarmuka Pengguna",
-      versionBadge: "Pembaruan Desain",
-      title: "Antarmuka Bersih BBPOM dengan Kolom Beku (Sticky Columns)",
-      summary:
-        "SIPROVAL V.2 menerapkan tipografi Plus Jakarta Sans yang jernih, palet warna institusional yang tenang, dan kolom beku (sticky headers & columns) pada tabel data besar agar membaca data tetap presisi.",
-      highlights: [
-        "Kolom beku pada tabel RO & RHPK (Kode, Nama, Target tetap terlihat)",
-        "Tipografi Plus Jakarta Sans yang nyaman untuk tabel numerik",
-        "Struktur kartu ringkas dengan hierarki visual terarah",
-        "Akses peran cepat melalui navigasi atas",
-      ],
-      roleTarget: "Seluruh Pengguna",
-      visualType: "design_system",
-    },
-  ];
-
-  const filteredCards =
-    activeCategory === "all"
-      ? featureCards
-      : featureCards.filter((card) => card.category === activeCategory);
 
   return (
     <div
@@ -244,14 +244,14 @@ export default function WhatsNewSiproval() {
             {user ? (
               <Link
                 href={workspaceUrl}
-                className="rounded-lg bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 transition"
+                className="rounded-lg bg-[#003d73] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#00284d] transition shadow-xs"
               >
                 Masuk ke Sistem
               </Link>
             ) : (
               <Link
                 href="/login?redirectUrl=/siproval"
-                className="rounded-lg bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 transition"
+                className="rounded-lg bg-[#003d73] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#00284d] transition shadow-xs"
               >
                 Masuk
               </Link>
@@ -261,358 +261,206 @@ export default function WhatsNewSiproval() {
       </header>
 
       {/* =====================================================================
-          HERO SECTION (Simple & Clean)
+          HERO SECTION (Clean & Direct)
       ====================================================================== */}
       <section className="bg-white border-b border-slate-200 pt-12 pb-10 px-6 sm:px-10 lg:px-16">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-block text-[11px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1 rounded-full mb-4">
-            Catatan Rilis Resmi &bull; Oktober 2026
+          <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1 rounded-full mb-4">
+            <span className="size-1.5 rounded-full bg-emerald-500" />
+            Catatan Rilis &bull; Komparasi Pembaruan Sistem
           </div>
 
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-slate-900">
-            Pembaruan Sistem SIPROVAL 2.0
+            Perbandingan SIPROVAL Versi 1.0 vs Versi 2.0
           </h1>
 
           <p className="mt-3 text-xs sm:text-sm text-slate-600 max-w-2xl mx-auto leading-relaxed">
-            Ringkasan pembaruan arsitektur database lokal mandiri, integrasi dashboard
-            eksekutif Kepala Balai, enkapsulasi hak akses Ketua Tim, dan otomasi
-            penyusunan Berita Acara Evaluasi di Balai Besar POM di Mataram.
+            Ikhtisar komprehensif transformasi sistem dari <strong>SIPROVAL Versi 1.0</strong> yang berbasis kumpulan tautan Google Spreadsheet eksternal menjadi <strong>SIPROVAL Versi 2.0</strong> yang sepenuhnya terintegrasi secara mandiri <em>by system</em> dengan antarmuka modern.
           </p>
 
-          {/* Simple Metrics Strip */}
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 max-w-3xl mx-auto text-left">
-            <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                Kecepatan Respon
-              </span>
-              <p className="mt-0.5 text-base font-bold text-slate-900">&lt; 50 ms</p>
-              <p className="text-[11px] text-slate-500">Database lokal mandiri</p>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                Akses Katim
-              </span>
-              <p className="mt-0.5 text-base font-bold text-slate-900">Terenkapsulasi</p>
-              <p className="text-[11px] text-slate-500">Fokus IKSK yang diampu</p>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                Dashboard Pimpinan
-              </span>
-              <p className="mt-0.5 text-base font-bold text-slate-900">Terpadu</p>
-              <p className="text-[11px] text-slate-500">Grafik RO & rincian arahan</p>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                Berita Acara
-              </span>
-              <p className="mt-0.5 text-base font-bold text-slate-900">Otomatis</p>
-              <p className="text-[11px] text-slate-500">Ekspor PDF, Word & Excel</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* =====================================================================
-          FILTER TABS SECTION (Clean Text Pills)
-      ====================================================================== */}
-      <section className="sticky top-[53px] z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 px-6 sm:px-10 lg:px-16 py-2.5">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3 overflow-x-auto scrollbar-none">
-          <div className="flex items-center gap-1.5">
-            {categories.map((cat) => {
-              const isActive = activeCategory === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setActiveCategory(cat.id)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors ${
-                    isActive
-                      ? "bg-slate-900 text-white"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                  }`}
+          {/* Quick Version Reference Cards */}
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl mx-auto text-left">
+            {/* V1 Card */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 transition-all hover:border-slate-300">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-700">
+                  SIPROVAL Versi 1.0
+                </span>
+                <span className="text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
+                  Versi Lama
+                </span>
+              </div>
+              <p className="mt-1.5 text-xs text-slate-500">
+                Kumpulan tautan (links) untuk membuka Google Spreadsheet eksternal.
+              </p>
+              <div className="mt-3 pt-3 border-t border-slate-200/80 flex items-center justify-between text-xs">
+                <span className="text-slate-400 text-[11px]">Tautan Sistem:</span>
+                <a
+                  href="https://siproval.bbpommataram.id/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 text-[11px]"
                 >
-                  {cat.label}
-                </button>
-              );
-            })}
+                  <span>siproval.bbpommataram.id</span>
+                  <svg className="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+
+            {/* V2 Card */}
+            <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-4 transition-all hover:border-blue-300">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-[#003d73]">
+                  SIPROVAL Versi 2.0
+                </span>
+                <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
+                  Sistem Saat Ini &bull; By System
+                </span>
+              </div>
+              <p className="mt-1.5 text-xs text-slate-600">
+                Semua modul berjalan langsung <em>by system</em> dengan antarmuka terintegrasi.
+              </p>
+              <div className="mt-3 pt-3 border-t border-blue-100 flex items-center justify-between text-xs">
+                <span className="text-slate-500 text-[11px]">Tautan Sistem:</span>
+                <Link
+                  href="/siproval"
+                  className="font-semibold text-[#003d73] hover:text-[#00284d] hover:underline flex items-center gap-1 text-[11px]"
+                >
+                  <span>bbpommataram.id/siproval</span>
+                  <svg className="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
           </div>
-
-          <span className="text-[11px] text-slate-400 shrink-0 hidden md:inline">
-            {filteredCards.length} fitur
-          </span>
         </div>
       </section>
 
       {/* =====================================================================
-          FEATURE CARDS GRID (Simple & Clear)
+          DETAILED COMPARISON TABLE
       ====================================================================== */}
-      <section className="max-w-6xl mx-auto px-6 sm:px-10 lg:px-16 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <AnimatePresence mode="popLayout">
-            {filteredCards.map((card, index) => (
-              <motion.div
-                key={card.id}
-                layout
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                transition={{ duration: 0.25, delay: index * 0.03 }}
-                className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-2xs hover:border-slate-300 transition-colors"
-              >
-                <div>
-                  {/* Category & Badge */}
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
-                      {card.categoryLabel}
-                    </span>
-                    <span className="text-[10px] font-medium text-slate-400">
-                      {card.versionBadge}
-                    </span>
-                  </div>
-
-                  {/* Title */}
-                  <h2 className="text-base font-bold text-slate-900 leading-snug">
-                    {card.title}
-                  </h2>
-
-                  <p className="mt-2 text-xs text-slate-600 leading-relaxed">
-                    {card.summary}
-                  </p>
-
-                  {/* Minimalist HTML UI Structure Preview */}
-                  <div className="my-4 rounded-lg border border-slate-200 bg-slate-50/70 p-3.5 text-xs">
-                    {card.visualType === "architecture" && (
-                      <div className="space-y-2.5">
-                        <div className="flex items-center justify-between pb-1.5 border-b border-slate-200 text-[11px]">
-                          <span className="font-semibold text-slate-700">
-                            Komparasi Keandalan Arsitektur
-                          </span>
-                          <span className="text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-[10px]">
-                            Lokal Mandiri
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 text-[11px]">
-                          <div className="rounded border border-slate-200 bg-white p-2">
-                            <p className="font-medium text-slate-500">Versi 1.0 (Lama)</p>
-                            <p className="text-slate-600 mt-0.5">Batas 60 req/menit API</p>
-                          </div>
-                          <div className="rounded border border-emerald-200 bg-emerald-50/50 p-2">
-                            <p className="font-semibold text-emerald-800">Versi 2.0 (Baru)</p>
-                            <p className="text-emerald-700 mt-0.5">Responsif &lt; 50ms</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {card.visualType === "kabalai_dash" && (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="font-semibold text-slate-700">
-                            Ringkasan Capaian Indikator Balai
-                          </span>
-                          <span className="font-semibold text-slate-900">82.4% Tercapai</span>
-                        </div>
-                        <div className="h-2 w-full rounded-full bg-slate-200 overflow-hidden">
-                          <div className="h-full rounded-full bg-slate-800" style={{ width: "82.4%" }} />
-                        </div>
-                        <div className="flex items-center justify-between text-[10px] text-slate-500 pt-0.5">
-                          <span>28 IKSK Tercapai</span>
-                          <span className="font-medium text-slate-700">6 Perlu Evaluasi</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {card.visualType === "katim_entry" && (
-                      <div className="space-y-2 text-[11px]">
-                        <div className="flex items-center justify-between pb-1 border-b border-slate-200">
-                          <span className="text-slate-500">Penyaringan Akses:</span>
-                          <span className="font-semibold text-slate-800">IKSK Binaan Katim</span>
-                        </div>
-                        <div className="rounded bg-white p-2 border border-slate-200 flex items-center justify-between">
-                          <span className="text-slate-700 truncate max-w-[200px]">
-                            1. Persentase Sampel Berisiko...
-                          </span>
-                          <span className="font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-[10px]">
-                            Dapat Diedit
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    {card.visualType === "tu_report" && (
-                      <div className="space-y-1.5 text-[11px]">
-                        <div className="flex items-center justify-between text-slate-600 font-medium">
-                          <span>Format Berita Acara Triwulan</span>
-                          <span className="text-slate-900 font-semibold">4 Bagian Resmi</span>
-                        </div>
-                        <div className="grid grid-cols-4 gap-1 text-center text-[10px] text-slate-600">
-                          <div className="rounded bg-white p-1.5 border border-slate-200">Cover</div>
-                          <div className="rounded bg-white p-1.5 border border-slate-200">Volume RO</div>
-                          <div className="rounded bg-white p-1.5 border border-slate-200">Anggaran</div>
-                          <div className="rounded bg-white p-1.5 border border-slate-200 font-medium">Matriks</div>
-                        </div>
-                      </div>
-                    )}
-
-                    {card.visualType === "ro_lock" && (
-                      <div className="flex items-center justify-between text-[11px]">
-                        <div>
-                          <p className="font-semibold text-slate-800">Dokumen Realisasi RO</p>
-                          <p className="text-[10px] text-slate-500">Status: Read-Only (Terkunci)</p>
-                        </div>
-                        <div className="rounded bg-white border border-slate-200 px-2.5 py-1 text-right">
-                          <p className="text-[9px] uppercase font-medium text-slate-400">Tercatat</p>
-                          <p className="text-[10px] font-semibold text-slate-700">WITA &bull; Resmi</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {card.visualType === "design_system" && (
-                      <div className="space-y-1.5 text-[11px]">
-                        <div className="flex items-center justify-between text-slate-700 font-medium">
-                          <span>Tipografi & Tata Letak Tabel</span>
-                          <span className="text-slate-500 text-[10px]">Kolom Terkunci</span>
-                        </div>
-                        <div className="grid grid-cols-3 gap-1 text-center text-[10px]">
-                          <div className="rounded bg-slate-900 text-white p-1">Plus Jakarta Sans</div>
-                          <div className="rounded bg-slate-100 border border-slate-200 text-slate-700 p-1">Sticky Columns</div>
-                          <div className="rounded bg-slate-100 border border-slate-200 text-slate-700 p-1">Kontras Seimbang</div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Highlights List */}
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      Rincian Pembaruan
-                    </p>
-                    <ul className="space-y-1 text-xs text-slate-600">
-                      {card.highlights.map((item, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="text-slate-400 font-bold shrink-0">&bull;</span>
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <span className="text-slate-500">
-                    Sasaran: <strong className="text-slate-700 font-semibold">{card.roleTarget}</strong>
-                  </span>
-                  <span className="text-xs font-semibold text-slate-900">
-                    Versi 2.0
-                  </span>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      </section>
-
-      {/* =====================================================================
-          COMPARISON TABLE (Clean & Minimal)
-      ====================================================================== */}
-      <section className="bg-white border-y border-slate-200 py-12 px-6 sm:px-10 lg:px-16">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-left mb-6">
+      <section className="max-w-6xl mx-auto px-6 sm:px-10 lg:px-16 py-12">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div>
             <h2 className="text-lg sm:text-xl font-bold text-slate-900">
-              Perbandingan Kemampuan SIPROVAL V.1 dan V.2
+              Matriks Perbandingan Fitur & Aspek Sistem
             </h2>
             <p className="text-xs text-slate-500 mt-1">
-              Ikhtisar peningkatan teknis dan operasional antar versi sistem.
+              Rincian perbandingan teknis, alur operasional, dan pengalaman pengguna antar versi.
             </p>
           </div>
+          <span className="text-[11px] font-medium text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-md self-start sm:self-auto">
+            {comparisonData.length} Aspek Pembaruan
+          </span>
+        </div>
 
-          <div className="rounded-xl border border-slate-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold text-[11px]">
-                    <th className="py-3 px-4 w-1/3">Aspek</th>
-                    <th className="py-3 px-4 text-slate-500 w-1/3">SIPROVAL Versi 1.0</th>
-                    <th className="py-3 px-4 text-slate-900 bg-slate-100/60 font-bold w-1/3">
-                      SIPROVAL Versi 2.0
-                    </th>
+        <div className="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/90 text-slate-700">
+                  <th className="py-4 px-5 w-1/4 font-bold text-[11px] uppercase tracking-wider text-slate-500">
+                    Aspek Pembaruan
+                  </th>
+                  <th className="py-4 px-5 w-[37.5%] border-l border-slate-200 bg-slate-50/50">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900 text-sm">
+                          SIPROVAL Versi 1.0
+                        </span>
+                        <span className="text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
+                          Lama
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-slate-500 font-normal">
+                        Kumpulan Link Google Spreadsheet
+                      </span>
+                      <a
+                        href="https://siproval.bbpommataram.id/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] font-medium text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1 mt-0.5"
+                      >
+                        <span>https://siproval.bbpommataram.id/</span>
+                        <svg className="size-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    </div>
+                  </th>
+                  <th className="py-4 px-5 w-[37.5%] border-l border-slate-200 bg-blue-50/30">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-[#003d73] text-sm">
+                          SIPROVAL Versi 2.0
+                        </span>
+                        <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
+                          Baru &bull; By System
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-slate-600 font-normal">
+                        Sistem Terintegrasi Penuh
+                      </span>
+                      <Link
+                        href="/siproval"
+                        className="text-[11px] font-semibold text-[#003d73] hover:text-[#00284d] hover:underline inline-flex items-center gap-1 mt-0.5"
+                      >
+                        <span>https://bbpommataram.id/siproval</span>
+                        <svg className="size-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      </Link>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-slate-100">
+                {comparisonData.map((item, index) => (
+                  <tr
+                    key={index}
+                    className="hover:bg-slate-50/60 transition-colors"
+                  >
+                    {/* Aspect Column */}
+                    <td className="py-4 px-5 align-top">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                        {item.category}
+                      </span>
+                      <p className="font-bold text-slate-900 text-xs sm:text-[13px] leading-snug">
+                        {item.title}
+                      </p>
+                    </td>
+
+                    {/* V1 Column */}
+                    <td className="py-4 px-5 align-top border-l border-slate-100 bg-slate-50/20">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <span className="text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded">
+                          {item.v1.badge}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        {item.v1.description}
+                      </p>
+                    </td>
+
+                    {/* V2 Column */}
+                    <td className="py-4 px-5 align-top border-l border-slate-100 bg-blue-50/15">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded">
+                          {item.v2.badge}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-800 font-medium leading-relaxed">
+                        {item.v2.description}
+                      </p>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
-                  <tr>
-                    <td className="py-3 px-4 font-semibold text-slate-900">
-                      Penyimpanan & Kecepatan Data
-                    </td>
-                    <td className="py-3 px-4 text-slate-500">
-                      Tergantung Google Sheets API (kuota 60 req/menit)
-                    </td>
-                    <td className="py-3 px-4 font-medium text-slate-900 bg-slate-50/50">
-                      Database lokal mandiri, query cepat &lt; 50ms tanpa kuota
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-3 px-4 font-semibold text-slate-900">
-                      Hak Akses & Lingkup Katim
-                    </td>
-                    <td className="py-3 px-4 text-slate-500">
-                      Seluruh daftar berkas sheet terbuka
-                    </td>
-                    <td className="py-3 px-4 font-medium text-slate-900 bg-slate-50/50">
-                      Terenkapsulasi ketat sesuai IKSK binaan Ketua Tim
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-3 px-4 font-semibold text-slate-900">
-                      Dashboard Kepala Balai
-                    </td>
-                    <td className="py-3 px-4 text-slate-500">
-                      Terpisah dan belum terintegrasi grafik TU
-                    </td>
-                    <td className="py-3 px-4 font-medium text-slate-900 bg-slate-50/50">
-                      Dashboard terpadu dengan grafik RO, capaian, dan form arahan
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-3 px-4 font-semibold text-slate-900">
-                      Berita Acara Evaluasi
-                    </td>
-                    <td className="py-3 px-4 text-slate-500">
-                      Penyusunan matriks kendala dan anggaran terpisah
-                    </td>
-                    <td className="py-3 px-4 font-medium text-slate-900 bg-slate-50/50">
-                      Ekspor otomatis 1-klik (RO, Anggaran, Cover, dan Lampiran)
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-3 px-4 font-semibold text-slate-900">
-                      Integritas Dokumen Realisasi RO
-                    </td>
-                    <td className="py-3 px-4 text-slate-500">
-                      Dapat teredit tanpa jejak waktu unggah resmi
-                    </td>
-                    <td className="py-3 px-4 font-medium text-slate-900 bg-slate-50/50">
-                      Terkunci otomatis (Read-Only) dan timestamp unggah tercatat
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-3 px-4 font-semibold text-slate-900">
-                      Tata Letak Tabel Besar
-                    </td>
-                    <td className="py-3 px-4 text-slate-500">
-                      Header dan kolom identitas bergeser saat di-scroll
-                    </td>
-                    <td className="py-3 px-4 font-medium text-slate-900 bg-slate-50/50">
-                      Sticky Columns (Kode, Nama, dan Target terkunci di kiri)
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -622,18 +470,20 @@ export default function WhatsNewSiproval() {
       ====================================================================== */}
       <section className="bg-slate-900 text-white py-12 px-6 sm:px-10 lg:px-16 text-center">
         <div className="max-w-2xl mx-auto">
+          <div className="inline-block text-[11px] font-semibold text-slate-300 bg-slate-800 border border-slate-700 px-3 py-1 rounded-full mb-3">
+            SIPROVAL Versi 2.0
+          </div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-            Akses Ruang Kerja SIPROVAL 2.0
+            Mulai Gunakan Sistem Terpadu SIPROVAL
           </h2>
           <p className="mt-2 text-xs sm:text-sm text-slate-400 leading-relaxed">
-            Masuk ke sistem untuk memulai pemantauan berkas, entry capaian kinerja,
-            dan evaluasi program kerja terpadu.
+            Akses ruang kerja untuk pemantauan indikator balai, pengisian capaian RHPK, pengelolaan dokumen realisasi RO, dan evaluasi kinerja secara otomatis.
           </p>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <Link
               href={workspaceUrl}
-              className="rounded-lg bg-white px-5 py-2.5 text-xs font-semibold text-slate-900 hover:bg-slate-100 transition"
+              className="rounded-lg bg-white px-5 py-2.5 text-xs font-semibold text-slate-900 hover:bg-slate-100 transition shadow-sm"
             >
               Masuk ke Ruang Kerja
             </Link>
@@ -644,6 +494,18 @@ export default function WhatsNewSiproval() {
             >
               Kembali ke Beranda
             </Link>
+
+            <a
+              href="https://siproval.bbpommataram.id/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg border border-slate-700/60 bg-transparent px-4 py-2.5 text-xs font-medium text-slate-400 hover:text-white hover:border-slate-600 transition inline-flex items-center gap-1.5"
+            >
+              <span>Buka Arsip V.1</span>
+              <svg className="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
           </div>
         </div>
       </section>
