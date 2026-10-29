@@ -100,8 +100,8 @@ const menus = {
     {
       name: "Entry Data RHPK",
       icon: "solar:pen-new-square-bold",
-      url: "/siproval/katim/entry-data-rhpk",
-      active: "/siproval/katim/entry-data-rhpk",
+      url: "/siproval/admin/entry-data-rhpk",
+      active: "/siproval/admin/entry-data-rhpk",
     },
     {
       name: "Kelola Akses RHPK",
@@ -230,8 +230,9 @@ export default function SidebarSiproval({ actor }: Props) {
       ) {
         resolvedActor = "kabalai";
       } else if (
-        pathname.startsWith("/siproval/katim") ||
-        pathname.startsWith("/siproval/google-sheets")
+        pathname === "/siproval/katim" ||
+        pathname.startsWith("/siproval/katim/anggota") ||
+        pathname.startsWith("/siproval/katim/arahan-pimpinan")
       ) {
         resolvedActor = "katim";
       } else {

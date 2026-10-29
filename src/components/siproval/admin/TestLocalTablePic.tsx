@@ -913,7 +913,7 @@ export default function TestLocalTablePic() {
             <div className="flex items-center gap-2">
               {activeSpreadsheet && (
                 <Link
-                  href={`/siproval/katim/entry-data-rhpk?iksk_id=${activeSpreadsheet.iksk_id || ""}&spreadsheet_id=${selectedSpId}&tab_id=${selectedTabId || ""}`}
+                  href={`/siproval/admin/entry-data-rhpk?iksk_id=${activeSpreadsheet.iksk_id || ""}&spreadsheet_id=${selectedSpId}&tab_id=${selectedTabId || ""}`}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-600 bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700"
                   title="Buka form input untuk memasukkan angka target dan data capaian RHPK"
                 >

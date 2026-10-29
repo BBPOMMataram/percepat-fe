@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
@@ -279,6 +279,8 @@ export default function TestLocalTableKatim() {
   const authQuery = user?.id ? `?user_id=${user.id}` : "";
 
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const paramIkskId = searchParams?.get("iksk_id") || searchParams?.get("iksk");
   const paramSpreadsheetId =
     searchParams?.get("spreadsheet_id") || searchParams?.get("spreadsheet");
@@ -322,6 +324,15 @@ export default function TestLocalTableKatim() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>("all");
   const [isPicUser, setIsPicUser] = useState(false);
+
+  // Jika user teridentifikasi sebagai PIC/Admin dan mengakses endpoint /siproval/katim/entry-data-rhpk,
+  // alihkan secara halus ke endpoint resmi PIC: /siproval/admin/entry-data-rhpk
+  useEffect(() => {
+    if (isPicUser && pathname === "/siproval/katim/entry-data-rhpk") {
+      const search = window.location.search || "";
+      router.replace(`/siproval/admin/entry-data-rhpk${search}`);
+    }
+  }, [isPicUser, pathname, router]);
 
   useEffect(() => {
     setCurrentPage(1);
