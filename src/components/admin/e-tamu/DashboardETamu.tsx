@@ -30,14 +30,20 @@ export default function DashboardETamu() {
 
     const [isLoading, setIsLoading] = useState(true);
     const chartRef = useRef<any>(null);
+    const yearDropdownRef = useRef<HTMLDivElement>(null);
 
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-    const currentYearStr = new Date().getFullYear().toString();
+    const currentYearNum = new Date().getFullYear();
+    const currentYearStr = currentYearNum.toString();
     const currentMonthStr = (new Date().getMonth() + 1).toString();
 
     const [filterYear, setFilterYear] = useState<string>(currentYearStr);
     const [filterMonth, setFilterMonth] = useState<string>(currentMonthStr);
+    const [chartYears, setChartYears] = useState<number[]>([currentYearNum]);
+    const [isYearDropdownOpen, setIsYearDropdownOpen] = useState<boolean>(false);
+    const [isChartLoading, setIsChartLoading] = useState<boolean>(false);
+    const [hiddenServices, setHiddenServices] = useState<number[]>([]);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [isTableLoading, setIsTableLoading] = useState<boolean>(false);
     const [isDownloadingExcel, setIsDownloadingExcel] = useState<boolean>(false);
@@ -46,6 +52,7 @@ export default function DashboardETamu() {
         today_guests: 0,
         services_stats: [],
         chart_data: null,
+        selected_chart_years: [currentYearNum],
         table_data: [],
         available_years: [],
         pagination: {
@@ -82,29 +89,86 @@ export default function DashboardETamu() {
         }
     }, [user, router]);
 
-    const fetchDashboardData = async (page: number = currentPage, isPageOnly: boolean = false) => {
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (yearDropdownRef.current && !yearDropdownRef.current.contains(event.target as Node)) {
+                setIsYearDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const fetchDashboardData = async (
+        page: number = currentPage,
+        isPageOnly: boolean = false,
+        customChartYears?: number[],
+        isChartOnly: boolean = false
+    ) => {
         if (!user) return;
-        if (isPageOnly) {
+        if (isChartOnly) {
+            setIsChartLoading(true);
+        } else if (isPageOnly) {
             setIsTableLoading(true);
         } else {
             setIsLoading(true);
         }
         try {
+            const yearsToSend = customChartYears !== undefined ? customChartYears : chartYears;
             const res = await api.get(`${baseURL}/api/e-tamu/dashboard`, {
                 params: {
                     year: filterYear,
                     month: filterMonth,
+                    chart_years: yearsToSend.length > 0 ? yearsToSend.join(',') : undefined,
                     page: page,
                     per_page: 10,
                 }
             });
             setDashboardData(res.data);
+            if (Array.isArray(res.data?.selected_chart_years) && res.data.selected_chart_years.length > 0) {
+                setChartYears(res.data.selected_chart_years.map((y: any) => Number(y)));
+            }
         } catch (error) {
             console.error("Gagal mengambil data dashboard E-Tamu", error);
         } finally {
             setIsLoading(false);
             setIsTableLoading(false);
+            setIsChartLoading(false);
         }
+    };
+
+    const availableYears: number[] = dashboardData.available_years && dashboardData.available_years.length > 0
+        ? dashboardData.available_years
+        : [currentYearNum];
+
+    const activeChartYears: number[] = chartYears.length > 0 ? chartYears : [availableYears[availableYears.length - 1]];
+    const isAllYearsSelected = availableYears.length > 0 && availableYears.every((yr) => activeChartYears.includes(yr));
+
+    const handleToggleChartYear = (yr: number) => {
+        const exists = activeChartYears.includes(yr);
+        let updated: number[];
+        if (exists) {
+            if (activeChartYears.length <= 1) return; // Minimal 1 tahun tetap terpilih
+            updated = activeChartYears.filter((y) => y !== yr);
+        } else {
+            updated = [...activeChartYears, yr].sort((a, b) => a - b);
+        }
+        setChartYears(updated);
+        fetchDashboardData(currentPage, false, updated, true);
+    };
+
+    const handleToggleAllYears = () => {
+        let updated: number[];
+        if (isAllYearsSelected) {
+            const defaultYr = availableYears.includes(currentYearNum)
+                ? currentYearNum
+                : availableYears[availableYears.length - 1];
+            updated = [defaultYr];
+        } else {
+            updated = [...availableYears].sort((a, b) => a - b);
+        }
+        setChartYears(updated);
+        fetchDashboardData(currentPage, false, updated, true);
     };
 
     useEffect(() => {
@@ -174,9 +238,51 @@ export default function DashboardETamu() {
         }
     };
 
-    const availableYears: number[] = dashboardData.available_years && dashboardData.available_years.length > 0
-        ? dashboardData.available_years
-        : [new Date().getFullYear()];
+    const isComparisonChart = Boolean(dashboardData.chart_data?.is_comparison);
+    const serviceLegend: { name: string; color: string }[] = dashboardData.chart_data?.service_legend || [];
+
+    // Jika mode perbandingan (2+ tahun) dan ada service di legend yang di-hide, nilai datanya dijadikan null
+    const processedChartData = (() => {
+        const raw = dashboardData.chart_data;
+        if (!raw) return null;
+        if (!raw.is_comparison) return raw;
+        return {
+            ...raw,
+            datasets: raw.datasets.map((ds: any) => ({
+                ...ds,
+                data: ds.data.map((val: number, idx: number) =>
+                    hiddenServices.includes(idx) ? null : val
+                ),
+            })),
+        };
+    })();
+
+    // Plugin untuk menampilkan label tahun tepat di bawah/atas tiap batang saat membandingkan >1 tahun
+    const comparisonYearPlugin = {
+        id: "comparisonYearPlugin",
+        afterDatasetsDraw(chart: any) {
+            if (!chart?.data?.is_comparison) return;
+            const { ctx, chartArea } = chart;
+            if (!chartArea) return;
+            ctx.save();
+            ctx.font = "bold 10px sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "top";
+            ctx.fillStyle = "#475569";
+
+            chart.data.datasets.forEach((dataset: any, datasetIndex: number) => {
+                const meta = chart.getDatasetMeta(datasetIndex);
+                if (meta.hidden) return;
+                const yearLabel = dataset.year || dataset.label?.replace("Tahun ", "") || "";
+                meta.data.forEach((bar: any, index: number) => {
+                    if (dataset.data[index] === null || dataset.data[index] === undefined) return;
+                    // Gambar tahun tepat di bawah batang pada area sumbu X
+                    ctx.fillText(yearLabel, bar.x, chartArea.bottom + 6);
+                });
+            });
+            ctx.restore();
+        },
+    };
 
     if (authLoading || !user) {
         return (
@@ -273,18 +379,140 @@ export default function DashboardETamu() {
             </div>
 
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+                {/* Checkbox Dropdown Pilihan Tahun */}
+                <div className="flex justify-end mb-4">
+                    <div className="relative" ref={yearDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={() => setIsYearDropdownOpen((prev) => !prev)}
+                            className="bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-lg px-4 py-2 text-sm font-medium shadow-sm flex items-center justify-between gap-3 min-w-[200px] cursor-pointer transition-colors"
+                        >
+                            <span className="truncate">
+                                {isAllYearsSelected && availableYears.length > 1
+                                    ? `Semua Tahun (${activeChartYears.join(", ")})`
+                                    : `Tahun: ${activeChartYears.join(", ")}`}
+                            </span>
+                            <span className="material-symbols-outlined text-[18px] text-slate-500">
+                                {isYearDropdownOpen ? "expand_less" : "expand_more"}
+                            </span>
+                        </button>
+
+                        {isYearDropdownOpen && (
+                            <div className="absolute right-0 mt-1.5 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-30">
+                                <label
+                                    className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer font-semibold border-b border-slate-100"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={isAllYearsSelected}
+                                        onChange={handleToggleAllYears}
+                                        disabled={isChartLoading}
+                                        className="w-4 h-4 rounded accent-[#0284c7] cursor-pointer"
+                                    />
+                                    <span>Semua Tahun</span>
+                                </label>
+
+                                <div className="max-h-56 overflow-y-auto py-1">
+                                    {availableYears.map((yr: number) => {
+                                        const isChecked = activeChartYears.includes(yr);
+                                        return (
+                                            <label
+                                                key={yr}
+                                                className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer"
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isChecked}
+                                                    onChange={() => handleToggleChartYear(yr)}
+                                                    disabled={isChartLoading}
+                                                    className="w-4 h-4 rounded accent-[#0284c7] cursor-pointer"
+                                                />
+                                                <span>{yr}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
                 <div className="relative h-[400px] w-full flex justify-center items-center">
-                    {isLoading ? (
+                    {isLoading || isChartLoading ? (
                         <span className="loading loading-spinner loading-md text-slate-800"></span>
-                    ) : dashboardData.chart_data ? (
+                    ) : processedChartData ? (
                         <Bar 
+                            key={`bar-${activeChartYears.join('-')}-${isComparisonChart ? 'cmp' : 'single'}`}
                             ref={chartRef}
-                            data={dashboardData.chart_data} 
+                            data={processedChartData}
+                            plugins={[comparisonYearPlugin]}
                             options={{
                                 responsive: true,
                                 maintainAspectRatio: false,
-                                plugins: { legend: { position: 'bottom' } },
-                                scales: { x: { stacked: false }, y: { stacked: false, beginAtZero: true, ticks: { stepSize: 1 } } }
+                                layout: {
+                                    padding: {
+                                        bottom: isComparisonChart ? 18 : 0,
+                                    },
+                                },
+                                plugins: {
+                                    legend: {
+                                        position: 'bottom',
+                                        labels: isComparisonChart
+                                            ? {
+                                                generateLabels: () =>
+                                                    serviceLegend.map((srv, idx) => ({
+                                                        text: srv.name,
+                                                        fillStyle: srv.color,
+                                                        strokeStyle: srv.color,
+                                                        lineWidth: 0,
+                                                        hidden: hiddenServices.includes(idx),
+                                                        index: idx,
+                                                    })),
+                                            }
+                                            : undefined,
+                                        onClick: isComparisonChart
+                                            ? (_e: any, legendItem: any) => {
+                                                const idx = legendItem.index;
+                                                if (typeof idx !== 'number') return;
+                                                setHiddenServices((prev) =>
+                                                    prev.includes(idx)
+                                                        ? prev.filter((i) => i !== idx)
+                                                        : [...prev, idx]
+                                                );
+                                            }
+                                            : undefined,
+                                    },
+                                    tooltip: isComparisonChart
+                                        ? {
+                                            callbacks: {
+                                                title: (items: any[]) => {
+                                                    if (!items.length) return '';
+                                                    const dataIdx = items[0].dataIndex;
+                                                    return serviceLegend[dataIdx]?.name || items[0].label || '';
+                                                },
+                                                label: (ctx: any) => {
+                                                    const yr = ctx.dataset.year || ctx.dataset.label || '';
+                                                    return ` ${yr}: ${ctx.parsed.y}`;
+                                                },
+                                            },
+                                        }
+                                        : undefined,
+                                },
+                                scales: {
+                                    x: {
+                                        stacked: false,
+                                        ticks: isComparisonChart
+                                            ? {
+                                                display: false,
+                                            }
+                                            : undefined,
+                                    },
+                                    y: {
+                                        stacked: false,
+                                        beginAtZero: true,
+                                        ticks: { stepSize: 1 },
+                                    },
+                                },
                             }} 
                         />
                     ) : (
