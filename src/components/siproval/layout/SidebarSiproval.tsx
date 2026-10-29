@@ -98,6 +98,12 @@ const menus = {
   ],
   superadmin: [
     {
+      name: "Entry Data RHPK",
+      icon: "solar:pen-new-square-bold",
+      url: "/siproval/katim/entry-data-rhpk",
+      active: "/siproval/katim/entry-data-rhpk",
+    },
+    {
       name: "Kelola Akses RHPK",
       icon: "solar:document-medicine-bold",
       url: "/siproval/admin/kelola-akses-rhpk",

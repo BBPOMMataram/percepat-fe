@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useTransition } from "react";
+import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
@@ -20,6 +21,7 @@ type SpreadsheetItem = {
   id: number;
   name: string;
   year: number;
+  iksk_id?: number | null;
   file_name: string | null;
   tabs: TabItem[];
 };
@@ -644,6 +646,16 @@ export default function TestLocalTablePic() {
 
           {selectedSpId && (
             <div className="flex items-center gap-2">
+              {activeSpreadsheet && (
+                <Link
+                  href={`/siproval/katim/entry-data-rhpk?iksk_id=${activeSpreadsheet.iksk_id || ""}&spreadsheet_id=${selectedSpId}&tab_id=${selectedTabId || ""}`}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-600 bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700"
+                  title="Buka form input untuk memasukkan angka target dan data capaian RHPK"
+                >
+                  <Icon icon="solar:pen-new-square-bold" width={16} />
+                  <span>Isi Data & Target RHPK</span>
+                </Link>
+              )}
               {activeSpreadsheet && (
                 <a
                   href={`${baseUrl}/api/test-local-table/spreadsheet/${activeSpreadsheet.id}/download`}
