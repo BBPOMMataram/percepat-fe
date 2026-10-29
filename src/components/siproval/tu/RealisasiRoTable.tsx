@@ -90,6 +90,77 @@ type RoYearItem = {
   is_locked?: boolean;
 };
 
+type SummaryMonthData = {
+  target: number;
+  realisasi: number;
+  rata_rata_capaian: number;
+  capaian_kumulatif: number;
+  status: "tercapai" | "belum";
+};
+
+type SummaryRowData = {
+  pagu: number;
+  target_awal: number;
+  target_revisi: number;
+  target_efisiensi: number;
+  selected_month: SummaryMonthData;
+  all_months: Record<string, SummaryMonthData>;
+};
+
+// Helper untuk mengevaluasi rumus Excel aritmetika kustom seperti =7/12*100 atau =2/6*100
+function evaluateFormulaClient(
+  formula: string,
+  realisasi?: number,
+  target?: number
+): { val: number | null; display: string } {
+  if (!formula || !formula.trim()) return { val: null, display: "" };
+  const trimmed = formula.trim();
+
+  // Angka murni biasa
+  const cleanNum = trimmed.replace("%", "").replace(",", ".");
+  if (!trimmed.startsWith("=") && !isNaN(Number(cleanNum)) && cleanNum !== "") {
+    const n = parseFloat(cleanNum);
+    return { val: n, display: n.toFixed(2) };
+  }
+
+  if (!trimmed.startsWith("=")) {
+    return { val: null, display: trimmed };
+  }
+
+  let expr = trimmed.substring(1).trim();
+
+  // IFERROR(expr, fallback)
+  const iferrorMatch = expr.match(/^IFERROR\s*\(\s*(.+?)\s*,\s*([\d.-]+)\s*\)$/i);
+  if (iferrorMatch) {
+    expr = iferrorMatch[1];
+  }
+
+  // Jika mengandung referensi sel Excel seperti J27/F27*100
+  if (/[A-Za-z]+[0-9]+/.test(expr)) {
+    if (target && target > 0 && realisasi !== undefined) {
+      const pct = (realisasi / target) * 100;
+      return { val: pct, display: pct.toFixed(2) };
+    }
+    return { val: 0, display: "0.00" };
+  }
+
+  // Aritmetika murni yang aman (hanya angka, +, -, *, /, (, ), spasi, .)
+  const safeExpr = expr.replace(/,/g, ".");
+  if (/^[\d.+\-*/()\s]+$/.test(safeExpr)) {
+    try {
+      // eslint-disable-next-line no-new-func
+      const res = Function(`"use strict"; return (${safeExpr})`)();
+      if (typeof res === "number" && !isNaN(res) && isFinite(res)) {
+        return { val: res, display: res.toFixed(2) };
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  return { val: null, display: trimmed };
+}
+
 type FileInfo = {
   is_locked: boolean;
   original_filename?: string;
@@ -160,6 +231,7 @@ export default function RealisasiRoTable() {
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [apiNotice, setApiNotice] = useState("");
+  const [summaryRow, setSummaryRow] = useState<SummaryRowData | null>(null);
 
   const fetchRoYears = async () => {
     try {
@@ -256,6 +328,9 @@ export default function RealisasiRoTable() {
         setRows(d.rows || []);
         if (d.all_months_data) {
           setAllMonthsData(d.all_months_data);
+        }
+        if (d.summary_row) {
+          setSummaryRow(d.summary_row);
         }
         if (d.file_info) {
           setFileInfo(d.file_info);
@@ -430,6 +505,67 @@ export default function RealisasiRoTable() {
     return map;
   }, [allMonthsData]);
 
+  // Ringkasan Total & Rata-rata Capaian (Live recalculation)
+  const computedSummary = useMemo(() => {
+    let pagu = 0;
+    let targetAwal = 0;
+    let targetRevisi = 0;
+    let targetEfisiensi = 0;
+    let monthTarget = 0;
+    let monthRealisasi = 0;
+    let capaianSum = 0;
+    let capaianCount = 0;
+
+    filteredRows.forEach((r) => {
+      // Pagu
+      const rawPagu = String(r.pagu ?? "").replace(/[^0-9.-]+/g, "");
+      const pNum = parseFloat(rawPagu);
+      if (!isNaN(pNum)) pagu += pNum;
+
+      // Target Tahunan (bisa diedit)
+      const tAwalVal = parseFloat(String(getCellValue(r.target_tahunan)).replace(",", ".")) || 0;
+      targetAwal += tAwalVal;
+
+      const tRevVal = parseFloat(String(r.target_revisi ?? "").replace(",", ".")) || 0;
+      targetRevisi += tRevVal;
+
+      const tEfiVal = parseFloat(String(r.target_efisiensi ?? "").replace(",", ".")) || 0;
+      targetEfisiensi += tEfiVal;
+
+      // Month cols
+      const mCols = r.month_columns || (r as any).month_data || {};
+      const mTgt = parseFloat(String(getCellValue(mCols.target)).replace(",", ".")) || 0;
+      const mReal = parseFloat(String(getCellValue(mCols.realisasi)).replace(",", ".")) || 0;
+      monthTarget += mTgt;
+      monthRealisasi += mReal;
+
+      // Capaian
+      const cVal = getCellValue(mCols.capaian);
+      const evalRes = evaluateFormulaClient(cVal, mReal, tAwalVal);
+      if (evalRes.val !== null) {
+        capaianSum += evalRes.val;
+        capaianCount++;
+      } else if (tAwalVal > 0) {
+        capaianSum += (mReal / tAwalVal) * 100;
+        capaianCount++;
+      }
+    });
+
+    const avgCapaian = capaianCount > 0 ? capaianSum / capaianCount : 0;
+    const kumCapaian = monthTarget > 0 ? (monthRealisasi / monthTarget) * 100 : avgCapaian;
+
+    return {
+      pagu,
+      targetAwal,
+      targetRevisi,
+      targetEfisiensi,
+      monthTarget,
+      monthRealisasi,
+      avgCapaian: avgCapaian.toFixed(2),
+      kumCapaian: kumCapaian.toFixed(2),
+    };
+  }, [filteredRows, editedCells]);
+
   const renderSubheaderTh = (
     col: MonthColumnHeader,
     monthIndex: number = 0,
@@ -493,34 +629,56 @@ export default function RealisasiRoTable() {
       col.key === "upaya" ||
       col.key === "arahan_pimpinan";
 
-    if (isFormula) {
+    if (col.key === "capaian") {
       const tgtTahunanVal = getCellValue(r.target_tahunan);
-      const tgtNum = parseFloat(tgtTahunanVal) || 0;
+      const tgtNum = parseFloat(String(tgtTahunanVal).replace(",", ".")) || 0;
       const realNum =
-        parseFloat(getCellValue(monthCols["realisasi"])) || 0;
-      let displayCap = cellVal;
-      let dynTercapai = r.status === "tercapai";
-      if (tgtNum > 0) {
-        const pct = ((realNum / tgtNum) * 100).toFixed(2);
-        displayCap = pct;
-        dynTercapai = parseFloat(pct) >= 100;
+        parseFloat(String(getCellValue(monthCols["realisasi"])).replace(",", ".")) || 0;
+
+      const evalRes = evaluateFormulaClient(cellVal, realNum, tgtNum);
+      let displayCap = evalRes.display;
+      let dynTercapai = false;
+
+      if (evalRes.val !== null) {
+        displayCap = evalRes.val.toFixed(2);
+        dynTercapai = evalRes.val >= 100;
+      } else if (tgtNum > 0) {
+        const pct = (realNum / tgtNum) * 100;
+        displayCap = pct.toFixed(2);
+        dynTercapai = pct >= 100;
       }
 
       return (
         <td
           key={`${mName}_${col.col_index}_${col.key}`}
-          className={`px-2.5 py-2 border-r ${
+          className={`p-1.5 border-r ${
             isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
           } align-middle text-center bg-white group-hover:bg-[#f8fafc]`}
         >
-          <div className="flex items-center justify-center py-0.5">
+          <div className="flex flex-col items-center gap-1">
+            <input
+              type="text"
+              value={cellVal}
+              onChange={(e) => handleCellChange(cellCoord, e.target.value)}
+              placeholder={displayCap ? `${displayCap}%` : "0%"}
+              className={`w-full rounded-md border text-center font-mono text-[11px] font-bold px-1 py-1 transition focus:outline-none focus:ring-2 focus:ring-[#005baa] ${
+                isEdited
+                  ? "bg-amber-50 border-amber-400 text-amber-900 ring-1 ring-amber-400"
+                  : cellVal && cellVal.startsWith("=")
+                    ? "bg-blue-50/70 border-blue-200 text-blue-900 font-bold"
+                    : "bg-emerald-50/40 border-emerald-200 text-emerald-950 hover:bg-white hover:border-emerald-300"
+              }`}
+              title={`Capaian (${cellCoord}): Masukkan angka atau rumus misal =7/12*100 atau =2/6*100`}
+            />
             <span
-              className={`inline-flex items-center justify-center rounded-lg px-2 py-0.5 text-xs font-extrabold ${
+              className={`inline-flex items-center justify-center rounded-md px-1.5 py-0.5 text-[10px] font-extrabold whitespace-nowrap ${
                 dynTercapai
                   ? "bg-emerald-100 text-[#00a651]"
                   : "bg-amber-100 text-amber-700"
               }`}
-              title={`Formula Capaian (${cellCoord}) = (Realisasi / Target Tahunan) * 100%`}
+              title={`Hasil Capaian: ${displayCap ? `${displayCap}%` : "0%"} (${
+                dynTercapai ? "Tercapai" : "Belum Tercapai"
+              })`}
             >
               {displayCap ? `${displayCap}%` : "0%"}
             </span>
@@ -1761,6 +1919,189 @@ export default function RealisasiRoTable() {
                   );
                 })}
               </tbody>
+
+              {/* Sticky Footer Ringkasan Total & Rata-rata */}
+              <tfoot className="sticky bottom-0 z-30 font-bold bg-slate-100/95 backdrop-blur border-t-2 border-slate-400 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
+                <tr>
+                  {/* 1. NO */}
+                  <td className="sticky left-0 z-30 bg-slate-200/95 px-2 py-2.5 text-center font-mono font-black text-slate-700 border-r border-slate-300 w-[48px] min-w-[48px] max-w-[48px]">
+                    &Sigma;
+                  </td>
+
+                  {/* 2. KODE RO */}
+                  <td className="sticky left-[48px] z-30 bg-slate-200/95 px-2 py-2.5 text-center font-mono text-xs text-slate-500 border-r border-slate-300 w-[96px] min-w-[96px] max-w-[96px]">
+                    -
+                  </td>
+
+                  {/* 3. PROGRAM / KEGIATAN / OUTPUT RO */}
+                  <td className="sticky left-[144px] z-30 bg-slate-200/95 px-4 py-2.5 border-r-2 border-slate-300 shadow-[4px_0_12px_rgba(0,0,0,0.12)] text-slate-900 w-[320px] min-w-[320px] max-w-[320px]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs uppercase tracking-wider font-extrabold text-slate-900">
+                        TOTAL & RATA-RATA CAPAIAN
+                      </span>
+                      <span className="text-[10px] bg-slate-300/80 text-slate-700 px-1.5 py-0.5 rounded">
+                        {filteredRows.length} RO
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* 4. KODE PPK */}
+                  <td className="px-2 py-2.5 text-center font-mono text-xs text-slate-500 border-r border-slate-200 w-[80px]">
+                    -
+                  </td>
+
+                  {/* 5. PAGU */}
+                  <td className="px-3 py-2.5 text-right font-mono text-xs text-slate-900 border-r border-slate-200 w-[130px] whitespace-nowrap">
+                    {formatRp(computedSummary.pagu)}
+                  </td>
+
+                  {/* 6. TARGET 2026 */}
+                  <td className="px-2 py-2.5 text-center font-mono text-xs text-slate-900 border-r border-slate-200 w-[110px]">
+                    {computedSummary.targetAwal}
+                  </td>
+
+                  {/* 7. TARGET REVISI */}
+                  <td className="px-2 py-2.5 text-center font-mono text-xs text-slate-900 border-r border-slate-200 w-[120px]">
+                    {computedSummary.targetRevisi || "-"}
+                  </td>
+
+                  {/* 8. TARGET EFISIENSI */}
+                  <td className="px-2 py-2.5 text-center font-mono text-xs text-slate-900 border-r-2 border-slate-300 w-[110px]">
+                    {computedSummary.targetEfisiensi || "-"}
+                  </td>
+
+                  {/* MONTH FOOTER CELLS */}
+                  {viewMode === "month"
+                    ? monthHeaders.map((col, idx) => {
+                        const isLastInMonth = idx === monthHeaders.length - 1;
+                        if (col.key === "target") {
+                          return (
+                            <td
+                              key={`foot_${col.key}`}
+                              className={`px-2 py-2.5 text-center font-mono text-xs text-slate-900 border-r ${
+                                isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+                              }`}
+                            >
+                              {computedSummary.monthTarget}
+                            </td>
+                          );
+                        }
+                        if (col.key === "realisasi") {
+                          return (
+                            <td
+                              key={`foot_${col.key}`}
+                              className={`px-2 py-2.5 text-center font-mono text-xs text-blue-900 font-extrabold border-r ${
+                                isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+                              }`}
+                            >
+                              {computedSummary.monthRealisasi}
+                            </td>
+                          );
+                        }
+                        if (col.key === "capaian") {
+                          const avgNum = parseFloat(computedSummary.avgCapaian) || 0;
+                          const isTercapai = avgNum >= 100;
+                          return (
+                            <td
+                              key={`foot_${col.key}`}
+                              className={`px-2 py-2.5 text-center border-r ${
+                                isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+                              }`}
+                            >
+                              <div className="flex flex-col items-center">
+                                <span
+                                  className={`inline-flex items-center justify-center rounded-lg px-2 py-1 text-xs font-black shadow-sm ${
+                                    isTercapai
+                                      ? "bg-emerald-600 text-white"
+                                      : "bg-amber-500 text-white"
+                                  }`}
+                                  title={`Rata-rata Capaian ${selectedMonth}: ${computedSummary.avgCapaian}%`}
+                                >
+                                  {computedSummary.avgCapaian}%
+                                </span>
+                              </div>
+                            </td>
+                          );
+                        }
+                        return (
+                          <td
+                            key={`foot_${col.key}`}
+                            className={`px-2 py-2.5 text-center text-xs text-slate-400 border-r ${
+                              isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+                            }`}
+                          >
+                            -
+                          </td>
+                        );
+                      })
+                    : MONTH_NAMES.flatMap((mName) => {
+                        const mData = allMonthsData[mName];
+                        if (!mData?.headers?.length) return [];
+                        const mSum = summaryRow?.all_months?.[mName];
+
+                        return mData.headers.map((col, cIdx) => {
+                          const isLastInMonth = cIdx === mData.headers.length - 1;
+                          if (col.key === "target") {
+                            return (
+                              <td
+                                key={`foot_${mName}_${col.key}`}
+                                className={`px-2 py-2.5 text-center font-mono text-xs text-slate-900 border-r ${
+                                  isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+                                }`}
+                              >
+                                {mSum?.target ?? "-"}
+                              </td>
+                            );
+                          }
+                          if (col.key === "realisasi") {
+                            return (
+                              <td
+                                key={`foot_${mName}_${col.key}`}
+                                className={`px-2 py-2.5 text-center font-mono text-xs text-blue-900 font-extrabold border-r ${
+                                  isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+                                }`}
+                              >
+                                {mSum?.realisasi ?? "-"}
+                              </td>
+                            );
+                          }
+                          if (col.key === "capaian") {
+                            const avgVal = mSum?.rata_rata_capaian ?? 0;
+                            const isTercapai = avgVal >= 100;
+                            return (
+                              <td
+                                key={`foot_${mName}_${col.key}`}
+                                className={`px-2 py-2.5 text-center border-r ${
+                                  isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+                                }`}
+                              >
+                                <span
+                                  className={`inline-flex items-center justify-center rounded-lg px-2 py-0.5 text-xs font-black shadow-sm ${
+                                    isTercapai
+                                      ? "bg-emerald-600 text-white"
+                                      : "bg-amber-500 text-white"
+                                  }`}
+                                  title={`Rata-rata Capaian ${mName}: ${avgVal}%`}
+                                >
+                                  {avgVal}%
+                                </span>
+                              </td>
+                            );
+                          }
+                          return (
+                            <td
+                              key={`foot_${mName}_${col.key}`}
+                              className={`px-2 py-2.5 text-center text-xs text-slate-400 border-r ${
+                                isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+                              }`}
+                            >
+                              -
+                            </td>
+                          );
+                        });
+                      })}
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}
