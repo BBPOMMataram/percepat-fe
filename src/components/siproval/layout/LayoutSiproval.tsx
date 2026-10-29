@@ -66,6 +66,7 @@ export default function LayoutSiproval({
         "hilmi.khairan@pom.go.id",
         "nanang.setyadi@pom.go.id",
         "syamsul.hady@pom.go.id",
+        "syamsul.hadi@pom.go.id",
       ];
       const allowedTuNames = [
         "fatimah tri wulandari",
@@ -73,6 +74,7 @@ export default function LayoutSiproval({
         "hilmi khairan",
         "nanang setyadi santoso",
         "syamsul hady",
+        "syamsul hadi",
       ];
 
       const userId = String(user.id || "")
@@ -81,16 +83,21 @@ export default function LayoutSiproval({
       const userEmail = (user.email || "").toLowerCase().trim();
       const userNameClean = (user.name || "").toLowerCase().trim();
 
+      const isExplicitTuUser =
+        allowedTuIds.includes(userId) ||
+        allowedTuEmails.includes(userEmail) ||
+        allowedTuNames.includes(userNameClean) ||
+        userNameClean.includes("syamsul hady") ||
+        userNameClean.includes("syamsul hadi") ||
+        userEmail.includes("syamsul.hady") ||
+        userEmail.includes("syamsul.hadi");
+
       const hasFungsiTu =
         Number(user.employee?.fungsi_id) === 1 ||
         (user.employee?.fungsi?.name || "").toLowerCase().trim() ===
           "tata usaha";
 
-      const hasTuAccess =
-        hasFungsiTu &&
-        (allowedTuIds.includes(userId) ||
-          allowedTuEmails.includes(userEmail) ||
-          allowedTuNames.includes(userNameClean));
+      const hasTuAccess = isExplicitTuUser || hasFungsiTu;
 
       const isSuperadmin =
         user.role?.level === "superadmin" ||

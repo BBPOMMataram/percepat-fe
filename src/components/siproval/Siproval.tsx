@@ -121,6 +121,7 @@ export default function Siproval() {
     "fatimah.wulandari@pom.go.id",
     "fatimah.wulandari03@gmail.com",
     "syamsul.hady@pom.go.id",
+    "syamsul.hadi@pom.go.id",
   ];
   const allowedTuNames = [
     "hilmi khairan",
@@ -128,6 +129,7 @@ export default function Siproval() {
     "fatimah tri wulandari",
     "fatimah t. wulandari",
     "syamsul hady",
+    "syamsul hadi",
   ];
 
   const userId = String(user?.id || "")
@@ -136,15 +138,20 @@ export default function Siproval() {
   const userEmail = (user?.email || "").toLowerCase().trim();
   const userNameClean = (user?.name || "").toLowerCase().trim();
 
+  const isExplicitTuUser =
+    allowedTuIds.includes(userId) ||
+    allowedTuEmails.includes(userEmail) ||
+    allowedTuNames.includes(userNameClean) ||
+    userNameClean.includes("syamsul hady") ||
+    userNameClean.includes("syamsul hadi") ||
+    userEmail.includes("syamsul.hady") ||
+    userEmail.includes("syamsul.hadi");
+
   const hasFungsiTu =
     Number(user?.employee?.fungsi_id) === 1 ||
     (user?.employee?.fungsi?.name || "").toLowerCase().trim() === "tata usaha";
 
-  const hasTuAccess =
-    hasFungsiTu &&
-    (allowedTuIds.includes(userId) ||
-      allowedTuEmails.includes(userEmail) ||
-      allowedTuNames.includes(userNameClean));
+  const hasTuAccess = isExplicitTuUser || hasFungsiTu;
 
   const isPicAdmin =
     user?.role?.level === "superadmin" ||

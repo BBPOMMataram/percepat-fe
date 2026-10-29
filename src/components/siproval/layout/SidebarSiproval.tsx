@@ -172,6 +172,7 @@ export default function SidebarSiproval({ actor }: Props) {
     "fatimah.wulandari@pom.go.id",
     "fatimah.wulandari03@gmail.com",
     "syamsul.hady@pom.go.id",
+    "syamsul.hadi@pom.go.id",
   ];
   const allowedTuNames = [
     "hilmi khairan",
@@ -179,6 +180,7 @@ export default function SidebarSiproval({ actor }: Props) {
     "fatimah tri wulandari",
     "fatimah t. wulandari",
     "syamsul hady",
+    "syamsul hadi",
   ];
 
   const userIdLower = String(user?.id || "")
@@ -187,15 +189,20 @@ export default function SidebarSiproval({ actor }: Props) {
   const userNameLower = (user?.name || "").toLowerCase().trim();
   const userEmailLower = (user?.email || "").toLowerCase().trim();
 
+  const isExplicitTuUser =
+    allowedTuIds.includes(userIdLower) ||
+    allowedTuEmails.includes(userEmailLower) ||
+    allowedTuNames.includes(userNameLower) ||
+    userNameLower.includes("syamsul hady") ||
+    userNameLower.includes("syamsul hadi") ||
+    userEmailLower.includes("syamsul.hady") ||
+    userEmailLower.includes("syamsul.hadi");
+
   const hasFungsiTu =
     Number(user?.employee?.fungsi_id) === 1 ||
     (user?.employee?.fungsi?.name || "").toLowerCase().trim() === "tata usaha";
 
-  const hasTuAccess =
-    hasFungsiTu &&
-    (allowedTuIds.includes(userIdLower) ||
-      allowedTuEmails.includes(userEmailLower) ||
-      allowedTuNames.includes(userNameLower));
+  const hasTuAccess = isExplicitTuUser || hasFungsiTu;
 
   let resolvedActor: Actor = actor || "katim";
   if (!actor) {
