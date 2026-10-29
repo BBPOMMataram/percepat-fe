@@ -200,6 +200,29 @@ export default function RealisasiRoTable() {
   const [newYearName, setNewYearName] = useState("");
   const [creatingYear, setCreatingYear] = useState(false);
 
+  // Modal Hapus Tahun
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [yearToDelete, setYearToDelete] = useState<number | null>(null);
+  const [deletingYear, setDeletingYear] = useState<number | null>(null);
+
+  const handleDeleteYear = async (yr: number) => {
+    setDeletingYear(yr);
+    setErrorMsg("");
+    setSuccessMsg("");
+    try {
+      const query = user?.id ? `?user_id=${user.id}` : "";
+      const res = await api.delete(`${baseUrl}/api/tu/realisasi-ro-years/${yr}${query}`);
+      setSuccessMsg(res.data?.message || `Tahun anggaran Realisasi RO ${yr} berhasil dihapus.`);
+      setShowDeleteModal(false);
+      setYearToDelete(null);
+      await fetchRoYears();
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || `Gagal menghapus tahun anggaran ${yr}.`);
+    } finally {
+      setDeletingYear(null);
+    }
+  };
+
   // Modal Upload File Excel
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -1034,9 +1057,28 @@ export default function RealisasiRoTable() {
                 <span className="rounded-xl bg-blue-50 px-3 py-1 text-sm font-bold text-[#005baa]">
                   {item.year}
                 </span>
-                <span className="text-xs font-semibold uppercase text-slate-400">
-                  Tahun Anggaran
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold uppercase text-slate-400">
+                    Tahun Anggaran
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setYearToDelete(item.year);
+                      setShowDeleteModal(true);
+                    }}
+                    disabled={deletingYear === item.year}
+                    title={`Hapus Tahun Anggaran ${item.year}`}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-slate-400 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 transition disabled:opacity-50"
+                  >
+                    <Icon
+                      icon={deletingYear === item.year ? "solar:refresh-circle-linear" : "solar:trash-bin-trash-bold"}
+                      width={15}
+                      className={deletingYear === item.year ? "animate-spin text-rose-600" : ""}
+                    />
+                  </button>
+                </div>
               </div>
 
               <div className="mt-4">
@@ -1060,7 +1102,21 @@ export default function RealisasiRoTable() {
 
               <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-xs font-semibold text-[#005baa]">
                 <span>Buka Rincian RO &rarr;</span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setYearToDelete(item.year);
+                      setShowDeleteModal(true);
+                    }}
+                    disabled={deletingYear === item.year}
+                    title={`Hapus Tahun Anggaran ${item.year}`}
+                    className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50/70 px-2.5 py-1 text-[11px] font-bold text-rose-600 hover:bg-rose-100 transition shadow-2xs disabled:opacity-50"
+                  >
+                    <Icon icon="solar:trash-bin-trash-bold" width={13} />
+                    <span>Hapus</span>
+                  </button>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -1152,6 +1208,68 @@ export default function RealisasiRoTable() {
 
         {/* Modal 2: Upload File Excel RO */}
         {renderUploadModal()}
+
+        {/* Modal 3: Konfirmasi Hapus Tahun */}
+        {showDeleteModal && yearToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
+              <div className="flex items-center gap-3 text-rose-600 mb-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100 text-rose-600 shrink-0">
+                  <Icon icon="solar:trash-bin-trash-bold" width={22} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Hapus Tahun Realisasi RO
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Konfirmasi penghapusan data tahun anggaran
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-rose-50 border border-rose-200 p-3.5 mb-5 text-xs text-rose-800 leading-relaxed">
+                <p className="font-semibold mb-1">
+                  Peringatan: Tindakan ini tidak dapat dibatalkan!
+                </p>
+                <p>
+                  Apakah Anda yakin ingin menghapus Tahun Anggaran <strong>{yearToDelete}</strong>? Seluruh data rincian output, target bulanan (12 bulan), dan file Excel terkait akan dihapus permanen dari sistem.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  disabled={deletingYear !== null}
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setYearToDelete(null);
+                  }}
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  disabled={deletingYear !== null}
+                  onClick={() => handleDeleteYear(yearToDelete)}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-700 transition disabled:opacity-50 shadow-md shadow-rose-200"
+                >
+                  {deletingYear === yearToDelete ? (
+                    <>
+                      <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent" />
+                      <span>Menghapus...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Icon icon="solar:trash-bin-trash-bold" width={15} />
+                      <span>Ya, Hapus Tahun {yearToDelete}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
