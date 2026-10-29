@@ -34,6 +34,8 @@ type ColumnSchema = {
   is_collaborative?: boolean;
   is_kendala?: boolean;
   is_rtl?: boolean;
+  parent_header?: string | null;
+  sub_label?: string | null;
 };
 
 type RowData = {
@@ -44,6 +46,9 @@ type RowData = {
   is_current: boolean;
   can_edit_row?: boolean;
   pic_name?: string;
+  row_name?: string;
+  is_month_row?: boolean;
+  is_total?: boolean;
   cells: Record<string, any>;
 };
 
@@ -580,6 +585,8 @@ export default function TestLocalTableKatim() {
     if (activeTab?.columns_schema && activeTab.columns_schema.length > 0) {
       return activeTab.columns_schema.map((c) => ({
         ...c,
+        parent_header: (c as any).parent_header || (c.label && c.label.includes(" - ") ? c.label.split(" - ")[0].trim() : null),
+        sub_label: (c as any).sub_label || (c.label && c.label.includes(" - ") ? c.label.split(" - ").slice(1).join(" - ").trim() : c.label),
         is_collaborative: isCollaborativeCol(c),
         is_kendala: isKendalaCol(c.label),
         is_rtl: isRtlCol(c.label),
@@ -606,6 +613,35 @@ export default function TestLocalTableKatim() {
     }
     return [];
   }, [activeTab]);
+
+  // Deteksi dan kelompokkan kolom bertingkat (2-tier headers) jika ada parent_header atau format "Grup - Sub"
+  const headerGroups = useMemo(() => {
+    const hasGroups = effectiveColumnsSchema.some((c) => Boolean(c.parent_header));
+    if (!hasGroups) return null;
+
+    type HeaderGroup = {
+      parent: string | null;
+      cols: ColumnSchema[];
+    };
+
+    const groups: HeaderGroup[] = [];
+    let currentGroup: HeaderGroup | null = null;
+
+    effectiveColumnsSchema.forEach((col) => {
+      const parentName = col.parent_header || null;
+      if (currentGroup && currentGroup.parent === parentName) {
+        currentGroup.cols.push(col);
+      } else {
+        currentGroup = {
+          parent: parentName,
+          cols: [col],
+        };
+        groups.push(currentGroup);
+      }
+    });
+
+    return groups;
+  }, [effectiveColumnsSchema]);
 
   const allRows = activeTab?.rows_data || [];
   const totalRows = allRows.length;
@@ -859,44 +895,142 @@ export default function TestLocalTableKatim() {
           <>
             <div className="w-full overflow-x-auto">
             <table className="w-full border-collapse text-left text-xs">
-              <thead className="border-b border-slate-200 bg-slate-50">
-                <tr>
-                  {effectiveColumnsSchema.map((col) => {
-                    const isEditableForMe = col.can_edit;
-                    return (
-                      <th
-                        key={col.key}
-                        className={`py-3 px-3.5 font-bold border-r border-slate-200 last:border-r-0 min-w-[130px] ${
-                          isEditableForMe
-                            ? "bg-emerald-50/60 text-emerald-950"
-                            : "text-slate-700"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-1 mb-1">
-                          <span className="font-mono text-[10px] text-slate-400">
-                            [{col.col_letter}]
-                          </span>
-                          {isEditableForMe ? (
-                            <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
-                              Editable
+              <thead className="border-b border-slate-200 bg-slate-50 sticky top-0 z-20">
+                {headerGroups ? (
+                  <>
+                    <tr className="border-b border-slate-200">
+                      {headerGroups.map((grp, gIdx) => {
+                        if (!grp.parent) {
+                          return grp.cols.map((col, cIdx) => (
+                            <th
+                              key={col.key}
+                              rowSpan={2}
+                              className={`py-3 px-3.5 font-bold border-r border-slate-200 text-left min-w-[130px] ${
+                                cIdx === 0
+                                  ? "sticky left-0 z-30 bg-slate-100 shadow-r text-slate-900"
+                                  : "bg-slate-50 text-slate-800"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-1 mb-1">
+                                <span className="font-mono text-[10px] text-slate-400">
+                                  [{col.col_letter}]
+                                </span>
+                                {col.can_edit ? (
+                                  <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
+                                    Editable
+                                  </span>
+                                ) : col.type === "formula" ? (
+                                  <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-bold text-purple-800">
+                                    Formula
+                                  </span>
+                                ) : (
+                                  <Icon
+                                    icon="solar:lock-bold"
+                                    width={12}
+                                    className="text-slate-400"
+                                  />
+                                )}
+                              </div>
+                              <div className="text-xs font-bold leading-tight">{col.label}</div>
+                            </th>
+                          ));
+                        }
+
+                        return (
+                          <th
+                            key={`grp-${gIdx}-${grp.parent}`}
+                            colSpan={grp.cols.length}
+                            className="py-2.5 px-3 font-bold border-r border-slate-200 bg-rose-50/80 text-rose-950 text-center text-xs tracking-wider uppercase"
+                          >
+                            <div className="flex items-center justify-center gap-1.5">
+                              <span className="size-2 rounded-full bg-rose-400 inline-block" />
+                              <span>{grp.parent}</span>
+                            </div>
+                          </th>
+                        );
+                      })}
+                    </tr>
+                    <tr className="border-b border-slate-200 bg-slate-50">
+                      {headerGroups.map((grp) => {
+                        if (!grp.parent) return null;
+                        return grp.cols.map((col) => {
+                          const isEditableForMe = col.can_edit;
+                          const subTitle = col.sub_label || col.label;
+                          return (
+                            <th
+                              key={col.key}
+                              className={`py-2 px-3 font-semibold border-r border-slate-200 last:border-r-0 min-w-[125px] ${
+                                isEditableForMe
+                                  ? "bg-emerald-50/60 text-emerald-950"
+                                  : "text-slate-700 bg-slate-50"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-1 mb-1">
+                                <span className="font-mono text-[10px] text-slate-400">
+                                  [{col.col_letter}]
+                                </span>
+                                {isEditableForMe ? (
+                                  <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
+                                    Editable
+                                  </span>
+                                ) : col.type === "formula" ? (
+                                  <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-bold text-purple-800">
+                                    Formula
+                                  </span>
+                                ) : (
+                                  <Icon
+                                    icon="solar:lock-bold"
+                                    width={12}
+                                    className="text-slate-400"
+                                  />
+                                )}
+                              </div>
+                              <div className="text-[11px] leading-tight font-medium">{subTitle}</div>
+                            </th>
+                          );
+                        });
+                      })}
+                    </tr>
+                  </>
+                ) : (
+                  <tr>
+                    {effectiveColumnsSchema.map((col) => {
+                      const isEditableForMe = col.can_edit;
+                      return (
+                        <th
+                          key={col.key}
+                          className={`py-3 px-3.5 font-bold border-r border-slate-200 last:border-r-0 min-w-[130px] ${
+                            isEditableForMe
+                              ? "bg-emerald-50/60 text-emerald-950"
+                              : "text-slate-700"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1 mb-1">
+                            <span className="font-mono text-[10px] text-slate-400">
+                              [{col.col_letter}]
                             </span>
-                          ) : col.type === "formula" ? (
-                            <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-bold text-purple-800">
-                              Formula
-                            </span>
-                          ) : (
-                            <Icon
-                              icon="solar:lock-bold"
-                              width={12}
-                              className="text-slate-400"
-                            />
-                          )}
-                        </div>
-                        <div className="text-xs leading-tight">{col.label}</div>
-                      </th>
-                    );
-                  })}
-                </tr>
+                            {isEditableForMe ? (
+                              <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
+                                Editable
+                              </span>
+                            ) : col.type === "formula" ? (
+                              <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-bold text-purple-800">
+                                Formula
+                              </span>
+                            ) : (
+                              <Icon
+                                icon="solar:lock-bold"
+                                width={12}
+                                className="text-slate-400"
+                              />
+                            )}
+                          </div>
+                          <div className="text-xs leading-tight">{col.label}</div>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                )}
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {paginatedRows.map((row, rIdx) => {
@@ -912,15 +1046,24 @@ export default function TestLocalTableKatim() {
                       : originalIdx;
                   const rowIdxNum =
                     row.row_index !== undefined ? row.row_index : originalIdx;
-                  const isMonthLocked = row.is_locked;
-                  const isCurrent = row.is_current;
+                  const isMonthRow = !((row as any).is_month_row === false || (row.month !== undefined && row.month === 0));
+                  const isMonthLocked = isMonthRow && row.is_locked;
+                  const isCurrent = isMonthRow && row.is_current;
                   const canEditThisRow = row.can_edit_row !== false;
+                  const isTotalRow = Boolean(
+                    row.is_total ||
+                    row.row_name === "Total" ||
+                    row.cells?.col_0 === "Total" ||
+                    (typeof row.cells?.col_0 === "string" && row.cells.col_0.toLowerCase() === "total")
+                  );
 
                   return (
                     <tr
                       key={rowKey}
                       className={`transition ${
-                        isCurrent
+                        isTotalRow
+                          ? "bg-emerald-50/70 font-bold border-t-2 border-emerald-300 text-slate-900 hover:bg-emerald-100/60"
+                          : isCurrent
                           ? "bg-blue-50/20 font-medium"
                           : isMonthLocked
                           ? "bg-slate-50/40"
@@ -929,12 +1072,13 @@ export default function TestLocalTableKatim() {
                           : "hover:bg-slate-50/80"
                       }`}
                     >
-                      {effectiveColumnsSchema.map((col) => {
+                      {effectiveColumnsSchema.map((col, cIdx) => {
                         const val = row.cells?.[col.key] ?? "";
                         const canEditCell =
-                          col.can_edit && !isMonthLocked && canEditThisRow;
+                          col.can_edit && !isMonthLocked && canEditThisRow && !isTotalRow;
                         const isNum = typeof val === "number";
                         const isCollab = isCollaborativeCol(col);
+                        const isFirstStickyCol = cIdx === 0 && Boolean(headerGroups);
 
                         // Render khusus untuk kolom Catatan Kolaboratif (Kendala / Rencana Tindak Lanjut)
                         if (isCollab) {
@@ -1067,6 +1211,7 @@ export default function TestLocalTableKatim() {
                           col.label?.toLowerCase().includes("bulan");
                         const showLockedBadge =
                           isMonthLocked &&
+                          isMonthRow &&
                           (isBulanCol ||
                             (!effectiveColumnsSchema.some((c) =>
                               c.label?.toLowerCase().includes("bulan")
@@ -1077,13 +1222,21 @@ export default function TestLocalTableKatim() {
                           <td
                             key={col.key}
                             className={`py-2.5 px-3.5 border-r border-slate-100 last:border-r-0 text-xs ${
+                              isFirstStickyCol
+                                ? isTotalRow
+                                  ? "sticky left-0 z-10 bg-emerald-100 text-emerald-950 font-bold border-r border-emerald-300 shadow-r"
+                                  : "sticky left-0 z-10 bg-white text-slate-900 font-bold border-r border-slate-200 shadow-r"
+                                : ""
+                            } ${
                               isNum
                                 ? "text-right font-mono"
                                 : "text-left text-slate-700"
                             } ${
-                              col.type === "formula"
+                              isTotalRow
+                                ? "bg-emerald-50/50 text-emerald-950 font-bold"
+                                : col.type === "formula"
                                 ? "bg-purple-50/20 text-purple-900 font-semibold"
-                                : "text-slate-500"
+                                : "text-slate-600"
                             }`}
                           >
                             <div className="flex items-center justify-between gap-2">
@@ -1103,6 +1256,16 @@ export default function TestLocalTableKatim() {
               </tbody>
             </table>
           </div>
+
+          {/* Catatan Dokumen (khususnya untuk Caput RO) */}
+          {(activeTab?.id === 70 || activeTab?.title?.toLowerCase().includes("caput ro")) && (
+            <div className="m-4 flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 text-xs text-blue-900 shadow-2xs">
+              <Icon icon="solar:info-circle-bold" className="size-4 shrink-0 text-blue-600 mt-0.5" />
+              <div className="leading-relaxed">
+                <strong className="font-bold text-blue-950">Catatan Dokumen:</strong> Data Realisasi RO Sampel Obat, OBA, SK dan Kos dihitung dari data Realisasi Sampling tiap bulannya.
+              </div>
+            </div>
+          )}
 
           {/* Pagination Toolbar */}
           {isPaginationNeeded && (

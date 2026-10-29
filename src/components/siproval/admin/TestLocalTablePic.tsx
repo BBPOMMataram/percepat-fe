@@ -883,7 +883,7 @@ export default function TestLocalTablePic() {
                       </span>
                     </div>
                     <div className="text-xs font-bold text-slate-900">
-                      Bulan
+                      {activeTab.columns_schema?.[0]?.label || "Bulan"}
                     </div>
                   </th>
 
