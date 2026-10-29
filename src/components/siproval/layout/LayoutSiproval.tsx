@@ -41,23 +41,38 @@ export default function LayoutSiproval({
     }
 
     if (loading === false && user) {
+      const allowedPicEmails = [
+        "fatimah.wulandari@pom.go.id",
+        "fatimah.wulandari03@gmail.com",
+        "hilmi.khairan@pom.go.id",
+        "nanang.setyadi@pom.go.id",
+      ];
+      const allowedPicNames = [
+        "fatimah tri wulandari",
+        "fatimah t. wulandari",
+        "hilmi khairan",
+        "nanang setyadi santoso",
+      ];
       const allowedTuIds = [
         "019ab8b3-2885-7125-857c-ee07c4febdc0", // Fatimah Tri Wulandari
         "019ab8b3-493b-71d8-abd5-01c8ebcaf50e", // Fatimah T. Wulandari
         "019ab8b3-2fca-71ee-ba81-e33f70548c10", // Hilmi Khairan
         "019ab8b3-1fb0-73ef-af89-ad09ef30f76f", // Nanang Setyadi Santoso
+        "019ab8b3-3a1c-73e0-ad51-4e07c7a343cc", // Syamsul Hady
       ];
       const allowedTuEmails = [
         "fatimah.wulandari@pom.go.id",
         "fatimah.wulandari03@gmail.com",
         "hilmi.khairan@pom.go.id",
         "nanang.setyadi@pom.go.id",
+        "syamsul.hady@pom.go.id",
       ];
       const allowedTuNames = [
         "fatimah tri wulandari",
         "fatimah t. wulandari",
         "hilmi khairan",
         "nanang setyadi santoso",
+        "syamsul hady",
       ];
 
       const userId = String(user.id || "")
@@ -79,8 +94,8 @@ export default function LayoutSiproval({
 
       const isSuperadmin =
         user.role?.level === "superadmin" ||
-        allowedTuEmails.includes(userEmail) ||
-        allowedTuNames.includes(userNameClean) ||
+        allowedPicEmails.includes(userEmail) ||
+        allowedPicNames.includes(userNameClean) ||
         (user.role?.level === "admin" &&
           Array.isArray(user.sites) &&
           user.sites.some(
