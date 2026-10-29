@@ -21,21 +21,30 @@ const AppContainer = ({ appData }: { appData: AppData }) => {
 
     const hasDesc = appData.desc && appData.desc !== '-';
 
-    // Kumpulkan seluruh daftar PIC modul dari database (mendukung lebih dari 1 PIC)
+    // Ambil daftar PIC langsung dari relasi site_user (appData.users), utamakan call_name lalu fallback ke full name
     const picList: string[] = (() => {
-        if (Array.isArray(appData.pics) && appData.pics.length > 0) {
-            return appData.pics.map((p) => p.trim()).filter((p) => p !== '' && p !== '-');
+        const rawList: string[] = Array.isArray(appData.users)
+            ? appData.users
+                  .map((u) => {
+                      const callName = (u.call_name || '').trim();
+                      const fullName = (u.name || '').trim();
+                      return callName !== '' && callName !== '-' ? callName : fullName;
+                  })
+                  .filter((p) => p !== '' && p !== '-')
+            : Array.isArray(appData.pics)
+              ? appData.pics.map((p) => p.trim()).filter((p) => p !== '' && p !== '-')
+              : [];
+
+        const seen = new Set<string>();
+        const uniqueList: string[] = [];
+        for (const item of rawList) {
+            const key = item.toLowerCase();
+            if (!seen.has(key)) {
+                seen.add(key);
+                uniqueList.push(item);
+            }
         }
-        if (Array.isArray(appData.users) && appData.users.length > 0) {
-            return appData.users.map((u) => (u.name || '').trim()).filter((p) => p !== '' && p !== '-');
-        }
-        if (appData.pic && appData.pic !== '-') {
-            return appData.pic
-                .split(/\s*[,;\/]\s*/)
-                .map((p) => p.trim())
-                .filter((p) => p !== '' && p !== '-');
-        }
-        return [];
+        return uniqueList;
     })();
 
     const body = (
