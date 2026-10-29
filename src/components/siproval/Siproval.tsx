@@ -613,8 +613,8 @@ export default function Siproval() {
               )}
 
               <SiprovalPillButton
-                href="/buku_panduan_siproval.pdf"
-                download="buku_panduan_siproval.pdf"
+                href="/buku_handbook_siproval.pdf"
+                download="buku_handbook_siproval.pdf"
                 external={true}
                 label="Unduh Buku Panduan"
                 arrowDirection="download"
