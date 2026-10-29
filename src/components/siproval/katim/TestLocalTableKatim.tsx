@@ -324,6 +324,8 @@ export default function TestLocalTableKatim() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>("all");
   const [isPicUser, setIsPicUser] = useState(false);
+  const [isCurrentMonthLocked, setIsCurrentMonthLocked] = useState(false);
+  const [isTogglingLock, setIsTogglingLock] = useState(false);
 
   // Jika user teridentifikasi sebagai PIC/Admin dan mengakses endpoint /siproval/katim/entry-data-rhpk,
   // alihkan secara halus ke endpoint resmi PIC: /siproval/admin/entry-data-rhpk
@@ -387,6 +389,9 @@ export default function TestLocalTableKatim() {
       if (d.is_pic !== undefined) {
         setIsPicUser(Boolean(d.is_pic));
       }
+      if (d.is_current_month_locked !== undefined) {
+        setIsCurrentMonthLocked(Boolean(d.is_current_month_locked));
+      }
       if (Array.isArray(d.years) && d.years.length > 0) {
         setYears(d.years);
       }
@@ -433,6 +438,27 @@ export default function TestLocalTableKatim() {
       fetchData(selectedYear, initialIksk, initialSp, initialTab);
     }
   }, [user?.id, selectedYear, paramIkskId, paramSpreadsheetId, paramTabId]);
+
+  const handleToggleCurrentMonthLock = async () => {
+    setIsTogglingLock(true);
+    try {
+      const newUnlocked = isCurrentMonthLocked;
+      await api.post(`${baseUrl}/api/test-local-table/toggle-month-lock${authQuery}`, {
+        month: currentMonth,
+        year: selectedYear,
+        is_unlocked: newUnlocked,
+        note: newUnlocked
+          ? `Bulan ${currentMonth} dibuka oleh PIC/Admin`
+          : `Bulan ${currentMonth} dikunci oleh PIC/Admin`,
+      });
+      setIsCurrentMonthLocked(!newUnlocked);
+      await fetchData();
+    } catch (err: unknown) {
+      console.error("Gagal mengubah status kunci bulan", err);
+    } finally {
+      setIsTogglingLock(false);
+    }
+  };
 
   const handleSelectYear = (year: number) => {
     setSelectedYear(year);
@@ -1050,8 +1076,51 @@ export default function TestLocalTableKatim() {
             )}
           </div>
 
-          <div className="text-xs text-slate-500">
-            Bulan Berjalan: <strong className="text-slate-800">{currentMonth} (Oktober)</strong>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            <div>
+              Bulan Berjalan: <strong className="text-slate-800">{currentMonth} ({["", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][currentMonth] || "Oktober"})</strong>
+            </div>
+            {isPicUser && (
+              <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
+                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                  isCurrentMonthLocked
+                    ? "bg-red-50 text-red-700 border border-red-200"
+                    : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                }`}>
+                  <Icon icon={isCurrentMonthLocked ? "solar:lock-bold" : "solar:lock-unlocked-bold"} width={12} />
+                  {isCurrentMonthLocked ? "Terkunci untuk Katim" : "Terbuka untuk Katim"}
+                </span>
+                <button
+                  type="button"
+                  disabled={isTogglingLock}
+                  onClick={handleToggleCurrentMonthLock}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition shadow-xs flex items-center gap-1.5 ${
+                    isCurrentMonthLocked
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                      : "bg-white hover:bg-red-50 text-red-600 border border-red-200"
+                  } disabled:opacity-50`}
+                >
+                  <Icon
+                    icon={
+                      isTogglingLock
+                        ? "solar:refresh-circle-linear"
+                        : isCurrentMonthLocked
+                        ? "solar:lock-unlocked-bold"
+                        : "solar:lock-bold"
+                    }
+                    width={13}
+                    className={isTogglingLock ? "animate-spin" : ""}
+                  />
+                  <span>
+                    {isTogglingLock
+                      ? "Menyimpan..."
+                      : isCurrentMonthLocked
+                      ? "Buka Akses Katim"
+                      : "Kunci Akses Katim"}
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
