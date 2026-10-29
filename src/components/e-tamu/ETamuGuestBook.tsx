@@ -7,6 +7,7 @@ import Script from "next/script";
 import api from "@/utils/api";
 import { toast } from "react-toastify";
 import PopupSurvey from "./PopupSurvey";
+import NavbarETamu from "./layout/NavbarETamu";
 
 const BPOM_LAT = -8.5877864;
 const BPOM_LNG = 116.1157653;
@@ -262,28 +263,34 @@ export default function ETamuGuestBook() {
 
     if (locationStatus === 'checking') {
         return (
-            <div className="min-h-screen bg-[#f3f7f6] flex flex-col items-center justify-center p-4">
-                <span className="loading loading-spinner loading-lg text-emerald-600 mb-4"></span>
-                <p className="text-slate-600 font-medium">Memeriksa lokasi dan akurasi GPS Anda...</p>
-                <p className="text-sm text-slate-400 mt-2 text-center max-w-sm">Pastikan Anda mengizinkan akses lokasi pada browser untuk melanjutkan.</p>
+            <div className="min-h-screen bg-[#f3f7f6] flex flex-col">
+                <NavbarETamu />
+                <div className="flex-1 flex flex-col items-center justify-center p-4">
+                    <span className="loading loading-spinner loading-lg text-emerald-600 mb-4"></span>
+                    <p className="text-slate-600 font-medium">Memeriksa lokasi dan akurasi GPS Anda...</p>
+                    <p className="text-sm text-slate-400 mt-2 text-center max-w-sm">Pastikan Anda mengizinkan akses lokasi pada browser untuk melanjutkan.</p>
+                </div>
             </div>
         );
     }
 
     if (locationStatus === 'denied') {
         return (
-            <div className="min-h-screen bg-[#f3f7f6] flex flex-col items-center justify-center p-4">
-                <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-slate-200">
-                    <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="material-symbols-outlined text-4xl">location_off</span>
+            <div className="min-h-screen bg-[#f3f7f6] flex flex-col">
+                <NavbarETamu />
+                <div className="flex-1 flex flex-col items-center justify-center p-4">
+                    <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-slate-200">
+                        <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span className="material-symbols-outlined text-4xl">location_off</span>
+                        </div>
+                        <h2 className="text-2xl font-bold text-slate-800 mb-2">Akses Lokasi Ditolak</h2>
+                        <p className="text-slate-600 mb-6 text-sm leading-relaxed">
+                            Buku Tamu ini hanya dapat diakses di area BBPOM di Mataram. Harap berikan izin akses lokasi (GPS) pada pengaturan browser Anda dan pastikan GPS menyala.
+                        </p>
+                        <button onClick={() => checkLocation(0)} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-xl w-full transition-colors flex items-center justify-center gap-2">
+                            <span className="material-symbols-outlined">my_location</span> Cek Ulang Lokasi
+                        </button>
                     </div>
-                    <h2 className="text-2xl font-bold text-slate-800 mb-2">Akses Lokasi Ditolak</h2>
-                    <p className="text-slate-600 mb-6 text-sm leading-relaxed">
-                        Buku Tamu ini hanya dapat diakses di area BBPOM di Mataram. Harap berikan izin akses lokasi (GPS) pada pengaturan browser Anda dan pastikan GPS menyala.
-                    </p>
-                    <button onClick={() => checkLocation(0)} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-xl w-full transition-colors flex items-center justify-center gap-2">
-                        <span className="material-symbols-outlined">my_location</span> Cek Ulang Lokasi
-                    </button>
                 </div>
             </div>
         );
@@ -291,18 +298,21 @@ export default function ETamuGuestBook() {
 
     if (locationStatus === 'too_far') {
         return (
-            <div className="min-h-screen bg-[#f3f7f6] flex flex-col items-center justify-center p-4">
-                <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-slate-200">
-                    <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="material-symbols-outlined text-4xl">share_location</span>
+            <div className="min-h-screen bg-[#f3f7f6] flex flex-col">
+                <NavbarETamu />
+                <div className="flex-1 flex flex-col items-center justify-center p-4">
+                    <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-slate-200">
+                        <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span className="material-symbols-outlined text-4xl">share_location</span>
+                        </div>
+                        <h2 className="text-2xl font-bold text-slate-800 mb-2">Lokasi Terlalu Jauh</h2>
+                        <p className="text-slate-600 mb-6 text-sm leading-relaxed">
+                            Anda berada di luar area BBPOM di Mataram. Jarak Anda saat ini adalah <strong className="text-slate-800">{distance} meter</strong>. Anda harus berada di dalam radius maksimal 50 meter.
+                        </p>
+                        <button onClick={() => checkLocation(0)} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-xl w-full transition-colors flex items-center justify-center gap-2">
+                            <span className="material-symbols-outlined">my_location</span> Cek Ulang Lokasi
+                        </button>
                     </div>
-                    <h2 className="text-2xl font-bold text-slate-800 mb-2">Lokasi Terlalu Jauh</h2>
-                    <p className="text-slate-600 mb-6 text-sm leading-relaxed">
-                        Anda berada di luar area BBPOM di Mataram. Jarak Anda saat ini adalah <strong className="text-slate-800">{distance} meter</strong>. Anda harus berada di dalam radius maksimal 30 meter.
-                    </p>
-                    <button onClick={() => checkLocation(0)} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-xl w-full transition-colors flex items-center justify-center gap-2">
-                        <span className="material-symbols-outlined">my_location</span> Cek Ulang Lokasi
-                    </button>
                 </div>
             </div>
         );
@@ -310,7 +320,8 @@ export default function ETamuGuestBook() {
 
     return (
         <div className="min-h-screen bg-[#f3f7f6] flex flex-col font-sans selection:bg-emerald-500 selection:text-white pb-10 relative">
-            
+            <NavbarETamu />
+
             <header className="flex flex-col text-center items-center pt-5 mb-6">
                 <Image src="/assets/images/bpomri_without_label.png" alt="logo BPOM" width={70} height={70} className="mb-2 w-auto h-auto" priority />
                 <h1 className="text-black font-bold text-3xl">E Tamu - BBPOM di Mataram</h1>
