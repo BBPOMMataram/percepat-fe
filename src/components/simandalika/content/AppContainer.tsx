@@ -21,6 +21,23 @@ const AppContainer = ({ appData }: { appData: AppData }) => {
 
     const hasDesc = appData.desc && appData.desc !== '-';
 
+    // Kumpulkan seluruh daftar PIC modul dari database (mendukung lebih dari 1 PIC)
+    const picList: string[] = (() => {
+        if (Array.isArray(appData.pics) && appData.pics.length > 0) {
+            return appData.pics.map((p) => p.trim()).filter((p) => p !== '' && p !== '-');
+        }
+        if (Array.isArray(appData.users) && appData.users.length > 0) {
+            return appData.users.map((u) => (u.name || '').trim()).filter((p) => p !== '' && p !== '-');
+        }
+        if (appData.pic && appData.pic !== '-') {
+            return appData.pic
+                .split(/\s*[,;\/]\s*/)
+                .map((p) => p.trim())
+                .filter((p) => p !== '' && p !== '-');
+        }
+        return [];
+    })();
+
     const body = (
         <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200/80 bg-white/90 shadow-md backdrop-blur-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-bpom-green/40 hover:shadow-2xl">
             {/* Garis aksen atas */}
@@ -47,14 +64,17 @@ const AppContainer = ({ appData }: { appData: AppData }) => {
                             {appData.name}
                         </h3>
                         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                            {appData.pic && appData.pic !== '-' && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
-                                    <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24" aria-hidden="true">
+                            {picList.map((picName, idx) => (
+                                <span
+                                    key={`${picName}-${idx}`}
+                                    className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700"
+                                >
+                                    <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24" aria-hidden="true">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                     </svg>
-                                    {appData.pic}
+                                    <span>{picName}</span>
                                 </span>
-                            )}
+                            ))}
                             {isExternal && (
                                 <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gray-500">
                                     Eksternal
