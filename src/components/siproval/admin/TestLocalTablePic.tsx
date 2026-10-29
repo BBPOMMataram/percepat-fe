@@ -47,6 +47,19 @@ type RowData = {
   is_total?: boolean;
 };
 
+export function getPageNumbers(current: number, total: number): (number | string)[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, "...", total];
+  }
+  if (current >= total - 3) {
+    return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
+  }
+  return [1, "...", current - 1, current, current + 1, "...", total];
+}
+
 export function getMonthColor(monthName?: string | null) {
   let m = (monthName || "").toUpperCase().trim();
   m = m.replace(/^S[\.\/]?D[\.\s]+/i, "").trim();
@@ -201,22 +214,149 @@ export default function TestLocalTablePic() {
   const [savingCols, setSavingCols] = useState(false);
 
   const [tableSearch, setTableSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(50);
+  const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>("all");
+
+  useEffect(() => {
+    setCurrentPage(1);
+    setTableSearch("");
+    setSelectedMonthFilter("all");
+  }, [activeTab?.id]);
 
   const activeSpreadsheet = useMemo(() => {
     return spreadsheets.find((s) => s.id === selectedSpId) || null;
   }, [spreadsheets, selectedSpId]);
 
+  const monthColKey = useMemo(() => {
+    if (!activeTab?.columns_schema) return null;
+    const col = activeTab.columns_schema.find(
+      (c) => (c.label || "").toLowerCase().trim() === "bulan"
+    );
+    return col ? col.key : null;
+  }, [activeTab?.columns_schema]);
+
+  const availableMonths = useMemo(() => {
+    if (!activeTab?.rows_data || activeTab.rows_data.length === 0) return [];
+    const monthsMap: Record<string, number> = {};
+
+    activeTab.rows_data.forEach((r) => {
+      let m = "";
+      if (monthColKey && r.cells?.[monthColKey]) {
+        m = String(r.cells[monthColKey]).trim();
+      } else if (r.month_name && typeof r.month_name === "string" && r.month_name.trim()) {
+        m = r.month_name.trim();
+      } else if (r.cells?.col_2 && typeof r.cells.col_2 === "string") {
+        const val = r.cells.col_2.trim();
+        if (
+          /(januari|februari|pebruari|maret|april|mei|juni|juli|agustus|september|oktober|november|nopember|desember)/i.test(
+            val
+          )
+        ) {
+          m = val;
+        }
+      }
+      if (m) {
+        const normalized = m.charAt(0).toUpperCase() + m.slice(1);
+        monthsMap[normalized] = (monthsMap[normalized] || 0) + 1;
+      }
+    });
+
+    const standardOrder = [
+      "Januari",
+      "Februari",
+      "Maret",
+      "April",
+      "Mei",
+      "Juni",
+      "Juli",
+      "Agustus",
+      "September",
+      "Oktober",
+      "November",
+      "Desember",
+    ];
+
+    const result: { name: string; count: number }[] = [];
+    standardOrder.forEach((name) => {
+      const matchKey = Object.keys(monthsMap).find(
+        (k) =>
+          k.toLowerCase() === name.toLowerCase() ||
+          (name === "Februari" && k.toLowerCase() === "pebruari") ||
+          (name === "November" && k.toLowerCase() === "nopember")
+      );
+      if (matchKey) {
+        result.push({ name: matchKey, count: monthsMap[matchKey] });
+      }
+    });
+
+    Object.keys(monthsMap).forEach((k) => {
+      if (!result.some((item) => item.name.toLowerCase() === k.toLowerCase())) {
+        result.push({ name: k, count: monthsMap[k] });
+      }
+    });
+
+    return result;
+  }, [activeTab?.rows_data, monthColKey]);
+
   const filteredRows = useMemo(() => {
     if (!activeTab?.rows_data) return [];
-    if (!tableSearch.trim()) return activeTab.rows_data;
-    const q = tableSearch.toLowerCase();
-    return activeTab.rows_data.filter((r) => {
-      if (r.month_name && r.month_name.toLowerCase().includes(q)) return true;
-      return Object.values(r.cells || {}).some((v) =>
-        String(v).toLowerCase().includes(q)
-      );
-    });
-  }, [activeTab?.rows_data, tableSearch]);
+    let rows = activeTab.rows_data;
+
+    // Filter per Bulan
+    if (selectedMonthFilter !== "all") {
+      const filterLower = selectedMonthFilter.toLowerCase();
+      rows = rows.filter((r) => {
+        let m = "";
+        if (monthColKey && r.cells?.[monthColKey]) {
+          m = String(r.cells[monthColKey]).trim().toLowerCase();
+        } else if (r.month_name) {
+          m = String(r.month_name).trim().toLowerCase();
+        } else if (r.cells?.col_2) {
+          m = String(r.cells.col_2).trim().toLowerCase();
+        }
+        return (
+          m === filterLower ||
+          (filterLower === "februari" && m === "pebruari") ||
+          (filterLower === "november" && m === "nopember")
+        );
+      });
+    }
+
+    // Filter per Pencarian
+    if (tableSearch.trim()) {
+      const q = tableSearch.toLowerCase().trim();
+      rows = rows.filter((r) => {
+        if (r.cells) {
+          const match = Object.values(r.cells).some(
+            (val) =>
+              val !== null &&
+              val !== undefined &&
+              String(val).toLowerCase().includes(q)
+          );
+          if (match) return true;
+        }
+        if (r.row_name && r.row_name.toLowerCase().includes(q)) return true;
+        if (r.month_name && r.month_name.toLowerCase().includes(q)) return true;
+        return false;
+      });
+    }
+
+    return rows;
+  }, [activeTab?.rows_data, selectedMonthFilter, tableSearch, monthColKey]);
+
+  const rawRowsCount = activeTab?.rows_data?.length || 0;
+  const totalRows = filteredRows.length;
+  const isPaginationNeeded = rawRowsCount > 25 || availableMonths.length > 1;
+  const effectivePageSize = pageSize === 0 ? totalRows : pageSize;
+  const totalPages = effectivePageSize > 0 ? Math.ceil(totalRows / effectivePageSize) : 1;
+  const safeCurrentPage = Math.min(Math.max(currentPage, 1), totalPages || 1);
+
+  const paginatedRows = useMemo(() => {
+    if (!isPaginationNeeded || pageSize === 0) return filteredRows;
+    const start = (safeCurrentPage - 1) * pageSize;
+    return filteredRows.slice(start, start + pageSize);
+  }, [filteredRows, isPaginationNeeded, safeCurrentPage, pageSize]);
 
   const columnTotals = useMemo(() => {
     if (!activeTab?.columns_schema || !activeTab?.rows_data) return {};
@@ -951,36 +1091,174 @@ export default function TestLocalTablePic() {
       {/* MAIN DATA TABLE (DESAIN & POLISH SEPERTI TABEL TU)            */}
       {/* ============================================================ */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm space-y-0">
-        {/* Table Top Controls & Search Bar */}
-        <div className="border-b border-slate-200 bg-slate-50/70 px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="relative w-full max-w-sm">
-            <Icon
-              icon="solar:magnifer-linear"
-              width={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-            <input
-              type="text"
-              value={tableSearch}
-              onChange={(e) => setTableSearch(e.target.value)}
-              placeholder="Cari bulan atau data sel pada tabel..."
-              className="w-full rounded-xl border border-slate-200 bg-white py-1.5 pl-9 pr-8 text-xs text-slate-800 placeholder-slate-400 transition focus:border-[#005baa] focus:outline-none"
-            />
-            {tableSearch && (
+        {/* Table Top Controls, Filter Bulan & Search Bar */}
+        <div className="border-b border-slate-200 bg-slate-50/70 p-4 space-y-3">
+          {/* Row 1: Filter Bulan Pills jika terdapat lebih dari 1 bulan */}
+          {availableMonths.length > 1 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1 flex items-center gap-1">
+                <Icon icon="solar:calendar-bold" width={14} className="text-[#005baa]" />
+                Filter Bulan:
+              </span>
               <button
                 type="button"
-                onClick={() => setTableSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                onClick={() => {
+                  setSelectedMonthFilter("all");
+                  setCurrentPage(1);
+                }}
+                className={`rounded-lg px-2.5 py-1 text-xs font-bold transition shadow-2xs ${
+                  selectedMonthFilter === "all"
+                    ? "bg-[#005baa] text-white shadow-blue-600/20"
+                    : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                }`}
               >
-                &times;
+                Semua Bulan ({rawRowsCount})
               </button>
-            )}
-          </div>
+              {availableMonths.map((m) => {
+                const isSelected =
+                  selectedMonthFilter.toLowerCase() === m.name.toLowerCase();
+                return (
+                  <button
+                    key={m.name}
+                    type="button"
+                    onClick={() => {
+                      setSelectedMonthFilter(m.name);
+                      setCurrentPage(1);
+                    }}
+                    className={`rounded-lg px-2.5 py-1 text-xs font-bold transition shadow-2xs ${
+                      isSelected
+                        ? "bg-[#005baa] text-white shadow-blue-600/20"
+                        : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    {m.name} ({m.count})
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
-          <div className="flex items-center gap-3 text-xs text-slate-500">
-            <span>
-              Menampilkan <strong className="text-slate-800">{filteredRows.length}</strong> dari 12 baris bulan
-            </span>
+          {/* Row 2: Search input + Info baris + Top Pagination Controls */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="relative w-full max-w-sm">
+              <Icon
+                icon="solar:magnifer-linear"
+                width={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+              <input
+                type="text"
+                value={tableSearch}
+                onChange={(e) => {
+                  setTableSearch(e.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Cari bulan atau data sel pada tabel..."
+                className="w-full rounded-xl border border-slate-200 bg-white py-1.5 pl-9 pr-8 text-xs text-slate-800 placeholder-slate-400 transition focus:border-[#005baa] focus:outline-none"
+              />
+              {tableSearch && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTableSearch("");
+                    setCurrentPage(1);
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                >
+                  &times;
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+              <div className="flex items-center gap-2">
+                <span>
+                  Menampilkan{" "}
+                  <strong className="text-slate-800">
+                    {totalRows === 0
+                      ? 0
+                      : (safeCurrentPage - 1) * (pageSize || 1) + 1}
+                  </strong>{" "}
+                  -{" "}
+                  <strong className="text-slate-800">
+                    {Math.min(safeCurrentPage * (pageSize || 1), totalRows)}
+                  </strong>{" "}
+                  dari{" "}
+                  <strong className="text-slate-800">{totalRows}</strong> baris
+                  {selectedMonthFilter !== "all" && (
+                    <span className="ml-1 text-[#005baa] font-semibold">
+                      ({selectedMonthFilter})
+                    </span>
+                  )}
+                </span>
+
+                <div className="flex items-center gap-1.5 ml-1 border-l border-slate-300 pl-3">
+                  <span className="text-[11px] text-slate-500">Per Hal:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-2xs focus:border-[#005baa] focus:outline-none cursor-pointer"
+                  >
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                    <option value={200}>200</option>
+                    <option value={0}>Semua ({totalRows})</option>
+                  </select>
+                </div>
+              </div>
+
+              {pageSize > 0 && totalPages > 1 && (
+                <div className="flex items-center gap-1 ml-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={safeCurrentPage === 1}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+                    title="Halaman Pertama"
+                  >
+                    <Icon icon="solar:double-alt-arrow-left-linear" width={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                    disabled={safeCurrentPage === 1}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+                    title="Halaman Sebelumnya"
+                  >
+                    <Icon icon="solar:alt-arrow-left-linear" width={14} />
+                  </button>
+
+                  <span className="px-2 font-bold text-xs text-slate-700">
+                    Hal {safeCurrentPage} / {totalPages}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(p + 1, totalPages))
+                    }
+                    disabled={safeCurrentPage === totalPages}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+                    title="Halaman Selanjutnya"
+                  >
+                    <Icon icon="solar:alt-arrow-right-linear" width={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={safeCurrentPage === totalPages}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+                    title="Halaman Terakhir"
+                  >
+                    <Icon icon="solar:double-alt-arrow-right-linear" width={14} />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -994,7 +1272,8 @@ export default function TestLocalTablePic() {
             Belum ada tabel yang dipilih. Silakan pilih dokumen atau unggah file Excel di atas.
           </div>
         ) : (
-          <div className="w-full overflow-x-auto custom-scrollbar">
+          <>
+            <div className="w-full overflow-x-auto custom-scrollbar">
             <table className="w-full border-collapse text-left text-xs">
               {/* Sticky Table Header */}
               <thead className="bg-slate-50 text-slate-700 border-b border-slate-200 sticky top-0 z-20">
@@ -1202,7 +1481,7 @@ export default function TestLocalTablePic() {
 
               {/* Table Body */}
               <tbody className="divide-y divide-slate-100">
-                {filteredRows.length === 0 ? (
+                {paginatedRows.length === 0 ? (
                   <tr>
                     <td
                       colSpan={activeTab.columns_schema?.length || 1}
@@ -1212,7 +1491,7 @@ export default function TestLocalTablePic() {
                     </td>
                   </tr>
                 ) : (
-                  filteredRows.map((row, rIdx) => {
+                  paginatedRows.map((row, rIdx) => {
                     const isSectionRow =
                       (row as any).row_type === "section" ||
                       row.cells?.col_1 === "Survey Tatap Muka" ||
@@ -1366,6 +1645,121 @@ export default function TestLocalTablePic() {
               )}
             </table>
           </div>
+
+          {/* Pagination Toolbar PIC */}
+          {isPaginationNeeded && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/90 px-5 py-3.5">
+              <div className="flex items-center gap-3 text-xs text-slate-600">
+                <span>
+                  Menampilkan{" "}
+                  <span className="font-bold text-slate-900">
+                    {totalRows === 0
+                      ? 0
+                      : (safeCurrentPage - 1) * (pageSize || 1) + 1}
+                  </span>{" "}
+                  -{" "}
+                  <span className="font-bold text-slate-900">
+                    {Math.min(safeCurrentPage * (pageSize || 1), totalRows)}
+                  </span>{" "}
+                  dari <span className="font-bold text-slate-900">{totalRows}</span>{" "}
+                  baris
+                  {selectedMonthFilter !== "all" && (
+                    <span className="ml-1 text-[#005baa] font-semibold">
+                      ({selectedMonthFilter})
+                    </span>
+                  )}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <span className="text-[11px] text-slate-500">Baris:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-2xs focus:border-[#005baa] focus:outline-none cursor-pointer"
+                  >
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                    <option value={200}>200</option>
+                    <option value={0}>Semua ({totalRows})</option>
+                  </select>
+                </div>
+              </div>
+
+              {pageSize > 0 && totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={safeCurrentPage === 1}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+                    title="Halaman Pertama"
+                  >
+                    <Icon icon="solar:double-alt-arrow-left-linear" width={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                    disabled={safeCurrentPage === 1}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+                    title="Halaman Sebelumnya"
+                  >
+                    <Icon icon="solar:alt-arrow-left-linear" width={16} />
+                  </button>
+
+                  <div className="flex items-center gap-1 px-1">
+                    {getPageNumbers(safeCurrentPage, totalPages).map((p, pIdx) =>
+                      p === "..." ? (
+                        <span
+                          key={`dots-${pIdx}`}
+                          className="px-1 text-xs text-slate-400"
+                        >
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setCurrentPage(Number(p))}
+                          className={`h-8 min-w-[32px] px-2 rounded-lg text-xs font-bold transition shadow-2xs ${
+                            safeCurrentPage === Number(p)
+                              ? "bg-[#005baa] text-white shadow-blue-600/20"
+                              : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(p + 1, totalPages))
+                    }
+                    disabled={safeCurrentPage === totalPages}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+                    title="Halaman Selanjutnya"
+                  >
+                    <Icon icon="solar:alt-arrow-right-linear" width={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={safeCurrentPage === totalPages}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+                    title="Halaman Terakhir"
+                  >
+                    <Icon icon="solar:double-alt-arrow-right-linear" width={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          </>
         )}
 
         {/* Note Alert jika tab Caput RO Sampel Obat dll */}
