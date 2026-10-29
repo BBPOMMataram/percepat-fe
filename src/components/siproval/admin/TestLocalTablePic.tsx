@@ -48,7 +48,10 @@ type RowData = {
 };
 
 export function getMonthColor(monthName?: string | null) {
-  const m = (monthName || "").toUpperCase().trim();
+  let m = (monthName || "").toUpperCase().trim();
+  m = m.replace(/^S[\.\/]?D[\.\s]+/i, "").trim();
+  if (m === "PEBRUARI") m = "FEBRUARI";
+  if (m === "NOPEMBER") m = "NOVEMBER";
   switch (m) {
     case "JANUARI":
       return {
@@ -1000,29 +1003,39 @@ export default function TestLocalTablePic() {
                     <tr className="border-b border-slate-200">
                       {headerGroups.map((grp, gIdx) => {
                         if (!grp.parent) {
-                          return grp.cols.map((col, cIdx) => (
-                            <th
-                              key={col.key}
-                              rowSpan={2}
-                              className={`py-3 px-3.5 font-bold border-r border-slate-200 text-left min-w-[130px] ${
-                                cIdx === 0
-                                  ? "sticky left-0 z-30 bg-slate-100 shadow-r text-slate-900"
-                                  : "bg-slate-50 text-slate-800"
-                              }`}
-                            >
-                              <div className="flex items-center justify-between gap-1 mb-1">
-                                <span className="font-mono text-[10px] text-slate-400">
-                                  [{col.col_letter}]
-                                </span>
-                                <span className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[9px] font-bold text-slate-600 uppercase">
-                                  Kunci
-                                </span>
-                              </div>
-                              <div className="text-xs font-bold leading-snug">
-                                {col.label}
-                              </div>
-                            </th>
-                          ));
+                          const numLeftCols = grp.cols.length;
+                          return grp.cols.map((col, cIdx) => {
+                            let stickyStyle = "bg-slate-50 text-slate-800";
+                            if (cIdx === 0) {
+                              stickyStyle =
+                                numLeftCols > 1
+                                  ? "sticky left-0 z-30 bg-slate-100 text-slate-900 w-[55px] min-w-[55px] max-w-[55px] text-center border-r border-slate-200"
+                                  : "sticky left-0 z-30 bg-slate-100 shadow-r text-slate-900 min-w-[130px] border-r border-slate-200";
+                            } else if (cIdx === 1 && numLeftCols > 1) {
+                              stickyStyle =
+                                "sticky left-[55px] z-30 bg-slate-100 shadow-r text-slate-900 min-w-[240px] max-w-[280px] border-r border-slate-200";
+                            }
+
+                            return (
+                              <th
+                                key={col.key}
+                                rowSpan={2}
+                                className={`py-3 px-3.5 font-bold text-left ${stickyStyle}`}
+                              >
+                                <div className="flex items-center justify-between gap-1 mb-1">
+                                  <span className="font-mono text-[10px] text-slate-400">
+                                    [{col.col_letter}]
+                                  </span>
+                                  <span className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[9px] font-bold text-slate-600 uppercase">
+                                    Kunci
+                                  </span>
+                                </div>
+                                <div className="text-xs font-bold leading-snug">
+                                  {col.label}
+                                </div>
+                              </th>
+                            );
+                          });
                         }
 
                         const mColor = getMonthColor(grp.parent);
@@ -1200,50 +1213,115 @@ export default function TestLocalTablePic() {
                   </tr>
                 ) : (
                   filteredRows.map((row, rIdx) => {
-                    const firstColKey = activeTab.columns_schema?.[0]?.key || "col_0";
-                    const monthVal = row.cells?.[firstColKey] || row.month_name;
-                    const isTotalRow =
+                    const isSectionRow =
+                      (row as any).row_type === "section" ||
+                      row.cells?.col_1 === "Survey Tatap Muka" ||
+                      row.cells?.col_1 === "Survey Media";
+                    const isFormulaRow =
+                      (row as any).row_type === "formula" ||
+                      [
+                        "Indeks Tatap Muka",
+                        "Indeks Media",
+                        "Total Responden",
+                        "Indeks Rata-rata",
+                        "%Capaian"
+                      ].includes(row.cells?.col_1);
+                    const isQuestionRow =
+                      (row as any).row_type === "question" ||
+                      (typeof row.cells?.col_1 === "string" && row.cells.col_1.startsWith("- "));
+                    const isTotalRow = Boolean(
                       row.is_total ||
                       row.cells?.col_0 === "Total" ||
-                      row.cells?.col_0 === "TOTAL";
+                      row.cells?.col_0 === "TOTAL" ||
+                      isFormulaRow
+                    );
+
+                    const numLeftCols =
+                      headerGroups && !headerGroups[0]?.parent
+                        ? headerGroups[0].cols.length
+                        : 1;
+                    const hasMultiLeftCols = Boolean(
+                      headerGroups && !headerGroups[0]?.parent && numLeftCols > 1
+                    );
 
                     return (
                       <tr
                         key={row.row_index ?? rIdx}
                         className={`transition group ${
-                          isTotalRow
+                          isSectionRow
+                            ? "bg-slate-100 font-bold border-y border-slate-300 text-slate-900"
+                            : isFormulaRow
+                            ? "bg-emerald-50/70 border-y border-emerald-300 font-bold"
+                            : isTotalRow
                             ? "bg-emerald-50/70 border-t-2 border-emerald-300 font-bold"
                             : "hover:bg-blue-50/30"
                         }`}
                       >
-                        {/* Kolom Pertama - Sticky Left */}
-                        <td
-                          className={`py-2.5 px-4 border-r border-slate-200 sticky left-0 z-10 shadow-r whitespace-nowrap font-bold ${
-                            isTotalRow
-                              ? "bg-emerald-100/80 text-emerald-950 font-black"
-                              : "bg-white group-hover:bg-blue-50/40 text-[#005baa]"
-                          }`}
-                        >
-                          <span>{monthVal}</span>
-                        </td>
-
-                        {/* Sisa Kolom Data */}
-                        {activeTab.columns_schema?.slice(1).map((col) => {
+                        {activeTab.columns_schema?.map((col, cIdx) => {
                           const val = row.cells?.[col.key] ?? "";
                           const isNum = typeof val === "number";
+
+                          let stickyTdClass = "";
+                          if (hasMultiLeftCols) {
+                            if (cIdx === 0) {
+                              stickyTdClass = `sticky left-0 z-10 w-[55px] min-w-[55px] max-w-[55px] text-center border-r border-slate-200 ${
+                                isSectionRow
+                                  ? "bg-slate-200 font-black text-slate-900"
+                                  : isFormulaRow
+                                  ? "bg-emerald-100 text-emerald-950 font-bold"
+                                  : isQuestionRow
+                                  ? "bg-blue-50/80 font-bold text-blue-900"
+                                  : "bg-white font-medium text-slate-700"
+                              }`;
+                            } else if (cIdx === 1) {
+                              stickyTdClass = `sticky left-[55px] z-10 min-w-[240px] max-w-[280px] shadow-r border-r border-slate-200 ${
+                                isSectionRow
+                                  ? "bg-slate-100 font-black text-slate-900"
+                                  : isFormulaRow
+                                  ? "bg-emerald-50 text-emerald-950 font-bold"
+                                  : isQuestionRow
+                                  ? "bg-blue-50/40 font-semibold text-blue-950"
+                                  : "bg-white font-semibold text-slate-900"
+                              }`;
+                            }
+                          } else if (cIdx === 0 && Boolean(headerGroups)) {
+                            stickyTdClass = `sticky left-0 z-10 min-w-[130px] shadow-r border-r border-slate-200 ${
+                              isTotalRow
+                                ? "bg-emerald-100 text-emerald-950 font-bold"
+                                : "bg-white text-slate-900 font-bold"
+                            }`;
+                          }
+
+                          // Section row: cIdx >= 2 renders empty dash
+                          if (isSectionRow && cIdx >= 2) {
+                            return (
+                              <td
+                                key={col.key}
+                                className="py-2.5 px-3 border-r border-slate-100 last:border-r-0 bg-slate-50/40 text-center text-slate-300 font-mono"
+                              >
+                                -
+                              </td>
+                            );
+                          }
 
                           return (
                             <td
                               key={col.key}
-                              className={`py-2.5 px-4 border-r border-slate-100 last:border-r-0 text-xs transition ${
+                              className={`py-2.5 px-3.5 border-r border-slate-100 last:border-r-0 text-xs transition ${stickyTdClass} ${
                                 isNum ? "text-right font-mono" : "text-left text-slate-700"
                               } ${
-                                isTotalRow
+                                isFormulaRow
+                                  ? "bg-emerald-50/50 text-emerald-950 font-bold"
+                                  : isQuestionRow && col.type === "formula"
+                                  ? "bg-blue-50/20 text-blue-900 font-semibold"
+                                  : isTotalRow
                                   ? "bg-emerald-50/60 text-emerald-950 font-bold"
                                   : col.type === "formula"
                                   ? "bg-purple-50/20 text-purple-900 font-bold"
                                   : col.type === "editable"
-                                  ? "bg-white group-hover:bg-blue-50/20 text-slate-900"
+                                  ? isQuestionRow
+                                    ? "bg-blue-50/30 text-blue-950 font-semibold"
+                                    : "bg-white group-hover:bg-blue-50/20 text-slate-900"
                                   : "bg-slate-50/40 text-slate-600"
                               }`}
                             >
@@ -1297,6 +1375,31 @@ export default function TestLocalTablePic() {
             <div>
               <span className="font-bold">Keterangan Dokumen: </span>
               Data Realisasi RO Sampel Obat, OBA, SK dan Kos dihitung dari data Realisasi Sampling tiap bulannya.
+            </div>
+          </div>
+        )}
+
+        {/* Legend untuk Indeks KIE */}
+        {(activeTab?.id === 135 || activeTab?.title?.toLowerCase().includes("indeks kie")) && (
+          <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5 shadow-xs">
+            <div className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+              Keterangan Dokumen:
+            </div>
+            <div className="flex flex-wrap items-center gap-6 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="size-4 rounded bg-[#418ab3] shadow-xs inline-block" />
+                <span className="font-bold text-[#1f4e78]">Ibu Win</span>
+                <span className="text-slate-500 text-[11px]">
+                  (Evaluasi Survey Tatap Muka & Media - Skala 4)
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="size-4 rounded bg-[#70ad47] shadow-xs inline-block" />
+                <span className="font-bold text-[#385723]">Rumus</span>
+                <span className="text-slate-500 text-[11px]">
+                  (Dihitung Otomatis: Indeks Tatap Muka, Indeks Media, Total Responden, Indeks Rata-rata, %Capaian)
+                </span>
+              </div>
             </div>
           </div>
         )}
