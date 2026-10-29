@@ -8,7 +8,7 @@ const AppContainer = ({ appData }: { appData: AppData }) => {
     const { user } = useSelector((state: RootState) => state.auth);
 
     // Link dianggap eksternal hanya jika URL lengkap dan bukan domain milik BBPOM
-    const isBpomDomain = appData.link?.includes('bbpommataram.id') || appData.link?.includes('infokom-bbpommataram.workers.dev');
+    const isBpomDomain = appData.link?.includes('bbpommataram.id');
     const isExternal = (appData.link?.startsWith('http://') || appData.link?.startsWith('https://')) && !isBpomDomain;
     // link internal di DB bisa "/percepat" atau "percepat" → normalisasi supaya tidak jadi "//"
     const slug = (appData.link ?? '').replace(/^\/+/, '');
