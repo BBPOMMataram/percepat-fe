@@ -24,9 +24,11 @@ import AdminKartuStokReagenPercepat from "../percepat/kartu-stok/reagen/AdminKar
 import AdminKartuStokBakuPembandingPercepat from "../percepat/kartu-stok/baku-pembanding/AdminKartuStokBakuPembandingPercepat";
 import AdminKartuStokAtkPercepat from "../percepat/kartu-stok/atk/AdminKartuStokAtkPercepat";
 import AdminKartuStokPerlengkapanPercepat from "../percepat/kartu-stok/perlengkapan/AdminKartuStokPerlengkapanPercepat";
+import AdminKartuStokSukuCadangPercepat from "../percepat/kartu-stok/suku-cadang/AdminKartuStokSukuCadangPercepat";
 import AdminPermintaanPerlengkapanPercepat from "../percepat/permintaan/perlengkapan/AdminPermintaanPerlengkapanPercepat";
 import AdminPermintaanReagenPercepat from "../percepat/permintaan/reagen/AdminPermintaanReagenPercepat";
 import AdminPermintaanBakuPembandingPercepat from "../percepat/permintaan/baku-pembanding/AdminPermintaanBakuPembandingPercepat";
+import AdminPersediaanKeluarPercepat from "../percepat/persediaan-keluar/AdminPersediaanKeluarPercepat";
 import AdminStokOpnamePercepat from "../percepat/stok-opname/AdminStokOpnamePercepat";
 import AdminSettingsPercepat from "../percepat/settings/AdminSettingsPercepat";
 import SidebarAdminPercepat from "./sidebar/SidebarAdminPercepat";
@@ -119,6 +121,10 @@ export default function AdminAreaPercepat() {
                         <AdminKartuStokPerlengkapanPercepat />
                     }
                     {
+                        pathname === '/admin/percepat/kartu-stok/suku-cadang' && user &&
+                        <AdminKartuStokSukuCadangPercepat />
+                    }
+                    {
                         pathname === '/admin/percepat/permintaan/perlengkapan' && user &&
                         <AdminPermintaanPerlengkapanPercepat />
                     }
@@ -150,6 +156,10 @@ export default function AdminAreaPercepat() {
                     {
                         pathname === '/admin/percepat/permintaan/suku-cadang' && user &&
                         <AdminSukuCadangPercepat />
+                    }
+                    {
+                        pathname === '/admin/percepat/persediaan-keluar' && user &&
+                        <AdminPersediaanKeluarPercepat />
                     }
                     {
                         pathname === '/admin/percepat/stok-opname' && user &&

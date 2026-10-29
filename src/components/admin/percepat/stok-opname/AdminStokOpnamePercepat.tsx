@@ -32,6 +32,9 @@ import {
     Edit3,
     Trash2,
     X,
+    UploadCloud,
+    Eye,
+    Download,
 } from "lucide-react";
 import PercepatQRScannerModal from "@/components/percepat-new/stok-opname/PercepatQRScannerModal";
 import LabelStikerModal, { LabelStikerItem } from "@/components/percepat-new/label/LabelStikerModal";
@@ -69,6 +72,18 @@ interface OpnameHistoryItem {
     tanggal_opname: string;
 }
 
+interface BeritaAcaraDoc {
+    id: number;
+    judul?: string | null;
+    nomor_ba?: string | null;
+    tanggal_ba?: string | null;
+    file_name: string;
+    file_path: string;
+    file_size?: number | null;
+    uploaded_by?: string | null;
+    created_at: string;
+}
+
 export default function AdminStokOpnamePercepat() {
     const dispatch = useDispatch<AppDispatch>();
 
@@ -93,6 +108,15 @@ export default function AdminStokOpnamePercepat() {
     // Import Berita Acara PDF Modal State
     const [importPdfOpen, setImportPdfOpen] = useState(false);
 
+    // Upload & Review PDF Berita Acara State
+    const [beritaAcaraList, setBeritaAcaraList] = useState<BeritaAcaraDoc[]>([]);
+    const [isUploadingBa, setIsUploadingBa] = useState(false);
+    const [previewBaOpen, setPreviewBaOpen] = useState(false);
+    const [selectedBaDoc, setSelectedBaDoc] = useState<BeritaAcaraDoc | null>(null);
+    const [baPdfBlobUrl, setBaPdfBlobUrl] = useState<string | null>(null);
+    const [isLoadingBaPdf, setIsLoadingBaPdf] = useState(false);
+    const baFileInputRef = useRef<HTMLInputElement>(null);
+
     // Edit History Modal State
     const [editHistoryModalOpen, setEditHistoryModalOpen] = useState(false);
     const [selectedHistoryItem, setSelectedHistoryItem] = useState<OpnameHistoryItem | null>(null);
@@ -111,6 +135,169 @@ export default function AdminStokOpnamePercepat() {
 
     const searchInputRef = useRef<HTMLInputElement>(null);
     const lookupAbortControllerRef = useRef<AbortController | null>(null);
+
+    // Load Daftar Dokumen PDF Berita Acara yang Tersimpan
+    const loadBeritaAcaraList = useCallback(async () => {
+        try {
+            const res = await api.get(`/api/v1/stok-opname/berita-acara`);
+            const list: BeritaAcaraDoc[] = res.data?.data || [];
+            setBeritaAcaraList(list);
+            if (list.length > 0 && !selectedBaDoc) {
+                setSelectedBaDoc(list[0]);
+            }
+        } catch (err) {
+            console.error("Failed to load berita acara list:", err);
+        }
+    }, [selectedBaDoc]);
+
+    useEffect(() => {
+        loadBeritaAcaraList();
+    }, [loadBeritaAcaraList]);
+
+    // Fetch PDF Blob untuk Preview Popup
+    const fetchBaPdfPreview = useCallback(async (doc: BeritaAcaraDoc) => {
+        setIsLoadingBaPdf(true);
+        try {
+            const res = await api.get(`/api/v1/stok-opname/berita-acara/${doc.id}/stream`, {
+                responseType: "blob",
+            });
+            const blob = new Blob([res.data], { type: "application/pdf" });
+            const url = window.URL.createObjectURL(blob);
+            setBaPdfBlobUrl((prev) => {
+                if (prev) window.URL.revokeObjectURL(prev);
+                return url;
+            });
+        } catch (err) {
+            console.error("Failed to load PDF preview:", err);
+            dispatch(showAlert({
+                type: "error",
+                message: "Gagal Memuat PDF",
+                description: "File PDF Berita Acara tidak dapat dimuat dari server.",
+            }));
+        } finally {
+            setIsLoadingBaPdf(false);
+        }
+    }, [dispatch]);
+
+    // Handle Upload PDF Berita Acara untuk Disimpan
+    const handleUploadBeritaAcaraFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+            dispatch(showAlert({
+                type: "error",
+                message: "Format File Tidak Sesuai",
+                description: "Silakan pilih file dokumen dengan format PDF (.pdf).",
+            }));
+            e.target.value = "";
+            return;
+        }
+
+        setIsUploadingBa(true);
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("judul", file.name.replace(/\.pdf$/i, ""));
+            formData.append("tanggal_ba", dayjs().format("YYYY-MM-DD"));
+
+            const res = await api.post(`/api/v1/stok-opname/berita-acara`, formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+
+            const savedDoc: BeritaAcaraDoc = res.data?.data;
+            dispatch(showAlert({
+                type: "success",
+                message: "PDF Berita Acara Tersimpan!",
+                description: `File "${file.name}" berhasil disimpan dan dapat dibuka kapan saja.`,
+            }));
+
+            await loadBeritaAcaraList();
+            if (savedDoc) {
+                setSelectedBaDoc(savedDoc);
+                if (previewBaOpen) {
+                    fetchBaPdfPreview(savedDoc);
+                }
+            }
+        } catch (err: any) {
+            console.error("Failed to upload Berita Acara PDF:", err);
+            dispatch(showAlert({
+                type: "error",
+                message: "Gagal Upload PDF",
+                description: err.response?.data?.message || "Terjadi kesalahan saat menyimpan file PDF Berita Acara.",
+            }));
+        } finally {
+            setIsUploadingBa(false);
+            e.target.value = "";
+        }
+    };
+
+    // Buka Popup Review PDF Berita Acara
+    const handleOpenPreviewBaModal = () => {
+        if (beritaAcaraList.length === 0) {
+            dispatch(showAlert({
+                type: "error",
+                message: "Belum Ada Berita Acara Tersimpan",
+                description: "Silakan upload file PDF Berita Acara terlebih dahulu melalui tombol Upload PDF Berita Acara.",
+            }));
+            return;
+        }
+        const targetDoc = selectedBaDoc || beritaAcaraList[0];
+        setSelectedBaDoc(targetDoc);
+        setPreviewBaOpen(true);
+        fetchBaPdfPreview(targetDoc);
+    };
+
+    // Download PDF Berita Acara
+    const handleDownloadBaPdf = async (doc: BeritaAcaraDoc) => {
+        try {
+            const res = await api.get(`/api/v1/stok-opname/berita-acara/${doc.id}/stream?download=1`, {
+                responseType: "blob",
+            });
+            const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", doc.file_name || `Berita_Acara_SO_${doc.id}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            dispatch(showAlert({
+                type: "error",
+                message: "Gagal Mengunduh PDF",
+                description: "Terjadi kesalahan saat mengunduh dokumen Berita Acara.",
+            }));
+        }
+    };
+
+    // Hapus Dokumen Berita Acara dari Daftar
+    const handleDeleteBaDoc = async (doc: BeritaAcaraDoc) => {
+        if (!confirm(`Hapus dokumen "${doc.file_name}" dari daftar Berita Acara tersimpan?`)) return;
+        try {
+            await api.delete(`/api/v1/stok-opname/berita-acara/${doc.id}`);
+            const remaining = beritaAcaraList.filter((item) => item.id !== doc.id);
+            setBeritaAcaraList(remaining);
+            if (remaining.length > 0) {
+                setSelectedBaDoc(remaining[0]);
+                fetchBaPdfPreview(remaining[0]);
+            } else {
+                setSelectedBaDoc(null);
+                setPreviewBaOpen(false);
+            }
+            dispatch(showAlert({
+                type: "success",
+                message: "Dokumen Dihapus",
+                description: "File Berita Acara berhasil dihapus dari daftar.",
+            }));
+        } catch (err: any) {
+            dispatch(showAlert({
+                type: "error",
+                message: "Gagal Menghapus",
+                description: err.response?.data?.message || "Gagal menghapus dokumen Berita Acara.",
+            }));
+        }
+    };
 
     // Load History
     const loadHistory = useCallback(async () => {
@@ -229,7 +416,7 @@ export default function AdminStokOpnamePercepat() {
             dispatch(showAlert({
                 type: "success",
                 message: "Stok Opname Berhasil Disimpan!",
-                description: `Stok ${selectedItem.name} berhasil diperbarui dari ${stokSistem} menjadi ${stokFisik} ${selectedItem.satuan || "Unit"}.`,
+                description: `Stok ${selectedItem.name} berhasil diperbarui dari ${stokSistem} menjadi ${stokFisik} ${selectedItem.satuan || "Unit"} dan tercatat di Kartu Stok.`,
             }));
 
             // Perbarui item yang aktif
@@ -448,6 +635,69 @@ export default function AdminStokOpnamePercepat() {
                         <Camera size={18} />
                         Buka Kamera Scanner QR / Barcode
                     </button>
+
+                    {/* Upload & Buka Dokumen PDF Berita Acara (Di bawah tombol Buka Kamera) */}
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 space-y-2">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                                <FileText size={14} className="text-indigo-600" />
+                                Dokumen PDF Berita Acara Stok Opname
+                            </span>
+                            {beritaAcaraList.length > 0 && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                    {beritaAcaraList.length} File Tersimpan
+                                </span>
+                            )}
+                        </div>
+
+                        <input
+                            ref={baFileInputRef}
+                            type="file"
+                            accept=".pdf,application/pdf"
+                            onChange={handleUploadBeritaAcaraFile}
+                            className="hidden"
+                        />
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                onClick={() => baFileInputRef.current?.click()}
+                                disabled={isUploadingBa}
+                                className="w-full py-2.5 px-3 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
+                            >
+                                {isUploadingBa ? (
+                                    <>
+                                        <Loader2 size={15} className="animate-spin" />
+                                        Menyimpan PDF...
+                                    </>
+                                ) : (
+                                    <>
+                                        <UploadCloud size={15} />
+                                        Upload PDF Berita Acara
+                                    </>
+                                )}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleOpenPreviewBaModal}
+                                className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
+                                    beritaAcaraList.length > 0
+                                        ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                                        : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-100"
+                                }`}
+                            >
+                                <Eye size={15} />
+                                Buka Berita Acara (PDF)
+                            </button>
+                        </div>
+
+                        {beritaAcaraList.length > 0 && (
+                            <div className="text-[10px] text-slate-500 truncate">
+                                File terbaru: <span className="font-semibold text-slate-700">{beritaAcaraList[0].file_name}</span>
+                            </div>
+                        )}
+                    </div>
 
                     <div className="relative flex py-0.5 items-center">
                         <div className="grow border-t border-slate-200"></div>
@@ -839,7 +1089,7 @@ export default function AdminStokOpnamePercepat() {
                                 Log Riwayat & Berita Acara Stok Opname
                             </h2>
                             <p className="text-[11px] sm:text-xs text-slate-500">
-                                Rekap catatan seluruh kegiatan pencocokan stok fisik di gudang BPOM.
+                                Rekap catatan seluruh kegiatan pencocokan stok fisik di gudang BPOM (otomatis tercatat di Kartu Stok).
                             </p>
                         </div>
                     </div>
@@ -1180,8 +1430,118 @@ export default function AdminStokOpnamePercepat() {
                 onClose={() => setImportPdfOpen(false)}
                 onSuccess={() => {
                     loadHistory();
+                    loadBeritaAcaraList();
                 }}
             />
+
+            {/* Popup Modal Review & Download PDF Berita Acara */}
+            {previewBaOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-2 sm:p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl max-h-[94vh] flex flex-col overflow-hidden">
+                        {/* Modal Header */}
+                        <div className="px-4 sm:px-6 py-3.5 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                                    <FileText size={18} />
+                                </div>
+                                <div className="min-w-0">
+                                    <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate">
+                                        Review Dokumen PDF Berita Acara Stok Opname
+                                    </h3>
+                                    {selectedBaDoc && (
+                                        <p className="text-[11px] text-slate-500 truncate">
+                                            {selectedBaDoc.file_name} • Diupload {dayjs(selectedBaDoc.created_at).format("DD MMM YYYY HH:mm")}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2 shrink-0">
+                                {beritaAcaraList.length > 1 && (
+                                    <select
+                                        value={selectedBaDoc?.id || ""}
+                                        onChange={(e) => {
+                                            const found = beritaAcaraList.find((d) => d.id === Number(e.target.value));
+                                            if (found) {
+                                                setSelectedBaDoc(found);
+                                                fetchBaPdfPreview(found);
+                                            }
+                                        }}
+                                        className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 bg-white max-w-52 truncate"
+                                    >
+                                        {beritaAcaraList.map((doc) => (
+                                            <option key={doc.id} value={doc.id}>
+                                                {doc.file_name} ({dayjs(doc.created_at).format("DD/MM/YY")})
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
+
+                                <button
+                                    type="button"
+                                    onClick={() => baFileInputRef.current?.click()}
+                                    disabled={isUploadingBa}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-colors"
+                                >
+                                    <UploadCloud size={14} />
+                                    Upload Baru
+                                </button>
+
+                                {selectedBaDoc && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDownloadBaPdf(selectedBaDoc)}
+                                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors"
+                                        >
+                                            <Download size={14} />
+                                            Download PDF
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeleteBaDoc(selectedBaDoc)}
+                                            className="p-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors"
+                                            title="Hapus Dokumen Ini"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </>
+                                )}
+
+                                <button
+                                    type="button"
+                                    onClick={() => setPreviewBaOpen(false)}
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Modal Body: Embedded PDF Viewer */}
+                        <div className="flex-1 bg-slate-100 p-2 sm:p-4 flex flex-col min-h-[72vh]">
+                            {isLoadingBaPdf ? (
+                                <div className="flex-1 flex flex-col items-center justify-center text-slate-500">
+                                    <Loader2 size={32} className="animate-spin text-emerald-600 mb-2" />
+                                    <span className="text-xs font-semibold">Memuat dokumen PDF Berita Acara...</span>
+                                </div>
+                            ) : baPdfBlobUrl ? (
+                                <iframe
+                                    src={baPdfBlobUrl}
+                                    title="Preview Berita Acara PDF"
+                                    className="w-full flex-1 min-h-[68vh] rounded-xl border border-slate-300 bg-white shadow-inner"
+                                />
+                            ) : (
+                                <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+                                    <FileText size={36} className="mb-2" />
+                                    <span className="text-xs">Dokumen PDF tidak tersedia untuk ditampilkan.</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Modal Edit Riwayat Opname */}
             {editHistoryModalOpen && selectedHistoryItem && (

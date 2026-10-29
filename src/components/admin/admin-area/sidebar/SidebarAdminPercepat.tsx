@@ -68,7 +68,7 @@ export default function SidebarAdminPercepat() {
 
             <div className="dropdown dropdown-right dropdown-center lg:w-full">
                 <button className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/percepat/penerimaan')}`}
-                    data-tip="Permintaan">
+                    data-tip="Penerimaan">
                     <span className="material-symbols-outlined">
                         inventory_2
                     </span>
@@ -95,6 +95,17 @@ export default function SidebarAdminPercepat() {
                     </li>
                 </ul>
             </div>
+
+            <Link
+                href={'/admin/percepat/persediaan-keluar'}
+                className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/percepat/persediaan-keluar')}`}
+                data-tip="Persediaan Keluar (Usang / Rusak)"
+            >
+                <span className="material-symbols-outlined">
+                    output
+                </span>
+                <span className="hidden lg:block whitespace-nowrap">Persediaan Keluar</span>
+            </Link>
 
             <div className="dropdown dropdown-right dropdown-center lg:w-full">
                 <button className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/percepat/kartu-stok')}`}

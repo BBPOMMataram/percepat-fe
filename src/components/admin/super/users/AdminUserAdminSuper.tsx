@@ -6,6 +6,7 @@ const AUTH_URL = process.env.NEXT_PUBLIC_BACKEND_URL_AUTH
 
 interface Site { id: number; name: string }
 interface Role { id: number; level: string; description: string }
+interface FungsiItem { id: number; name: string }
 interface UserRow {
     id: string
     name: string
@@ -19,6 +20,61 @@ interface UserRow {
     phones?: { id?: number; phone_number?: string; is_main?: boolean }[]
     employee?: { nip?: string; unit_kerja?: string } | null
     student?: { nim?: string; university?: string } | null
+}
+
+const DEFAULT_FUNGSIS: FungsiItem[] = [
+    { id: 1, name: "Tata Usaha" },
+    { id: 2, name: "Infokom" },
+    { id: 3, name: "Penindakan" },
+    { id: 4, name: "Pemeriksaan" },
+    { id: 5, name: "Pengujian Obat & Nappza" },
+    { id: 6, name: "Pengujian Kosmetik" },
+    { id: 7, name: "Pengujian OTSK" },
+    { id: 8, name: "Pengujian Mikro" },
+    { id: 9, name: "Pengujian Pangan" },
+]
+
+const GROUP_JABATAN_OPTIONS = [
+    { id: 1, label: "Kepala Balai (Kabalai)" },
+    { id: 2, label: "Kepala Tata Usaha (KaTU)" },
+    { id: 3, label: "Ketua Tim (Katim)" },
+    { id: 4, label: "Staf ASN" },
+    { id: 5, label: "Outsourcing / Tenaga Pendukung" },
+]
+
+const PETUGAS_BMN_OPTIONS = [
+    { id: 1, label: "IT" },
+    { id: 2, label: "Alat Lab" },
+    { id: 3, label: "Lainnya" },
+    { id: 4, label: "Sarpras" },
+]
+
+const initialCreateForm = {
+    name: "",
+    email: "",
+    call_name: "",
+    nik: "",
+    phone: "",
+    address: "",
+    role_id: "3",
+    is_active: true,
+    site_ids: [] as number[],
+    password: "",
+    password_confirmation: "",
+    nip: "",
+    unit_kerja: "BBPOM di Mataram",
+    fungsi_id: "",
+    group_jabatan_id: "4",
+    jabatan: "",
+    pangkat: "",
+    golongan: "",
+    gelar_depan: "",
+    gelar_belakang: "",
+    petugas_bmn_id: "",
+    is_katim_pengujian: false,
+    is_ppk: false,
+    is_pp: false,
+    is_security: false,
 }
 
 export default function AdminUserAdminSuper() {
@@ -38,12 +94,18 @@ export default function AdminUserAdminSuper() {
     // master data
     const [roles, setRoles] = useState<Role[]>([])
     const [sites, setSites] = useState<Site[]>([])
+    const [fungsis, setFungsis] = useState<FungsiItem[]>(DEFAULT_FUNGSIS)
 
     // edit modal state
     const [editing, setEditing] = useState<UserRow | null>(null)
     const [form, setForm] = useState({ name: "", email: "", call_name: "", role_id: "", is_active: true, site_ids: [] as number[], password: "", password_confirmation: "" })
     const [saving, setSaving] = useState(false)
     const [flash, setFlash] = useState<{ ok: boolean; text: string } | null>(null)
+
+    // tambah karyawan modal state
+    const [creatingEmployee, setCreatingEmployee] = useState(false)
+    const [createForm, setCreateForm] = useState({ ...initialCreateForm })
+    const [createError, setCreateError] = useState("")
 
     const notify = (ok: boolean, text: string) => {
         setFlash({ ok, text })
@@ -83,6 +145,11 @@ export default function AdminUserAdminSuper() {
         api.get(`${AUTH_URL}/api/site`).then(r => setSites(r.data?.data || r.data || [])).catch(() => {})
         api.get(`${AUTH_URL}/api/users`).then(r => {
             // roles tidak ada endpoint khusus; ambil dari response index jika perlu.
+        }).catch(() => {})
+        api.get(`${AUTH_URL}/api/fungsis`).then(r => {
+            if (Array.isArray(r.data) && r.data.length > 0) {
+                setFungsis(r.data)
+            }
         }).catch(() => {})
     }, [])
 
@@ -137,6 +204,92 @@ export default function AdminUserAdminSuper() {
             const errs = (e?.response?.data?.errors || {}) as Record<string, string[]>
             const msg = e?.response?.data?.message || Object.values(errs)?.[0]?.[0] || "Gagal menyimpan perubahan."
             notify(false, String(msg))
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    const openCreateEmployee = () => {
+        setCreateError("")
+        setCreateForm({
+            ...initialCreateForm,
+            site_ids: [],
+        })
+        setCreatingEmployee(true)
+    }
+
+    const toggleCreateSite = (id: number) => {
+        setCreateForm(prev => ({
+            ...prev,
+            site_ids: prev.site_ids.includes(id)
+                ? prev.site_ids.filter(s => s !== id)
+                : [...prev.site_ids, id],
+        }))
+    }
+
+    const saveCreateEmployee = async () => {
+        setCreateError("")
+        if (!createForm.name.trim()) {
+            setCreateError("Nama lengkap wajib diisi.")
+            return
+        }
+        if (!createForm.email.trim()) {
+            setCreateError("Email wajib diisi.")
+            return
+        }
+        if (!createForm.role_id) {
+            setCreateError("Role wajib dipilih.")
+            return
+        }
+        if (!createForm.password || createForm.password.length < 8) {
+            setCreateError("Password wajib diisi minimal 8 karakter.")
+            return
+        }
+        if (createForm.password !== createForm.password_confirmation) {
+            setCreateError("Konfirmasi password tidak cocok.")
+            return
+        }
+
+        setSaving(true)
+        try {
+            const payload = {
+                name: createForm.name.trim(),
+                email: createForm.email.trim(),
+                call_name: createForm.call_name.trim() || null,
+                nik: createForm.nik.trim() || null,
+                phone: createForm.phone.trim() || null,
+                address: createForm.address.trim() || null,
+                role_id: Number(createForm.role_id),
+                is_active: createForm.is_active,
+                site_ids: createForm.site_ids,
+                password: createForm.password,
+                password_confirmation: createForm.password_confirmation,
+                employee: {
+                    nip: createForm.nip.trim() || null,
+                    unit_kerja: createForm.unit_kerja.trim() || "BBPOM di Mataram",
+                    fungsi_id: createForm.fungsi_id ? Number(createForm.fungsi_id) : null,
+                    group_jabatan_id: createForm.group_jabatan_id ? Number(createForm.group_jabatan_id) : 4,
+                    jabatan: createForm.jabatan.trim() || null,
+                    pangkat: createForm.pangkat.trim() || null,
+                    golongan: createForm.golongan.trim() || null,
+                    gelar_depan: createForm.gelar_depan.trim() || null,
+                    gelar_belakang: createForm.gelar_belakang.trim() || null,
+                    petugas_bmn_id: createForm.petugas_bmn_id ? Number(createForm.petugas_bmn_id) : null,
+                    is_katim_pengujian: createForm.is_katim_pengujian,
+                    is_ppk: createForm.is_ppk,
+                    is_pp: createForm.is_pp,
+                    is_security: createForm.is_security,
+                },
+            }
+
+            await api.post(`${AUTH_URL}/api/super/users`, payload)
+            notify(true, `Data karyawan "${createForm.name}" berhasil ditambahkan.`)
+            setCreatingEmployee(false)
+            loadUsers()
+        } catch (e: any) {
+            const errs = (e?.response?.data?.errors || {}) as Record<string, string[]>
+            const msg = Object.values(errs)?.[0]?.[0] || e?.response?.data?.message || "Gagal menambahkan data karyawan."
+            setCreateError(String(msg))
         } finally {
             setSaving(false)
         }
@@ -202,6 +355,13 @@ export default function AdminUserAdminSuper() {
                         <option value="pegawai">Pegawai</option>
                         <option value="mahasiswa">Mahasiswa</option>
                     </select>
+                    <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={openCreateEmployee}
+                    >
+                        + Tambah Karyawan
+                    </button>
                 </div>
 
                 {flash && (
@@ -421,6 +581,215 @@ export default function AdminUserAdminSuper() {
                         </div>
                     </div>
                     <form method="dialog" className="modal-backdrop" onClick={() => !saving && setEditing(null)}>
+                        <button>close</button>
+                    </form>
+                </dialog>
+            )}
+
+            {/* Modal Tambah Data Karyawan */}
+            {creatingEmployee && (
+                <dialog className="modal modal-open" style={{ zIndex: 60 }}>
+                    <div className="modal-box max-w-2xl bg-white rounded-2xl max-h-[90vh] overflow-y-auto">
+                        <h3 className="font-bold text-lg">Tambah Data Karyawan</h3>
+
+                        {createError && (
+                            <div className="mt-4 rounded-xl px-4 py-3 text-sm font-medium bg-red-100 text-red-700">
+                                {createError}
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                            <div className="form-control">
+                                <label className="label"><span className="label-text">Nama Lengkap *</span></label>
+                                <input type="text" className="input input-bordered" value={createForm.name}
+                                    onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))} />
+                            </div>
+                            <div className="form-control">
+                                <label className="label"><span className="label-text">Email *</span></label>
+                                <input type="email" className="input input-bordered" value={createForm.email}
+                                    onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))} />
+                            </div>
+                            <div className="form-control">
+                                <label className="label"><span className="label-text">Call Name</span></label>
+                                <input type="text" className="input input-bordered" value={createForm.call_name}
+                                    onChange={e => setCreateForm(f => ({ ...f, call_name: e.target.value }))} />
+                            </div>
+                            <div className="form-control">
+                                <label className="label"><span className="label-text">NIK</span></label>
+                                <input type="text" className="input input-bordered" value={createForm.nik}
+                                    onChange={e => setCreateForm(f => ({ ...f, nik: e.target.value }))} />
+                            </div>
+                            <div className="form-control">
+                                <label className="label"><span className="label-text">No HP</span></label>
+                                <input type="text" className="input input-bordered" value={createForm.phone}
+                                    onChange={e => setCreateForm(f => ({ ...f, phone: e.target.value }))} />
+                            </div>
+                            <div className="form-control">
+                                <label className="label"><span className="label-text">Role *</span></label>
+                                <select className="select select-bordered" value={createForm.role_id}
+                                    onChange={e => setCreateForm(f => ({ ...f, role_id: e.target.value }))}>
+                                    <option value="">— Pilih —</option>
+                                    <option value="1">Superadmin</option>
+                                    <option value="2">Admin</option>
+                                    <option value="3">User</option>
+                                </select>
+                            </div>
+                            <div className="form-control col-span-full">
+                                <label className="label"><span className="label-text">Alamat</span></label>
+                                <input type="text" className="input input-bordered" value={createForm.address}
+                                    onChange={e => setCreateForm(f => ({ ...f, address: e.target.value }))} />
+                            </div>
+                            <div className="form-control">
+                                <label className="label"><span className="label-text">Password *</span></label>
+                                <input type="password" className="input input-bordered" value={createForm.password}
+                                    onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))} />
+                            </div>
+                            <div className="form-control">
+                                <label className="label"><span className="label-text">Konfirmasi Password *</span></label>
+                                <input type="password" className="input input-bordered" value={createForm.password_confirmation}
+                                    onChange={e => setCreateForm(f => ({ ...f, password_confirmation: e.target.value }))} />
+                            </div>
+
+                            <div className="col-span-full border-t border-gray-100 pt-2 mt-2">
+                                <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Data Kepegawaian</span>
+                            </div>
+
+                            <div className="form-control">
+                                <label className="label"><span className="label-text">NIP</span></label>
+                                <input type="text" className="input input-bordered" value={createForm.nip}
+                                    onChange={e => setCreateForm(f => ({ ...f, nip: e.target.value }))} />
+                            </div>
+                            <div className="form-control">
+                                <label className="label"><span className="label-text">Unit Kerja</span></label>
+                                <input type="text" className="input input-bordered" value={createForm.unit_kerja}
+                                    onChange={e => setCreateForm(f => ({ ...f, unit_kerja: e.target.value }))} />
+                            </div>
+                            <div className="form-control">
+                                <label className="label"><span className="label-text">Gelar Depan</span></label>
+                                <input type="text" className="input input-bordered" value={createForm.gelar_depan}
+                                    onChange={e => setCreateForm(f => ({ ...f, gelar_depan: e.target.value }))} />
+                            </div>
+                            <div className="form-control">
+                                <label className="label"><span className="label-text">Gelar Belakang</span></label>
+                                <input type="text" className="input input-bordered" value={createForm.gelar_belakang}
+                                    onChange={e => setCreateForm(f => ({ ...f, gelar_belakang: e.target.value }))} />
+                            </div>
+                            <div className="form-control">
+                                <label className="label"><span className="label-text">Group Jabatan</span></label>
+                                <select className="select select-bordered" value={createForm.group_jabatan_id}
+                                    onChange={e => setCreateForm(f => ({ ...f, group_jabatan_id: e.target.value }))}>
+                                    {GROUP_JABATAN_OPTIONS.map(opt => (
+                                        <option key={opt.id} value={String(opt.id)}>{opt.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="form-control">
+                                <label className="label"><span className="label-text">Fungsi</span></label>
+                                <select className="select select-bordered" value={createForm.fungsi_id}
+                                    onChange={e => setCreateForm(f => ({ ...f, fungsi_id: e.target.value }))}>
+                                    <option value="">— Pilih Fungsi —</option>
+                                    {fungsis.map(fn => (
+                                        <option key={fn.id} value={String(fn.id)}>{fn.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="form-control">
+                                <label className="label"><span className="label-text">Jabatan</span></label>
+                                <input type="text" className="input input-bordered" value={createForm.jabatan}
+                                    onChange={e => setCreateForm(f => ({ ...f, jabatan: e.target.value }))} />
+                            </div>
+                            <div className="form-control">
+                                <label className="label"><span className="label-text">Pangkat</span></label>
+                                <input type="text" className="input input-bordered" value={createForm.pangkat}
+                                    onChange={e => setCreateForm(f => ({ ...f, pangkat: e.target.value }))} />
+                            </div>
+                            <div className="form-control">
+                                <label className="label"><span className="label-text">Golongan</span></label>
+                                <input type="text" className="input input-bordered" value={createForm.golongan}
+                                    onChange={e => setCreateForm(f => ({ ...f, golongan: e.target.value }))} />
+                            </div>
+                            <div className="form-control">
+                                <label className="label"><span className="label-text">Petugas BMN (opsional)</span></label>
+                                <select className="select select-bordered" value={createForm.petugas_bmn_id}
+                                    onChange={e => setCreateForm(f => ({ ...f, petugas_bmn_id: e.target.value }))}>
+                                    <option value="">— Bukan Petugas BMN —</option>
+                                    {PETUGAS_BMN_OPTIONS.map(opt => (
+                                        <option key={opt.id} value={String(opt.id)}>{opt.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="col-span-full">
+                                <label className="label"><span className="label-text font-medium">Peran Tambahan</span></label>
+                                <div className="flex flex-wrap gap-4 mt-1">
+                                    <label className="cursor-pointer flex items-center gap-2 text-sm">
+                                        <input type="checkbox" className="checkbox checkbox-sm checkbox-primary"
+                                            checked={createForm.is_katim_pengujian}
+                                            onChange={e => setCreateForm(f => ({ ...f, is_katim_pengujian: e.target.checked }))} />
+                                        <span>Katim Pengujian</span>
+                                    </label>
+                                    <label className="cursor-pointer flex items-center gap-2 text-sm">
+                                        <input type="checkbox" className="checkbox checkbox-sm checkbox-primary"
+                                            checked={createForm.is_ppk}
+                                            onChange={e => setCreateForm(f => ({ ...f, is_ppk: e.target.checked }))} />
+                                        <span>PPK</span>
+                                    </label>
+                                    <label className="cursor-pointer flex items-center gap-2 text-sm">
+                                        <input type="checkbox" className="checkbox checkbox-sm checkbox-primary"
+                                            checked={createForm.is_pp}
+                                            onChange={e => setCreateForm(f => ({ ...f, is_pp: e.target.checked }))} />
+                                        <span>Pejabat Pengadaan (PP)</span>
+                                    </label>
+                                    <label className="cursor-pointer flex items-center gap-2 text-sm">
+                                        <input type="checkbox" className="checkbox checkbox-sm checkbox-primary"
+                                            checked={createForm.is_security}
+                                            onChange={e => setCreateForm(f => ({ ...f, is_security: e.target.checked }))} />
+                                        <span>Security</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="form-control col-span-full">
+                                <label className="label cursor-pointer justify-start gap-4">
+                                    <span className="label-text font-medium">Status Aktif</span>
+                                    <input type="checkbox" className="toggle toggle-success" checked={createForm.is_active}
+                                        onChange={e => setCreateForm(f => ({ ...f, is_active: e.target.checked }))} />
+                                    <span className="label-text-alt">{createForm.is_active ? "Aktif" : "Nonaktif"}</span>
+                                </label>
+                            </div>
+                            <div className="col-span-full">
+                                <label className="label"><span className="label-text font-medium">Akses Aplikasi</span></label>
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                    {(sites.length > 0 ? sites : [
+                                        { id: 1, name: 'PERCEPAT' }, { id: 10, name: 'SIAP MELAYANI' },
+                                        { id: 4, name: 'SIMPEL BMN' }, { id: 12, name: 'Best Employee' },
+                                        { id: 13, name: 'SIMAKO' },
+                                    ]).map((s: any) => (
+                                        <label key={s.id} className={`cursor-pointer badge badge-lg gap-2 ${createForm.site_ids.includes(Number(s.id)) ? 'badge-primary' : 'badge-outline'}`}>
+                                            <input
+                                                type="checkbox"
+                                                className="checkbox checkbox-xs"
+                                                checked={createForm.site_ids.includes(Number(s.id))}
+                                                onChange={() => toggleCreateSite(Number(s.id))}
+                                            />
+                                            {s.name}
+                                        </label>
+                                    ))}
+                                </div>
+                                <p className="text-xs text-gray-400 mt-1">
+                                    Centang aplikasi yang bisa diakses user ini sebagai admin.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="modal-action">
+                            <button className="btn btn-ghost" onClick={() => setCreatingEmployee(false)} disabled={saving}>Batal</button>
+                            <button className="btn btn-primary" onClick={saveCreateEmployee} disabled={saving}>
+                                {saving ? <span className="loading loading-spinner loading-sm"></span> : null}
+                                Simpan
+                            </button>
+                        </div>
+                    </div>
+                    <form method="dialog" className="modal-backdrop" onClick={() => !saving && setCreatingEmployee(false)}>
                         <button>close</button>
                     </form>
                 </dialog>
