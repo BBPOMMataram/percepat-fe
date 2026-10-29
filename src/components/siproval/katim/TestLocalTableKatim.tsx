@@ -155,6 +155,19 @@ export function formatNotes(notes: NoteItem[]): string {
     .join("\n");
 }
 
+export function getPageNumbers(current: number, total: number): (number | string)[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, "...", total];
+  }
+  if (current >= total - 3) {
+    return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
+  }
+  return [1, "...", current - 1, current, current + 1, "...", total];
+}
+
 type CollabModalState = {
   isOpen: boolean;
   rowKey: number;
@@ -208,8 +221,16 @@ export default function TestLocalTableKatim() {
 
   // Tracking dirty edits before saving
   const [dirtyUpdates, setDirtyUpdates] = useState<
-    Record<string, { month: number; key: string; value: any }>
+    Record<string, { month?: number; row_index?: number; key: string; value: any }>
   >({});
+
+  // Pagination state untuk tabel dengan banyak baris (misal KIE Medsos)
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(50);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab?.id]);
 
   const fetchData = async (
     targetYear = selectedYear,
@@ -352,7 +373,12 @@ export default function TestLocalTableKatim() {
   };
 
   // Handle cell edit lokal
-  const handleCellChange = (month: number, colKey: string, val: string | number) => {
+  const handleCellChange = (
+    rowId: number,
+    colKey: string,
+    val: string | number,
+    rowIdx?: number
+  ) => {
     if (!activeTab) return;
 
     // Convert numeric if possible and not empty string
@@ -364,9 +390,17 @@ export default function TestLocalTableKatim() {
       if (!prev) return prev;
       return {
         ...prev,
-        rows_data: prev.rows_data.map((r) => {
-          const rMonth = r.month ?? r.row_index;
-          if (rMonth === month) {
+        rows_data: prev.rows_data.map((r, idx) => {
+          const rKey =
+            r.month !== undefined && r.month !== null && r.month !== 0
+              ? r.month
+              : r.row_index !== undefined
+              ? r.row_index
+              : idx;
+          if (
+            rKey === rowId ||
+            (rowIdx !== undefined && (r.row_index === rowIdx || idx === rowIdx))
+          ) {
             return {
               ...r,
               cells: {
@@ -381,11 +415,12 @@ export default function TestLocalTableKatim() {
     });
 
     // Catat ke dirtyUpdates
-    const updateKey = `${month}_${colKey}`;
+    const updateKey = `${rowId}_${rowIdx ?? ""}_${colKey}`;
     setDirtyUpdates((prev) => ({
       ...prev,
       [updateKey]: {
-        month,
+        month: rowId,
+        row_index: rowIdx ?? rowId,
         key: colKey,
         value: parsedVal,
       },
@@ -512,6 +547,7 @@ export default function TestLocalTableKatim() {
           updates: [
             {
               month: collabModal.rowKey,
+              row_index: collabModal.rowKey,
               key: collabModal.colKey,
               value: formatted,
             },
@@ -566,6 +602,19 @@ export default function TestLocalTableKatim() {
     }
     return [];
   }, [activeTab]);
+
+  const allRows = activeTab?.rows_data || [];
+  const totalRows = allRows.length;
+  const isPaginationNeeded = totalRows > 25;
+  const effectivePageSize = pageSize === 0 ? totalRows : pageSize;
+  const totalPages = effectivePageSize > 0 ? Math.ceil(totalRows / effectivePageSize) : 1;
+  const safeCurrentPage = Math.min(Math.max(currentPage, 1), totalPages || 1);
+
+  const paginatedRows = useMemo(() => {
+    if (!isPaginationNeeded || pageSize === 0) return allRows;
+    const start = (safeCurrentPage - 1) * pageSize;
+    return allRows.slice(start, start + pageSize);
+  }, [allRows, isPaginationNeeded, safeCurrentPage, pageSize]);
 
   return (
     <div className="space-y-6">
@@ -795,7 +844,8 @@ export default function TestLocalTableKatim() {
             Pilih dokumen dan tab di atas untuk mulai mengisi data.
           </div>
         ) : (
-          <div className="w-full overflow-x-auto">
+          <>
+            <div className="w-full overflow-x-auto">
             <table className="w-full border-collapse text-left text-xs">
               <thead className="border-b border-slate-200 bg-slate-50">
                 <tr>
@@ -837,8 +887,19 @@ export default function TestLocalTableKatim() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {activeTab.rows_data?.map((row, rIdx) => {
-                  const rowKey = row.month ?? (row.row_index ?? rIdx + 1);
+                {paginatedRows.map((row, rIdx) => {
+                  const originalIdx =
+                    isPaginationNeeded && pageSize > 0
+                      ? (safeCurrentPage - 1) * pageSize + rIdx
+                      : rIdx;
+                  const rowKey =
+                    row.month !== undefined && row.month !== null && row.month !== 0
+                      ? row.month
+                      : row.row_index !== undefined
+                      ? row.row_index
+                      : originalIdx;
+                  const rowIdxNum =
+                    row.row_index !== undefined ? row.row_index : originalIdx;
                   const isMonthLocked = row.is_locked;
                   const isCurrent = row.is_current;
                   const canEditThisRow = row.can_edit_row !== false;
@@ -978,7 +1039,8 @@ export default function TestLocalTableKatim() {
                                   handleCellChange(
                                     Number(rowKey),
                                     col.key,
-                                    e.target.value
+                                    e.target.value,
+                                    rowIdxNum
                                   )
                                 }
                                 placeholder="0"
@@ -1029,8 +1091,118 @@ export default function TestLocalTableKatim() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+
+          {/* Pagination Toolbar */}
+          {isPaginationNeeded && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/90 px-5 py-3.5 rounded-b-2xl">
+              <div className="flex items-center gap-3 text-xs text-slate-600">
+                <span>
+                  Menampilkan{" "}
+                  <span className="font-bold text-slate-900">
+                    {totalRows === 0
+                      ? 0
+                      : (safeCurrentPage - 1) * (pageSize || 1) + 1}
+                  </span>{" "}
+                  -{" "}
+                  <span className="font-bold text-slate-900">
+                    {Math.min(safeCurrentPage * (pageSize || 1), totalRows)}
+                  </span>{" "}
+                  dari <span className="font-bold text-slate-900">{totalRows}</span>{" "}
+                  baris
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <span className="text-[11px] text-slate-500">Baris:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-2xs focus:border-emerald-600 focus:outline-none cursor-pointer"
+                  >
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                    <option value={200}>200</option>
+                    <option value={0}>Semua ({totalRows})</option>
+                  </select>
+                </div>
+              </div>
+
+              {pageSize > 0 && totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={safeCurrentPage === 1}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+                    title="Halaman Pertama"
+                  >
+                    <Icon icon="solar:double-alt-arrow-left-linear" width={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                    disabled={safeCurrentPage === 1}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+                    title="Halaman Sebelumnya"
+                  >
+                    <Icon icon="solar:alt-arrow-left-linear" width={16} />
+                  </button>
+
+                  <div className="flex items-center gap-1 px-1">
+                    {getPageNumbers(safeCurrentPage, totalPages).map((p, pIdx) =>
+                      p === "..." ? (
+                        <span
+                          key={`dots-${pIdx}`}
+                          className="px-1 text-xs text-slate-400"
+                        >
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setCurrentPage(Number(p))}
+                          className={`h-8 min-w-[32px] px-2 rounded-lg text-xs font-bold transition shadow-2xs ${
+                            safeCurrentPage === Number(p)
+                              ? "bg-emerald-600 text-white shadow-emerald-600/20"
+                              : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(p + 1, totalPages))
+                    }
+                    disabled={safeCurrentPage === totalPages}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+                    title="Halaman Selanjutnya"
+                  >
+                    <Icon icon="solar:alt-arrow-right-linear" width={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={safeCurrentPage === totalPages}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+                    title="Halaman Terakhir"
+                  >
+                    <Icon icon="solar:double-alt-arrow-right-linear" width={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
 
       {/* Modal Kelola Catatan Kolaboratif (Kendala & RTL PIC) */}
       {collabModal && (
