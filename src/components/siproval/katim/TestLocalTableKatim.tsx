@@ -1781,7 +1781,8 @@ export default function TestLocalTableKatim() {
                               }`}
                             >
                               <input
-                                type={isNum ? "number" : "text"}
+                                type="text"
+                                inputMode="decimal"
                                 value={val}
                                 onChange={(e) =>
                                   handleCellChange(
@@ -1791,8 +1792,9 @@ export default function TestLocalTableKatim() {
                                     rowIdxNum
                                   )
                                 }
+                                onWheel={(e) => (e.target as HTMLElement).blur()}
                                 placeholder="0"
-                                className={`w-full rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:outline-none ${
+                                className={`w-full rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                                   isQuestionRow
                                     ? "border border-blue-300 bg-white text-blue-950 focus:border-blue-600 focus:ring-blue-600 font-semibold text-right"
                                     : "border border-slate-200 bg-white text-slate-900 focus:border-emerald-600 focus:ring-emerald-600 font-medium"
