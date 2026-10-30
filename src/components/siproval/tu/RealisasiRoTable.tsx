@@ -808,9 +808,10 @@ export default function RealisasiRoTable() {
                   min={2020}
                   max={2099}
                   value={uploadYear}
+                  onWheel={(e) => (e.target as HTMLElement).blur()}
                   onChange={(e) => setUploadYear(Number(e.target.value))}
                   required
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-800 focus:border-[#005baa] focus:outline-none"
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-800 focus:border-[#005baa] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
 
@@ -1166,9 +1167,10 @@ export default function RealisasiRoTable() {
                     min={2020}
                     max={2099}
                     value={newYearInput}
+                    onWheel={(e) => (e.target as HTMLElement).blur()}
                     onChange={(e) => setNewYearInput(Number(e.target.value))}
                     required
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-800 focus:border-[#005baa] focus:outline-none"
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-800 focus:border-[#005baa] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
 

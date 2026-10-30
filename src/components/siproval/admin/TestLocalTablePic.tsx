@@ -2170,9 +2170,10 @@ export default function TestLocalTablePic() {
                   max={2099}
                   required
                   value={newYearNumber}
+                  onWheel={(e) => (e.target as HTMLElement).blur()}
                   onChange={(e) => setNewYearNumber(e.target.value === "" ? "" : Number(e.target.value))}
                   placeholder="Contoh: 2027"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-900 focus:border-[#005baa] focus:bg-white focus:outline-none"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-900 focus:border-[#005baa] focus:bg-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
 

@@ -198,9 +198,16 @@ export default function SidebarSiproval({ actor }: Props) {
     userEmailLower.includes("syamsul.hady") ||
     userEmailLower.includes("syamsul.hadi");
 
+  const groupJabatanId = user?.employee?.group_jabatan_id;
+  const isKatimFromTable =
+    Array.isArray(user?.katims) && user.katims.length > 0;
+  const isKatim = groupJabatanId === 3 || isKatimFromTable;
+
   const hasFungsiTu =
-    Number(user?.employee?.fungsi_id) === 1 ||
-    (user?.employee?.fungsi?.name || "").toLowerCase().trim() === "tata usaha";
+    !isKatim &&
+    (Number(user?.employee?.fungsi_id) === 1 ||
+      (user?.employee?.fungsi?.name || "").toLowerCase().trim() ===
+        "tata usaha");
 
   const hasTuAccess = isExplicitTuUser || hasFungsiTu;
 
@@ -216,10 +223,6 @@ export default function SidebarSiproval({ actor }: Props) {
           (s: { id?: number; name?: string }) =>
             Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval"),
         ));
-    const groupJabatanId = user?.employee?.group_jabatan_id;
-    const isKatimFromTable =
-      Array.isArray(user?.katims) && user.katims.length > 0;
-    const isKatim = groupJabatanId === 3 || isKatimFromTable;
 
     if (
       hasTuAccess &&

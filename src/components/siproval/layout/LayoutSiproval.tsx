@@ -92,10 +92,16 @@ export default function LayoutSiproval({
         userEmail.includes("syamsul.hady") ||
         userEmail.includes("syamsul.hadi");
 
+      const groupJabatanId = user.employee?.group_jabatan_id;
+      const isKatimFromTable =
+        Array.isArray(user.katims) && user.katims.length > 0;
+      const isKatim = groupJabatanId === 3 || isKatimFromTable;
+
       const hasFungsiTu =
-        Number(user.employee?.fungsi_id) === 1 ||
-        (user.employee?.fungsi?.name || "").toLowerCase().trim() ===
-          "tata usaha";
+        !isKatim &&
+        (Number(user.employee?.fungsi_id) === 1 ||
+          (user.employee?.fungsi?.name || "").toLowerCase().trim() ===
+            "tata usaha");
 
       const hasTuAccess = isExplicitTuUser || hasFungsiTu;
 
@@ -110,10 +116,6 @@ export default function LayoutSiproval({
               Number(s?.id) === 3 ||
               s?.name?.toLowerCase().includes("siproval"),
           ));
-      const groupJabatanId = user.employee?.group_jabatan_id;
-      const isKatimFromTable =
-        Array.isArray(user.katims) && user.katims.length > 0;
-      const isKatim = groupJabatanId === 3 || isKatimFromTable;
 
       // Di landing portal /siproval dan What's New tetap diizinkan
       if (isPublicPage) {

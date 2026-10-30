@@ -742,13 +742,14 @@ export default function BudgetMappingTable() {
                         <input
                           type="number"
                           value={keg.pagu}
+                          onWheel={(e) => (e.target as HTMLElement).blur()}
                           onChange={(e) =>
                             handlePaguChange(
                               kegIndex,
                               parseFloat(e.target.value) || 0,
                             )
                           }
-                          className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-xs font-bold text-slate-800 transition focus:border-[#005baa] focus:outline-none"
+                          className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-xs font-bold text-slate-800 transition focus:border-[#005baa] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                       <p className="mt-1.5 text-xs font-semibold text-slate-700">
