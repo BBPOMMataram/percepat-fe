@@ -93,6 +93,23 @@ export function isRtlCol(headerName?: string): boolean {
   return false;
 }
 
+export function isCellContentFilled(val: unknown): boolean {
+  if (val === null || val === undefined) return false;
+  const s = String(val).trim();
+  return s !== "" && s !== "-" && s !== "/";
+}
+
+export type IncompleteValidationModal = {
+  isOpen: boolean;
+  rowIndex: number;
+  rowKey: number;
+  monthName: string;
+  isKendalaMissing: boolean;
+  isRtlMissing: boolean;
+  kendalaCol?: ColumnSchema;
+  rtlCol?: ColumnSchema;
+};
+
 export function isCollaborativeCol(col: ColumnSchema): boolean {
   if (col.is_collaborative) return true;
   const label = (col.label || "").toLowerCase();
@@ -318,6 +335,10 @@ export default function TestLocalTableKatim() {
     Record<string, { month?: number; row_index?: number; key: string; value: any }>
   >({});
 
+  // Modal validasi Kendala & RTL wajib diisi saat simpan perubahan
+  const [validationModal, setValidationModal] = useState<IncompleteValidationModal | null>(null);
+  const [highlightedIncompleteRows, setHighlightedIncompleteRows] = useState<number[]>([]);
+
   // Pagination & Filter state untuk tabel dengan banyak baris (misal KIE Medsos)
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(50);
@@ -425,6 +446,8 @@ export default function TestLocalTableKatim() {
         setActiveTab(null);
       }
       setDirtyUpdates({});
+      setHighlightedIncompleteRows([]);
+      setValidationModal(null);
     } catch (err: any) {
       setErrorMsg(err.response?.data?.message || "Gagal memuat formulir tabel.");
     } finally {
@@ -577,6 +600,112 @@ export default function TestLocalTableKatim() {
       return;
     }
 
+    // 1. Validasi Kendala & RTL Wajib Diisi:
+    // Jika pada tabel terdapat kolom Kendala dan/atau RTL, dan user mengisi/mengubah data pada suatu baris/bulan,
+    // maka Kendala dan RTL pada baris tersebut wajib diisi sebelum perubahan dapat disimpan ke database.
+    // Jika Kendala & RTL sudah terisi, maka baris data dapat disimpan meskipun belum seluruh kolom sebaris terisi lengkap.
+    const kendalaCols = effectiveColumnsSchema.filter(
+      (c) => Boolean(c.is_kendala || isKendalaCol(c.label) || isKendalaCol(c.parent_header))
+    );
+    const rtlCols = effectiveColumnsSchema.filter(
+      (c) => Boolean(c.is_rtl || isRtlCol(c.label) || isRtlCol(c.parent_header))
+    );
+    const hasKendalaOrRtl = kendalaCols.length > 0 || rtlCols.length > 0;
+
+    if (hasKendalaOrRtl) {
+      const editableDataCols = effectiveColumnsSchema.filter((c) => {
+        const isK = Boolean(c.is_kendala || isKendalaCol(c.label) || isKendalaCol(c.parent_header));
+        const isR = Boolean(c.is_rtl || isRtlCol(c.label) || isRtlCol(c.parent_header));
+        const isFormula = c.type === "formula";
+        const isReadonly = c.type === "readonly";
+        const isCol0 = c.key === "col_0" || (c.label && (c.label.toLowerCase() === "bulan" || c.label.toLowerCase() === "no"));
+        return c.can_edit && !isFormula && !isReadonly && !isK && !isR && !isCol0;
+      });
+
+      const rows = activeTab.rows_data;
+      const touchedRowIndices = new Set<number>();
+      updatesList.forEach((up) => {
+        if (up.row_index !== undefined && rows[up.row_index]) {
+          touchedRowIndices.add(up.row_index);
+        } else if (up.month !== undefined && up.month > 0) {
+          const fIdx = rows.findIndex((r) => r.month === up.month);
+          if (fIdx !== -1) touchedRowIndices.add(fIdx);
+          else if (rows[up.month - 1]) touchedRowIndices.add(up.month - 1);
+        }
+      });
+
+      const standardMonthNames: Record<number, string> = {
+        1: "Januari", 2: "Februari", 3: "Maret", 4: "April",
+        5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus",
+        9: "September", 10: "Oktober", 11: "November", 12: "Desember"
+      };
+
+      for (const rIdx of Array.from(touchedRowIndices)) {
+        const row = rows[rIdx];
+        if (!row || row.is_total) continue;
+
+        // Cek apakah ada minimal satu kolom data yang terisi di baris ini
+        const hasAnyData = editableDataCols.some((col) => {
+          const val = row.cells?.[col.key];
+          return isCellContentFilled(val);
+        });
+
+        if (hasAnyData) {
+          const kendalaCol = kendalaCols[0];
+          const rtlCol = rtlCols[0];
+
+          const isKendalaMissing = Boolean(
+            kendalaCol && !isCellContentFilled(row.cells?.[kendalaCol.key])
+          );
+          const isRtlMissing = Boolean(
+            rtlCol && !isCellContentFilled(row.cells?.[rtlCol.key])
+          );
+
+          if (isKendalaMissing || isRtlMissing) {
+            const mName =
+              row.month_name ||
+              (row.month && standardMonthNames[row.month] ? standardMonthNames[row.month] : "") ||
+              (row.cells?.col_0 ? String(row.cells.col_0) : `Baris ${rIdx + 1}`);
+
+            const rKey =
+              row.month !== undefined && row.month !== null && row.month !== 0
+                ? row.month
+                : row.row_index !== undefined
+                ? row.row_index
+                : rIdx;
+
+            setValidationModal({
+              isOpen: true,
+              rowIndex: rIdx,
+              rowKey: rKey,
+              monthName: mName,
+              isKendalaMissing,
+              isRtlMissing,
+              kendalaCol,
+              rtlCol,
+            });
+
+            setHighlightedIncompleteRows((prev) =>
+              Array.from(new Set([...prev, rKey, rIdx]))
+            );
+
+            setErrorMsg(
+              `Anda harus mengisi kolom Kendala dan Rencana Tindak Lanjut (RTL) pada ${mName} terlebih dahulu.`
+            );
+
+            // Scroll ke baris tabel
+            const rowElem =
+              document.getElementById(`local-row-${rKey}`) ||
+              document.getElementById(`local-row-${rIdx}`);
+            if (rowElem) {
+              rowElem.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+            return; // Blokir penyimpanan perubahan!
+          }
+        }
+      }
+    }
+
     setSaving(true);
     setErrorMsg("");
     setSuccessMsg("");
@@ -587,6 +716,8 @@ export default function TestLocalTableKatim() {
       );
       setSuccessMsg(res.data?.message || "Data berhasil disimpan.");
       setDirtyUpdates({});
+      setHighlightedIncompleteRows([]);
+      setValidationModal(null);
 
       if (res.data?.data?.rows_data) {
         setActiveTab((prev) =>
@@ -1707,11 +1838,18 @@ export default function TestLocalTableKatim() {
                     displayedHeaderGroups && !displayedHeaderGroups[0]?.parent && numLeftCols > 1
                   );
 
+                  const isHighlightedIncomplete =
+                    highlightedIncompleteRows.includes(rowKey) ||
+                    highlightedIncompleteRows.includes(originalIdx);
+
                   return (
                     <tr
                       key={rowKey}
+                      id={`local-row-${rowKey}`}
                       className={`transition ${
-                        isSectionRow
+                        isHighlightedIncomplete
+                          ? "ring-2 ring-inset ring-amber-400 bg-amber-50/40"
+                          : isSectionRow
                           ? "bg-slate-100 font-bold border-y border-slate-300 text-slate-900"
                           : isFormulaRow
                           ? "bg-emerald-50/70 font-bold border-y border-emerald-300 text-slate-900 hover:bg-emerald-100/60"
@@ -2419,6 +2557,126 @@ export default function TestLocalTableKatim() {
                   </>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Peringatan Validasi Kendala & RTL Belum Diisi */}
+      {validationModal && validationModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header Modal */}
+            <div className="flex items-center justify-between border-b border-slate-200 bg-amber-50/70 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-600 border border-amber-200 shrink-0">
+                  <Icon icon="solar:danger-triangle-bold" width={22} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800">
+                    Kendala & RTL Belum Diisi
+                  </h3>
+                  <p className="text-[11px] font-semibold text-amber-700">
+                    {validationModal.monthName}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setValidationModal(null)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-white hover:text-slate-600 transition"
+              >
+                <Icon icon="solar:close-circle-bold" width={20} />
+              </button>
+            </div>
+
+            {/* Isi Modal */}
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Penyimpanan data <strong>belum dapat diproses</strong> karena Anda telah menginputkan capaian data pada periode ini, namun kolom <strong>Kendala</strong> dan/atau <strong>Rencana Tindak Lanjut (RTL)</strong> belum diisi.
+              </p>
+
+              {/* Status Checklist Box */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-slate-600">Kolom Data Pengisian</span>
+                  <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md text-[11px]">
+                    <Icon icon="solar:check-circle-bold" width={14} className="text-emerald-600" />
+                    Sudah Diisi
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs border-t border-slate-200/60 pt-2">
+                  <span className="font-medium text-slate-700">Kolom Kendala</span>
+                  {validationModal.isKendalaMissing ? (
+                    <span className="inline-flex items-center gap-1 font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md text-[11px] animate-pulse">
+                      <Icon icon="solar:close-circle-bold" width={14} className="text-rose-600" />
+                      Belum Diisi (Wajib)
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md text-[11px]">
+                      <Icon icon="solar:check-circle-bold" width={14} className="text-emerald-600" />
+                      Sudah Terisi
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between text-xs border-t border-slate-200/60 pt-2">
+                  <span className="font-medium text-slate-700">Kolom Rencana Tindak Lanjut (RTL)</span>
+                  {validationModal.isRtlMissing ? (
+                    <span className="inline-flex items-center gap-1 font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md text-[11px] animate-pulse">
+                      <Icon icon="solar:close-circle-bold" width={14} className="text-rose-600" />
+                      Belum Diisi (Wajib)
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md text-[11px]">
+                      <Icon icon="solar:check-circle-bold" width={14} className="text-emerald-600" />
+                      Sudah Terisi
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-900">
+                <Icon icon="solar:info-circle-bold" width={16} className="text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-[11px] leading-relaxed">
+                  Sesuai ketentuan pelaporan RHPK, saat melakukan pengisian data realisasi pertama kali di bulan tersebut, Anda wajib melengkapi kendala yang dihadapi serta rencana tindak lanjut (RTL) penyelesaiannya. Jika Kendala dan RTL telah terisi, Anda dapat menyimpan perubahan meskipun belum semua kolom dalam sebaris selesai terisi.
+                </p>
+              </div>
+            </div>
+
+            {/* Footer Modal */}
+            <div className="flex items-center justify-end gap-2.5 border-t border-slate-200 bg-slate-50/60 px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setValidationModal(null)}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+              >
+                Tutup
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const targetCol = validationModal.isKendalaMissing
+                    ? validationModal.kendalaCol
+                    : validationModal.rtlCol;
+                  const rIdx = validationModal.rowIndex;
+                  const rKey = validationModal.rowKey;
+                  const mName = validationModal.monthName;
+                  setValidationModal(null);
+
+                  if (targetCol && activeTab) {
+                    const row = activeTab.rows_data[rIdx];
+                    const val = row?.cells?.[targetCol.key];
+                    handleOpenCollabModal(rKey, targetCol, val, mName, true);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700 transition"
+              >
+                <Icon icon="solar:pen-new-square-bold" width={15} />
+                <span>Lengkapi {validationModal.isKendalaMissing ? "Kendala" : "RTL"} Sekarang</span>
+              </button>
             </div>
           </div>
         </div>
