@@ -325,6 +325,7 @@ export default function TestLocalTableKatim() {
   const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>("all");
   const [isPicUser, setIsPicUser] = useState(false);
   const [isCurrentMonthLocked, setIsCurrentMonthLocked] = useState(false);
+  const [monthLocksMap, setMonthLocksMap] = useState<Record<number, boolean>>({});
   const [isTogglingLock, setIsTogglingLock] = useState(false);
 
   // Jika user teridentifikasi sebagai PIC/Admin dan mengakses endpoint /siproval/katim/entry-data-rhpk,
@@ -391,6 +392,9 @@ export default function TestLocalTableKatim() {
       }
       if (d.is_current_month_locked !== undefined) {
         setIsCurrentMonthLocked(Boolean(d.is_current_month_locked));
+      }
+      if (d.month_locks) {
+        setMonthLocksMap(d.month_locks);
       }
       if (Array.isArray(d.years) && d.years.length > 0) {
         setYears(d.years);
@@ -707,6 +711,29 @@ export default function TestLocalTableKatim() {
   };
 
   const dirtyCount = Object.keys(dirtyUpdates).length;
+
+  const getMonthNumberFromText = (text?: string | null): number | null => {
+    if (!text) return null;
+    const t = text.trim().toLowerCase();
+    const map: Record<string, number> = {
+      januari: 1, jan: 1, january: 1,
+      februari: 2, feb: 2, pebruari: 2, february: 2,
+      maret: 3, mar: 3, march: 3,
+      april: 4, apr: 4,
+      mei: 5, may: 5,
+      juni: 6, jun: 6, june: 6,
+      juli: 7, jul: 7, july: 7,
+      agustus: 8, agu: 8, ags: 8, agst: 8, august: 8,
+      september: 9, sep: 9, sept: 9,
+      oktober: 10, okt: 10, oct: 10, october: 10,
+      november: 11, nov: 11, nopember: 11,
+      desember: 12, des: 12, dec: 12, december: 12,
+    };
+    for (const [key, num] of Object.entries(map)) {
+      if (t.includes(key)) return num;
+    }
+    return null;
+  };
 
   // Pastikan tabel yang belum memiliki konfigurasi tetap menampilkan seluruh kolom
   const effectiveColumnsSchema = useMemo<ColumnSchema[]>(() => {
@@ -1414,6 +1441,8 @@ export default function TestLocalTableKatim() {
                         }
 
                         const mColor = getMonthColor(grp.parent);
+                        const grpMonthNum = getMonthNumberFromText(grp.parent);
+                        const isGrpLocked = !isPicUser && grpMonthNum !== null && Boolean(monthLocksMap[grpMonthNum]);
                         return (
                           <th
                             key={`grp-${gIdx}-${grp.parent}`}
@@ -1423,6 +1452,12 @@ export default function TestLocalTableKatim() {
                             <div className="flex items-center justify-center gap-1.5">
                               <span className={`size-2 rounded-full inline-block ${mColor.dot}`} />
                               <span>{grp.parent}</span>
+                              {isGrpLocked && (
+                                <span className="inline-flex items-center gap-0.5 rounded bg-slate-200/90 text-slate-700 px-1.5 py-0.5 text-[9px] font-bold lowercase tracking-normal">
+                                  <Icon icon="solar:lock-bold" width={10} />
+                                  terkunci
+                                </span>
+                              )}
                             </div>
                           </th>
                         );
@@ -1432,8 +1467,12 @@ export default function TestLocalTableKatim() {
                       {headerGroups.map((grp) => {
                         if (!grp.parent) return null;
                         const mColor = getMonthColor(grp.parent);
+                        const grpMonthNum = getMonthNumberFromText(grp.parent);
+                        const isGrpLocked = !isPicUser && grpMonthNum !== null && Boolean(monthLocksMap[grpMonthNum]);
                         return grp.cols.map((col) => {
-                          const isEditableForMe = col.can_edit;
+                          const colMonthNum = grpMonthNum || getMonthNumberFromText(col.label);
+                          const isColMonthLocked = !isPicUser && colMonthNum !== null && Boolean(monthLocksMap[colMonthNum]);
+                          const isEditableForMe = col.can_edit && !isColMonthLocked;
                           const subTitle = col.sub_label || col.label;
                           return (
                             <th
@@ -1617,9 +1656,12 @@ export default function TestLocalTableKatim() {
                     >
                       {effectiveColumnsSchema.map((col, cIdx) => {
                         const val = row.cells?.[col.key] ?? "";
+                        const colMonthNum = getMonthNumberFromText(col.parent_header) || getMonthNumberFromText(col.label);
+                        const isColMonthLocked = !isPicUser && colMonthNum !== null && Boolean(monthLocksMap[colMonthNum]);
                         const canEditCell =
                           col.can_edit &&
                           !isMonthLocked &&
+                          !isColMonthLocked &&
                           canEditThisRow &&
                           !isTotalRow &&
                           !isFormulaRow &&
