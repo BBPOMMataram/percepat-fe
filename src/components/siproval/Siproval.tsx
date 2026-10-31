@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Plus_Jakarta_Sans } from "next/font/google";
 import {
   motion,
   useScroll,
@@ -26,11 +25,9 @@ import {
   SiprovalWordScrub,
 } from "./SiprovalMotion";
 
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  display: "swap",
-});
+const plusJakartaSans = {
+  className: "font-['Plus_Jakarta_Sans',sans-serif]",
+};
 
 interface AvailableRole {
   id: string;

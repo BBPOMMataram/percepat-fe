@@ -27,6 +27,9 @@ export default function RootLayout({
     // data-theme nanti buatkan toggle dark mode
     <html lang="id" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
