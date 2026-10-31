@@ -76,12 +76,12 @@ export type NoteItem = {
   author: string;
 };
 
-export function isKendalaCol(headerName?: string): boolean {
+export function isKendalaCol(headerName?: string | null): boolean {
   const h = (headerName || "").toLowerCase();
   return h.includes("kendala");
 }
 
-export function isRtlCol(headerName?: string): boolean {
+export function isRtlCol(headerName?: string | null): boolean {
   const h = (headerName || "").toLowerCase();
   if (h.includes("rencana tindak lanjut") || /\brtl\b/i.test(h)) return true;
   if (
@@ -860,9 +860,31 @@ export default function TestLocalTableKatim() {
       november: 11, nov: 11, nopember: 11,
       desember: 12, des: 12, dec: 12, december: 12,
     };
+
+    // 1. Exact match (e.g. "Januari", "jan", "FEBRUARI")
+    if (map[t]) return map[t];
+
+    // 2. Starts with month followed by delimiter (e.g. "JANUARI - Jumlah Permohonan", "Januari (1)", "Januari 2026")
     for (const [key, num] of Object.entries(map)) {
-      if (t.includes(key)) return num;
+      if (
+        t.startsWith(key + " ") ||
+        t.startsWith(key + " -") ||
+        t.startsWith(key + "-") ||
+        t.startsWith(key + ":") ||
+        t.startsWith(key + "/") ||
+        t.startsWith(key + "(")
+      ) {
+        return num;
+      }
     }
+
+    // 3. Ends with month (e.g. "Bulan Januari", "Target Januari")
+    for (const [key, num] of Object.entries(map)) {
+      if (t.endsWith(" " + key) || t.endsWith("-" + key) || t.endsWith("/" + key)) {
+        return num;
+      }
+    }
+
     return null;
   };
 
@@ -932,15 +954,37 @@ export default function TestLocalTableKatim() {
   // Deteksi apakah tabel menggunakan format horizontal (bulan ada di kolom/header)
   const isHorizontalMonthTable = useMemo(() => {
     if (!effectiveColumnsSchema || effectiveColumnsSchema.length === 0) return false;
-    const monthsFound = new Set<number>();
+
+    // 1. Jika tabel memiliki kolom 'Bulan', pasti tabel vertikal
+    const hasBulanCol = effectiveColumnsSchema.some(
+      (c) => (c.label || "").trim().toLowerCase() === "bulan"
+    );
+    if (hasBulanCol) return false;
+
+    // 2. Jika baris data terdefinisi untuk 12 bulan (month 1..12), pasti tabel vertikal
+    const rows = activeTab?.rows_data || [];
+    if (rows.length === 12 && rows.some((r) => r.month && r.month > 0)) {
+      return false;
+    }
+
+    // 3. Periksa parent_header (misal: JANUARI, FEBRUARI)
+    const parentMonths = new Set<number>();
     effectiveColumnsSchema.forEach((col) => {
-      const parentMonth = getMonthNumberFromText(col.parent_header);
-      if (parentMonth !== null) monthsFound.add(parentMonth);
-      const labelMonth = getMonthNumberFromText(col.label);
-      if (labelMonth !== null) monthsFound.add(labelMonth);
+      if (col.parent_header) {
+        const pm = getMonthNumberFromText(col.parent_header);
+        if (pm !== null) parentMonths.add(pm);
+      }
     });
-    return monthsFound.size >= 3;
-  }, [effectiveColumnsSchema]);
+    if (parentMonths.size >= 3) return true;
+
+    // 4. Periksa label kolom (hanya jika label kolom mandiri menunjukkan bulan)
+    const labelMonths = new Set<number>();
+    effectiveColumnsSchema.forEach((col) => {
+      const lm = getMonthNumberFromText(col.label);
+      if (lm !== null) labelMonths.add(lm);
+    });
+    return labelMonths.size >= 3;
+  }, [effectiveColumnsSchema, activeTab?.rows_data]);
 
   // Deteksi kolom bulan jika ada
   const monthColKey = useMemo(() => {
@@ -997,6 +1041,8 @@ export default function TestLocalTableKatim() {
         m = String(r.cells[monthColKey]).trim();
       } else if (r.month_name && typeof r.month_name === "string" && r.month_name.trim()) {
         m = r.month_name.trim();
+      } else if (r.month && r.month >= 1 && r.month <= 12) {
+        m = standardOrder[r.month - 1];
       } else if (r.cells?.col_2 && typeof r.cells.col_2 === "string") {
         const val = r.cells.col_2.trim();
         if (
@@ -1040,22 +1086,41 @@ export default function TestLocalTableKatim() {
     if (!activeTab?.rows_data) return [];
     let rows = activeTab.rows_data;
 
+    const standardOrder = [
+      "Januari",
+      "Februari",
+      "Maret",
+      "April",
+      "Mei",
+      "Juni",
+      "Juli",
+      "Agustus",
+      "September",
+      "Oktober",
+      "November",
+      "Desember",
+    ];
+
     // Filter per Bulan (hanya jika tabel vertikal, karena pada tabel horizontal baris merupakan komoditi/item)
     if (selectedMonthFilter !== "all" && !isHorizontalMonthTable) {
       const filterLower = selectedMonthFilter.toLowerCase();
+      const targetMonthNum = getMonthNumberFromText(selectedMonthFilter);
       rows = rows.filter((r) => {
         let m = "";
         if (monthColKey && r.cells?.[monthColKey]) {
           m = String(r.cells[monthColKey]).trim().toLowerCase();
         } else if (r.month_name) {
           m = String(r.month_name).trim().toLowerCase();
+        } else if (r.month && r.month >= 1 && r.month <= 12) {
+          m = standardOrder[r.month - 1].toLowerCase();
         } else if (r.cells?.col_2) {
           m = String(r.cells.col_2).trim().toLowerCase();
         }
         return (
           m === filterLower ||
           (filterLower === "februari" && m === "pebruari") ||
-          (filterLower === "november" && m === "nopember")
+          (filterLower === "november" && m === "nopember") ||
+          (targetMonthNum !== null && r.month === targetMonthNum)
         );
       });
     }
