@@ -147,6 +147,29 @@ export function getMonthColor(monthName?: string | null) {
   }
 }
 
+export const getMonthNumberFromText = (text?: string | null): number | null => {
+  if (!text) return null;
+  const t = text.trim().toLowerCase();
+  const map: Record<string, number> = {
+    januari: 1, jan: 1, january: 1,
+    februari: 2, feb: 2, pebruari: 2, february: 2,
+    maret: 3, mar: 3, march: 3,
+    april: 4, apr: 4,
+    mei: 5, may: 5,
+    juni: 6, jun: 6, june: 6,
+    juli: 7, jul: 7, july: 7,
+    agustus: 8, agu: 8, ags: 8, agst: 8, august: 8,
+    september: 9, sep: 9, sept: 9,
+    oktober: 10, okt: 10, oct: 10, october: 10,
+    november: 11, nov: 11, nopember: 11,
+    desember: 12, des: 12, dec: 12, december: 12,
+  };
+  for (const [key, num] of Object.entries(map)) {
+    if (t.includes(key)) return num;
+  }
+  return null;
+};
+
 type ActiveTabDetail = {
   id: number;
   title: string;
@@ -228,6 +251,45 @@ export default function TestLocalTablePic() {
     return spreadsheets.find((s) => s.id === selectedSpId) || null;
   }, [spreadsheets, selectedSpId]);
 
+  const headerGroups = useMemo(() => {
+    if (!activeTab?.columns_schema) return null;
+    const hasGroups = activeTab.columns_schema.some((c) => Boolean(c.parent_header));
+    if (!hasGroups) return null;
+
+    type HeaderGroup = {
+      parent: string | null;
+      cols: ColumnSchema[];
+    };
+
+    const groups: HeaderGroup[] = [];
+    let currentGroup: HeaderGroup | null = null;
+
+    activeTab.columns_schema.forEach((col) => {
+      const parentName = col.parent_header || null;
+      if (currentGroup && currentGroup.parent === parentName) {
+        currentGroup.cols.push(col);
+      } else {
+        currentGroup = { parent: parentName, cols: [col] };
+        groups.push(currentGroup);
+      }
+    });
+
+    return groups;
+  }, [activeTab]);
+
+  const isHorizontalMonthTable = useMemo(() => {
+    const schema = activeTab?.columns_schema;
+    if (!schema || schema.length === 0) return false;
+    const monthsFound = new Set<number>();
+    schema.forEach((col) => {
+      const parentMonth = getMonthNumberFromText(col.parent_header);
+      if (parentMonth !== null) monthsFound.add(parentMonth);
+      const labelMonth = getMonthNumberFromText(col.label);
+      if (labelMonth !== null) monthsFound.add(labelMonth);
+    });
+    return monthsFound.size >= 3;
+  }, [activeTab?.columns_schema]);
+
   const monthColKey = useMemo(() => {
     if (!activeTab?.columns_schema) return null;
     const col = activeTab.columns_schema.find(
@@ -237,10 +299,43 @@ export default function TestLocalTablePic() {
   }, [activeTab?.columns_schema]);
 
   const availableMonths = useMemo(() => {
-    if (!activeTab?.rows_data || activeTab.rows_data.length === 0) return [];
+    const rawCount = activeTab?.rows_data?.length || 0;
+    if (rawCount === 0) return [];
+
+    const standardOrder = [
+      "Januari",
+      "Februari",
+      "Maret",
+      "April",
+      "Mei",
+      "Juni",
+      "Juli",
+      "Agustus",
+      "September",
+      "Oktober",
+      "November",
+      "Desember",
+    ];
+
+    if (isHorizontalMonthTable && activeTab?.columns_schema) {
+      const result: { name: string; count: number }[] = [];
+      standardOrder.forEach((name) => {
+        const targetNum = getMonthNumberFromText(name);
+        const hasMonthCol = activeTab.columns_schema.some((c) => {
+          const pNum = getMonthNumberFromText(c.parent_header);
+          const lNum = getMonthNumberFromText(c.label);
+          return pNum === targetNum || lNum === targetNum;
+        });
+        if (hasMonthCol) {
+          result.push({ name, count: rawCount });
+        }
+      });
+      return result;
+    }
+
     const monthsMap: Record<string, number> = {};
 
-    activeTab.rows_data.forEach((r) => {
+    activeTab?.rows_data?.forEach((r) => {
       let m = "";
       if (monthColKey && r.cells?.[monthColKey]) {
         m = String(r.cells[monthColKey]).trim();
@@ -262,21 +357,6 @@ export default function TestLocalTablePic() {
       }
     });
 
-    const standardOrder = [
-      "Januari",
-      "Februari",
-      "Maret",
-      "April",
-      "Mei",
-      "Juni",
-      "Juli",
-      "Agustus",
-      "September",
-      "Oktober",
-      "November",
-      "Desember",
-    ];
-
     const result: { name: string; count: number }[] = [];
     standardOrder.forEach((name) => {
       const matchKey = Object.keys(monthsMap).find(
@@ -297,14 +377,14 @@ export default function TestLocalTablePic() {
     });
 
     return result;
-  }, [activeTab?.rows_data, monthColKey]);
+  }, [activeTab?.rows_data, activeTab?.columns_schema, monthColKey, isHorizontalMonthTable]);
 
   const filteredRows = useMemo(() => {
     if (!activeTab?.rows_data) return [];
     let rows = activeTab.rows_data;
 
-    // Filter per Bulan
-    if (selectedMonthFilter !== "all") {
+    // Filter per Bulan (hanya jika tabel vertikal, karena pada tabel horizontal baris merupakan komoditi/item)
+    if (selectedMonthFilter !== "all" && !isHorizontalMonthTable) {
       const filterLower = selectedMonthFilter.toLowerCase();
       rows = rows.filter((r) => {
         let m = "";
@@ -343,7 +423,44 @@ export default function TestLocalTablePic() {
     }
 
     return rows;
-  }, [activeTab?.rows_data, selectedMonthFilter, tableSearch, monthColKey]);
+  }, [activeTab?.rows_data, selectedMonthFilter, isHorizontalMonthTable, tableSearch, monthColKey]);
+
+  const displayedColumnsSchema = useMemo<ColumnSchema[]>(() => {
+    const schema = activeTab?.columns_schema || [];
+    if (!isHorizontalMonthTable || selectedMonthFilter === "all") {
+      return schema;
+    }
+    const targetMonthNum = getMonthNumberFromText(selectedMonthFilter);
+    if (!targetMonthNum) return schema;
+
+    return schema.filter((col) => {
+      const isFixedLeft = !col.parent_header && getMonthNumberFromText(col.label) === null;
+      const colMonthNum = getMonthNumberFromText(col.parent_header) || getMonthNumberFromText(col.label);
+      return isFixedLeft || colMonthNum === targetMonthNum;
+    });
+  }, [activeTab?.columns_schema, isHorizontalMonthTable, selectedMonthFilter]);
+
+  const displayedHeaderGroups = useMemo(() => {
+    if (!headerGroups) return null;
+    if (!isHorizontalMonthTable || selectedMonthFilter === "all") {
+      return headerGroups;
+    }
+    const targetMonthNum = getMonthNumberFromText(selectedMonthFilter);
+    if (!targetMonthNum) return headerGroups;
+
+    return headerGroups
+      .map((grp) => {
+        if (!grp.parent) {
+          return grp;
+        }
+        const grpMonthNum = getMonthNumberFromText(grp.parent);
+        if (grpMonthNum === targetMonthNum) {
+          return grp;
+        }
+        return null;
+      })
+      .filter((grp): grp is NonNullable<typeof grp> => grp !== null);
+  }, [headerGroups, isHorizontalMonthTable, selectedMonthFilter]);
 
   const rawRowsCount = activeTab?.rows_data?.length || 0;
   const totalRows = filteredRows.length;
@@ -380,32 +497,6 @@ export default function TestLocalTablePic() {
       totals[col.key] = isNumericCol && count > 0 ? Math.round(sum * 100) / 100 : null;
     });
     return totals;
-  }, [activeTab]);
-
-  const headerGroups = useMemo(() => {
-    if (!activeTab?.columns_schema) return null;
-    const hasGroups = activeTab.columns_schema.some((c) => Boolean(c.parent_header));
-    if (!hasGroups) return null;
-
-    type HeaderGroup = {
-      parent: string | null;
-      cols: ColumnSchema[];
-    };
-
-    const groups: HeaderGroup[] = [];
-    let currentGroup: HeaderGroup | null = null;
-
-    activeTab.columns_schema.forEach((col) => {
-      const parentName = col.parent_header || null;
-      if (currentGroup && currentGroup.parent === parentName) {
-        currentGroup.cols.push(col);
-      } else {
-        currentGroup = { parent: parentName, cols: [col] };
-        groups.push(currentGroup);
-      }
-    });
-
-    return groups;
   }, [activeTab]);
 
   const hasExplicitTotalRow = useMemo(() => {
@@ -1277,10 +1368,10 @@ export default function TestLocalTablePic() {
             <table className="w-full border-collapse text-left text-xs">
               {/* Sticky Table Header */}
               <thead className="bg-slate-50 text-slate-700 border-b border-slate-200 sticky top-0 z-20">
-                {headerGroups ? (
+                {displayedHeaderGroups ? (
                   <>
                     <tr className="border-b border-slate-200">
-                      {headerGroups.map((grp, gIdx) => {
+                      {displayedHeaderGroups.map((grp, gIdx) => {
                         if (!grp.parent) {
                           const numLeftCols = grp.cols.length;
                           return grp.cols.map((col, cIdx) => {
@@ -1333,7 +1424,7 @@ export default function TestLocalTablePic() {
                       })}
                     </tr>
                     <tr className="border-b border-slate-200 bg-slate-50">
-                      {headerGroups.map((grp) => {
+                      {displayedHeaderGroups.map((grp) => {
                         if (!grp.parent) return null;
                         const mColor = getMonthColor(grp.parent);
                         return grp.cols.map((col) => {
@@ -1408,12 +1499,12 @@ export default function TestLocalTablePic() {
                         </span>
                       </div>
                       <div className="text-xs font-bold text-slate-900">
-                        {activeTab.columns_schema?.[0]?.label || "Bulan"}
+                        {displayedColumnsSchema?.[0]?.label || "Bulan"}
                       </div>
                     </th>
 
                     {/* Sisa Kolom-Kolom Tabel */}
-                    {activeTab.columns_schema?.slice(1).map((col) => {
+                    {displayedColumnsSchema?.slice(1).map((col) => {
                       const katimNames = katims
                         .filter((k) => col.allowed_katim_ids?.includes(k.user_id))
                         .map((k) => k.name);
@@ -1484,7 +1575,7 @@ export default function TestLocalTablePic() {
                 {paginatedRows.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={activeTab.columns_schema?.length || 1}
+                      colSpan={displayedColumnsSchema?.length || 1}
                       className="py-12 text-center text-xs text-slate-400"
                     >
                       Tidak ada data yang cocok dengan pencarian &quot;{tableSearch}&quot;.
@@ -1516,11 +1607,11 @@ export default function TestLocalTablePic() {
                     );
 
                     const numLeftCols =
-                      headerGroups && !headerGroups[0]?.parent
-                        ? headerGroups[0].cols.length
+                      displayedHeaderGroups && !displayedHeaderGroups[0]?.parent
+                        ? displayedHeaderGroups[0].cols.length
                         : 1;
                     const hasMultiLeftCols = Boolean(
-                      headerGroups && !headerGroups[0]?.parent && numLeftCols > 1
+                      displayedHeaderGroups && !displayedHeaderGroups[0]?.parent && numLeftCols > 1
                     );
 
                     return (
@@ -1536,7 +1627,7 @@ export default function TestLocalTablePic() {
                             : "hover:bg-blue-50/30"
                         }`}
                       >
-                        {activeTab.columns_schema?.map((col, cIdx) => {
+                        {displayedColumnsSchema?.map((col, cIdx) => {
                           const val = row.cells?.[col.key] ?? "";
                           const isNum = typeof val === "number";
 
@@ -1546,7 +1637,7 @@ export default function TestLocalTablePic() {
                               stickyTdClass = `sticky left-0 z-10 w-[55px] min-w-[55px] max-w-[55px] text-center border-r border-slate-200 ${
                                 isSectionRow
                                   ? "bg-slate-200 font-black text-slate-900"
-                                  : isFormulaRow
+                                  : (isFormulaRow || isTotalRow)
                                   ? "bg-emerald-100 text-emerald-950 font-bold"
                                   : isQuestionRow
                                   ? "bg-blue-50/80 font-bold text-blue-900"
@@ -1556,14 +1647,14 @@ export default function TestLocalTablePic() {
                               stickyTdClass = `sticky left-[55px] z-10 min-w-[240px] max-w-[280px] shadow-r border-r border-slate-200 ${
                                 isSectionRow
                                   ? "bg-slate-100 font-black text-slate-900"
-                                  : isFormulaRow
-                                  ? "bg-emerald-50 text-emerald-950 font-bold"
+                                  : (isFormulaRow || isTotalRow)
+                                  ? "bg-emerald-100 text-emerald-950 font-bold"
                                   : isQuestionRow
                                   ? "bg-blue-50/40 font-semibold text-blue-950"
                                   : "bg-white font-semibold text-slate-900"
                               }`;
                             }
-                          } else if (cIdx === 0 && Boolean(headerGroups)) {
+                          } else if (cIdx === 0 && Boolean(displayedHeaderGroups)) {
                             stickyTdClass = `sticky left-0 z-10 min-w-[130px] shadow-r border-r border-slate-200 ${
                               isTotalRow
                                 ? "bg-emerald-100 text-emerald-950 font-bold"
@@ -1622,7 +1713,7 @@ export default function TestLocalTablePic() {
                       <span className="font-bold uppercase tracking-wider text-[11px] text-slate-700">Total Rekap</span>
                     </td>
 
-                    {activeTab.columns_schema?.slice(1).map((col) => {
+                    {displayedColumnsSchema?.slice(1).map((col) => {
                       const totalVal = columnTotals[col.key];
 
                       return (

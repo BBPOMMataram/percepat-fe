@@ -798,6 +798,19 @@ export default function TestLocalTableKatim() {
     return groups;
   }, [effectiveColumnsSchema]);
 
+  // Deteksi apakah tabel menggunakan format horizontal (bulan ada di kolom/header)
+  const isHorizontalMonthTable = useMemo(() => {
+    if (!effectiveColumnsSchema || effectiveColumnsSchema.length === 0) return false;
+    const monthsFound = new Set<number>();
+    effectiveColumnsSchema.forEach((col) => {
+      const parentMonth = getMonthNumberFromText(col.parent_header);
+      if (parentMonth !== null) monthsFound.add(parentMonth);
+      const labelMonth = getMonthNumberFromText(col.label);
+      if (labelMonth !== null) monthsFound.add(labelMonth);
+    });
+    return monthsFound.size >= 3;
+  }, [effectiveColumnsSchema]);
+
   // Deteksi kolom bulan jika ada
   const monthColKey = useMemo(() => {
     if (!activeTab?.columns_schema) return null;
@@ -809,10 +822,45 @@ export default function TestLocalTableKatim() {
 
   // Ekstrak daftar bulan yang ada di tab saat ini beserta jumlah barisnya
   const availableMonths = useMemo(() => {
-    if (!activeTab?.rows_data || activeTab.rows_data.length === 0) return [];
+    const rawCount = activeTab?.rows_data?.length || 0;
+    if (rawCount === 0) return [];
+
+    const standardOrder = [
+      "Januari",
+      "Februari",
+      "Maret",
+      "April",
+      "Mei",
+      "Juni",
+      "Juli",
+      "Agustus",
+      "September",
+      "Oktober",
+      "November",
+      "Desember",
+    ];
+
+    // Jika tabel berstruktur horizontal (bulan berada di kolom header)
+    if (isHorizontalMonthTable) {
+      const result: { name: string; count: number }[] = [];
+      standardOrder.forEach((name) => {
+        const targetNum = getMonthNumberFromText(name);
+        const hasMonthCol = effectiveColumnsSchema.some((c) => {
+          const pNum = getMonthNumberFromText(c.parent_header);
+          const lNum = getMonthNumberFromText(c.label);
+          return pNum === targetNum || lNum === targetNum;
+        });
+        if (hasMonthCol) {
+          result.push({ name, count: rawCount });
+        }
+      });
+      return result;
+    }
+
+    // Default: tabel vertikal (bulan berada di baris)
     const monthsMap: Record<string, number> = {};
 
-    activeTab.rows_data.forEach((r) => {
+    activeTab?.rows_data?.forEach((r) => {
       let m = "";
       if (monthColKey && r.cells?.[monthColKey]) {
         m = String(r.cells[monthColKey]).trim();
@@ -834,21 +882,6 @@ export default function TestLocalTableKatim() {
       }
     });
 
-    const standardOrder = [
-      "Januari",
-      "Februari",
-      "Maret",
-      "April",
-      "Mei",
-      "Juni",
-      "Juli",
-      "Agustus",
-      "September",
-      "Oktober",
-      "November",
-      "Desember",
-    ];
-
     const result: { name: string; count: number }[] = [];
     standardOrder.forEach((name) => {
       const matchKey = Object.keys(monthsMap).find(
@@ -869,15 +902,15 @@ export default function TestLocalTableKatim() {
     });
 
     return result;
-  }, [activeTab?.rows_data, monthColKey]);
+  }, [activeTab?.rows_data, monthColKey, isHorizontalMonthTable, effectiveColumnsSchema]);
 
   // Filter baris berdasarkan Bulan dan Pencarian
   const filteredRows = useMemo(() => {
     if (!activeTab?.rows_data) return [];
     let rows = activeTab.rows_data;
 
-    // Filter per Bulan
-    if (selectedMonthFilter !== "all") {
+    // Filter per Bulan (hanya jika tabel vertikal, karena pada tabel horizontal baris merupakan komoditi/item)
+    if (selectedMonthFilter !== "all" && !isHorizontalMonthTable) {
       const filterLower = selectedMonthFilter.toLowerCase();
       rows = rows.filter((r) => {
         let m = "";
@@ -916,7 +949,46 @@ export default function TestLocalTableKatim() {
     }
 
     return rows;
-  }, [activeTab?.rows_data, selectedMonthFilter, searchQuery, monthColKey]);
+  }, [activeTab?.rows_data, selectedMonthFilter, isHorizontalMonthTable, searchQuery, monthColKey]);
+
+  // Kolom yang ditampilkan saat ini (jika tabel horizontal difilter per bulan, tampilkan kolom tetap + kolom bulan terpilih)
+  const displayedColumnsSchema = useMemo<ColumnSchema[]>(() => {
+    if (!isHorizontalMonthTable || selectedMonthFilter === "all") {
+      return effectiveColumnsSchema;
+    }
+    const targetMonthNum = getMonthNumberFromText(selectedMonthFilter);
+    if (!targetMonthNum) return effectiveColumnsSchema;
+
+    return effectiveColumnsSchema.filter((col) => {
+      const isFixedLeft = !col.parent_header && getMonthNumberFromText(col.label) === null;
+      const colMonthNum = getMonthNumberFromText(col.parent_header) || getMonthNumberFromText(col.label);
+      return isFixedLeft || colMonthNum === targetMonthNum;
+    });
+  }, [effectiveColumnsSchema, isHorizontalMonthTable, selectedMonthFilter]);
+
+  // Header groups yang ditampilkan saat ini
+  const displayedHeaderGroups = useMemo(() => {
+    if (!headerGroups) return null;
+    if (!isHorizontalMonthTable || selectedMonthFilter === "all") {
+      return headerGroups;
+    }
+    const targetMonthNum = getMonthNumberFromText(selectedMonthFilter);
+    if (!targetMonthNum) return headerGroups;
+
+    return headerGroups
+      .map((grp) => {
+        if (!grp.parent) {
+          // Kolom tetap sebelah kiri (No, Rekomendasi/sertifikasi, dsb)
+          return grp;
+        }
+        const grpMonthNum = getMonthNumberFromText(grp.parent);
+        if (grpMonthNum === targetMonthNum) {
+          return grp;
+        }
+        return null;
+      })
+      .filter((grp): grp is NonNullable<typeof grp> => grp !== null);
+  }, [headerGroups, isHorizontalMonthTable, selectedMonthFilter]);
 
   const rawRowsCount = activeTab?.rows_data?.length || 0;
   const totalRows = filteredRows.length;
@@ -1390,10 +1462,10 @@ export default function TestLocalTableKatim() {
             <div className="w-full overflow-x-auto">
             <table className="w-full border-collapse text-left text-xs">
               <thead className="border-b border-slate-200 bg-slate-50 sticky top-0 z-20">
-                {headerGroups ? (
+                {displayedHeaderGroups ? (
                   <>
                     <tr className="border-b border-slate-200">
-                      {headerGroups.map((grp, gIdx) => {
+                      {displayedHeaderGroups.map((grp, gIdx) => {
                         if (!grp.parent) {
                           const numLeftCols = grp.cols.length;
                           return grp.cols.map((col, cIdx) => {
@@ -1464,7 +1536,7 @@ export default function TestLocalTableKatim() {
                       })}
                     </tr>
                     <tr className="border-b border-slate-200 bg-slate-50">
-                      {headerGroups.map((grp) => {
+                      {displayedHeaderGroups.map((grp) => {
                         if (!grp.parent) return null;
                         const mColor = getMonthColor(grp.parent);
                         const grpMonthNum = getMonthNumberFromText(grp.parent);
@@ -1512,7 +1584,7 @@ export default function TestLocalTableKatim() {
                   </>
                 ) : (
                   <tr>
-                    {effectiveColumnsSchema.map((col) => {
+                    {displayedColumnsSchema.map((col) => {
                       const isEditableForMe = col.can_edit;
                       return (
                         <th
@@ -1554,7 +1626,7 @@ export default function TestLocalTableKatim() {
                 {paginatedRows.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={effectiveColumnsSchema.length || 1}
+                      colSpan={displayedColumnsSchema.length || 1}
                       className="py-12 text-center text-xs text-slate-500"
                     >
                       <div className="flex flex-col items-center justify-center gap-1.5">
@@ -1628,11 +1700,11 @@ export default function TestLocalTableKatim() {
                   );
 
                   const numLeftCols =
-                    headerGroups && !headerGroups[0]?.parent
-                      ? headerGroups[0].cols.length
+                    displayedHeaderGroups && !displayedHeaderGroups[0]?.parent
+                      ? displayedHeaderGroups[0].cols.length
                       : 1;
                   const hasMultiLeftCols = Boolean(
-                    headerGroups && !headerGroups[0]?.parent && numLeftCols > 1
+                    displayedHeaderGroups && !displayedHeaderGroups[0]?.parent && numLeftCols > 1
                   );
 
                   return (
@@ -1654,7 +1726,7 @@ export default function TestLocalTableKatim() {
                           : "hover:bg-slate-50/80"
                       }`}
                     >
-                      {effectiveColumnsSchema.map((col, cIdx) => {
+                      {displayedColumnsSchema.map((col, cIdx) => {
                         const val = row.cells?.[col.key] ?? "";
                         const colMonthNum = getMonthNumberFromText(col.parent_header) || getMonthNumberFromText(col.label);
                         const isColMonthLocked = !isPicUser && colMonthNum !== null && Boolean(monthLocksMap[colMonthNum]);
@@ -1675,7 +1747,7 @@ export default function TestLocalTableKatim() {
                             stickyTdClass = `sticky left-0 z-10 w-[55px] min-w-[55px] max-w-[55px] text-center border-r border-slate-200 ${
                               isSectionRow
                                 ? "bg-slate-200 font-black text-slate-900"
-                                : isFormulaRow
+                                : (isFormulaRow || isTotalRow)
                                 ? "bg-emerald-100 text-emerald-950 font-bold"
                                 : isQuestionRow
                                 ? "bg-blue-50/80 font-bold text-blue-900"
@@ -1685,14 +1757,14 @@ export default function TestLocalTableKatim() {
                             stickyTdClass = `sticky left-[55px] z-10 min-w-[240px] max-w-[280px] shadow-r border-r border-slate-200 ${
                               isSectionRow
                                 ? "bg-slate-100 font-black text-slate-900"
-                                : isFormulaRow
+                                : (isFormulaRow || isTotalRow)
                                 ? "bg-emerald-50 text-emerald-950 font-bold"
                                 : isQuestionRow
                                 ? "bg-blue-50/40 font-semibold text-blue-950"
                                 : "bg-white font-semibold text-slate-900"
                             }`;
                           }
-                        } else if (cIdx === 0 && Boolean(headerGroups)) {
+                        } else if (cIdx === 0 && Boolean(displayedHeaderGroups)) {
                           stickyTdClass = `sticky left-0 z-10 min-w-[130px] shadow-r border-r border-slate-200 ${
                             isTotalRow
                               ? "bg-emerald-100 text-emerald-950 font-bold"
