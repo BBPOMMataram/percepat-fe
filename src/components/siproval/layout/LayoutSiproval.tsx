@@ -93,17 +93,19 @@ export default function LayoutSiproval({
         userEmail.includes("syamsul.hadi");
 
       const groupJabatanId = user.employee?.group_jabatan_id;
+      const isKabalai = groupJabatanId === 1;
       const isKatimFromTable =
         Array.isArray(user.katims) && user.katims.length > 0;
       const isKatim = groupJabatanId === 3 || isKatimFromTable;
 
       const hasFungsiTu =
         !isKatim &&
+        !isKabalai &&
         (Number(user.employee?.fungsi_id) === 1 ||
           (user.employee?.fungsi?.name || "").toLowerCase().trim() ===
             "tata usaha");
 
-      const hasTuAccess = isExplicitTuUser || hasFungsiTu;
+      const hasTuAccess = !isKabalai && (isExplicitTuUser || hasFungsiTu);
 
       const isSuperadmin =
         user.role?.level === "superadmin" ||
@@ -160,8 +162,7 @@ export default function LayoutSiproval({
             pathname.startsWith("/siproval/show-monev") ||
             pathname.startsWith("/siproval/catatan") ||
             pathname.startsWith("/siproval/rhpk") ||
-            pathname.startsWith("/siproval/arahan-pimpinan") ||
-            (hasTuAccess && isTuPath);
+            pathname.startsWith("/siproval/arahan-pimpinan");
           if (!isAllowed) {
             router.push("/siproval/monev");
           }
