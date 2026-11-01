@@ -21,6 +21,8 @@ type SpreadsheetItem = {
   id: number;
   name: string;
   year: number;
+  is_readonly?: boolean;
+  is_balai_rekap?: boolean;
   tabs: TabItem[];
 };
 
@@ -591,6 +593,97 @@ export default function TestLocalTableKatim() {
     }));
   };
 
+  // Scroll halus ke atas tabel saat navigasi halaman
+  const scrollToTableTop = () => {
+    if (typeof document !== "undefined") {
+      const el = document.getElementById("main-rhpk-table-container");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    }
+  };
+
+  // Tambah baris baru untuk tabel vertikal log kegiatan (misal KIE Medsos, Non Medsos, dsb)
+  const handleAddRow = () => {
+    if (!activeTab || !activeTab.rows_data) return;
+
+    let targetMonthName = "Januari";
+    if (selectedMonthFilter !== "all") {
+      targetMonthName = selectedMonthFilter;
+    } else if (currentMonth >= 1 && currentMonth <= 12) {
+      const standardOrder = [
+        "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+        "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+      ];
+      targetMonthName = standardOrder[currentMonth - 1];
+    }
+
+    const currentRows = activeTab.rows_data;
+    const newRowIndex = currentRows.length;
+    const targetMonthNum = getMonthNumberFromText(targetMonthName) || 0;
+
+    // Cari kolom nomor urut jika ada
+    const noCol = effectiveColumnsSchema.find(
+      (c) => (c.label || "").toLowerCase().trim() === "no" || (c.label || "").toLowerCase().trim() === "no."
+    );
+    let nextNo: number | string = newRowIndex + 1;
+    if (noCol) {
+      const monthRows = currentRows.filter((r) => {
+        const m = r.cells?.[monthColKey || "col_2"] || r.month_name || "";
+        return String(m).toLowerCase() === targetMonthName.toLowerCase();
+      });
+      nextNo = monthRows.length + 1;
+    }
+
+    const newCells: Record<string, any> = {};
+    effectiveColumnsSchema.forEach((col) => {
+      newCells[col.key] = "";
+    });
+
+    if (noCol) {
+      newCells[noCol.key] = nextNo;
+    } else {
+      newCells.col_0 = nextNo;
+    }
+
+    if (monthColKey) {
+      newCells[monthColKey] = targetMonthName;
+    }
+
+    const newRow: RowData = {
+      row_index: newRowIndex,
+      month: targetMonthNum,
+      month_name: targetMonthName,
+      is_locked: false,
+      is_current: true,
+      can_edit_row: true,
+      cells: newCells,
+    };
+
+    setActiveTab((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        rows_data: [...prev.rows_data, newRow],
+      };
+    });
+
+    const updateColKey = monthColKey || (noCol ? noCol.key : "col_0");
+    const updateVal = monthColKey ? targetMonthName : nextNo;
+
+    setDirtyUpdates((prev) => ({
+      ...prev,
+      [`new_${newRowIndex}_${updateColKey}`]: {
+        month: targetMonthNum,
+        row_index: newRowIndex,
+        key: updateColKey,
+        value: updateVal,
+      },
+    }));
+
+    setSuccessMsg(`Baris baru untuk bulan ${targetMonthName} berhasil ditambahkan! Silakan lengkapi isian lalu klik Simpan Perubahan.`);
+  };
+
   // Kirim data ke backend lokal (Simpan Massal)
   const handleSave = async () => {
     if (!activeTab) return;
@@ -845,7 +938,10 @@ export default function TestLocalTableKatim() {
 
   const getMonthNumberFromText = (text?: string | null): number | null => {
     if (!text) return null;
-    const t = text.trim().toLowerCase();
+    let t = text.trim().toLowerCase();
+    // Bersihkan prefix awalan seperti "sd ", "s.d. ", "sampai dengan "
+    t = t.replace(/^(s[\.\/]?d[\.\s]+|sampai\s+dengan\s+)/i, "").trim();
+
     const map: Record<string, number> = {
       januari: 1, jan: 1, january: 1,
       februari: 2, feb: 2, pebruari: 2, february: 2,
@@ -1059,24 +1155,46 @@ export default function TestLocalTableKatim() {
       }
     });
 
-    const result: { name: string; count: number }[] = [];
-    standardOrder.forEach((name) => {
-      const matchKey = Object.keys(monthsMap).find(
-        (k) =>
-          k.toLowerCase() === name.toLowerCase() ||
-          (name === "Februari" && k.toLowerCase() === "pebruari") ||
-          (name === "November" && k.toLowerCase() === "nopember")
-      );
-      if (matchKey) {
-        result.push({ name: matchKey, count: monthsMap[matchKey] });
-      }
-    });
+    const hasAnyMonthColOrData =
+      Boolean(monthColKey) ||
+      effectiveColumnsSchema.some((c) => (c.label || "").toLowerCase().includes("bulan")) ||
+      Object.keys(monthsMap).length > 0;
 
-    Object.keys(monthsMap).forEach((k) => {
-      if (!result.some((item) => item.name.toLowerCase() === k.toLowerCase())) {
-        result.push({ name: k, count: monthsMap[k] });
-      }
-    });
+    const result: { name: string; count: number }[] = [];
+
+    if (hasAnyMonthColOrData) {
+      // Pastikan seluruh 12 bulan (Januari s/d Desember) SELALU tampil lengkap
+      standardOrder.forEach((name) => {
+        const matchKey = Object.keys(monthsMap).find(
+          (k) =>
+            k.toLowerCase() === name.toLowerCase() ||
+            (name === "Februari" && k.toLowerCase() === "pebruari") ||
+            (name === "November" && k.toLowerCase() === "nopember")
+        );
+        result.push({
+          name,
+          count: matchKey ? monthsMap[matchKey] : 0,
+        });
+      });
+    } else {
+      standardOrder.forEach((name) => {
+        const matchKey = Object.keys(monthsMap).find(
+          (k) =>
+            k.toLowerCase() === name.toLowerCase() ||
+            (name === "Februari" && k.toLowerCase() === "pebruari") ||
+            (name === "November" && k.toLowerCase() === "nopember")
+        );
+        if (matchKey) {
+          result.push({ name: matchKey, count: monthsMap[matchKey] });
+        }
+      });
+
+      Object.keys(monthsMap).forEach((k) => {
+        if (!result.some((item) => item.name.toLowerCase() === k.toLowerCase())) {
+          result.push({ name: k, count: monthsMap[k] });
+        }
+      });
+    }
 
     return result;
   }, [activeTab?.rows_data, monthColKey, isHorizontalMonthTable, effectiveColumnsSchema]);
@@ -1230,31 +1348,38 @@ export default function TestLocalTableKatim() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving || dirtyCount === 0}
-              className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold shadow-sm transition ${
-                dirtyCount > 0
-                  ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-600/20"
-                  : "bg-slate-200 text-slate-400 cursor-not-allowed"
-              }`}
-            >
-              {saving ? (
-                <>
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent" />
-                  <span>Menyimpan...</span>
-                </>
-              ) : (
-                <>
-                  <Icon icon="solar:diskette-bold" width={16} />
-                  <span>
-                    Simpan Perubahan{" "}
-                    {dirtyCount > 0 ? `(${dirtyCount})` : ""}
-                  </span>
-                </>
-              )}
-            </button>
+            {spreadsheets.find((s) => s.id === selectedSpId)?.is_readonly && !isPicUser ? (
+              <div className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-800 shadow-2xs">
+                <Icon icon="solar:eye-bold" width={16} className="text-amber-600" />
+                <span>Mode Baca (Master Rekap Balai)</span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving || dirtyCount === 0}
+                className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold shadow-sm transition ${
+                  dirtyCount > 0
+                    ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-600/20"
+                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                }`}
+              >
+                {saving ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent" />
+                    <span>Menyimpan...</span>
+                  </>
+                ) : (
+                  <>
+                    <Icon icon="solar:diskette-bold" width={16} />
+                    <span>
+                      Simpan Perubahan{" "}
+                      {dirtyCount > 0 ? `(${dirtyCount})` : ""}
+                    </span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -1364,6 +1489,12 @@ export default function TestLocalTableKatim() {
                     </option>
                   ))}
                 </select>
+                {spreadsheets.find((s) => s.id === selectedSpId)?.is_readonly && (
+                  <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 flex items-center gap-1">
+                    <Icon icon="solar:lock-bold" width={11} />
+                    Read-Only (Rekap Balai)
+                  </span>
+                )}
                 <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
                   {spreadsheets.length} Dokumen
                 </span>
@@ -1524,6 +1655,19 @@ export default function TestLocalTableKatim() {
                         </button>
                       );
                     })}
+
+                    {/* Tombol Tambah Baris Baru jika tabel vertikal dan bukan dokumen read-only */}
+                    {!isHorizontalMonthTable && !spreadsheets.find((s) => s.id === selectedSpId)?.is_readonly && (
+                      <button
+                        type="button"
+                        onClick={handleAddRow}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 transition hover:bg-emerald-100 shadow-2xs ml-auto"
+                        title="Tambah baris kegiatan baru pada bulan ini"
+                      >
+                        <Icon icon="solar:add-circle-bold" width={15} className="text-emerald-700" />
+                        <span>+ Tambah Baris {selectedMonthFilter !== "all" ? `(${selectedMonthFilter})` : ""}</span>
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -1591,9 +1735,11 @@ export default function TestLocalTableKatim() {
                           onChange={(e) => {
                             setPageSize(Number(e.target.value));
                             setCurrentPage(1);
+                            scrollToTableTop();
                           }}
                           className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-2xs focus:border-emerald-600 focus:outline-none cursor-pointer"
                         >
+                          <option value={10}>10</option>
                           <option value={25}>25</option>
                           <option value={50}>50</option>
                           <option value={100}>100</option>
@@ -1607,7 +1753,10 @@ export default function TestLocalTableKatim() {
                       <div className="flex items-center gap-1 ml-2">
                         <button
                           type="button"
-                          onClick={() => setCurrentPage(1)}
+                          onClick={() => {
+                            setCurrentPage(1);
+                            scrollToTableTop();
+                          }}
                           disabled={safeCurrentPage === 1}
                           className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
                           title="Halaman Pertama"
@@ -1616,7 +1765,10 @@ export default function TestLocalTableKatim() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                          onClick={() => {
+                            setCurrentPage((p) => Math.max(p - 1, 1));
+                            scrollToTableTop();
+                          }}
                           disabled={safeCurrentPage === 1}
                           className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
                           title="Halaman Sebelumnya"
@@ -1630,9 +1782,10 @@ export default function TestLocalTableKatim() {
 
                         <button
                           type="button"
-                          onClick={() =>
-                            setCurrentPage((p) => Math.min(p + 1, totalPages))
-                          }
+                          onClick={() => {
+                            setCurrentPage((p) => Math.min(p + 1, totalPages));
+                            scrollToTableTop();
+                          }}
                           disabled={safeCurrentPage === totalPages}
                           className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
                           title="Halaman Selanjutnya"
@@ -1641,7 +1794,10 @@ export default function TestLocalTableKatim() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setCurrentPage(totalPages)}
+                          onClick={() => {
+                            setCurrentPage(totalPages);
+                            scrollToTableTop();
+                          }}
                           disabled={safeCurrentPage === totalPages}
                           className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
                           title="Halaman Terakhir"
@@ -1655,7 +1811,7 @@ export default function TestLocalTableKatim() {
               </div>
             )}
 
-            <div className="w-full overflow-x-auto">
+            <div id="main-rhpk-table-container" className="w-full overflow-x-auto">
             <table className="w-full border-collapse text-left text-xs">
               <thead className="border-b border-slate-200 bg-slate-50 sticky top-0 z-20">
                 {displayedHeaderGroups ? (
@@ -2235,9 +2391,11 @@ export default function TestLocalTableKatim() {
                     onChange={(e) => {
                       setPageSize(Number(e.target.value));
                       setCurrentPage(1);
+                      scrollToTableTop();
                     }}
                     className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-2xs focus:border-emerald-600 focus:outline-none cursor-pointer"
                   >
+                    <option value={10}>10</option>
                     <option value={25}>25</option>
                     <option value={50}>50</option>
                     <option value={100}>100</option>
@@ -2251,7 +2409,10 @@ export default function TestLocalTableKatim() {
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    onClick={() => setCurrentPage(1)}
+                    onClick={() => {
+                      setCurrentPage(1);
+                      scrollToTableTop();
+                    }}
                     disabled={safeCurrentPage === 1}
                     className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
                     title="Halaman Pertama"
@@ -2260,7 +2421,10 @@ export default function TestLocalTableKatim() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                    onClick={() => {
+                      setCurrentPage((p) => Math.max(p - 1, 1));
+                      scrollToTableTop();
+                    }}
                     disabled={safeCurrentPage === 1}
                     className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
                     title="Halaman Sebelumnya"
@@ -2281,7 +2445,10 @@ export default function TestLocalTableKatim() {
                         <button
                           key={p}
                           type="button"
-                          onClick={() => setCurrentPage(Number(p))}
+                          onClick={() => {
+                            setCurrentPage(Number(p));
+                            scrollToTableTop();
+                          }}
                           className={`h-8 min-w-[32px] px-2 rounded-lg text-xs font-bold transition shadow-2xs ${
                             safeCurrentPage === Number(p)
                               ? "bg-emerald-600 text-white shadow-emerald-600/20"
@@ -2296,9 +2463,10 @@ export default function TestLocalTableKatim() {
 
                   <button
                     type="button"
-                    onClick={() =>
-                      setCurrentPage((p) => Math.min(p + 1, totalPages))
-                    }
+                    onClick={() => {
+                      setCurrentPage((p) => Math.min(p + 1, totalPages));
+                      scrollToTableTop();
+                    }}
                     disabled={safeCurrentPage === totalPages}
                     className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
                     title="Halaman Selanjutnya"
@@ -2307,7 +2475,10 @@ export default function TestLocalTableKatim() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setCurrentPage(totalPages)}
+                    onClick={() => {
+                      setCurrentPage(totalPages);
+                      scrollToTableTop();
+                    }}
                     disabled={safeCurrentPage === totalPages}
                     className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
                     title="Halaman Terakhir"

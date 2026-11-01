@@ -149,7 +149,10 @@ export function getMonthColor(monthName?: string | null) {
 
 export const getMonthNumberFromText = (text?: string | null): number | null => {
   if (!text) return null;
-  const t = text.trim().toLowerCase();
+  let t = text.trim().toLowerCase();
+  // Bersihkan prefix awalan seperti "sd ", "s.d. ", "sampai dengan "
+  t = t.replace(/^(s[\.\/]?d[\.\s]+|sampai\s+dengan\s+)/i, "").trim();
+
   const map: Record<string, number> = {
     januari: 1, jan: 1, january: 1,
     februari: 2, feb: 2, pebruari: 2, february: 2,
@@ -403,24 +406,46 @@ export default function TestLocalTablePic() {
       }
     });
 
-    const result: { name: string; count: number }[] = [];
-    standardOrder.forEach((name) => {
-      const matchKey = Object.keys(monthsMap).find(
-        (k) =>
-          k.toLowerCase() === name.toLowerCase() ||
-          (name === "Februari" && k.toLowerCase() === "pebruari") ||
-          (name === "November" && k.toLowerCase() === "nopember")
-      );
-      if (matchKey) {
-        result.push({ name: matchKey, count: monthsMap[matchKey] });
-      }
-    });
+    const hasAnyMonthColOrData =
+      Boolean(monthColKey) ||
+      Boolean(activeTab?.columns_schema?.some((c) => (c.label || "").toLowerCase().includes("bulan"))) ||
+      Object.keys(monthsMap).length > 0;
 
-    Object.keys(monthsMap).forEach((k) => {
-      if (!result.some((item) => item.name.toLowerCase() === k.toLowerCase())) {
-        result.push({ name: k, count: monthsMap[k] });
-      }
-    });
+    const result: { name: string; count: number }[] = [];
+
+    if (hasAnyMonthColOrData) {
+      // Pastikan seluruh 12 bulan (Januari s/d Desember) SELALU tampil lengkap
+      standardOrder.forEach((name) => {
+        const matchKey = Object.keys(monthsMap).find(
+          (k) =>
+            k.toLowerCase() === name.toLowerCase() ||
+            (name === "Februari" && k.toLowerCase() === "pebruari") ||
+            (name === "November" && k.toLowerCase() === "nopember")
+        );
+        result.push({
+          name,
+          count: matchKey ? monthsMap[matchKey] : 0,
+        });
+      });
+    } else {
+      standardOrder.forEach((name) => {
+        const matchKey = Object.keys(monthsMap).find(
+          (k) =>
+            k.toLowerCase() === name.toLowerCase() ||
+            (name === "Februari" && k.toLowerCase() === "pebruari") ||
+            (name === "November" && k.toLowerCase() === "nopember")
+        );
+        if (matchKey) {
+          result.push({ name: matchKey, count: monthsMap[matchKey] });
+        }
+      });
+
+      Object.keys(monthsMap).forEach((k) => {
+        if (!result.some((item) => item.name.toLowerCase() === k.toLowerCase())) {
+          result.push({ name: k, count: monthsMap[k] });
+        }
+      });
+    }
 
     return result;
   }, [activeTab?.rows_data, activeTab?.columns_schema, monthColKey, isHorizontalMonthTable]);

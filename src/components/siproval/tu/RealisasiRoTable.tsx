@@ -1742,16 +1742,10 @@ export default function RealisasiRoTable() {
                 <col style={{ width: "96px" }} />
                 {/* 3. Program / Kegiatan / Output RO */}
                 <col style={{ width: "320px" }} />
-                {/* 4. Kode PPK */}
-                <col style={{ width: "80px" }} />
-                {/* 5. Pagu */}
-                <col style={{ width: "130px" }} />
-                {/* 6. Target 2026 */}
+                {/* 4. Target 2026 */}
                 <col style={{ width: "110px" }} />
-                {/* 7. Target Revisi */}
+                {/* 5. Target Revisi */}
                 <col style={{ width: "120px" }} />
-                {/* 8. Target Efisiensi */}
-                <col style={{ width: "110px" }} />
 
                 {/* Kolom-kolom Bulan */}
                 {viewMode === "month"
@@ -1836,23 +1830,7 @@ export default function RealisasiRoTable() {
                     Program / Kegiatan / Output RO
                   </th>
 
-                  {/* 4. KODE PPK */}
-                  <th
-                    rowSpan={2}
-                    className="sticky top-0 z-30 bg-[#f1f5f9] px-2 py-3 text-center border-r border-slate-300 w-[80px] min-w-[80px] align-middle font-extrabold text-slate-800"
-                  >
-                    Kode PPK
-                  </th>
-
-                  {/* 5. PAGU */}
-                  <th
-                    rowSpan={2}
-                    className="sticky top-0 z-30 bg-[#f1f5f9] px-3 py-3 text-right border-r border-slate-300 w-[130px] min-w-[130px] align-middle font-extrabold text-slate-800"
-                  >
-                    Pagu (Rp)
-                  </th>
-
-                  {/* 6. TARGET 2026 */}
+                  {/* 4. TARGET 2026 */}
                   <th
                     rowSpan={2}
                     className="sticky top-0 z-30 bg-[#f1f5f9] px-2 py-3 text-center border-r border-slate-300 w-[110px] min-w-[110px] align-middle font-extrabold text-slate-800"
@@ -1860,20 +1838,12 @@ export default function RealisasiRoTable() {
                     Target 2026
                   </th>
 
-                  {/* 7. TARGET 2026 REVISI */}
+                  {/* 5. TARGET 2026 REVISI */}
                   <th
                     rowSpan={2}
-                    className="sticky top-0 z-30 bg-[#f1f5f9] px-2 py-3 text-center border-r border-slate-300 w-[120px] min-w-[120px] align-middle font-extrabold text-slate-800"
+                    className="sticky top-0 z-30 bg-[#f1f5f9] px-2 py-3 text-center border-r-2 border-slate-300 w-[120px] min-w-[120px] align-middle font-extrabold text-slate-800"
                   >
                     Target Revisi
-                  </th>
-
-                  {/* 8. TARGET EFISIENSI */}
-                  <th
-                    rowSpan={2}
-                    className="sticky top-0 z-30 bg-[#f1f5f9] px-2 py-3 text-center border-r-2 border-slate-300 w-[110px] min-w-[110px] align-middle font-extrabold text-slate-800"
-                  >
-                    Efisiensi
                   </th>
 
                   {/* Bulan Group Header */}
@@ -1964,17 +1934,7 @@ export default function RealisasiRoTable() {
                         </p>
                       </td>
 
-                      {/* 4. KODE PPK */}
-                      <td className="px-2 py-3 text-center font-mono text-xs text-slate-600 border-r border-slate-200 align-top w-[80px]">
-                        {row.kode_ppk || "-"}
-                      </td>
-
-                      {/* 5. PAGU */}
-                      <td className="px-3 py-3 text-right font-mono text-xs text-slate-700 border-r border-slate-200 align-top w-[130px] whitespace-nowrap">
-                        {formatRp(row.pagu)}
-                      </td>
-
-                      {/* 6. TARGET 2026 (Editable Target Tahunan) */}
+                      {/* 4. TARGET 2026 (Editable Target Tahunan) */}
                       <td className="p-2 border-r border-slate-200 align-top text-center w-[110px]">
                         <input
                           type="text"
@@ -1993,21 +1953,12 @@ export default function RealisasiRoTable() {
                         />
                       </td>
 
-                      {/* 7. TARGET REVISI */}
-                      <td className="px-2 py-3 text-center font-mono text-xs text-slate-700 border-r border-slate-200 align-top w-[120px]">
+                      {/* 5. TARGET REVISI */}
+                      <td className="px-2 py-3 text-center font-mono text-xs text-slate-700 border-r-2 border-slate-300 align-top w-[120px]">
                         {row.target_revisi !== undefined &&
                         row.target_revisi !== null &&
                         row.target_revisi !== ""
                           ? String(row.target_revisi)
-                          : "-"}
-                      </td>
-
-                      {/* 8. TARGET EFISIENSI */}
-                      <td className="px-2 py-3 text-center font-mono text-xs text-slate-700 border-r-2 border-slate-300 align-top w-[110px]">
-                        {row.target_efisiensi !== undefined &&
-                        row.target_efisiensi !== null &&
-                        row.target_efisiensi !== ""
-                          ? String(row.target_efisiensi)
                           : "-"}
                       </td>
 
@@ -2065,29 +2016,14 @@ export default function RealisasiRoTable() {
                     </div>
                   </td>
 
-                  {/* 4. KODE PPK */}
-                  <td className="px-2 py-2.5 text-center font-mono text-xs text-slate-500 border-r border-slate-200 w-[80px]">
-                    -
-                  </td>
-
-                  {/* 5. PAGU */}
-                  <td className="px-3 py-2.5 text-right font-mono text-xs text-slate-900 border-r border-slate-200 w-[130px] whitespace-nowrap">
-                    {formatRp(computedSummary.pagu)}
-                  </td>
-
-                  {/* 6. TARGET 2026 */}
+                  {/* 4. TARGET 2026 */}
                   <td className="px-2 py-2.5 text-center font-mono text-xs text-slate-900 border-r border-slate-200 w-[110px]">
                     {computedSummary.targetAwal}
                   </td>
 
-                  {/* 7. TARGET REVISI */}
-                  <td className="px-2 py-2.5 text-center font-mono text-xs text-slate-900 border-r border-slate-200 w-[120px]">
+                  {/* 5. TARGET REVISI */}
+                  <td className="px-2 py-2.5 text-center font-mono text-xs text-slate-900 border-r-2 border-slate-300 w-[120px]">
                     {computedSummary.targetRevisi || "-"}
-                  </td>
-
-                  {/* 8. TARGET EFISIENSI */}
-                  <td className="px-2 py-2.5 text-center font-mono text-xs text-slate-900 border-r-2 border-slate-300 w-[110px]">
-                    {computedSummary.targetEfisiensi || "-"}
                   </td>
 
                   {/* MONTH FOOTER CELLS */}
