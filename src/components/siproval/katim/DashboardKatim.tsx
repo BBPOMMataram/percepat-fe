@@ -1,34 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { Icon } from "@iconify/react";
 import api from "@/utils/api";
+import TargetRealisasiTuChart from "@/components/siproval/tu/TargetRealisasiTuChart";
 
 const baseUrl =
   process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8006";
 
 const MONTHS = [
-  "Januari",
-  "Februari",
-  "Maret",
-  "April",
-  "Mei",
-  "Juni",
-  "Juli",
-  "Agustus",
-  "September",
-  "Oktober",
-  "November",
-  "Desember",
+  "JANUARI",
+  "FEBRUARI",
+  "MARET",
+  "APRIL",
+  "MEI",
+  "JUNI",
+  "JULI",
+  "AGUSTUS",
+  "SEPTEMBER",
+  "OKTOBER",
+  "NOVEMBER",
+  "DESEMBER",
 ];
 
-interface IndicatorItem {
+export interface IndicatorItem {
   row_number: number;
   iksk_id: number;
+  no_indikator?: number;
   spreadsheet_id?: number | null;
   tab_id?: number | null;
   label: string;
@@ -41,12 +43,17 @@ interface IndicatorItem {
   arahan: string;
 }
 
+interface IkskItem {
+  id: number;
+  name: string;
+}
+
 interface DashboardMetrics {
   total_assigned_iksks?: number;
   user_iksks?: Array<{ id: number; name: string }>;
   total_arahan_pimpinan?: number;
   data_source?: string;
-  counts_iku: Record<
+  counts_iku?: Record<
     number,
     {
       tidak_dapat_disimpulkan: number;
@@ -57,7 +64,7 @@ interface DashboardMetrics {
       persen_tercapai: number;
     }
   >;
-  counts_caput: Record<
+  counts_caput?: Record<
     number,
     {
       caput_tidak_mencapai_target: number;
@@ -65,81 +72,126 @@ interface DashboardMetrics {
     }
   >;
   indicators_by_month?: Record<number, IndicatorItem[]>;
-  anggaran_data?: Array<{
-    bulan: string;
-    pagu: number;
-    realisasi: number;
-    persentase: number;
-    sisa_anggaran: number;
-  }>;
-  npss_data?: Array<{
-    bulan: string;
-    nilai: number;
-    penilaian: string;
-  }>;
+}
+
+interface KatimStats {
+  total_iksk?: number;
+  total_iksk_connected?: number;
+  iksks?: IkskItem[];
+  indicators?: IndicatorItem[];
+  total_spreadsheets?: number;
+  total_indikator?: number;
+  total_catatan?: number;
+  total_arahan?: number;
+  perlu_evaluasi?: number;
+  tercapai?: number;
 }
 
 export default function DashboardKatim() {
   const router = useRouter();
   const { user } = useSelector((state: RootState) => state.auth);
-  const currentMonthIdx = new Date().getMonth(); // 0-indexed
+  const currentMonthIdx = new Date().getMonth(); // 0-indexed (e.g. 10 for November)
   const currentYear = new Date().getFullYear();
 
-  const [selectedMonthIdx, setSelectedMonthIdx] = useState<number>(
-    currentMonthIdx + 1,
-  ); // 1-indexed
+  const [selectedMonth, setSelectedMonth] = useState<string>(
+    MONTHS[currentMonthIdx] || "NOVEMBER"
+  );
+  const selectedMonthIdx = MONTHS.indexOf(selectedMonth) + 1;
+
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [stats, setStats] = useState<KatimStats | null>(null);
+  const [indicators, setIndicators] = useState<IndicatorItem[]>([]);
   const [arahanList, setArahanList] = useState<any[]>([]);
-  const [spreadsheetUrl, setSpreadsheetUrl] = useState<string>(
-    "https://docs.google.com/spreadsheets/d/1olc0eU3cffI-d-dtZVSaw_sFNaW_ggxeX3KR-ElzcZU/edit#gid=180451485",
-  );
   const [loadingArahan, setLoadingArahan] = useState<boolean>(true);
 
-  const userName = user?.name || user?.call_name || "Ketua Tim (Katim)";
-  const selectedMonthName = MONTHS[selectedMonthIdx - 1] || "Januari";
+  // Table filter and search
+  const [indicatorFilter, setIndicatorFilter] = useState<
+    "all" | "belum" | "tercapai"
+  >("all");
+  const [searchTable, setSearchTable] = useState<string>("");
+  const tableSectionRef = useRef<HTMLDivElement | null>(null);
 
+  const userName = user?.name || user?.call_name || "Ketua Tim (Katim)";
+  const selectedMonthTitle =
+    selectedMonth.charAt(0).toUpperCase() + selectedMonth.slice(1).toLowerCase();
+
+  // Fetch full Monev indicators & stats (all 30 IKSKs)
   useEffect(() => {
-    const fetchDashboard = async () => {
+    const fetchMonevData = async () => {
       setLoading(true);
       setErrorMsg(null);
       try {
         const queryParams = new URLSearchParams();
         if (user?.id) queryParams.set("user_id", String(user.id));
-        const url = `${baseUrl}/api/katim/dashboard${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
-        const res = await api.get(url);
-        if (res.data?.status === "success" && res.data?.data) {
-          setMetrics(res.data.data);
+        queryParams.set("month", selectedMonth);
+
+        // Try katim endpoint first, fallback to kabalai if needed
+        let res;
+        try {
+          res = await api.get(
+            `${baseUrl}/api/katim/form-catatan?${queryParams.toString()}`
+          );
+        } catch {
+          res = await api.get(
+            `${baseUrl}/api/kabalai/form-catatan?${queryParams.toString()}`
+          );
+        }
+
+        if (res.data) {
+          const data = res.data;
+          if (data.stats) {
+            setStats(data.stats);
+          }
+          const rawIndicators = data.indicators || data.stats?.indicators;
+          if (Array.isArray(rawIndicators) && rawIndicators.length > 0) {
+            setIndicators(rawIndicators);
+          }
         }
       } catch (err: any) {
-        console.error("Gagal memuat metrik dashboard Katim:", err);
-        setErrorMsg(
-          "Gagal terhubung ke API backend Siproval. Silakan periksa koneksi server.",
-        );
+        console.error("Gagal memuat rekapitulasi data IKSK Katim:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDashboard();
+    fetchMonevData();
+  }, [user?.id, selectedMonth]);
+
+  // Fetch Katim personal metrics
+  useEffect(() => {
+    const fetchDashboardMetrics = async () => {
+      try {
+        const queryParams = new URLSearchParams();
+        if (user?.id) queryParams.set("user_id", String(user.id));
+        const res = await api.get(
+          `${baseUrl}/api/katim/dashboard${queryParams.toString() ? `?${queryParams.toString()}` : ""}`
+        );
+        if (res.data?.status === "success" && res.data?.data) {
+          setMetrics(res.data.data);
+        }
+      } catch (err) {
+        console.error("Gagal memuat metrik dashboard Katim:", err);
+      }
+    };
+
+    fetchDashboardMetrics();
   }, [user?.id]);
 
+  // Fetch Arahan Pimpinan
   useEffect(() => {
     const fetchArahan = async () => {
       setLoadingArahan(true);
       try {
         const queryParams = new URLSearchParams();
         if (user?.id) queryParams.set("user_id", String(user.id));
-        queryParams.set("month", selectedMonthName.toUpperCase());
+        queryParams.set("month", selectedMonth);
         const res = await api.get(
-          `${baseUrl}/api/katim/arahan-pimpinan?${queryParams.toString()}`,
+          `${baseUrl}/api/katim/arahan-pimpinan?${queryParams.toString()}`
         );
         if (res.data?.status === "success" && res.data?.data) {
           setArahanList(res.data.data.arahan_list || []);
-          if (res.data.data.spreadsheet_url) {
-            setSpreadsheetUrl(res.data.data.spreadsheet_url);
-          }
         }
       } catch (err) {
         console.error("Gagal memuat arahan pimpinan di dashboard:", err);
@@ -148,29 +200,58 @@ export default function DashboardKatim() {
       }
     };
 
-    if (user?.id) {
-      fetchArahan();
+    fetchArahan();
+  }, [user?.id, selectedMonth]);
+
+  // Derived indicator status calculations
+  const unachievedIndicators = useMemo(
+    () => indicators.filter((i) => i.status === "belum"),
+    [indicators]
+  );
+  const achievedIndicators = useMemo(
+    () => indicators.filter((i) => i.status === "tercapai"),
+    [indicators]
+  );
+
+  const currentTercapai =
+    indicators.length > 0
+      ? achievedIndicators.length
+      : (stats?.tercapai ?? 0);
+
+  const currentPerluEvaluasi =
+    indicators.length > 0
+      ? unachievedIndicators.length
+      : (stats?.perlu_evaluasi ?? 0);
+
+  // Filtered indicators for the table
+  const displayedTableIndicators = useMemo(() => {
+    return indicators.filter((ind) => {
+      if (indicatorFilter === "belum" && ind.status !== "belum") return false;
+      if (indicatorFilter === "tercapai" && ind.status !== "tercapai")
+        return false;
+
+      if (!searchTable.trim()) return true;
+      const q = searchTable.toLowerCase();
+      return (
+        String(ind.iksk_id).includes(q) ||
+        ind.label.toLowerCase().includes(q) ||
+        (ind.sasaran && ind.sasaran.toLowerCase().includes(q))
+      );
+    });
+  }, [indicators, indicatorFilter, searchTable]);
+
+  const scrollToTable = (filter?: "all" | "belum" | "tercapai") => {
+    if (filter) setIndicatorFilter(filter);
+    if (tableSectionRef.current) {
+      tableSectionRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
     }
-  }, [user?.id, selectedMonthName]);
-
-  // IKU stats for selected month
-  const currentIku = metrics?.counts_iku?.[selectedMonthIdx] || {
-    sangat_baik: 0,
-    baik: 0,
-    cukup: 0,
-    tidak_dapat_disimpulkan: 0,
-    total: 0,
-    persen_tercapai: 0,
   };
 
-  // Caput stats for selected month
-  const currentCaput = metrics?.counts_caput?.[selectedMonthIdx] || {
-    caput_tidak_mencapai_target: 0,
-    caput_mencapai_target: 0,
-  };
-
-  // Real indicators list for this month
-  const currentMonthIndicators =
+  // Specific indicators assigned to this Katim
+  const myAssignedIndicators =
     metrics?.indicators_by_month?.[selectedMonthIdx] || [];
 
   return (
@@ -181,11 +262,11 @@ export default function DashboardKatim() {
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
               <Icon
-                icon="solar:user-check-bold"
+                icon="solar:shield-check-bold"
                 width={15}
                 className="text-emerald-300"
               />
-              PIC / Ketua Tim Kerja
+              Ketua Tim Kerja (Katim)
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium backdrop-blur-sm">
               <Icon
@@ -193,7 +274,7 @@ export default function DashboardKatim() {
                 width={14}
                 className="text-blue-200"
               />
-              Data Riil RHPK Internal 2026
+              Data Riil Rekapitulasi RHPK &amp; TU 2026
             </span>
           </div>
 
@@ -201,9 +282,9 @@ export default function DashboardKatim() {
             Selamat Datang, {userName}
           </h1>
           <p className="mt-2 text-sm text-blue-100 lg:text-base leading-relaxed">
-            Pantau ringkasan hasil pengukuran kinerja asli, capaian target
-            indikator tugas Anda, serta tindak lanjut arahan Kepala Balai secara
-            real-time.
+            Pantau rekapitulasi capaian indikator kinerja (IKSK), grafik
+            realisasi target RO &amp; anggaran TU, serta koordinasikan pengisian
+            dan tindak lanjut arahan secara terintegrasi.
           </p>
 
           <div className="mt-5 flex flex-wrap gap-3">
@@ -214,7 +295,14 @@ export default function DashboardKatim() {
               <Icon icon="solar:pen-new-square-bold" width={16} />
               <span>Entry Data RHPK</span>
             </Link>
-
+            <button
+              type="button"
+              onClick={() => scrollToTable("belum")}
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs font-bold text-slate-900 shadow-sm transition hover:bg-amber-400"
+            >
+              <Icon icon="solar:danger-triangle-bold" width={16} />
+              <span>Rincian IKSK Belum Tercapai ({currentPerluEvaluasi})</span>
+            </button>
             <Link
               href="/siproval/katim/arahan-pimpinan"
               className="inline-flex items-center gap-2 rounded-xl bg-white/15 px-4 py-2.5 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-white/25"
@@ -225,7 +313,6 @@ export default function DashboardKatim() {
                 className="text-emerald-300"
               />
               <span>Lihat Arahan Pimpinan</span>
-              <Icon icon="solar:arrow-right-linear" width={13} />
             </Link>
           </div>
         </div>
@@ -255,259 +342,517 @@ export default function DashboardKatim() {
           </div>
           <div>
             <span className="font-bold text-slate-900 block">
-              Periode Pengukuran Bulan:
+              Periode Evaluasi Capaian:
             </span>
             <span className="text-[11px] text-slate-500">
-              Data hasil rekapitulasi capaian indikator RHPK
+              Menampilkan capaian 30 indikator IKSK dan arahan Kepala Balai pada
+              bulan terpilih
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           <select
-            value={selectedMonthIdx}
-            onChange={(e) => setSelectedMonthIdx(Number(e.target.value))}
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
             className="rounded-xl border border-blue-200 bg-blue-50/50 px-4 py-2 text-xs font-bold text-[#005baa] transition focus:border-[#005baa] focus:bg-white focus:outline-none"
           >
-            {MONTHS.map((m, idx) => (
-              <option key={m} value={idx + 1}>
-                {m} {currentYear}
+            {MONTHS.map((m) => (
+              <option key={m} value={m}>
+                Bulan {m} {currentYear}
               </option>
             ))}
           </select>
         </div>
       </div>
 
-      {/* 4 Primary KPI Summary Cards in BBPOM Blue & Green Gradients */}
+      {/* 4 Stats Cards (Same as Kabalai cards) */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Card 1: BBPOM Blue Gradient */}
-        <div className="flex flex-col justify-between rounded-2xl border border-blue-200/80 bg-gradient-to-br from-blue-50/90 via-white to-blue-100/50 p-5 shadow-2xs transition hover:shadow-sm">
+        {/* Card 1: Total IKSK */}
+        <div
+          onClick={() => scrollToTable("all")}
+          className="group relative flex flex-col justify-between rounded-2xl border border-blue-200/80 bg-gradient-to-br from-blue-50/90 via-white to-blue-100/50 p-5 shadow-2xs transition hover:shadow-md hover:border-[#005baa]/60 cursor-pointer"
+          title="Klik untuk melihat rincian seluruh IKSK"
+        >
           <div className="flex items-start justify-between">
             <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#005baa]">
-                IKSK Tugas Saya
-              </span>
-              <div className="mt-2 text-3xl font-extrabold text-[#005baa]">
-                {loading ? "..." : (metrics?.total_assigned_iksks ?? 0)}
-              </div>
-              <p className="mt-1 text-xs text-slate-600">
-                IKSK terdaftar pada akun Anda
-              </p>
-            </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100/70 text-[#005baa]">
-              <Icon icon="solar:document-text-bold" width={22} />
-            </div>
-          </div>
-          <div className="mt-4 pt-3 border-t border-blue-100/80 flex items-center justify-between text-[11px] text-[#005baa]">
-            <span className="font-medium">Total Baris Indikator</span>
-            <span className="font-bold">{currentIku.total} Baris</span>
-          </div>
-        </div>
-
-        {/* Card 2: BBPOM Green Gradient */}
-        <div className="flex flex-col justify-between rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/90 via-white to-emerald-100/50 p-5 shadow-2xs transition hover:shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#00a651]">
-                Target Terpenuhi
-              </span>
-              <div className="mt-2 text-3xl font-extrabold text-emerald-700">
-                {loading ? "..." : currentCaput.caput_mencapai_target}
-              </div>
-              <p className="mt-1 text-xs text-slate-600">
-                Capaian realisasi ≥ 100% ({selectedMonthName})
-              </p>
-            </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100/70 text-emerald-700">
-              <Icon icon="solar:check-circle-bold" width={22} />
-            </div>
-          </div>
-          <div className="mt-4 pt-3 border-t border-emerald-100/80 flex items-center justify-between text-[11px] text-emerald-800">
-            <span className="font-medium">Persentase Sukses</span>
-            <span className="font-bold">{currentIku.persen_tercapai}%</span>
-          </div>
-        </div>
-
-        {/* Card 3: BBPOM Teal / Cyan Gradient */}
-        <div className="flex flex-col justify-between rounded-2xl border border-teal-200/80 bg-gradient-to-br from-teal-50/90 via-white to-cyan-100/50 p-5 shadow-2xs transition hover:shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-teal-800">
-                Perlu Perhatian
-              </span>
-              <div className="mt-2 text-3xl font-extrabold text-teal-700">
-                {loading ? "..." : currentCaput.caput_tidak_mencapai_target}
-              </div>
-              <p className="mt-1 text-xs text-slate-600">
-                Di bawah target / belum ada data
-              </p>
-            </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-teal-100/70 text-teal-700">
-              <Icon icon="solar:danger-triangle-bold" width={22} />
-            </div>
-          </div>
-          <div className="mt-4 pt-3 border-t border-teal-100/80 flex items-center justify-between text-[11px] text-teal-800">
-            <span className="font-medium">Kategori Cukup</span>
-            <span className="font-bold">{currentIku.cukup} Indikator</span>
-          </div>
-        </div>
-
-        {/* Card 4: Soft Amber / Blue Accent Gradient */}
-        <div className="flex flex-col justify-between rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50/80 via-white to-blue-50/50 p-5 shadow-2xs transition hover:shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
-                Arahan Pimpinan
-              </span>
-              <div className="mt-2 text-3xl font-extrabold text-amber-700">
-                {loading
-                  ? "..."
-                  : arahanList.filter((a) => a.has_arahan).length}
-              </div>
-              <p className="mt-1 text-xs text-slate-600">
-                Arahan Kepala Balai ({selectedMonthName})
-              </p>
-            </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100/70 text-amber-700">
-              <Icon icon="solar:chat-round-line-bold" width={22} />
-            </div>
-          </div>
-          <div className="mt-4 pt-3 border-t border-amber-100/80 flex items-center justify-between text-[11px] text-amber-900">
-            <span className="font-medium">Total Rekap Tahunan</span>
-            <span className="font-bold">
-              {metrics?.total_arahan_pimpinan ?? 0} Arahan
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Leadership Directive Highlights */}
-      <div className="rounded-2xl border border-blue-200/80 bg-gradient-to-br from-blue-50/60 via-white to-emerald-50/40 p-6 shadow-2xs">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#005baa] text-white shadow-2xs">
-              <Icon icon="solar:chat-round-line-bold" width={20} />
-            </span>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-slate-900">
-                  Arahan Kepala Balai (Yogi Abaso Mataram)
-                </h2>
-                <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-[#005baa]">
-                  Bulan {selectedMonthName}
+              <div className="flex items-center gap-1.5">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[#005baa]">
+                  Total IKSK
+                </p>
+                <span className="inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-[#005baa]">
+                  Aktif
                 </span>
               </div>
-              <p className="text-xs text-slate-500">
-                Catatan evaluasi dan instruksi tindak lanjut terhadap IKSK yang
-                Anda pimpin.
+              <p className="mt-2 text-3xl font-bold text-slate-900 group-hover:text-[#005baa] transition">
+                {loading
+                  ? "..."
+                  : (stats?.total_iksk ??
+                    (indicators.length > 0 ? indicators.length : 30))}
               </p>
+              <span className="mt-1 inline-block text-xs text-slate-500">
+                Indikator Sasaran Kegiatan (
+                {stats?.total_iksk_connected ?? 25} terhubung sheet)
+              </span>
+            </div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-500/10 text-[#005baa] transition group-hover:bg-[#005baa] group-hover:text-white">
+              <Icon icon="solar:target-bold" width={24} />
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="mt-3 flex items-center justify-between border-t border-blue-100/60 pt-2.5 text-[11px] text-[#005baa] font-medium">
+            <span>Rincian Seluruh IKSK</span>
+            <span className="inline-flex items-center gap-1 group-hover:translate-x-0.5 transition font-semibold">
+              Lihat tabel <Icon icon="solar:arrow-right-linear" width={12} />
+            </span>
+          </div>
+        </div>
+
+        {/* Card 2: Target Terpenuhi */}
+        <div
+          onClick={() => scrollToTable("tercapai")}
+          className="group relative flex flex-col justify-between rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/90 via-white to-emerald-100/50 p-5 shadow-2xs transition hover:shadow-md hover:border-[#00a651]/60 cursor-pointer"
+          title="Klik untuk melihat daftar IKSK yang telah memenuhi target"
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[#00a651]">
+                  Target Terpenuhi ({selectedMonth})
+                </p>
+                <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
+                  ≥ 100%
+                </span>
+              </div>
+              <p className="mt-2 text-3xl font-bold text-[#00a651] group-hover:scale-105 transition transform origin-left">
+                {loading ? "..." : currentTercapai}
+              </p>
+              <span className="mt-1 inline-block text-xs text-slate-500">
+                dari {indicators.length > 0 ? indicators.length : 30} total
+                indikator
+              </span>
+            </div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10 text-[#00a651] transition group-hover:bg-[#00a651] group-hover:text-white">
+              <Icon icon="solar:check-circle-bold" width={24} />
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-center justify-between border-t border-emerald-100/60 pt-2.5 text-[11px] text-emerald-700 font-medium">
+            <span>Lihat IKSK Sukses</span>
+            <span className="inline-flex items-center gap-1 group-hover:translate-x-0.5 transition font-semibold">
+              {currentTercapai} Tercapai{" "}
+              <Icon icon="solar:arrow-right-linear" width={12} />
+            </span>
+          </div>
+        </div>
+
+        {/* Card 3: Perlu Evaluasi */}
+        <div
+          onClick={() => scrollToTable("belum")}
+          className="group relative flex flex-col justify-between rounded-2xl border-2 border-amber-300 bg-gradient-to-br from-amber-50/90 via-white to-rose-50/50 p-5 shadow-sm transition hover:shadow-lg hover:border-amber-500 cursor-pointer ring-2 ring-amber-100"
+          title="Klik untuk melihat rincian IKSK yang belum mencapai target"
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
+                  Perlu Evaluasi ({selectedMonth})
+                </p>
+                <span className="inline-flex items-center rounded-full bg-amber-200/80 px-2 py-0.5 text-[9px] font-extrabold text-amber-900 animate-pulse">
+                  Perhatian Pimpinan
+                </span>
+              </div>
+              <p className="mt-2 text-3xl font-extrabold text-amber-800 group-hover:scale-105 transition transform origin-left">
+                {loading ? "..." : currentPerluEvaluasi}
+              </p>
+              <span className="mt-1 inline-block text-xs font-medium text-amber-900/80">
+                Belum mencapai target bulanan
+              </span>
+            </div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-800 transition group-hover:bg-amber-600 group-hover:text-white shadow-xs">
+              <Icon icon="solar:danger-triangle-bold" width={24} />
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-center justify-between border-t border-amber-200/80 pt-2.5 text-[11px] text-amber-900 font-bold">
+            <span className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-amber-500 inline-block"></span>
+              Lihat Rincian IKSK
+            </span>
+            <span className="inline-flex items-center gap-1 group-hover:translate-x-0.5 transition underline decoration-amber-400">
+              {currentPerluEvaluasi} Belum Tercapai{" "}
+              <Icon icon="solar:arrow-right-linear" width={12} />
+            </span>
+          </div>
+        </div>
+
+        {/* Card 4: Total Arahan Pimpinan */}
+        <div className="flex flex-col justify-between rounded-2xl border border-blue-200/80 bg-gradient-to-br from-blue-50/80 via-white to-amber-50/50 p-5 shadow-2xs transition hover:shadow-sm">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#005baa]">
+                Total Arahan Pimpinan
+              </p>
+              <p className="mt-2 text-3xl font-bold text-[#005baa]">
+                {loading
+                  ? "..."
+                  : (stats?.total_arahan ?? stats?.total_catatan ?? 0)}
+              </p>
+              <span className="mt-1 inline-block text-xs text-slate-500">
+                Arahan tercatat di RHPK 2026
+              </span>
+            </div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-500/10 text-[#005baa]">
+              <Icon icon="solar:chat-round-check-bold" width={24} />
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-center justify-between border-t border-blue-100/60 pt-2.5 text-[11px] text-[#005baa] font-medium">
+            <span>Riwayat Arahan</span>
             <Link
               href="/siproval/katim/arahan-pimpinan"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-white px-3.5 py-2 text-xs font-semibold text-[#005baa] shadow-2xs transition hover:bg-blue-50"
+              className="inline-flex items-center gap-1 hover:underline font-semibold"
             >
-              <span>Riwayat Arahan Lengkap</span>
-              <Icon icon="solar:arrow-right-linear" width={14} />
+              Lihat Semua <Icon icon="solar:arrow-right-linear" width={12} />
             </Link>
           </div>
         </div>
+      </div>
 
-        <div className="mt-4">
-          {loadingArahan ? (
-            <div className="flex items-center justify-center py-6 text-xs text-slate-400">
-              <Icon
-                icon="solar:restart-linear"
-                width={20}
-                className="animate-spin text-[#005baa] mr-2"
-              />
-              <span>Memuat arahan pimpinan...</span>
+      {/* Bagian 1: Grafik Target vs Realisasi dari Aktor TU */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#005baa] text-white">
+            <Icon icon="solar:chart-square-bold" width={16} />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-slate-900">
+              Monitoring Kinerja &amp; Anggaran Satuan Kerja (Data TU)
+            </h2>
+            <p className="text-[11px] text-slate-500">
+              Grafik target vs realisasi Volume Rincian Output (RO) dan serapan
+              Pagu Anggaran BBPOM di Mataram Tahun Anggaran 2026.
+            </p>
+          </div>
+        </div>
+
+        <TargetRealisasiTuChart isKabalaiView={true} />
+      </div>
+
+      {/* Bagian 2: Tabel Rincian Capaian Indikator Kinerja Sasaran Kegiatan (IKSK) */}
+      <div
+        ref={tableSectionRef}
+        className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden"
+      >
+        <div className="border-b border-slate-100 bg-gradient-to-r from-blue-50/70 via-white to-emerald-50/40 px-6 py-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#005baa] text-white shadow-2xs">
+                <Icon icon="solar:checklist-minimalistic-bold" width={18} />
+              </span>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">
+                  Rincian Capaian Indikator Kinerja Sasaran Kegiatan (IKSK)
+                </h3>
+                <span className="text-xs text-slate-500">
+                  Status pencapaian target bulanan {selectedMonth} 2026 &bull;
+                  Klik nomor IKSK untuk melihat rincian
+                </span>
+              </div>
             </div>
-          ) : (
-            (() => {
-              const withDirectives = arahanList.filter((a) => a.has_arahan);
-              if (withDirectives.length > 0) {
-                return (
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {withDirectives.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="rounded-xl border border-blue-200/90 bg-white p-4 shadow-2xs"
-                      >
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-bold text-blue-900">
-                            IKSK #{item.iksk_id}:{" "}
-                            {item.indikator.length > 50
-                              ? `${item.indikator.substring(0, 50)}...`
-                              : item.indikator}
-                          </span>
-                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                            {item.capaian_persen}%
-                          </span>
-                        </div>
-                        <p className="mt-2 text-xs italic font-medium text-slate-800 bg-amber-50/70 p-2.5 rounded-lg border-l-4 border-amber-500">
-                          &ldquo;{item.arahan_pimpinan}&rdquo;
-                        </p>
-                        <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
-                          <span>Pemberi: {item.pemberi_arahan}</span>
-                          <Link
-                            href={`/siproval/katim/entry-data-rhpk?iksk_id=${item.iksk_id}`}
-                            className="font-semibold text-[#005baa] hover:underline"
-                          >
-                            Entry Data RHPK
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              }
+          </div>
 
-              return (
-                <div className="flex items-center justify-between rounded-xl border border-dashed border-slate-200 bg-white/70 px-4 py-3 text-xs text-slate-600">
-                  <div className="flex items-center gap-2">
+          {/* Filter Pills: Semua, Belum Tercapai, Tercapai */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIndicatorFilter("all")}
+              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition shadow-2xs ${
+                indicatorFilter === "all"
+                  ? "bg-[#005baa] text-white"
+                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              Semua ({indicators.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setIndicatorFilter("belum")}
+              className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shadow-2xs ${
+                indicatorFilter === "belum"
+                  ? "bg-amber-600 text-white"
+                  : "border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100"
+              }`}
+            >
+              <Icon icon="solar:danger-triangle-bold" width={14} />
+              <span>Belum Tercapai ({currentPerluEvaluasi})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIndicatorFilter("tercapai")}
+              className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shadow-2xs ${
+                indicatorFilter === "tercapai"
+                  ? "bg-[#00a651] text-white"
+                  : "border border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
+              }`}
+            >
+              <Icon icon="solar:check-circle-bold" width={14} />
+              <span>Tercapai ({currentTercapai})</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Search input for table */}
+        <div className="border-b border-slate-100 bg-slate-50/40 px-6 py-2.5 flex items-center justify-between gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Icon
+              icon="solar:magnifer-linear"
+              width={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            />
+            <input
+              type="text"
+              value={searchTable}
+              onChange={(e) => setSearchTable(e.target.value)}
+              placeholder="Cari berdasarkan nama indikator atau nomor IKSK..."
+              className="w-full rounded-xl border border-slate-200 bg-white py-1.5 pl-9 pr-3 text-xs text-slate-800 transition focus:border-[#005baa] focus:outline-none"
+            />
+          </div>
+
+          <div className="text-[11px] text-slate-500 font-medium">
+            Menampilkan{" "}
+            <strong className="text-slate-900 font-bold">
+              {displayedTableIndicators.length}
+            </strong>{" "}
+            indikator
+          </div>
+        </div>
+
+        {/* Detailed Indicators Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                <th className="px-4 py-3 w-14 text-center">IKSK</th>
+                <th className="px-4 py-3 min-w-[280px]">
+                  Indikator &amp; Sasaran Kegiatan
+                </th>
+                <th className="px-3 py-3 text-center whitespace-nowrap">
+                  Target 2026
+                </th>
+                <th className="px-3 py-3 text-center whitespace-nowrap">
+                  Target {selectedMonth}
+                </th>
+                <th className="px-3 py-3 text-center whitespace-nowrap">
+                  Realisasi {selectedMonth}
+                </th>
+                <th className="px-3 py-3 text-center whitespace-nowrap">
+                  % Capaian
+                </th>
+                <th className="px-3 py-3 text-center whitespace-nowrap">
+                  Status
+                </th>
+                <th className="px-4 py-3 min-w-[200px]">
+                  Arahan Kepala Balai
+                </th>
+                <th className="px-4 py-3 text-center whitespace-nowrap">
+                  Aksi / Lembar RHPK
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-slate-700">
+              {displayedTableIndicators.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="py-12 text-center text-slate-400">
                     <Icon
-                      icon="solar:info-circle-linear"
-                      width={16}
-                      className="text-slate-400"
+                      icon="solar:document-outline"
+                      width={32}
+                      className="mx-auto mb-2 opacity-40"
                     />
-                    <span>
-                      Belum ada arahan khusus dari Kepala Balai untuk bulan{" "}
-                      {selectedMonthName}.
-                    </span>
-                  </div>
-                  <Link
-                    href="/siproval/katim/arahan-pimpinan"
-                    className="font-semibold text-[#005baa] hover:underline text-[11px]"
-                  >
-                    Lihat Riwayat Arahan Lengkap
-                  </Link>
-                </div>
-              );
-            })()
-          )}
+                    <p className="text-xs font-medium">
+                      Tidak ada indikator yang sesuai dengan filter.
+                    </p>
+                    {indicatorFilter !== "all" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIndicatorFilter("all");
+                          setSearchTable("");
+                        }}
+                        className="mt-2 text-xs font-bold text-[#005baa] hover:underline"
+                      >
+                        Reset Filter
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ) : (
+                displayedTableIndicators.map((ind) => {
+                  const isTercapai = ind.status === "tercapai";
+                  const hasReal =
+                    ind.realisasi_bulan &&
+                    ind.realisasi_bulan !== "#DIV/0!" &&
+                    ind.realisasi_bulan !== "" &&
+                    ind.realisasi_bulan !== "-";
+
+                  return (
+                    <tr
+                      key={ind.row_number || ind.iksk_id}
+                      className={`transition ${
+                        !isTercapai
+                          ? "bg-amber-50/30 hover:bg-amber-50/60"
+                          : "hover:bg-blue-50/30"
+                      }`}
+                    >
+                      {/* IKSK Badge */}
+                      <td className="px-4 py-3.5 text-center font-bold text-slate-600 align-top">
+                        <Link
+                          href={`/siproval/katim/entry-data-rhpk?iksk_id=${ind.iksk_id}`}
+                          title={`Buka formulir RHPK untuk IKSK #${ind.iksk_id}`}
+                          className={`inline-flex h-7 w-7 items-center justify-center rounded-lg font-bold text-xs transition ${
+                            isTercapai
+                              ? "bg-blue-50 text-[#005baa] hover:bg-[#005baa] hover:text-white"
+                              : "bg-amber-100 text-amber-900 hover:bg-amber-600 hover:text-white"
+                          }`}
+                        >
+                          {ind.iksk_id}
+                        </Link>
+                      </td>
+
+                      {/* Indikator & Sasaran */}
+                      <td className="px-4 py-3.5 align-top">
+                        <Link
+                          href={`/siproval/katim/entry-data-rhpk?iksk_id=${ind.iksk_id}`}
+                          className="font-bold text-slate-900 hover:text-[#005baa] transition leading-snug"
+                        >
+                          {ind.label}
+                        </Link>
+                        {ind.sasaran && (
+                          <div className="mt-1 text-[11px] text-slate-500 line-clamp-2">
+                            {ind.sasaran}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Target 2026 */}
+                      <td className="px-3 py-3.5 text-center align-top font-semibold text-slate-800 whitespace-nowrap">
+                        {ind.target_tahunan || "-"}
+                      </td>
+
+                      {/* Target Bulan */}
+                      <td className="px-3 py-3.5 text-center align-top font-semibold text-slate-800 whitespace-nowrap">
+                        {ind.target_bulan || "-"}
+                      </td>
+
+                      {/* Realisasi Bulan */}
+                      <td className="px-3 py-3.5 text-center align-top whitespace-nowrap">
+                        {hasReal ? (
+                          <span className="inline-block rounded-md bg-blue-50 px-2 py-0.5 font-mono font-bold text-blue-900 text-[11px]">
+                            {ind.realisasi_bulan}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 italic text-[11px]">
+                            -
+                          </span>
+                        )}
+                      </td>
+
+                      {/* % Capaian */}
+                      <td className="px-3 py-3.5 text-center align-top whitespace-nowrap">
+                        {ind.capaian > 0 ? (
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                              isTercapai
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-amber-100 text-amber-900 font-extrabold border border-amber-300"
+                            }`}
+                          >
+                            <span>{ind.capaian}%</span>
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-[11px]">-</span>
+                        )}
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-3 py-3.5 text-center align-top whitespace-nowrap">
+                        {isTercapai ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
+                            <Icon icon="solar:check-circle-bold" width={14} />
+                            Tercapai
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-amber-800 bg-amber-100/70 px-2 py-0.5 rounded-md border border-amber-300">
+                            <Icon
+                              icon="solar:danger-triangle-bold"
+                              width={14}
+                              className="text-amber-700"
+                            />
+                            Belum Tercapai
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Arahan Kepala Balai */}
+                      <td className="px-4 py-3.5 align-top">
+                        {ind.arahan ? (
+                          <div className="rounded-lg bg-amber-50 p-2 text-[11px] text-amber-900 border border-amber-200">
+                            <span className="font-bold text-amber-800 block text-[10px] uppercase">
+                              Arahan Pimpinan:
+                            </span>
+                            <span className="italic">
+                              &ldquo;{ind.arahan}&rdquo;
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 italic">
+                            Belum ada arahan
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Aksi Lembar RHPK */}
+                      <td className="px-4 py-3.5 text-center align-top whitespace-nowrap">
+                        <Link
+                          href={`/siproval/katim/entry-data-rhpk?iksk_id=${ind.iksk_id}`}
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#003d73] via-[#005baa] to-[#00a651] px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:opacity-90 hover:shadow-sm"
+                          title={`Buka formulir pengisian IKSK #${ind.iksk_id}`}
+                        >
+                          <Icon
+                            icon="ri:file-excel-2-fill"
+                            width={15}
+                            className="text-emerald-300"
+                          />
+                          <span>Buka IKSK #{ind.iksk_id}</span>
+                          <Icon icon="solar:arrow-right-linear" width={13} />
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Real Indicators Table for This Katim */}
-      {currentMonthIndicators.length > 0 && (
+      {/* Bagian 3: Rekapitulasi Data Asli Indikator Tim (Khusus Tim Katim Saat Ini) */}
+      {myAssignedIndicators.length > 0 && (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
           <div className="border-b border-slate-100 bg-gradient-to-r from-blue-50/60 to-emerald-50/40 px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-bold text-slate-900">
-                  Rekapitulasi Data Asli Indikator Tim ({selectedMonthName}{" "}
-                  2026)
+                  Rekapitulasi Data Asli Indikator Tim ({selectedMonthTitle}{" "}
+                  {currentYear})
                 </h3>
                 <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-[#005baa]">
-                  {currentMonthIndicators.length} Indikator
+                  {myAssignedIndicators.length} Indikator Tim
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                Nilai capaian riil yang tersimpan di sistem basis data RHPK
-                Balai. Klik indikator untuk langsung mengisi data capaian.
+                Nilai capaian riil indikator yang secara spesifik ditugaskan ke
+                tim Anda.
               </p>
             </div>
 
@@ -532,10 +877,10 @@ export default function DashboardKatim() {
                     Target 2026
                   </th>
                   <th className="px-3 py-3 text-center whitespace-nowrap">
-                    Target {selectedMonthName}
+                    Target {selectedMonthTitle}
                   </th>
                   <th className="px-3 py-3 text-center whitespace-nowrap">
-                    Realisasi {selectedMonthName}
+                    Realisasi {selectedMonthTitle}
                   </th>
                   <th className="px-3 py-3 text-center whitespace-nowrap">
                     % Capaian
@@ -552,18 +897,12 @@ export default function DashboardKatim() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
-                {currentMonthIndicators.map((ind) => {
+                {myAssignedIndicators.map((ind) => {
                   const isTercapai = ind.status === "tercapai";
                   const hasReal =
                     ind.realisasi_bulan &&
                     ind.realisasi_bulan !== "#DIV/0!" &&
                     ind.realisasi_bulan !== "";
-                  const queryParts: string[] = [];
-                  if (ind.iksk_id) queryParts.push(`iksk_id=${ind.iksk_id}`);
-                  if (ind.spreadsheet_id)
-                    queryParts.push(`spreadsheet=${ind.spreadsheet_id}`);
-                  if (ind.tab_id) queryParts.push(`tab=${ind.tab_id}`);
-                  const targetSheetUrl = `/siproval/katim/entry-data-rhpk${queryParts.length > 0 ? `?${queryParts.join("&")}` : ""}`;
 
                   return (
                     <tr

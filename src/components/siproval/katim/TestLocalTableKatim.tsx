@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import api from "@/utils/api";
+import * as XLSX from "xlsx";
 
 const baseUrl = (
   process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000"
@@ -345,6 +346,13 @@ export default function TestLocalTableKatim() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(50);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [showExcelModal, setShowExcelModal] = useState<boolean>(false);
+  const [excelFile, setExcelFile] = useState<File | null>(null);
+  const [excelMode, setExcelMode] = useState<"append" | "replace">("append");
+  const [excelParsedRows, setExcelParsedRows] = useState<any[]>([]);
+  const [excelError, setExcelError] = useState<string | null>(null);
+  const [excelSaving, setExcelSaving] = useState<boolean>(false);
+  const excelFileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>("all");
   const [isPicUser, setIsPicUser] = useState(false);
   const [isCurrentMonthLocked, setIsCurrentMonthLocked] = useState(false);
@@ -591,6 +599,172 @@ export default function TestLocalTableKatim() {
         value: parsedVal,
       },
     }));
+  };
+
+  // Unduh template Excel sesuai struktur kolom tab yang sedang aktif
+  const handleDownloadExcelTemplate = () => {
+    if (!activeTab || effectiveColumnsSchema.length === 0) return;
+    try {
+      const headers = effectiveColumnsSchema.map((c) => c.label);
+      const sampleRow = effectiveColumnsSchema.map((c) => {
+        if (c.key === "col_0") return 1;
+        if ((c.label || "").toLowerCase().includes("bulan")) return selectedMonthFilter !== "all" ? selectedMonthFilter : "Januari";
+        if (c.type === "formula") return "(Dihitung Otomatis)";
+        return "";
+      });
+      const wsData = [headers, sampleRow];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Template");
+      const safeTitle = (activeTab.title || "Tabel").replace(/[^a-zA-Z0-9_-]/g, "_");
+      XLSX.writeFile(wb, `Template_${safeTitle}.xlsx`);
+    } catch (err) {
+      console.error("Gagal membuat template Excel:", err);
+      setExcelError("Gagal mengunduh template Excel.");
+    }
+  };
+
+  // Baca & parse file Excel (.xlsx / .xls / .csv)
+  const handleExcelFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setExcelFile(file);
+    setExcelError(null);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const buffer = evt.target?.result;
+        if (!buffer) throw new Error("Gagal membaca file.");
+        const wb = XLSX.read(buffer, { type: "array" });
+        const firstSheetName = wb.SheetNames[0];
+        const sheet = wb.Sheets[firstSheetName];
+        if (!sheet) throw new Error("Lembar kerja kosong.");
+
+        const rawJson: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+        if (rawJson.length < 2) {
+          throw new Error("File Excel harus memiliki minimal 1 baris header dan 1 baris data.");
+        }
+
+        // Baris 0 diasumsikan header
+        const excelHeaders = rawJson[0].map((h) => String(h || "").trim());
+        const dataRows = rawJson.slice(1).filter((r) => r.some((c) => String(c).trim() !== ""));
+
+        // Petakan kolom Excel ke columns_schema tab aktif
+        const mappedRows: any[] = [];
+        const currentCount = activeTab?.rows_data?.length || 0;
+
+        dataRows.forEach((rowVals, rIdx) => {
+          const cells: Record<string, any> = {};
+          let rowMonthName = "";
+
+          effectiveColumnsSchema.forEach((col, colIdx) => {
+            // Cocokkan berdasarkan index atau kesamaan nama header
+            let val = rowVals[colIdx] ?? "";
+            const headerMatchIdx = excelHeaders.findIndex(
+              (eh) => eh.toLowerCase() === col.label.toLowerCase() || eh.toLowerCase() === (col.sub_label || "").toLowerCase()
+            );
+            if (headerMatchIdx !== -1 && rowVals[headerMatchIdx] !== undefined) {
+              val = rowVals[headerMatchIdx];
+            }
+
+            if (col.type === "readonly" && (col.key === "col_0" || col.label.toLowerCase() === "no")) {
+              val = excelMode === "append" ? currentCount + rIdx + 1 : rIdx + 1;
+            }
+
+            if ((col.label || "").toLowerCase().includes("bulan") && val) {
+              rowMonthName = String(val).trim();
+            }
+
+            cells[col.key] = val === "" ? "" : isNaN(Number(val)) ? val : Number(val);
+          });
+
+          // Tentukan nomor bulan jika ada
+          const resolvedMonthNum = getMonthNumberFromText(rowMonthName) || (selectedMonthFilter !== "all" ? getMonthNumberFromText(selectedMonthFilter) : null) || 0;
+
+          mappedRows.push({
+            row_index: excelMode === "append" ? currentCount + rIdx : rIdx,
+            month: resolvedMonthNum,
+            month_name: rowMonthName || (resolvedMonthNum > 0 ? standardOrder[resolvedMonthNum - 1] : ""),
+            is_month_row: false,
+            is_locked: false,
+            is_current: false,
+            can_edit_row: true,
+            cells,
+          });
+        });
+
+        if (mappedRows.length === 0) {
+          throw new Error("Tidak ada baris data valid yang berhasil dibaca dari file Excel.");
+        }
+
+        setExcelParsedRows(mappedRows);
+      } catch (err: any) {
+        console.error("Gagal memproses file Excel:", err);
+        setExcelError(err.message || "Format file Excel tidak dapat diproses.");
+        setExcelParsedRows([]);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  // Simpan data Excel ke server dan perbarui tampilan tabel lokal
+  const handleSaveExcelImport = async () => {
+    if (!activeTab || excelParsedRows.length === 0) return;
+    setExcelSaving(true);
+    setExcelError(null);
+    try {
+      let finalRows: RowData[] = [];
+      const existingRows = activeTab.rows_data || [];
+
+      if (excelMode === "append") {
+        finalRows = [...existingRows, ...excelParsedRows];
+      } else {
+        // Mode replace: Jika ada filter bulan aktif, ganti baris pada bulan itu saja
+        if (selectedMonthFilter !== "all" && !isHorizontalMonthTable) {
+          const targetNum = getMonthNumberFromText(selectedMonthFilter);
+          const preserved = existingRows.filter((r) => getRowMonthNumber(r) !== targetNum);
+          finalRows = [...preserved, ...excelParsedRows];
+        } else {
+          finalRows = excelParsedRows;
+        }
+      }
+
+      // Re-index row_index dan No urut secara konsisten
+      finalRows = finalRows.map((r, idx) => {
+        const newCells = { ...r.cells };
+        if (newCells.col_0 !== undefined) {
+          newCells.col_0 = idx + 1;
+        }
+        return {
+          ...r,
+          row_index: idx,
+          cells: newCells,
+        };
+      });
+
+      const res = await api.post(
+        `${baseUrl}/api/test-local-table/tab/${activeTab.id}/update${authQuery}`,
+        { rows_data: finalRows }
+      );
+
+      if (res.data?.data?.rows_data) {
+        setActiveTab((prev) => (prev ? { ...prev, rows_data: res.data.data.rows_data } : prev));
+      } else {
+        setActiveTab((prev) => (prev ? { ...prev, rows_data: finalRows } : prev));
+      }
+
+      setSuccessMsg(`Berhasil mengimpor ${excelParsedRows.length} baris data dari Excel!`);
+      setShowExcelModal(false);
+      setExcelFile(null);
+      setExcelParsedRows([]);
+      setCurrentPage(1);
+    } catch (err: any) {
+      console.error("Gagal menyimpan data Excel:", err);
+      setExcelError(err.response?.data?.message || "Gagal menyimpan data impor ke server.");
+    } finally {
+      setExcelSaving(false);
+    }
   };
 
   // Scroll halus ke atas tabel saat navigasi halaman
@@ -1085,11 +1259,46 @@ export default function TestLocalTableKatim() {
   // Deteksi kolom bulan jika ada
   const monthColKey = useMemo(() => {
     if (!activeTab?.columns_schema) return null;
-    const col = activeTab.columns_schema.find(
-      (c) => (c.label || "").toLowerCase().trim() === "bulan"
-    );
+    const col = activeTab.columns_schema.find((c) => {
+      const l = (c.label || "").toLowerCase().trim();
+      return l === "bulan" || l.includes("bulan") || (c.key === "col_2" && c.col_letter === "C");
+    });
     return col ? col.key : null;
   }, [activeTab?.columns_schema]);
+
+  // Ekstrak nomor bulan (1..12) dari sebuah baris data secara akurat dan toleran
+  const getRowMonthNumber = (r: RowData): number | null => {
+    if (!r) return null;
+    // 1. Cek dari kolom bulan jika terdeteksi
+    if (monthColKey && r.cells?.[monthColKey]) {
+      const n = getMonthNumberFromText(String(r.cells[monthColKey]));
+      if (n !== null) return n;
+    }
+    // 2. Cek kolom col_2 (seringkali kolom Bulan pada tabel multi-baris)
+    if (r.cells?.col_2) {
+      const n = getMonthNumberFromText(String(r.cells.col_2));
+      if (n !== null) return n;
+    }
+    // 3. Cek month_name
+    if (r.month_name) {
+      const n = getMonthNumberFromText(r.month_name);
+      if (n !== null) return n;
+    }
+    // 4. Cek r.month jika bernilai 1..12 dan bukan 0
+    if (typeof r.month === "number" && r.month >= 1 && r.month <= 12) {
+      return r.month;
+    }
+    // 5. Cek seluruh cell teks
+    if (r.cells) {
+      for (const val of Object.values(r.cells)) {
+        if (typeof val === "string" && val.trim().length > 0) {
+          const n = getMonthNumberFromText(val);
+          if (n !== null) return n;
+        }
+      }
+    }
+    return null;
+  };
 
   // Ekstrak daftar bulan yang ada di tab saat ini beserta jumlah barisnya
   const availableMonths = useMemo(() => {
@@ -1129,69 +1338,36 @@ export default function TestLocalTableKatim() {
     }
 
     // Default: tabel vertikal (bulan berada di baris)
-    const monthsMap: Record<string, number> = {};
+    const monthCounts: Record<number, number> = {};
 
     activeTab?.rows_data?.forEach((r) => {
-      let m = "";
-      if (monthColKey && r.cells?.[monthColKey]) {
-        m = String(r.cells[monthColKey]).trim();
-      } else if (r.month_name && typeof r.month_name === "string" && r.month_name.trim()) {
-        m = r.month_name.trim();
-      } else if (r.month && r.month >= 1 && r.month <= 12) {
-        m = standardOrder[r.month - 1];
-      } else if (r.cells?.col_2 && typeof r.cells.col_2 === "string") {
-        const val = r.cells.col_2.trim();
-        if (
-          /(januari|februari|pebruari|maret|april|mei|juni|juli|agustus|september|oktober|november|nopember|desember)/i.test(
-            val
-          )
-        ) {
-          m = val;
-        }
-      }
-      if (m) {
-        const normalized = m.charAt(0).toUpperCase() + m.slice(1);
-        monthsMap[normalized] = (monthsMap[normalized] || 0) + 1;
+      const mNum = getRowMonthNumber(r);
+      if (mNum !== null) {
+        monthCounts[mNum] = (monthCounts[mNum] || 0) + 1;
       }
     });
 
     const hasAnyMonthColOrData =
       Boolean(monthColKey) ||
       effectiveColumnsSchema.some((c) => (c.label || "").toLowerCase().includes("bulan")) ||
-      Object.keys(monthsMap).length > 0;
+      Object.keys(monthCounts).length > 0;
 
     const result: { name: string; count: number }[] = [];
 
     if (hasAnyMonthColOrData) {
-      // Pastikan seluruh 12 bulan (Januari s/d Desember) SELALU tampil lengkap
-      standardOrder.forEach((name) => {
-        const matchKey = Object.keys(monthsMap).find(
-          (k) =>
-            k.toLowerCase() === name.toLowerCase() ||
-            (name === "Februari" && k.toLowerCase() === "pebruari") ||
-            (name === "November" && k.toLowerCase() === "nopember")
-        );
+      // Seluruh 12 bulan (Januari s/d Desember) tampil lengkap dengan jumlah baris riil
+      standardOrder.forEach((name, idx) => {
+        const mNum = idx + 1;
         result.push({
           name,
-          count: matchKey ? monthsMap[matchKey] : 0,
+          count: monthCounts[mNum] || 0,
         });
       });
     } else {
-      standardOrder.forEach((name) => {
-        const matchKey = Object.keys(monthsMap).find(
-          (k) =>
-            k.toLowerCase() === name.toLowerCase() ||
-            (name === "Februari" && k.toLowerCase() === "pebruari") ||
-            (name === "November" && k.toLowerCase() === "nopember")
-        );
-        if (matchKey) {
-          result.push({ name: matchKey, count: monthsMap[matchKey] });
-        }
-      });
-
-      Object.keys(monthsMap).forEach((k) => {
-        if (!result.some((item) => item.name.toLowerCase() === k.toLowerCase())) {
-          result.push({ name: k, count: monthsMap[k] });
+      standardOrder.forEach((name, idx) => {
+        const mNum = idx + 1;
+        if (monthCounts[mNum]) {
+          result.push({ name, count: monthCounts[mNum] });
         }
       });
     }
@@ -1204,43 +1380,12 @@ export default function TestLocalTableKatim() {
     if (!activeTab?.rows_data) return [];
     let rows = activeTab.rows_data;
 
-    const standardOrder = [
-      "Januari",
-      "Februari",
-      "Maret",
-      "April",
-      "Mei",
-      "Juni",
-      "Juli",
-      "Agustus",
-      "September",
-      "Oktober",
-      "November",
-      "Desember",
-    ];
-
     // Filter per Bulan (hanya jika tabel vertikal, karena pada tabel horizontal baris merupakan komoditi/item)
     if (selectedMonthFilter !== "all" && !isHorizontalMonthTable) {
-      const filterLower = selectedMonthFilter.toLowerCase();
       const targetMonthNum = getMonthNumberFromText(selectedMonthFilter);
-      rows = rows.filter((r) => {
-        let m = "";
-        if (monthColKey && r.cells?.[monthColKey]) {
-          m = String(r.cells[monthColKey]).trim().toLowerCase();
-        } else if (r.month_name) {
-          m = String(r.month_name).trim().toLowerCase();
-        } else if (r.month && r.month >= 1 && r.month <= 12) {
-          m = standardOrder[r.month - 1].toLowerCase();
-        } else if (r.cells?.col_2) {
-          m = String(r.cells.col_2).trim().toLowerCase();
-        }
-        return (
-          m === filterLower ||
-          (filterLower === "februari" && m === "pebruari") ||
-          (filterLower === "november" && m === "nopember") ||
-          (targetMonthNum !== null && r.month === targetMonthNum)
-        );
-      });
+      if (targetMonthNum !== null) {
+        rows = rows.filter((r) => getRowMonthNumber(r) === targetMonthNum);
+      }
     }
 
     // Filter per Pencarian
@@ -1274,7 +1419,7 @@ export default function TestLocalTableKatim() {
     if (!targetMonthNum) return effectiveColumnsSchema;
 
     return effectiveColumnsSchema.filter((col) => {
-      const isFixedLeft = !col.parent_header && getMonthNumberFromText(col.label) === null;
+      const isFixedLeft = col.key === "col_0" || col.key === "col_1" || (!col.parent_header && getMonthNumberFromText(col.label) === null);
       const colMonthNum = getMonthNumberFromText(col.parent_header) || getMonthNumberFromText(col.label);
       return isFixedLeft || colMonthNum === targetMonthNum;
     });
@@ -1825,7 +1970,7 @@ export default function TestLocalTableKatim() {
                             if (cIdx === 0) {
                               stickyStyle =
                                 numLeftCols > 1
-                                  ? "sticky left-0 z-30 bg-slate-100 text-slate-900 w-[55px] min-w-[55px] max-w-[55px] text-center border-r border-slate-200"
+                                  ? "sticky left-0 z-30 bg-slate-100 text-slate-900 w-[50px] min-w-[50px] max-w-[50px] text-center border-r border-slate-200"
                                   : "sticky left-0 z-30 bg-slate-100 shadow-r text-slate-900 min-w-[130px] border-r border-slate-200";
                             } else if (cIdx === 1 && numLeftCols > 1) {
                               stickyStyle =
@@ -2113,7 +2258,7 @@ export default function TestLocalTableKatim() {
                                 : "bg-white font-medium text-slate-700"
                             }`;
                           } else if (cIdx === 1) {
-                            stickyTdClass = `sticky left-[55px] z-10 min-w-[240px] max-w-[280px] shadow-r border-r border-slate-200 ${
+                            stickyTdClass = `sticky left-[50px] z-10 min-w-[260px] max-w-[320px] shadow-r border-r border-slate-200 ${
                               isSectionRow
                                 ? "bg-slate-100 font-black text-slate-900"
                                 : (isFormulaRow || isTotalRow)

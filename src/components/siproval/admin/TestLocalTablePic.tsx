@@ -339,11 +339,41 @@ export default function TestLocalTablePic() {
 
   const monthColKey = useMemo(() => {
     if (!activeTab?.columns_schema) return null;
-    const col = activeTab.columns_schema.find(
-      (c) => (c.label || "").toLowerCase().trim() === "bulan"
-    );
+    const col = activeTab.columns_schema.find((c) => {
+      const l = (c.label || "").toLowerCase().trim();
+      return l === "bulan" || l.includes("bulan") || (c.key === "col_2" && c.col_letter === "C");
+    });
     return col ? col.key : null;
   }, [activeTab?.columns_schema]);
+
+  // Ekstrak nomor bulan (1..12) dari sebuah baris data secara akurat dan toleran
+  const getRowMonthNumber = (r: RowData): number | null => {
+    if (!r) return null;
+    if (monthColKey && r.cells?.[monthColKey]) {
+      const n = getMonthNumberFromText(String(r.cells[monthColKey]));
+      if (n !== null) return n;
+    }
+    if (r.cells?.col_2) {
+      const n = getMonthNumberFromText(String(r.cells.col_2));
+      if (n !== null) return n;
+    }
+    if (r.month_name) {
+      const n = getMonthNumberFromText(r.month_name);
+      if (n !== null) return n;
+    }
+    if (typeof r.month === "number" && r.month >= 1 && r.month <= 12) {
+      return r.month;
+    }
+    if (r.cells) {
+      for (const val of Object.values(r.cells)) {
+        if (typeof val === "string" && val.trim().length > 0) {
+          const n = getMonthNumberFromText(val);
+          if (n !== null) return n;
+        }
+      }
+    }
+    return null;
+  };
 
   const availableMonths = useMemo(() => {
     const rawCount = activeTab?.rows_data?.length || 0;
@@ -380,69 +410,35 @@ export default function TestLocalTablePic() {
       return result;
     }
 
-    const monthsMap: Record<string, number> = {};
+    const monthCounts: Record<number, number> = {};
 
     activeTab?.rows_data?.forEach((r) => {
-      let m = "";
-      if (monthColKey && r.cells?.[monthColKey]) {
-        m = String(r.cells[monthColKey]).trim();
-      } else if (r.month_name && typeof r.month_name === "string" && r.month_name.trim()) {
-        m = r.month_name.trim();
-      } else if (r.month && r.month >= 1 && r.month <= 12) {
-        m = standardOrder[r.month - 1];
-      } else if (r.cells?.col_2 && typeof r.cells.col_2 === "string") {
-        const val = r.cells.col_2.trim();
-        if (
-          /(januari|februari|pebruari|maret|april|mei|juni|juli|agustus|september|oktober|november|nopember|desember)/i.test(
-            val
-          )
-        ) {
-          m = val;
-        }
-      }
-      if (m) {
-        const normalized = m.charAt(0).toUpperCase() + m.slice(1);
-        monthsMap[normalized] = (monthsMap[normalized] || 0) + 1;
+      const mNum = getRowMonthNumber(r);
+      if (mNum !== null) {
+        monthCounts[mNum] = (monthCounts[mNum] || 0) + 1;
       }
     });
 
     const hasAnyMonthColOrData =
       Boolean(monthColKey) ||
       Boolean(activeTab?.columns_schema?.some((c) => (c.label || "").toLowerCase().includes("bulan"))) ||
-      Object.keys(monthsMap).length > 0;
+      Object.keys(monthCounts).length > 0;
 
     const result: { name: string; count: number }[] = [];
 
     if (hasAnyMonthColOrData) {
-      // Pastikan seluruh 12 bulan (Januari s/d Desember) SELALU tampil lengkap
-      standardOrder.forEach((name) => {
-        const matchKey = Object.keys(monthsMap).find(
-          (k) =>
-            k.toLowerCase() === name.toLowerCase() ||
-            (name === "Februari" && k.toLowerCase() === "pebruari") ||
-            (name === "November" && k.toLowerCase() === "nopember")
-        );
+      standardOrder.forEach((name, idx) => {
+        const mNum = idx + 1;
         result.push({
           name,
-          count: matchKey ? monthsMap[matchKey] : 0,
+          count: monthCounts[mNum] || 0,
         });
       });
     } else {
-      standardOrder.forEach((name) => {
-        const matchKey = Object.keys(monthsMap).find(
-          (k) =>
-            k.toLowerCase() === name.toLowerCase() ||
-            (name === "Februari" && k.toLowerCase() === "pebruari") ||
-            (name === "November" && k.toLowerCase() === "nopember")
-        );
-        if (matchKey) {
-          result.push({ name: matchKey, count: monthsMap[matchKey] });
-        }
-      });
-
-      Object.keys(monthsMap).forEach((k) => {
-        if (!result.some((item) => item.name.toLowerCase() === k.toLowerCase())) {
-          result.push({ name: k, count: monthsMap[k] });
+      standardOrder.forEach((name, idx) => {
+        const mNum = idx + 1;
+        if (monthCounts[mNum]) {
+          result.push({ name, count: monthCounts[mNum] });
         }
       });
     }
@@ -454,46 +450,13 @@ export default function TestLocalTablePic() {
     if (!activeTab?.rows_data) return [];
     let rows = activeTab.rows_data;
 
-    const standardOrder = [
-      "Januari",
-      "Februari",
-      "Maret",
-      "April",
-      "Mei",
-      "Juni",
-      "Juli",
-      "Agustus",
-      "September",
-      "Oktober",
-      "November",
-      "Desember",
-    ];
-
-    // Filter per Bulan (hanya jika tabel vertikal, karena pada tabel horizontal baris merupakan komoditi/item)
     if (selectedMonthFilter !== "all" && !isHorizontalMonthTable) {
-      const filterLower = selectedMonthFilter.toLowerCase();
       const targetMonthNum = getMonthNumberFromText(selectedMonthFilter);
-      rows = rows.filter((r) => {
-        let m = "";
-        if (monthColKey && r.cells?.[monthColKey]) {
-          m = String(r.cells[monthColKey]).trim().toLowerCase();
-        } else if (r.month_name) {
-          m = String(r.month_name).trim().toLowerCase();
-        } else if (r.month && r.month >= 1 && r.month <= 12) {
-          m = standardOrder[r.month - 1].toLowerCase();
-        } else if (r.cells?.col_2) {
-          m = String(r.cells.col_2).trim().toLowerCase();
-        }
-        return (
-          m === filterLower ||
-          (filterLower === "februari" && m === "pebruari") ||
-          (filterLower === "november" && m === "nopember") ||
-          (targetMonthNum !== null && r.month === targetMonthNum)
-        );
-      });
+      if (targetMonthNum !== null) {
+        rows = rows.filter((r) => getRowMonthNumber(r) === targetMonthNum);
+      }
     }
 
-    // Filter per Pencarian
     if (tableSearch.trim()) {
       const q = tableSearch.toLowerCase().trim();
       rows = rows.filter((r) => {
@@ -524,7 +487,7 @@ export default function TestLocalTablePic() {
     if (!targetMonthNum) return schema;
 
     return schema.filter((col) => {
-      const isFixedLeft = !col.parent_header && getMonthNumberFromText(col.label) === null;
+      const isFixedLeft = col.key === "col_0" || col.key === "col_1" || (!col.parent_header && getMonthNumberFromText(col.label) === null);
       const colMonthNum = getMonthNumberFromText(col.parent_header) || getMonthNumberFromText(col.label);
       return isFixedLeft || colMonthNum === targetMonthNum;
     });
