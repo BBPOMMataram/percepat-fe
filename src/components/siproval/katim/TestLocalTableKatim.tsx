@@ -359,14 +359,18 @@ export default function TestLocalTableKatim() {
   const [monthLocksMap, setMonthLocksMap] = useState<Record<number, boolean>>({});
   const [isTogglingLock, setIsTogglingLock] = useState(false);
 
-  // Jika user teridentifikasi sebagai PIC/Admin dan mengakses endpoint /siproval/katim/entry-data-rhpk,
+  // Jika user teridentifikasi sebagai murni PIC/Admin (dan BUKAN Katim) yang mengakses endpoint /siproval/katim/entry-data-rhpk,
   // alihkan secara halus ke endpoint resmi PIC: /siproval/admin/entry-data-rhpk
   useEffect(() => {
-    if (isPicUser && pathname === "/siproval/katim/entry-data-rhpk") {
+    const isKatimUser =
+      user?.employee?.group_jabatan_id === 3 ||
+      (Array.isArray(user?.katims) && user.katims.length > 0);
+
+    if (!isKatimUser && isPicUser && pathname === "/siproval/katim/entry-data-rhpk") {
       const search = window.location.search || "";
       router.replace(`/siproval/admin/entry-data-rhpk${search}`);
     }
-  }, [isPicUser, pathname, router]);
+  }, [isPicUser, pathname, router, user]);
 
   useEffect(() => {
     setCurrentPage(1);

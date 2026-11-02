@@ -63,11 +63,13 @@ export async function middleware(req: NextRequest) {
         payload.sub === "019ab8b3-4a06-7007-8337-2794c43cea4f" ||
         String(payload.email || "").toLowerCase() === "al.el.dul79@gmail.com" ||
         String(payload.name || "").toLowerCase().trim() === "basuki murdi hartono";
-      const groupJabatanId = isBasukiKatim
-        ? 3
-        : payload.group_jabatan_id !== undefined && payload.group_jabatan_id !== null
-        ? Number(payload.group_jabatan_id)
-        : null;
+      const isKatimClaim = Boolean((payload as any).is_katim);
+      const groupJabatanId =
+        isBasukiKatim || isKatimClaim
+          ? 3
+          : payload.group_jabatan_id !== undefined && payload.group_jabatan_id !== null
+          ? Number(payload.group_jabatan_id)
+          : null;
 
       // Whitelist user Tata Usaha (TU)
       const allowedTuIds = [
@@ -120,12 +122,13 @@ export async function middleware(req: NextRequest) {
         // Rute Realisasi RO TU terbuka untuk semua aktor (TU, Kabalai, Katim) sesuai kebutuhan pengisian
         const isRealisasiRoPath = pathname.startsWith("/siproval/tu/realisasi-ro");
 
+        const isKatimPath =
+          pathname.startsWith("/siproval/katim") ||
+          pathname.startsWith("/siproval/google-sheets");
+
         if (groupJabatanId === 3) {
           // Katim: boleh akses fitur katim dan realisasi-ro
-          const allowed =
-            pathname.startsWith("/siproval/katim") ||
-            pathname.startsWith("/siproval/google-sheets") ||
-            isRealisasiRoPath;
+          const allowed = isKatimPath || isRealisasiRoPath;
           if (!allowed) {
             return NextResponse.redirect(new URL("/siproval/katim", req.url));
           }
@@ -151,8 +154,9 @@ export async function middleware(req: NextRequest) {
             return NextResponse.redirect(new URL("/siproval/tu", req.url));
           }
         } else {
-          // Staf (4), OS (5), atau role non-aktor Siproval
-          if (!isRealisasiRoPath) {
+          // Staf (4), OS (5), atau pegawai yang baru ditugaskan sebagai Katim.
+          // Izinkan akses rute Katim agar divalidasi langsung oleh LayoutSiproval / backend API.
+          if (!isRealisasiRoPath && !isKatimPath) {
             return NextResponse.redirect(new URL("/unauthorized", req.url));
           }
         }

@@ -19,6 +19,46 @@ export default function AdminAtkPercepat() {
     const [kodeBarangOrNameFilter, setKodeBarangOrNameFilter] = useState("");
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [showModalConfirmDelete, setShowModalConfirmDelete] = useState(false);
+    const [selectedDeleteId, setSelectedDeleteId] = useState<number | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const openConfirmDeleteHandler = (id: number) => {
+        setSelectedDeleteId(id);
+        setShowModalConfirmDelete(true);
+    };
+
+    const closeConfirmDeleteHandler = () => {
+        setSelectedDeleteId(null);
+        setShowModalConfirmDelete(false);
+    };
+
+    const confirmDeleteHandler = () => {
+        if (!selectedDeleteId) return;
+
+        setIsDeleting(true);
+        api.delete(`/api/v1/permintaan-atk/${selectedDeleteId}`)
+            .then(() => {
+                dispatch(showAlert({
+                    type: "success",
+                    message: "Data Berhasil Dihapus",
+                    description: "Data permintaan atk telah dihapus dari sistem."
+                }));
+                loadData();
+                closeConfirmDeleteHandler();
+            })
+            .catch(err => {
+                console.error("Failed to delete permintaan:", err);
+                dispatch(showAlert({
+                    type: "error",
+                    message: "Gagal Menghapus Data",
+                    description: err.response?.data?.msg || err.response?.data?.message || "Terjadi kesalahan saat menghapus data."
+                }));
+            })
+            .finally(() => {
+                setIsDeleting(false);
+            });
+    };
 
     const { user } = useSelector((state: any) => state.auth);
 
@@ -252,6 +292,12 @@ export default function AdminAtkPercepat() {
                                                     list
                                                 </span>
                                             </span>
+                                            <span className="btn btn-sm btn-ghost text-error tooltip tooltip-error tooltip-left" data-tip="Hapus Permintaan"
+                                                onClick={() => openConfirmDeleteHandler(item.id)}>
+                                                <span className="material-symbols-outlined">
+                                                    delete
+                                                </span>
+                                            </span>
                                             {
                                                 (item.status_id === 3) &&
                                                 <span className="btn btn-sm btn-ghost btn-success tooltip tooltip-success tooltip-left" data-tip="Verif Permintaan"
@@ -382,6 +428,43 @@ export default function AdminAtkPercepat() {
 
                 <button className="btn btn-primary mt-4" onClick={() => verifPetugasHandler(permintaanId!)}>Verifikasi</button>
             </ModalGeneral>
+
+            {/* Modal Konfirmasi Delete */}
+            {showModalConfirmDelete && (
+                <ModalGeneral open={showModalConfirmDelete} onClose={closeConfirmDeleteHandler}>
+                    <div className="text-center p-2">
+                        <span className="material-symbols-outlined text-error text-5xl mb-3">warning</span>
+                        <h3 className="text-lg font-semibold mb-2">Konfirmasi Hapus Permintaan</h3>
+                        <p className="text-gray-500 mb-6 text-sm">
+                            Apakah Anda yakin ingin menghapus data permintaan atk ini? <br />
+                            <span className="text-error font-medium">Jika barang sudah diserahkan, stok barang akan otomatis dikembalikan (rollback). Tindakan ini tidak dapat dibatalkan.</span>
+                        </p>
+                        <div className="flex justify-center gap-3">
+                            <button
+                                className="btn btn-ghost"
+                                onClick={closeConfirmDeleteHandler}
+                                disabled={isDeleting}
+                            >
+                                Batal
+                            </button>
+                            <button
+                                className="btn btn-error text-white"
+                                onClick={confirmDeleteHandler}
+                                disabled={isDeleting}
+                            >
+                                {isDeleting ? (
+                                    <>
+                                        <span className="loading loading-spinner loading-xs mr-2"></span>
+                                        Menghapus...
+                                    </>
+                                ) : (
+                                    "Ya, Hapus"
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </ModalGeneral>
+            )}
         </>
     )
 }
