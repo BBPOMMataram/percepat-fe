@@ -566,15 +566,13 @@ export default function TestLocalTableKatim() {
     // Update state activeTab lokal
     setActiveTab((prev) => {
       if (!prev) return prev;
+      const isMultiRowTable = (prev.rows_data.length || 0) > 12 || Boolean(monthColKey);
       return {
         ...prev,
         rows_data: prev.rows_data.map((r, idx) => {
-          const rKey =
-            r.month !== undefined && r.month !== null && r.month !== 0
-              ? r.month
-              : r.row_index !== undefined
-              ? r.row_index
-              : idx;
+          const rKey = !isMultiRowTable && r.month && r.month > 0
+            ? r.month
+            : (r.row_index !== undefined ? r.row_index : idx);
           if (
             rKey === rowId ||
             (rowIdx !== undefined && (r.row_index === rowIdx || idx === rowIdx))
@@ -797,14 +795,13 @@ export default function TestLocalTableKatim() {
     }
 
     const currentRows = activeTab.rows_data;
-    const newRowIndex = currentRows.length;
     const targetMonthNum = getMonthNumberFromText(targetMonthName) || 0;
 
     // Cari kolom nomor urut jika ada
     const noCol = effectiveColumnsSchema.find(
       (c) => (c.label || "").toLowerCase().trim() === "no" || (c.label || "").toLowerCase().trim() === "no."
     );
-    let nextNo: number | string = newRowIndex + 1;
+    let nextNo: number | string = currentRows.length + 1;
     if (noCol) {
       const monthRows = currentRows.filter((r) => {
         const m = r.cells?.[monthColKey || "col_2"] || r.month_name || "";
@@ -826,10 +823,12 @@ export default function TestLocalTableKatim() {
 
     if (monthColKey) {
       newCells[monthColKey] = targetMonthName;
+    } else {
+      newCells.col_2 = targetMonthName;
     }
 
     const newRow: RowData = {
-      row_index: newRowIndex,
+      row_index: 0,
       month: targetMonthNum,
       month_name: targetMonthName,
       is_locked: false,
@@ -838,28 +837,37 @@ export default function TestLocalTableKatim() {
       cells: newCells,
     };
 
+    // Prepend new row ke urutan teratas (paling atas) dan sesuaikan row_index seluruh baris
+    const updatedRows = [newRow, ...currentRows].map((r, idx) => ({
+      ...r,
+      row_index: idx,
+    }));
+
     setActiveTab((prev) => {
       if (!prev) return prev;
       return {
         ...prev,
-        rows_data: [...prev.rows_data, newRow],
+        rows_data: updatedRows,
       };
     });
 
-    const updateColKey = monthColKey || (noCol ? noCol.key : "col_0");
-    const updateVal = monthColKey ? targetMonthName : nextNo;
+    const updateColKey = monthColKey || "col_2";
+    const updateVal = targetMonthName;
 
     setDirtyUpdates((prev) => ({
       ...prev,
-      [`new_${newRowIndex}_${updateColKey}`]: {
+      [`new_0_${updateColKey}`]: {
         month: targetMonthNum,
-        row_index: newRowIndex,
+        row_index: 0,
         key: updateColKey,
         value: updateVal,
       },
     }));
 
-    setSuccessMsg(`Baris baru untuk bulan ${targetMonthName} berhasil ditambahkan! Silakan lengkapi isian lalu klik Simpan Perubahan.`);
+    setCurrentPage(1);
+    scrollToTableTop();
+
+    setSuccessMsg(`Baris baru untuk bulan ${targetMonthName} berhasil ditambahkan di urutan paling atas! Silakan lengkapi isian lalu klik Simpan Perubahan.`);
   };
 
   // Kirim data ke backend lokal (Simpan Massal)
@@ -983,7 +991,7 @@ export default function TestLocalTableKatim() {
     try {
       const res = await api.post(
         `${baseUrl}/api/test-local-table/tab/${activeTab.id}/update${authQuery}`,
-        { updates: updatesList }
+        { updates: updatesList, rows_data: activeTab.rows_data }
       );
       setSuccessMsg(res.data?.message || "Data berhasil disimpan.");
       setDirtyUpdates({});
@@ -1270,16 +1278,16 @@ export default function TestLocalTableKatim() {
     return col ? col.key : null;
   }, [activeTab?.columns_schema]);
 
-  // Ekstrak nomor bulan (1..12) dari sebuah baris data secara akurat dan toleran
+  // Ekstrak nomor bulan (1..12) dari sebuah baris data secara akurat dan presisi
   const getRowMonthNumber = (r: RowData): number | null => {
     if (!r) return null;
     // 1. Cek dari kolom bulan jika terdeteksi
-    if (monthColKey && r.cells?.[monthColKey]) {
+    if (monthColKey && r.cells?.[monthColKey] !== undefined) {
       const n = getMonthNumberFromText(String(r.cells[monthColKey]));
       if (n !== null) return n;
     }
     // 2. Cek kolom col_2 (seringkali kolom Bulan pada tabel multi-baris)
-    if (r.cells?.col_2) {
+    if (r.cells?.col_2 !== undefined) {
       const n = getMonthNumberFromText(String(r.cells.col_2));
       if (n !== null) return n;
     }
@@ -1291,15 +1299,6 @@ export default function TestLocalTableKatim() {
     // 4. Cek r.month jika bernilai 1..12 dan bukan 0
     if (typeof r.month === "number" && r.month >= 1 && r.month <= 12) {
       return r.month;
-    }
-    // 5. Cek seluruh cell teks
-    if (r.cells) {
-      for (const val of Object.values(r.cells)) {
-        if (typeof val === "string" && val.trim().length > 0) {
-          const n = getMonthNumberFromText(val);
-          if (n !== null) return n;
-        }
-      }
     }
     return null;
   };
@@ -1345,7 +1344,15 @@ export default function TestLocalTableKatim() {
     const monthCounts: Record<number, number> = {};
 
     activeTab?.rows_data?.forEach((r) => {
-      const mNum = getRowMonthNumber(r);
+      let mNum: number | null = null;
+      if (monthColKey && r.cells?.[monthColKey] !== undefined && String(r.cells[monthColKey]).trim() !== "") {
+        mNum = getMonthNumberFromText(String(r.cells[monthColKey]));
+      } else if (r.cells?.col_2 !== undefined && String(r.cells.col_2).trim() !== "") {
+        mNum = getMonthNumberFromText(String(r.cells.col_2));
+      } else {
+        mNum = getRowMonthNumber(r);
+      }
+
       if (mNum !== null) {
         monthCounts[mNum] = (monthCounts[mNum] || 0) + 1;
       }
@@ -1388,26 +1395,61 @@ export default function TestLocalTableKatim() {
     if (selectedMonthFilter !== "all" && !isHorizontalMonthTable) {
       const targetMonthNum = getMonthNumberFromText(selectedMonthFilter);
       if (targetMonthNum !== null) {
-        rows = rows.filter((r) => getRowMonthNumber(r) === targetMonthNum);
+        rows = rows.filter((r) => {
+          // 1. Cek nilai kolom Bulan spesifik (col_2 / monthColKey / label 'Bulan')
+          const cellBulan = monthColKey && r.cells?.[monthColKey] !== undefined
+            ? r.cells[monthColKey]
+            : r.cells?.col_2 !== undefined
+            ? r.cells.col_2
+            : null;
+
+          if (cellBulan !== null && cellBulan !== undefined && String(cellBulan).trim() !== "") {
+            const mNum = getMonthNumberFromText(String(cellBulan));
+            if (mNum !== null) {
+              return mNum === targetMonthNum;
+            }
+          }
+
+          // 2. Cek field month_name jika ada
+          if (r.month_name && String(r.month_name).trim() !== "") {
+            const mNum = getMonthNumberFromText(r.month_name);
+            if (mNum !== null) {
+              return mNum === targetMonthNum;
+            }
+          }
+
+          // 3. Fallback: nomor bulan dari row.month jika 1..12
+          if (typeof r.month === "number" && r.month >= 1 && r.month <= 12) {
+            return r.month === targetMonthNum;
+          }
+
+          return getRowMonthNumber(r) === targetMonthNum;
+        });
       }
     }
 
-    // Filter per Pencarian
+    // Filter per Pencarian: Mencari di SEMUA kolom, terutama kolom Topik dan Judul Topik
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
+      const tokens = q.split(/\s+/).filter(Boolean);
+
       rows = rows.filter((r) => {
+        // Kumpulkan semua teks dari semua sel pada baris ini
+        const cellValues: string[] = [];
         if (r.cells) {
-          const match = Object.values(r.cells).some(
-            (val) =>
-              val !== null &&
-              val !== undefined &&
-              String(val).toLowerCase().includes(q)
-          );
-          if (match) return true;
+          Object.values(r.cells).forEach((val) => {
+            if (val !== null && val !== undefined) {
+              cellValues.push(String(val));
+            }
+          });
         }
-        if (r.row_name && r.row_name.toLowerCase().includes(q)) return true;
-        if (r.month_name && r.month_name.toLowerCase().includes(q)) return true;
-        return false;
+        if (r.row_name) cellValues.push(String(r.row_name));
+        if (r.month_name) cellValues.push(String(r.month_name));
+
+        const fullRowText = cellValues.join(" ").toLowerCase();
+
+        // Multi-token AND matching: seluruh kata pencarian harus cocok
+        return tokens.every((token) => fullRowText.includes(token));
       });
     }
 
@@ -2158,20 +2200,19 @@ export default function TestLocalTableKatim() {
                   </tr>
                 ) : (
                   paginatedRows.map((row, rIdx) => {
+                    const isMultiRowTable = (activeTab?.rows_data?.length || 0) > 12 || Boolean(monthColKey);
                     const originalIdx =
                       row.row_index !== undefined
                         ? row.row_index
                         : isPaginationNeeded && pageSize > 0
                         ? (safeCurrentPage - 1) * pageSize + rIdx
                         : rIdx;
-                    const rowKey =
-                      row.month !== undefined && row.month !== null && row.month !== 0
-                        ? row.month
-                        : row.row_index !== undefined
-                        ? row.row_index
-                        : originalIdx;
+                    const rowKey = !isMultiRowTable && row.month && row.month > 0
+                      ? row.month
+                      : (row.row_index !== undefined ? row.row_index : originalIdx);
                     const rowIdxNum =
                       row.row_index !== undefined ? row.row_index : originalIdx;
+                    const uniqueRowKey = `row_${rowKey}_${row.cells?.[monthColKey || 'col_2'] ?? ''}_${row.cells?.col_0 ?? ''}_${rIdx}`;
                   const isMonthRow = !((row as any).is_month_row === false || (row.month !== undefined && row.month === 0));
                   const isMonthLocked = isMonthRow && row.is_locked;
                   const isCurrent = isMonthRow && row.is_current;
@@ -2214,7 +2255,7 @@ export default function TestLocalTableKatim() {
 
                   return (
                     <tr
-                      key={rowKey}
+                      key={uniqueRowKey}
                       id={`local-row-${rowKey}`}
                       className={`transition ${
                         isHighlightedIncomplete

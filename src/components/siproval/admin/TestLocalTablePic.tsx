@@ -346,14 +346,14 @@ export default function TestLocalTablePic() {
     return col ? col.key : null;
   }, [activeTab?.columns_schema]);
 
-  // Ekstrak nomor bulan (1..12) dari sebuah baris data secara akurat dan toleran
+  // Ekstrak nomor bulan (1..12) dari sebuah baris data secara akurat dan presisi
   const getRowMonthNumber = (r: RowData): number | null => {
     if (!r) return null;
-    if (monthColKey && r.cells?.[monthColKey]) {
+    if (monthColKey && r.cells?.[monthColKey] !== undefined) {
       const n = getMonthNumberFromText(String(r.cells[monthColKey]));
       if (n !== null) return n;
     }
-    if (r.cells?.col_2) {
+    if (r.cells?.col_2 !== undefined) {
       const n = getMonthNumberFromText(String(r.cells.col_2));
       if (n !== null) return n;
     }
@@ -363,14 +363,6 @@ export default function TestLocalTablePic() {
     }
     if (typeof r.month === "number" && r.month >= 1 && r.month <= 12) {
       return r.month;
-    }
-    if (r.cells) {
-      for (const val of Object.values(r.cells)) {
-        if (typeof val === "string" && val.trim().length > 0) {
-          const n = getMonthNumberFromText(val);
-          if (n !== null) return n;
-        }
-      }
     }
     return null;
   };
@@ -413,7 +405,15 @@ export default function TestLocalTablePic() {
     const monthCounts: Record<number, number> = {};
 
     activeTab?.rows_data?.forEach((r) => {
-      const mNum = getRowMonthNumber(r);
+      let mNum: number | null = null;
+      if (monthColKey && r.cells?.[monthColKey] !== undefined && String(r.cells[monthColKey]).trim() !== "") {
+        mNum = getMonthNumberFromText(String(r.cells[monthColKey]));
+      } else if (r.cells?.col_2 !== undefined && String(r.cells.col_2).trim() !== "") {
+        mNum = getMonthNumberFromText(String(r.cells.col_2));
+      } else {
+        mNum = getRowMonthNumber(r);
+      }
+
       if (mNum !== null) {
         monthCounts[mNum] = (monthCounts[mNum] || 0) + 1;
       }
@@ -453,25 +453,58 @@ export default function TestLocalTablePic() {
     if (selectedMonthFilter !== "all" && !isHorizontalMonthTable) {
       const targetMonthNum = getMonthNumberFromText(selectedMonthFilter);
       if (targetMonthNum !== null) {
-        rows = rows.filter((r) => getRowMonthNumber(r) === targetMonthNum);
+        rows = rows.filter((r) => {
+          // 1. Cek kolom Bulan spesifik (col_2 / monthColKey / label 'Bulan')
+          const cellBulan = monthColKey && r.cells?.[monthColKey] !== undefined
+            ? r.cells[monthColKey]
+            : r.cells?.col_2 !== undefined
+            ? r.cells.col_2
+            : null;
+
+          if (cellBulan !== null && cellBulan !== undefined && String(cellBulan).trim() !== "") {
+            const mNum = getMonthNumberFromText(String(cellBulan));
+            if (mNum !== null) {
+              return mNum === targetMonthNum;
+            }
+          }
+
+          // 2. Cek field month_name jika ada
+          if (r.month_name && String(r.month_name).trim() !== "") {
+            const mNum = getMonthNumberFromText(r.month_name);
+            if (mNum !== null) {
+              return mNum === targetMonthNum;
+            }
+          }
+
+          // 3. Fallback: nomor bulan dari row.month jika 1..12
+          if (typeof r.month === "number" && r.month >= 1 && r.month <= 12) {
+            return r.month === targetMonthNum;
+          }
+
+          return getRowMonthNumber(r) === targetMonthNum;
+        });
       }
     }
 
+    // Filter per Pencarian: Mencari di SEMUA kolom, terutama kolom Topik dan Judul Topik
     if (tableSearch.trim()) {
       const q = tableSearch.toLowerCase().trim();
+      const tokens = q.split(/\s+/).filter(Boolean);
+
       rows = rows.filter((r) => {
+        const cellValues: string[] = [];
         if (r.cells) {
-          const match = Object.values(r.cells).some(
-            (val) =>
-              val !== null &&
-              val !== undefined &&
-              String(val).toLowerCase().includes(q)
-          );
-          if (match) return true;
+          Object.values(r.cells).forEach((val) => {
+            if (val !== null && val !== undefined) {
+              cellValues.push(String(val));
+            }
+          });
         }
-        if (r.row_name && r.row_name.toLowerCase().includes(q)) return true;
-        if (r.month_name && r.month_name.toLowerCase().includes(q)) return true;
-        return false;
+        if (r.row_name) cellValues.push(String(r.row_name));
+        if (r.month_name) cellValues.push(String(r.month_name));
+
+        const fullRowText = cellValues.join(" ").toLowerCase();
+        return tokens.every((token) => fullRowText.includes(token));
       });
     }
 
@@ -1669,7 +1702,7 @@ export default function TestLocalTablePic() {
 
                     return (
                       <tr
-                        key={row.row_index ?? rIdx}
+                        key={`pic_row_${row.row_index ?? rIdx}_${row.cells?.[monthColKey || 'col_2'] ?? ''}_${row.cells?.col_0 ?? ''}_${rIdx}`}
                         className={`transition group ${
                           isSectionRow
                             ? "bg-slate-100 font-bold border-y border-slate-300 text-slate-900"
