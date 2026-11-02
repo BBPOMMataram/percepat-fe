@@ -110,10 +110,24 @@ export default function MobilRiwayat() {
                                         <td className="px-6 py-4">
                                             <div className="text-sm font-semibold">{p.kendaraan || 'Belum di-assign'}</div>
                                             {p.driver && <div className="text-xs text-slate-500">Driver: {p.driver}</div>}
+                                            {p.jarak_tempuh_km ? (
+                                                <div className="text-[11px] text-emerald-700 font-bold mt-1">
+                                                    Jarak: {p.jarak_tempuh_km} KM ({p.odometer_keluar} ➔ {p.odometer_kembali})
+                                                </div>
+                                            ) : p.waktu_realisasi_keluar && !p.waktu_realisasi_kembali ? (
+                                                <div className="text-[11px] text-blue-600 font-bold mt-1">
+                                                    Sedang Digunakan (KM Keluar: {p.odometer_keluar})
+                                                </div>
+                                            ) : null}
                                         </td>
                                         <td className="px-6 py-4">
                                             {p.is_approved ? (
-                                                <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold inline-block">Disetujui</span>
+                                                <div className="space-y-1">
+                                                    <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold inline-block">Disetujui</span>
+                                                    {p.kondisi_kendaraan === "rusak" && (
+                                                        <span className="bg-rose-100 text-rose-700 px-2.5 py-0.5 rounded-md text-[10px] font-bold block">Ada Laporan Kerusakan</span>
+                                                    )}
+                                                </div>
                                             ) : p.status === 'ditolak' ? (
                                                 <span className="bg-rose-100 text-rose-700 px-3 py-1 rounded-full text-xs font-bold inline-block">Ditolak</span>
                                             ) : (

@@ -1,8 +1,77 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
+import { RootState, AppDispatch } from "@/redux/store";
+import { getUser } from "@/features/authSlice";
+import api from "@/utils/axios";
 import Link from "next/link";
+import { Icon } from "@iconify/react";
 
 export default function PaulaHome() {
+    const dispatch = useDispatch<AppDispatch>();
+    const { user, loading: authLoading } = useSelector((state: RootState) => state.auth);
+    const router = useRouter();
+
+    const [isCheckingRole, setIsCheckingRole] = useState(true);
+    const [paulaUser, setPaulaUser] = useState<any>(null);
+
+    const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_PAULA || "http://localhost:8000";
+
+    useEffect(() => {
+        dispatch(getUser());
+    }, [dispatch]);
+
+    useEffect(() => {
+        if (!authLoading && !user) {
+            router.replace("/login?redirectUrl=/paula");
+        } else if (user) {
+            // Cek role user spesifik di PAULA (terutama is_security & is_admin)
+            api.get(`${baseURL}/api/paula/user/me`)
+                .then((res) => {
+                    const pUser = res.data?.user;
+                    setPaulaUser(pUser);
+                    if (pUser?.is_security) {
+                        // Jika akun adalah Security, langsung alihkan ke halaman Pos Security
+                        router.replace("/paula/mobil/security");
+                    } else {
+                        setIsCheckingRole(false);
+                    }
+                })
+                .catch(() => {
+                    // Fallback jika API gagal atau dev offline
+                    setIsCheckingRole(false);
+                });
+        }
+    }, [user, authLoading, router, baseURL]);
+
+    if (authLoading || isCheckingRole) {
+        return (
+            <div className="bg-slate-50 min-h-screen flex flex-col items-center justify-center p-4">
+                <div className="flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center">
+                        <img 
+                            src="/assets/images/paula/logo_bpom_no_label.webp" 
+                            alt="Logo BPOM" 
+                            className="w-8 h-8 object-contain" 
+                        />
+                    </div>
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-r-transparent" />
+                    <p className="text-xs font-semibold text-slate-500">Memeriksa hak akses PAULA...</p>
+                </div>
+            </div>
+        );
+    }
+
+    const isAdmin = Boolean(
+        paulaUser?.is_admin ||
+        user?.role?.level === "superadmin" ||
+        user?.role?.level === "admin" ||
+        (user?.role as any) === "superadmin" ||
+        (user?.role as any) === "admin"
+    );
+
     return (
         <div className="bg-slate-50 min-h-screen flex items-center justify-center font-sans selection:bg-blue-200 p-4 sm:p-8">
             <div className="w-full max-w-5xl bg-white rounded-[32px] shadow-2xl shadow-slate-200/50 overflow-hidden flex flex-col md:flex-row">
@@ -14,7 +83,7 @@ export default function PaulaHome() {
                     <div className="absolute bottom-[-10%] right-[-20%] w-72 h-72 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
                     
                     <div className="relative z-10 flex flex-col items-center md:items-start text-center md:text-left">
-                        {/* Menggunakan image default bpom dengan warna asli */}
+                        {/* Logo BPOM */}
                         <div className="bg-white p-3 rounded-2xl mb-8 shadow-sm">
                             <img 
                                 src="/assets/images/paula/logo_bpom_no_label.webp" 
@@ -28,15 +97,61 @@ export default function PaulaHome() {
                         <p className="text-slate-400 text-sm lg:text-base leading-relaxed max-w-sm">
                             Fasilitas BBPOM di Mataram untuk kelancaran kegiatan operasional dan kedinasan.
                         </p>
+
+                        {/* Profil login singkat */}
+                        {user && (
+                            <div className="mt-8 pt-6 border-t border-slate-800 w-full flex items-center justify-between">
+                                <div className="text-left">
+                                    <p className="text-xs text-slate-400">Masuk sebagai:</p>
+                                    <p className="text-sm font-bold text-white truncate max-w-[200px]">{user.name}</p>
+                                </div>
+                                <Link 
+                                    href="/logout" 
+                                    className="text-xs font-semibold text-rose-400 hover:text-rose-300 transition"
+                                >
+                                    Keluar
+                                </Link>
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {/* Right Side - Actions */}
                 <div className="md:w-7/12 p-8 md:p-12 flex flex-col justify-center bg-slate-50/50">
-                    <div className="mb-8">
+                    <div className="mb-6">
                         <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Pilih Layanan</h2>
                         <p className="text-sm text-slate-500 mt-1">Silakan pilih fasilitas yang ingin Anda pinjam.</p>
                     </div>
+
+                    {/* Banner Khusus Admin / PIC */}
+                    {isAdmin && (
+                        <div className="mb-4 bg-gradient-to-r from-slate-900 to-indigo-900 text-white rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border border-indigo-700/30">
+                            <div>
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 text-[11px] font-bold">
+                                    <Icon icon="solar:shield-star-bold" width={13} />
+                                    Akses Admin & PIC PAULA
+                                </div>
+                                <p className="text-xs text-indigo-100/90 mt-1 font-medium">
+                                    Kelola persetujuan aula/mobil, akun security, dan servis armada.
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <Link
+                                    href="/admin/paula"
+                                    className="flex-1 sm:flex-none text-center px-3.5 py-2 rounded-xl bg-white text-slate-900 hover:bg-slate-100 font-bold text-xs shadow-xs transition"
+                                >
+                                    Dashboard Admin
+                                </Link>
+                                <Link
+                                    href="/paula/mobil/security"
+                                    className="flex-1 sm:flex-none text-center px-3 py-2 rounded-xl bg-indigo-800/80 hover:bg-indigo-700 text-white font-bold text-xs border border-indigo-400/30 transition"
+                                    title="Buka Pos Security Gate Pass"
+                                >
+                                    Pos Security
+                                </Link>
+                            </div>
+                        </div>
+                    )}
                     
                     <div className="flex flex-col gap-4">
                         {/* Aula Option */}

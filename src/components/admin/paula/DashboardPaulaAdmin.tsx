@@ -9,6 +9,7 @@ import { getUser } from "@/features/authSlice";
 import api from "@/utils/axios"; // Pastikan menggunakan utils/axios yang baru
 import { toast } from "react-toastify";
 import Link from "next/link";
+import { Icon } from "@iconify/react";
 
 export default function DashboardPaulaAdmin() {
     const dispatch = useDispatch<AppDispatch>();
@@ -31,6 +32,21 @@ export default function DashboardPaulaAdmin() {
     const [mobilPending, setMobilPending] = useState<any[]>([]);
     const [masterMobils, setMasterMobils] = useState<any[]>([]);
     const [showMobilModal, setShowMobilModal] = useState(false);
+    const [mobilActiveSubTab, setMobilActiveSubTab] = useState<'pengajuan' | 'master' | 'security' | 'servis'>('pengajuan');
+
+    // STATE SECURITY USERS DARI AUTH BPOM & SERVIS
+    const [securityUsers, setSecurityUsers] = useState<any[]>([]);
+    const [allUsersList, setAllUsersList] = useState<any[]>([]);
+    const [showSecurityModal, setShowSecurityModal] = useState(false);
+    const [authBpomEmployees, setAuthBpomEmployees] = useState<any[]>([]);
+    const [isLoadingAuthEmployees, setIsLoadingAuthEmployees] = useState(false);
+    const [authSearch, setAuthSearch] = useState('');
+    const [selectedAuthEmployee, setSelectedAuthEmployee] = useState<any>(null);
+    const [isSubmittingSecurity, setIsSubmittingSecurity] = useState(false);
+
+    // Monitoring Servis & Kerusakan
+    const [serviceMonitoringList, setServiceMonitoringList] = useState<any[]>([]);
+    const [kerusakanAlerts, setKerusakanAlerts] = useState<any[]>([]);
     const [formMobil, setFormMobil] = useState({ id: null, nama: "", plat_nomor: "", kapasitas: "", status: "tersedia" });
 
     // STATE UMUM (REJECT & DETAIL)
@@ -88,9 +104,29 @@ export default function DashboardPaulaAdmin() {
             const resMaster = await api.get(`${baseURL}/api/paula/mobils`);
             setMasterMobils(resMaster.data.data || resMaster.data || []);
             
-            // Pengaturan
+                        // Pengaturan
             const resSet = await api.get(`${baseURL}/api/paula/settings`);
             setSettings(resSet.data);
+
+            // Ambil Data Security & Status Servis
+            api.get(`${baseURL}/api/paula/admin/security-users`)
+                .then((res) => {
+                    setSecurityUsers(res.data?.security_users || []);
+                    setAllUsersList(res.data?.all_users || []);
+                })
+                .catch(() => {});
+
+            api.get(`${baseURL}/api/paula/admin/mobil/service-status`)
+                .then((res) => {
+                    setServiceMonitoringList(res.data?.mobils || res.data || []);
+                })
+                .catch(() => {});
+
+            api.get(`${baseURL}/api/paula/admin/mobil/kerusakan`)
+                .then((res) => {
+                    setKerusakanAlerts(res.data?.laporans || res.data || []);
+                })
+                .catch(() => {});
             
         } catch (error) {
             toast.error("Gagal mengambil data dashboard admin");
@@ -289,6 +325,80 @@ export default function DashboardPaulaAdmin() {
         } catch (error) { toast.error("Gagal menghapus mobil"); }
     };
 
+    
+    // ================== LOGIKA SECURITY & SERVIS (AUTH BPOM) ==================
+    const openAddSecurityModal = async () => {
+        setShowSecurityModal(true);
+        setSelectedAuthEmployee(null);
+        setAuthSearch('');
+        setIsLoadingAuthEmployees(true);
+        try {
+            const authURL = process.env.NEXT_PUBLIC_BACKEND_URL_AUTH || 'http://localhost:8000';
+            const res = await api.get(`${authURL}/api/get-all-users`);
+            setAuthBpomEmployees(Array.isArray(res.data) ? res.data : []);
+        } catch (err) {
+            console.error("Gagal load data karyawan dari Auth BPOM:", err);
+            setAuthBpomEmployees(allUsersList || []);
+        } finally {
+            setIsLoadingAuthEmployees(false);
+        }
+    };
+
+    const handleAddSecurityUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedAuthEmployee) {
+            toast.warning("Silakan pilih data pegawai dari daftar Auth BPOM");
+            return;
+        }
+        setIsSubmittingSecurity(true);
+        try {
+            const res = await api.post(`${baseURL}/api/paula/admin/security-users`, {
+                user_id: selectedAuthEmployee.id,
+                name: selectedAuthEmployee.name,
+                email: selectedAuthEmployee.email,
+                username: selectedAuthEmployee.username || (selectedAuthEmployee.email ? selectedAuthEmployee.email.split('@')[0] : selectedAuthEmployee.name.toLowerCase().replace(/\s+/g, '.')),
+            });
+            toast.success(res.data.message || `Pegawai ${selectedAuthEmployee.name} berhasil dijadikan Security Pos Jaga!`);
+            setShowSecurityModal(false);
+            setSelectedAuthEmployee(null);
+            
+            // Refresh daftar security
+            const resSec = await api.get(`${baseURL}/api/paula/admin/security-users`);
+            setSecurityUsers(resSec.data?.security_users || []);
+            setAllUsersList(resSec.data?.all_users || []);
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Gagal menetapkan akun security");
+        } finally {
+            setIsSubmittingSecurity(false);
+        }
+    };
+
+    const handleRemoveSecurity = async (id: string, name: string) => {
+        if (!confirm(`Cabut peran Security Pos Jaga dari ${name}?`)) return;
+        try {
+            await api.delete(`${baseURL}/api/paula/admin/security-users/${id}`);
+            toast.success(`Akses security untuk ${name} berhasil dicabut`);
+            const resSec = await api.get(`${baseURL}/api/paula/admin/security-users`);
+            setSecurityUsers(resSec.data?.security_users || []);
+            setAllUsersList(resSec.data?.all_users || []);
+        } catch (err: any) {
+            toast.error("Gagal mencabut status security");
+        }
+    };
+
+    const handleResolveKerusakan = async (id: number) => {
+        try {
+            await api.patch(`${baseURL}/api/paula/admin/mobil/kerusakan/${id}/resolve`);
+            toast.success("Laporan kerusakan berhasil ditandai selesai/diperbaiki");
+            const resKerusakan = await api.get(`${baseURL}/api/paula/admin/mobil/kerusakan`);
+            setKerusakanAlerts(resKerusakan.data?.laporans || resKerusakan.data || []);
+            const resServ = await api.get(`${baseURL}/api/paula/admin/mobil/service-status`);
+            setServiceMonitoringList(resServ.data?.mobils || resServ.data || []);
+        } catch (err: any) {
+            toast.error("Gagal memperbarui status laporan kerusakan");
+        }
+    };
+
     const submitReject = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!rejectModal || !rejectReason) return;
@@ -479,116 +589,429 @@ export default function DashboardPaulaAdmin() {
             )}
 
             {/* KONTEN TAB MOBIL DINAS */}
+            {/* KONTEN TAB MOBIL DINAS */}
             {activeTab === 'mobil' && (
                 <div className="space-y-6 animate-in fade-in duration-300">
-                    <div className="flex justify-end gap-3">
-                        <button 
-                            onClick={() => {
-                                setFormMobil({ id: null, nama: "", plat_nomor: "", kapasitas: "", status: "tersedia" });
-                                setShowMobilModal(true);
-                            }} 
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-2xl text-sm font-bold flex items-center gap-2 shadow-md shadow-indigo-500/25 transition-all cursor-pointer"
-                        >
-                            <span className="material-symbols-outlined text-[18px]">add</span> Tambah Master Kendaraan
-                        </button>
+                    
+                    {/* SUB-NAVIGASI TAB MOBIL */}
+                    <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <button
+                                type="button"
+                                onClick={() => setMobilActiveSubTab('pengajuan')}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                                    mobilActiveSubTab === 'pengajuan'
+                                        ? 'bg-indigo-600 text-white shadow-sm'
+                                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                                }`}
+                            >
+                                <span className="material-symbols-outlined text-[16px]">assignment</span>
+                                Pengajuan & Persetujuan
+                                {mobilPending.length > 0 && (
+                                    <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{mobilPending.length}</span>
+                                )}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setMobilActiveSubTab('master')}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                                    mobilActiveSubTab === 'master'
+                                        ? 'bg-indigo-600 text-white shadow-sm'
+                                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                                }`}
+                            >
+                                <span className="material-symbols-outlined text-[16px]">directions_car</span>
+                                Master Armada ({masterMobils.length})
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setMobilActiveSubTab('servis')}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                                    mobilActiveSubTab === 'servis'
+                                        ? 'bg-indigo-600 text-white shadow-sm'
+                                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                                }`}
+                            >
+                                <span className="material-symbols-outlined text-[16px]">build_circle</span>
+                                Status & Servis Rutin
+                                {kerusakanAlerts.length > 0 && (
+                                    <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">{kerusakanAlerts.length} Rusak</span>
+                                )}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setMobilActiveSubTab('security')}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                                    mobilActiveSubTab === 'security'
+                                        ? 'bg-indigo-600 text-white shadow-sm'
+                                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                                }`}
+                            >
+                                <span className="material-symbols-outlined text-[16px]">shield_person</span>
+                                Akun Security Pos Jaga ({securityUsers.length})
+                            </button>
+                        </div>
+
+                        {/* Quick links ke halaman operasional */}
+                        <div className="flex items-center gap-2">
+                            <Link
+                                href="/paula/mobil/security"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-800 text-xs font-bold hover:bg-blue-100 transition shadow-2xs"
+                                title="Buka Formulir Gate In / Gate Out Pos Jaga"
+                            >
+                                <span className="material-symbols-outlined text-[16px] text-blue-700">shield</span>
+                                Pos Security
+                            </Link>
+
+                            <Link
+                                href="/paula/mobil/servis"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-xs font-bold hover:bg-amber-100 transition shadow-2xs"
+                                title="Buka Monitoring Jadwal Servis & Laporan Kerusakan Lengkap"
+                            >
+                                <span className="material-symbols-outlined text-[16px] text-amber-700">car_repair</span>
+                                Jadwal Servis
+                            </Link>
+                        </div>
                     </div>
 
-                    {/* DAFTAR MASTER KENDARAAN (KHUSUS ADMIN) */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                        {masterMobils.map(mobil => (
-                            <div key={mobil.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm relative group">
-                                <div className="flex justify-between items-start mb-2">
-                                    <div className="bg-slate-100 text-slate-700 text-xs font-black px-2 py-1 rounded tracking-widest uppercase border border-slate-300">{mobil.plat_nomor}</div>
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => { setFormMobil(mobil); setShowMobilModal(true); }} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><span className="material-symbols-outlined text-[16px]">edit</span></button>
-                                        <button onClick={() => deleteMasterMobil(mobil.id)} className="text-rose-600 hover:bg-rose-50 p-1 rounded"><span className="material-symbols-outlined text-[16px]">delete</span></button>
-                                    </div>
+                    {/* SUBTAB 1: PENGAJUAN & PERSETUJUAN */}
+                    {mobilActiveSubTab === 'pengajuan' && (
+                        <div className="space-y-6">
+                            {/* NOTIFIKASI PENGAJUAN MOBIL BARU */}
+                            {mobilPending.length > 0 ? (
+                                <div className="space-y-3">
+                                    <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Permohonan Mobil (Menunggu Persetujuan)</h2>
+                                    {mobilPending.map(req => (
+                                        <div key={req.id} className="bg-indigo-50/70 border border-indigo-200 text-indigo-900 px-6 py-4 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
+                                            <div className="flex-1">
+                                                <p className="font-medium text-sm">User <strong className="text-indigo-950">{req.user?.name}</strong> mengajukan <strong className="text-indigo-700">{req.kendaraan}</strong></p>
+                                                <p className="text-xs mt-1 text-indigo-800 font-medium">{req.tujuan_dinas} ({new Date(req.tanggal_pinjam).toLocaleDateString('id-ID')})</p>
+                                            </div>
+                                            <div className="flex gap-2 w-full md:w-auto">
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setDetailMobilModal(req)} 
+                                                    className="flex-1 md:flex-none bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer flex items-center justify-center gap-1.5"
+                                                >
+                                                    <span className="material-symbols-outlined text-[16px]">visibility</span>
+                                                    Lihat
+                                                </button>
+                                                <button onClick={() => handleApproveMobil(req.id)} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer">Izinkan</button>
+                                                <button onClick={() => setRejectModal({ id: req.id, type: 'pengajuan_mobil' })} className="flex-1 md:flex-none bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer">Tolak</button>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                                <h3 className="font-bold text-slate-800 text-sm leading-tight mb-3">{mobil.nama}</h3>
-                                <div className="flex items-center gap-3 text-xs font-semibold text-slate-500 mt-auto">
-                                    <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">group</span> {mobil.kapasitas} Org</span>
-                                    <span className={`px-2 py-0.5 rounded ${mobil.status === 'tersedia' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>{mobil.status}</span>
+                            ) : (
+                                <div className="bg-white border border-slate-200 rounded-2xl p-4 text-xs font-semibold text-slate-500 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-emerald-600 text-[18px]">check_circle</span>
+                                    Tidak ada permohonan peminjaman mobil yang menunggu persetujuan.
+                                </div>
+                            )}
+
+                            {/* TABEL PENGAJUAN MOBIL DISETUJUI */}
+                            <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
+                                <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                                    <h3 className="font-extrabold text-slate-800 text-lg">Daftar Peminjaman Mobil Disetujui</h3>
+                                    <span className="bg-indigo-50 text-indigo-700 font-bold px-3 py-1 rounded-full text-xs">{mobilPengajuans.length} Kendaraan</span>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse text-sm min-w-[1100px]">
+                                        <thead>
+                                            <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wider font-bold border-b border-slate-200">
+                                                <th className="px-6 py-4">Tgl Pengajuan</th>
+                                                <th className="px-6 py-4">Tujuan</th>
+                                                <th className="px-6 py-4">Pengusul</th>
+                                                <th className="px-6 py-4">Waktu Peminjaman</th>
+                                                <th className="px-6 py-4">Mobil & Driver</th>
+                                                <th className="px-6 py-4 text-center">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 text-slate-700">
+                                            {mobilPengajuans.map((p) => (
+                                                <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-slate-500">{new Date(p.tanggal_pengajuan).toLocaleDateString('id-ID')}</td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="font-bold text-slate-900">{p.tujuan_dinas}</div>
+                                                        <div className="text-xs text-slate-500 flex items-center gap-1 mt-1"><span className="material-symbols-outlined text-[12px]">location_on</span> {p.tujuan_lokasi}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 font-medium">{p.fungsi_pengusul}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="font-semibold text-slate-800">{new Date(p.tanggal_pinjam).toLocaleDateString('id-ID')}</div>
+                                                        <div className="text-xs text-indigo-600 font-bold mt-0.5">{p.waktu_mulai?.slice(0,5)} {p.waktu_selesai ? `- ${p.waktu_selesai?.slice(0,5)}` : ''}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="text-sm font-semibold">{p.kendaraan}</div>
+                                                        {p.driver && <div className="text-xs text-slate-500 mt-1 font-medium bg-slate-100 px-2 py-0.5 rounded inline-block">Driver: {p.driver}</div>}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        <button onClick={() => handleDeleteMobil(p.id)} className="bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-700 p-2 rounded-xl text-xs font-bold transition flex items-center justify-center w-8 h-8 shadow-sm mx-auto" title="Hapus">
+                                                            <span className="material-symbols-outlined text-[16px]">delete</span>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {mobilPengajuans.length === 0 && (
+                                                <tr><td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic font-medium">Belum ada data peminjaman mobil yang disetujui.</td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
-                        ))}
-                    </div>
-
-                    {/* NOTIFIKASI PENGAJUAN MOBIL BARU */}
-                    {mobilPending.length > 0 && (
-                        <div className="space-y-3">
-                            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Permohonan Mobil (Menunggu Persetujuan)</h2>
-                            {mobilPending.map(req => (
-                                <div key={req.id} className="bg-indigo-50/70 border border-indigo-200 text-indigo-900 px-6 py-4 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
-                                    <div className="flex-1">
-                                        <p className="font-medium text-sm">User <strong className="text-indigo-950">{req.user?.name}</strong> mengajukan <strong className="text-indigo-700">{req.kendaraan}</strong></p>
-                                        <p className="text-xs mt-1 text-indigo-800 font-medium">{req.tujuan_dinas} ({new Date(req.tanggal_pinjam).toLocaleDateString('id-ID')})</p>
-                                    </div>
-                                    <div className="flex gap-2 w-full md:w-auto">
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setDetailMobilModal(req)} 
-                                            className="flex-1 md:flex-none bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer flex items-center justify-center gap-1.5"
-                                        >
-                                            <span className="material-symbols-outlined text-[16px]">visibility</span>
-                                            Lihat
-                                        </button>
-                                        <button onClick={() => handleApproveMobil(req.id)} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer">Izinkan</button>
-                                        <button onClick={() => setRejectModal({ id: req.id, type: 'pengajuan_mobil' })} className="flex-1 md:flex-none bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer">Tolak</button>
-                                    </div>
-                                </div>
-                            ))}
                         </div>
                     )}
 
-                    {/* TABEL PENGAJUAN MOBIL DISETUJUI */}
-                    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                            <h3 className="font-extrabold text-slate-800 text-lg">Daftar Peminjaman Mobil Disetujui</h3>
-                            <span className="bg-indigo-50 text-indigo-700 font-bold px-3 py-1 rounded-full text-xs">{mobilPengajuans.length} Kendaraan</span>
+                    {/* SUBTAB 2: MASTER KENDARAAN */}
+                    {mobilActiveSubTab === 'master' && (
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h3 className="font-bold text-slate-800 text-base">Daftar Armada Kendaraan Dinas</h3>
+                                    <p className="text-xs text-slate-500">Kelola master data kendaraan operasional BBPOM di Mataram.</p>
+                                </div>
+                                <button 
+                                    onClick={() => {
+                                        setFormMobil({ id: null, nama: "", plat_nomor: "", kapasitas: "", status: "tersedia" });
+                                        setShowMobilModal(true);
+                                    }} 
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-500/25 transition-all cursor-pointer"
+                                >
+                                    <span className="material-symbols-outlined text-[16px]">add</span> Tambah Kendaraan
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                {masterMobils.map(mobil => (
+                                    <div key={mobil.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm relative group">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div className="bg-slate-100 text-slate-700 text-xs font-black px-2 py-1 rounded tracking-widest uppercase border border-slate-300">{mobil.plat_nomor}</div>
+                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={() => { setFormMobil(mobil); setShowMobilModal(true); }} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><span className="material-symbols-outlined text-[16px]">edit</span></button>
+                                                <button onClick={() => deleteMasterMobil(mobil.id)} className="text-rose-600 hover:bg-rose-50 p-1 rounded"><span className="material-symbols-outlined text-[16px]">delete</span></button>
+                                            </div>
+                                        </div>
+                                        <h3 className="font-bold text-slate-800 text-sm leading-tight mb-3">{mobil.nama}</h3>
+                                        <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mt-auto pt-3 border-t border-slate-100">
+                                            <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">group</span> {mobil.kapasitas} Org</span>
+                                            <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${mobil.status === 'tersedia' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>{mobil.status}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse text-sm min-w-[1100px]">
-                                <thead>
-                                    <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wider font-bold border-b border-slate-200">
-                                        <th className="px-6 py-4">Tgl Pengajuan</th>
-                                        <th className="px-6 py-4">Tujuan</th>
-                                        <th className="px-6 py-4">Pengusul</th>
-                                        <th className="px-6 py-4">Waktu Peminjaman</th>
-                                        <th className="px-6 py-4">Mobil & Driver</th>
-                                        <th className="px-6 py-4 text-center">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 text-slate-700">
-                                    {mobilPengajuans.map((p) => (
-                                        <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap text-slate-500">{new Date(p.tanggal_pengajuan).toLocaleDateString('id-ID')}</td>
-                                            <td className="px-6 py-4">
-                                                <div className="font-bold text-slate-900">{p.tujuan_dinas}</div>
-                                                <div className="text-xs text-slate-500 flex items-center gap-1 mt-1"><span className="material-symbols-outlined text-[12px]">location_on</span> {p.tujuan_lokasi}</div>
-                                            </td>
-                                            <td className="px-6 py-4 font-medium">{p.fungsi_pengusul}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="font-semibold text-slate-800">{new Date(p.tanggal_pinjam).toLocaleDateString('id-ID')}</div>
-                                                <div className="text-xs text-indigo-600 font-bold mt-0.5">{p.waktu_mulai?.slice(0,5)} {p.waktu_selesai ? `- ${p.waktu_selesai?.slice(0,5)}` : ''}</div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="text-sm font-semibold">{p.kendaraan}</div>
-                                                {p.driver && <div className="text-xs text-slate-500 mt-1 font-medium bg-slate-100 px-2 py-0.5 rounded inline-block">Driver: {p.driver}</div>}
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <button onClick={() => handleDeleteMobil(p.id)} className="bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-700 p-2 rounded-xl text-xs font-bold transition flex items-center justify-center w-8 h-8 shadow-sm mx-auto" title="Hapus">
-                                                    <span className="material-symbols-outlined text-[16px]">delete</span>
-                                                </button>
-                                            </td>
+                    )}
+
+                    {/* SUBTAB 3: STATUS KENDARAAN & SERVIS RUTIN */}
+                    {mobilActiveSubTab === 'servis' && (
+                        <div className="space-y-6">
+                            {/* Alert Kerusakan Masuk */}
+                            {kerusakanAlerts.length > 0 && (
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-sm font-bold uppercase tracking-wider text-rose-600 flex items-center gap-1.5">
+                                            <span className="material-symbols-outlined text-[18px]">warning</span>
+                                            Laporan Kerusakan Masuk (Perlu Tindak Lanjut Ka Balai & Kasubbag TU)
+                                        </h3>
+                                        <span className="bg-rose-100 text-rose-700 px-2.5 py-0.5 rounded-full text-xs font-bold">{kerusakanAlerts.length} Belum Selesai</span>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {kerusakanAlerts.map((k) => (
+                                            <div key={k.id} className="bg-rose-50/70 border border-rose-200 rounded-2xl p-5 shadow-sm space-y-3">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <span className="bg-rose-600 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
+                                                            {k.mobil?.plat_nomor || 'MOBIL'}
+                                                        </span>
+                                                        <h4 className="font-bold text-slate-900 text-sm mt-1">{k.mobil?.nama || 'Kendaraan Dinas'}</h4>
+                                                    </div>
+                                                    <span className="text-[11px] text-slate-500 font-medium">
+                                                        {new Date(k.created_at).toLocaleDateString('id-ID')}
+                                                    </span>
+                                                </div>
+                                                <div className="bg-white/80 p-3 rounded-xl border border-rose-200/60 text-xs text-rose-950">
+                                                    <span className="font-bold block mb-0.5">Catatan Kerusakan dari Security:</span>
+                                                    <p>{k.catatan_kerusakan}</p>
+                                                    <p className="text-[11px] text-slate-500 mt-1 italic">Pelapor: {k.pelapor_security}</p>
+                                                </div>
+                                                <div className="flex justify-end pt-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleResolveKerusakan(k.id)}
+                                                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                                                        Tandai Selesai / Diperbaiki
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Cards Status Odometer & Servis Realtime */}
+                            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+                                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                                    <div>
+                                        <h3 className="font-black text-slate-800 text-lg">Monitoring Odometer & Servis Armada</h3>
+                                        <p className="text-xs text-slate-500">Jadwal servis otomatis dihitung berdasarkan batas Odometer (KM) atau interval 3 bulan.</p>
+                                    </div>
+                                    <Link
+                                        href="/paula/mobil/servis"
+                                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-700 transition shadow-xs shrink-0"
+                                    >
+                                        <span className="material-symbols-outlined text-[16px]">settings</span>
+                                        Pengaturan & Riwayat Lengkap
+                                    </Link>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {serviceMonitoringList.map((m) => {
+                                        const metrics = m.service_metrics || {};
+                                        const isDue = metrics.is_due_service;
+                                        const isUrgent = m.status_servis === 'wajib_servis' || m.kondisi_fisik === 'rusak';
+
+                                        return (
+                                            <div 
+                                                key={m.id} 
+                                                className={`p-5 rounded-2xl border transition shadow-2xs space-y-3 ${
+                                                    isUrgent || isDue
+                                                        ? 'bg-rose-50/60 border-rose-300'
+                                                        : 'bg-white border-slate-200'
+                                                }`}
+                                            >
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                                                            {m.plat_nomor}
+                                                        </span>
+                                                        <h4 className="font-bold text-slate-900 text-sm mt-1">{m.nama}</h4>
+                                                    </div>
+                                                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                                        isUrgent || isDue
+                                                            ? 'bg-rose-100 text-rose-700'
+                                                            : 'bg-emerald-100 text-emerald-700'
+                                                    }`}>
+                                                        {isUrgent || isDue ? 'Perlu Servis' : 'Kondisi Baik'}
+                                                    </span>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                                        <span className="text-[10px] text-slate-400 block font-semibold">Odometer Saat Ini</span>
+                                                        <span className="font-black text-slate-800 text-sm">{m.odometer_saat_ini?.toLocaleString('id-ID') || 0} KM</span>
+                                                    </div>
+                                                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                                        <span className="text-[10px] text-slate-400 block font-semibold">Servis Terakhir</span>
+                                                        <span className="font-semibold text-slate-700">{m.terakhir_service_km ? `${m.terakhir_service_km.toLocaleString('id-ID')} KM` : '-'}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="text-[11px] text-slate-600 bg-slate-100/70 p-2.5 rounded-xl space-y-1">
+                                                    <div className="flex justify-between">
+                                                        <span>Interval KM:</span>
+                                                        <span className="font-bold">{m.interval_km_service?.toLocaleString('id-ID') || 5000} KM</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span>Interval Bulan:</span>
+                                                        <span className="font-bold">{m.interval_bulan_service || 3} Bulan</span>
+                                                    </div>
+                                                    {metrics.km_until_service !== undefined && (
+                                                        <div className="flex justify-between pt-1 border-t border-slate-200 font-semibold text-indigo-700">
+                                                            <span>Sisa KM Servis:</span>
+                                                            <span>{metrics.km_until_service} KM</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* SUBTAB 4: KELOLA AKUN SECURITY POS JAGA */}
+                    {mobilActiveSubTab === 'security' && (
+                        <div className="bg-white border border-slate-200 rounded-3xl shadow-sm p-6 space-y-6">
+                            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-slate-100 pb-5">
+                                <div>
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-xs mb-2">
+                                        <span className="material-symbols-outlined text-[16px]">shield_person</span>
+                                        Personil Pos Jaga
+                                    </div>
+                                    <h3 className="font-black text-slate-800 text-lg">Kelola Akun Security (Gate Pass)</h3>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        User bertanda Security akan otomatis dialihkan ke halaman khusus Pos Jaga saat login di PAULA.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={openAddSecurityModal}
+                                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/25 transition cursor-pointer"
+                                >
+                                    <span className="material-symbols-outlined text-[16px]">person_add</span>
+                                    Tambah Akun Security
+                                </button>
+                            </div>
+
+                            {/* Tabel Petugas Security */}
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse text-sm">
+                                    <thead>
+                                        <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wider font-bold border-b border-slate-200">
+                                            <th className="px-6 py-3.5">Nama Petugas</th>
+                                            <th className="px-6 py-3.5">Username</th>
+                                            <th className="px-6 py-3.5">Email</th>
+                                            <th className="px-6 py-3.5">Peran Sistem</th>
+                                            <th className="px-6 py-3.5 text-center">Aksi</th>
                                         </tr>
-                                    ))}
-                                    {mobilPengajuans.length === 0 && (
-                                        <tr><td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic font-medium">Belum ada data peminjaman mobil yang disetujui.</td></tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                                        {securityUsers.map((sec) => (
+                                            <tr key={sec.id} className="hover:bg-slate-50/50 transition">
+                                                <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-2">
+                                                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs">
+                                                        {sec.name?.charAt(0) || 'S'}
+                                                    </div>
+                                                    {sec.name}
+                                                </td>
+                                                <td className="px-6 py-4 font-mono text-xs text-slate-600">{sec.username || '-'}</td>
+                                                <td className="px-6 py-4 text-xs text-slate-500">{sec.email}</td>
+                                                <td className="px-6 py-4">
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
+                                                        <span className="material-symbols-outlined text-[13px]">shield</span>
+                                                        Security Pos Jaga
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveSecurity(sec.id, sec.name)}
+                                                        className="px-3 py-1 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-bold transition shadow-2xs"
+                                                        title="Cabut peran security"
+                                                    >
+                                                        Cabut Akses
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {securityUsers.length === 0 && (
+                                            <tr>
+                                                <td colSpan={5} className="px-6 py-10 text-center text-slate-400 italic text-xs">
+                                                    Belum ada personil Security yang terdaftar. Klik "Tambah Akun Security" untuk menambahkan.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             )}
 
@@ -1158,6 +1581,170 @@ export default function DashboardPaulaAdmin() {
                     </div>
                 </div>
             )}
+        
+            {/* MODAL TAMBAH AKUN SECURITY DARI AUTH BPOM */}
+            {showSecurityModal && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl max-w-xl w-full p-6 md:p-8 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                        
+                        {/* Header Modal */}
+                        <div className="flex justify-between items-start border-b border-slate-100 pb-4 shrink-0">
+                            <div>
+                                <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-black uppercase tracking-wider mb-1.5 bg-blue-100 text-blue-700">
+                                    <span className="material-symbols-outlined text-[15px]">verified_user</span>
+                                    Data Auth BPOM
+                                </div>
+                                <h3 className="text-xl font-black text-slate-900 leading-snug">
+                                    Tambah Akun Security Pos Jaga
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Pilih pegawai dari database central <strong>Auth BPOM</strong> untuk diberikan hak akses sebagai Petugas Security.
+                                </p>
+                            </div>
+                            <button 
+                                onClick={() => setShowSecurityModal(false)} 
+                                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+                            >
+                                <span className="material-symbols-outlined text-[22px]">close</span>
+                            </button>
+                        </div>
+
+                        {/* Search Bar Input */}
+                        <div className="relative shrink-0">
+                            <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+                            <input
+                                type="text"
+                                value={authSearch}
+                                onChange={(e) => setAuthSearch(e.target.value)}
+                                placeholder="Cari nama pegawai, NIP, fungsi, atau email..."
+                                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-blue-500 focus:outline-none bg-slate-50 focus:bg-white transition"
+                                autoFocus
+                            />
+                        </div>
+
+                        {/* List Pegawai dari Auth BPOM */}
+                        <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-[220px]">
+                            {isLoadingAuthEmployees ? (
+                                <div className="flex flex-col items-center justify-center py-12 gap-2 text-slate-400">
+                                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-r-transparent" />
+                                    <p className="text-xs font-semibold">Memuat daftar pegawai dari Auth BPOM...</p>
+                                </div>
+                            ) : (
+                                <>
+                                    {authBpomEmployees
+                                        .filter((emp: any) => {
+                                            const isAlreadySecurity = securityUsers.some((sec) => sec.id === emp.id || sec.email === emp.email);
+                                            if (isAlreadySecurity) return false;
+
+                                            if (!authSearch.trim()) return true;
+                                            const s = authSearch.toLowerCase();
+                                            const matchName = String(emp.name || '').toLowerCase().includes(s);
+                                            const matchEmail = String(emp.email || '').toLowerCase().includes(s);
+                                            const matchNip = String(emp.employee?.nip || '').toLowerCase().includes(s);
+                                            const matchFungsi = String(emp.employee?.fungsi?.name || '').toLowerCase().includes(s);
+                                            return matchName || matchEmail || matchNip || matchFungsi;
+                                        })
+                                        .slice(0, 30)
+                                        .map((emp: any) => {
+                                            const isSelected = selectedAuthEmployee?.id === emp.id;
+                                            return (
+                                                <div
+                                                    key={emp.id}
+                                                    onClick={() => setSelectedAuthEmployee(emp)}
+                                                    className={`p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between gap-3 ${
+                                                        isSelected
+                                                            ? 'border-blue-500 bg-blue-50/70 ring-2 ring-blue-500/20 shadow-xs'
+                                                            : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                                                            isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'
+                                                        }`}>
+                                                            {emp.name?.charAt(0) || 'P'}
+                                                        </div>
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <h4 className="font-bold text-slate-900 text-xs">{emp.name}</h4>
+                                                                {emp.employee?.fungsi?.name && (
+                                                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                                                                        {emp.employee.fungsi.name}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5">
+                                                                <span>{emp.email}</span>
+                                                                {emp.employee?.nip && <span>• NIP: {emp.employee.nip}</span>}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="shrink-0">
+                                                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                                                            isSelected ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white'
+                                                        }`}>
+                                                            {isSelected && <span className="material-symbols-outlined text-[14px]">check</span>}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+
+                                    {authBpomEmployees.filter((emp: any) => {
+                                        const isAlreadySecurity = securityUsers.some((sec) => sec.id === emp.id || sec.email === emp.email);
+                                        if (isAlreadySecurity) return false;
+                                        if (!authSearch.trim()) return true;
+                                        const s = authSearch.toLowerCase();
+                                        return String(emp.name || '').toLowerCase().includes(s) || String(emp.email || '').toLowerCase().includes(s);
+                                    }).length === 0 && (
+                                        <div className="text-center py-8 text-xs text-slate-400 italic">
+                                            Tidak ditemukan pegawai yang cocok dengan kata kunci "{authSearch}".
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+
+                        {/* Selected Preview & Submit */}
+                        <div className="pt-3 border-t border-slate-100 shrink-0 space-y-3">
+                            {selectedAuthEmployee ? (
+                                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center justify-between text-xs text-emerald-950">
+                                    <div className="flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-emerald-600 text-[18px]">check_circle</span>
+                                        <span>Pegawai Terpilih: <strong>{selectedAuthEmployee.name}</strong> ({selectedAuthEmployee.email})</span>
+                                    </div>
+                                    <span className="text-[11px] font-bold text-emerald-700 bg-white px-2 py-0.5 rounded-md border border-emerald-200">Siap Ditugaskan</span>
+                                </div>
+                            ) : (
+                                <p className="text-[11px] text-slate-400 italic">
+                                    * Silakan klik salah satu nama pegawai di atas untuk menetapkannya sebagai Security.
+                                </p>
+                            )}
+
+                            <div className="flex justify-end gap-2.5">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowSecurityModal(false)}
+                                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleAddSecurityUser}
+                                    disabled={!selectedAuthEmployee || isSubmittingSecurity}
+                                    className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition disabled:opacity-50 flex items-center gap-1.5"
+                                >
+                                    <span className="material-symbols-outlined text-[16px]">shield</span>
+                                    {isSubmittingSecurity ? "Menyimpan..." : "Tetapkan Sebagai Security"}
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            )}
+
         </div>
     );
-}
+}

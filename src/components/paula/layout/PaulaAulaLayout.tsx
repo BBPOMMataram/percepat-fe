@@ -17,6 +17,7 @@ export default function PaulaAulaLayout({ children }: { children: ReactNode }) {
     
     // State penanda apakah data user sudah disinkronkan ke DB Paula
     const [isSynced, setIsSynced] = useState(false);
+    const [paulaUser, setPaulaUser] = useState<any>(null);
 
     useEffect(() => {
         dispatch(getUser());
@@ -34,7 +35,8 @@ export default function PaulaAulaLayout({ children }: { children: ReactNode }) {
             if (user) {
                 try {
                     // Kirim payload data user dari Auth Central ke backend PAULA
-                    await api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_PAULA}/api/paula/sync-user`, user);
+                    const res = await api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_PAULA}/api/paula/sync-user`, user);
+                    setPaulaUser(res.data?.user || null);
                 } catch (error) {
                     console.error("Gagal sinkronisasi user ke PAULA", error);
                 } finally {
@@ -48,6 +50,32 @@ export default function PaulaAulaLayout({ children }: { children: ReactNode }) {
         }
     }, [user, isSynced]);
 
+    const isSecurity = Boolean(paulaUser?.is_security || user?.is_security);
+    const isAdmin = Boolean(
+        paulaUser?.is_admin ||
+        user?.role?.level === "superadmin" ||
+        user?.role?.level === "admin" ||
+        (user?.role as any) === "superadmin" ||
+        (user?.role as any) === "admin"
+    );
+
+    // Enforce 3 Aktor Protection
+    useEffect(() => {
+        if (!loading && user && isSynced) {
+            if (isSecurity) {
+                // Aktor Security HANYA boleh mengakses /paula/mobil/security
+                if (pathname !== "/paula/mobil/security") {
+                    router.replace("/paula/mobil/security");
+                }
+            } else if (!isAdmin) {
+                // Aktor User Biasa TIDAK BOLEH mengakses /paula/mobil/security maupun /paula/mobil/servis
+                if (pathname.startsWith("/paula/mobil/security") || pathname.startsWith("/paula/mobil/servis")) {
+                    router.replace("/paula/mobil");
+                }
+            }
+        }
+    }, [loading, user, isSynced, isSecurity, isAdmin, pathname, router]);
+
     // Tahan render halaman sampai proses sync database selesai
     if (loading || !user || !isSynced) {
         return (
@@ -55,6 +83,14 @@ export default function PaulaAulaLayout({ children }: { children: ReactNode }) {
                 <span className="loading loading-spinner loading-lg text-blue-600"></span>
             </div>
         );
+    }
+
+    if (isSecurity && pathname !== "/paula/mobil/security") {
+        return null;
+    }
+
+    if (!isSecurity && !isAdmin && (pathname.startsWith("/paula/mobil/security") || pathname.startsWith("/paula/mobil/servis"))) {
+        return null;
     }
 
     return (
