@@ -294,6 +294,55 @@ type CollabModalState = {
   editingText: string;
 };
 
+export const STANDARD_MONTH_NAMES = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+];
+
+export function getMonthNumberFromText(text?: string | null): number | null {
+  if (!text) return null;
+  let t = text.trim().toLowerCase();
+  t = t.replace(/^(s[\.\/]?d[\.\s]+|sampai\s+dengan\s+)/i, "").trim();
+
+  const map: Record<string, number> = {
+    januari: 1, jan: 1, january: 1,
+    februari: 2, feb: 2, pebruari: 2, february: 2,
+    maret: 3, mar: 3, march: 3,
+    april: 4, apr: 4,
+    mei: 5, may: 5,
+    juni: 6, jun: 6, june: 6,
+    juli: 7, jul: 7, july: 7,
+    agustus: 8, agu: 8, ags: 8, agst: 8, august: 8,
+    september: 9, sep: 9, sept: 9,
+    oktober: 10, okt: 10, oct: 10, october: 10,
+    november: 11, nov: 11, nopember: 11,
+    desember: 12, des: 12, dec: 12, december: 12,
+  };
+
+  if (map[t]) return map[t];
+
+  for (const [key, num] of Object.entries(map)) {
+    if (
+      t.startsWith(key + " ") ||
+      t.startsWith(key + " -") ||
+      t.startsWith(key + "-") ||
+      t.startsWith(key + ":") ||
+      t.startsWith(key + "/") ||
+      t.startsWith(key + "(")
+    ) {
+      return num;
+    }
+  }
+
+  for (const [key, num] of Object.entries(map)) {
+    if (t.endsWith(" " + key) || t.endsWith("-" + key) || t.endsWith("/" + key)) {
+      return num;
+    }
+  }
+
+  return null;
+}
+
 export default function TestLocalTableKatim() {
   const { user } = useSelector((state: RootState) => state.auth);
   const authQuery = user?.id ? `?user_id=${user.id}` : "";
@@ -661,7 +710,7 @@ export default function TestLocalTableKatim() {
           let rowMonthName = "";
 
           effectiveColumnsSchema.forEach((col, colIdx) => {
-            // Cocokkan berdasarkan index atau kesamaan nama header
+            // Cocokkan berdasarkan kesamaan nama header atau index urutan
             let val = rowVals[colIdx] ?? "";
             const headerMatchIdx = excelHeaders.findIndex(
               (eh) => eh.toLowerCase() === col.label.toLowerCase() || eh.toLowerCase() === (col.sub_label || "").toLowerCase()
@@ -670,24 +719,44 @@ export default function TestLocalTableKatim() {
               val = rowVals[headerMatchIdx];
             }
 
-            if (col.type === "readonly" && (col.key === "col_0" || col.label.toLowerCase() === "no")) {
+            const isNoCol = col.type === "readonly" && (col.key === "col_0" || col.label.toLowerCase() === "no" || col.label.toLowerCase() === "no.");
+            if (isNoCol) {
               val = excelMode === "append" ? currentCount + rIdx + 1 : rIdx + 1;
             }
 
-            if ((col.label || "").toLowerCase().includes("bulan") && val) {
-              rowMonthName = String(val).trim();
+            const isBulanCol = (col.label || "").toLowerCase().includes("bulan") || col.key === monthColKey || col.key === "col_2";
+            if (isBulanCol) {
+              if (val !== "" && val !== undefined && val !== null) {
+                rowMonthName = String(val).trim();
+              }
             }
 
             cells[col.key] = val === "" ? "" : isNaN(Number(val)) ? val : Number(val);
           });
 
-          // Tentukan nomor bulan jika ada
-          const resolvedMonthNum = getMonthNumberFromText(rowMonthName) || (selectedMonthFilter !== "all" ? getMonthNumberFromText(selectedMonthFilter) : null) || 0;
+          // Tentukan nomor dan nama bulan jika ada
+          let resolvedMonthNum = getMonthNumberFromText(rowMonthName);
+          if (resolvedMonthNum === null && selectedMonthFilter !== "all") {
+            resolvedMonthNum = getMonthNumberFromText(selectedMonthFilter);
+            rowMonthName = selectedMonthFilter;
+          }
+          if (resolvedMonthNum && !rowMonthName) {
+            rowMonthName = STANDARD_MONTH_NAMES[resolvedMonthNum - 1] || "";
+          }
+
+          // Pastikan kolom bulan terisi nama bulan baku
+          effectiveColumnsSchema.forEach((col) => {
+            if ((col.label || "").toLowerCase().includes("bulan") || col.key === monthColKey || col.key === "col_2") {
+              if (!cells[col.key] && rowMonthName) {
+                cells[col.key] = rowMonthName;
+              }
+            }
+          });
 
           mappedRows.push({
             row_index: excelMode === "append" ? currentCount + rIdx : rIdx,
-            month: resolvedMonthNum,
-            month_name: rowMonthName || (resolvedMonthNum > 0 ? standardOrder[resolvedMonthNum - 1] : ""),
+            month: resolvedMonthNum || 0,
+            month_name: rowMonthName,
             is_month_row: false,
             is_locked: false,
             is_current: false,
@@ -720,13 +789,14 @@ export default function TestLocalTableKatim() {
       const existingRows = activeTab.rows_data || [];
 
       if (excelMode === "append") {
-        finalRows = [...existingRows, ...excelParsedRows];
+        // Baris baru hasil import ditempatkan di paling atas agar pegawai/Hermes langsung melihatnya
+        finalRows = [...excelParsedRows, ...existingRows];
       } else {
         // Mode replace: Jika ada filter bulan aktif, ganti baris pada bulan itu saja
         if (selectedMonthFilter !== "all" && !isHorizontalMonthTable) {
           const targetNum = getMonthNumberFromText(selectedMonthFilter);
           const preserved = existingRows.filter((r) => getRowMonthNumber(r) !== targetNum);
-          finalRows = [...preserved, ...excelParsedRows];
+          finalRows = [...excelParsedRows, ...preserved];
         } else {
           finalRows = excelParsedRows;
         }
@@ -1122,53 +1192,8 @@ export default function TestLocalTableKatim() {
 
   const dirtyCount = Object.keys(dirtyUpdates).length;
 
-  const getMonthNumberFromText = (text?: string | null): number | null => {
-    if (!text) return null;
-    let t = text.trim().toLowerCase();
-    // Bersihkan prefix awalan seperti "sd ", "s.d. ", "sampai dengan "
-    t = t.replace(/^(s[\.\/]?d[\.\s]+|sampai\s+dengan\s+)/i, "").trim();
+// getMonthNumberFromText is defined at module level above
 
-    const map: Record<string, number> = {
-      januari: 1, jan: 1, january: 1,
-      februari: 2, feb: 2, pebruari: 2, february: 2,
-      maret: 3, mar: 3, march: 3,
-      april: 4, apr: 4,
-      mei: 5, may: 5,
-      juni: 6, jun: 6, june: 6,
-      juli: 7, jul: 7, july: 7,
-      agustus: 8, agu: 8, ags: 8, agst: 8, august: 8,
-      september: 9, sep: 9, sept: 9,
-      oktober: 10, okt: 10, oct: 10, october: 10,
-      november: 11, nov: 11, nopember: 11,
-      desember: 12, des: 12, dec: 12, december: 12,
-    };
-
-    // 1. Exact match (e.g. "Januari", "jan", "FEBRUARI")
-    if (map[t]) return map[t];
-
-    // 2. Starts with month followed by delimiter (e.g. "JANUARI - Jumlah Permohonan", "Januari (1)", "Januari 2026")
-    for (const [key, num] of Object.entries(map)) {
-      if (
-        t.startsWith(key + " ") ||
-        t.startsWith(key + " -") ||
-        t.startsWith(key + "-") ||
-        t.startsWith(key + ":") ||
-        t.startsWith(key + "/") ||
-        t.startsWith(key + "(")
-      ) {
-        return num;
-      }
-    }
-
-    // 3. Ends with month (e.g. "Bulan Januari", "Target Januari")
-    for (const [key, num] of Object.entries(map)) {
-      if (t.endsWith(" " + key) || t.endsWith("-" + key) || t.endsWith("/" + key)) {
-        return num;
-      }
-    }
-
-    return null;
-  };
 
   // Pastikan tabel yang belum memiliki konfigurasi tetap menampilkan seluruh kolom
   const effectiveColumnsSchema = useMemo<ColumnSchema[]>(() => {
@@ -1802,65 +1827,99 @@ export default function TestLocalTableKatim() {
         ) : (
           <>
             {/* Top Control Bar: Search, Filter Bulan & Navigasi Halaman Cepat */}
-            {activeTab && (isPaginationNeeded || availableMonths.length > 0) && (
+            {activeTab && (
               <div className="border-b border-slate-200 bg-slate-50/70 p-4 space-y-3">
-                {/* Row 1: Filter Bulan Pills jika terdapat lebih dari 1 bulan */}
-                {availableMonths.length > 1 && (
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1 flex items-center gap-1">
-                      <Icon icon="solar:calendar-bold" width={14} className="text-emerald-600" />
-                      Filter Bulan:
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedMonthFilter("all");
-                        setCurrentPage(1);
-                      }}
-                      className={`rounded-lg px-2.5 py-1 text-xs font-bold transition shadow-2xs ${
-                        selectedMonthFilter === "all"
-                          ? "bg-emerald-600 text-white shadow-emerald-600/20"
-                          : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
-                      }`}
-                    >
-                      Semua Bulan ({rawRowsCount})
-                    </button>
-                    {availableMonths.map((m) => {
-                      const isSelected =
-                        selectedMonthFilter.toLowerCase() === m.name.toLowerCase();
-                      return (
-                        <button
-                          key={m.name}
-                          type="button"
-                          onClick={() => {
-                            setSelectedMonthFilter(m.name);
-                            setCurrentPage(1);
-                          }}
-                          className={`rounded-lg px-2.5 py-1 text-xs font-bold transition shadow-2xs ${
-                            isSelected
-                              ? "bg-emerald-600 text-white shadow-emerald-600/20"
-                              : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
-                          }`}
-                        >
-                          {m.name} ({m.count})
-                        </button>
-                      );
-                    })}
+                {/* Row 1: Filter Bulan Pills & Tombol Aksi (Template Excel, Import Excel, Tambah Baris) */}
+                <div className="flex flex-wrap items-center justify-between gap-2.5">
+                  {availableMonths.length > 1 ? (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1 flex items-center gap-1">
+                        <Icon icon="solar:calendar-bold" width={14} className="text-emerald-600" />
+                        Filter Bulan:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedMonthFilter("all");
+                          setCurrentPage(1);
+                        }}
+                        className={`rounded-lg px-2.5 py-1 text-xs font-bold transition shadow-2xs ${
+                          selectedMonthFilter === "all"
+                            ? "bg-emerald-600 text-white shadow-emerald-600/20"
+                            : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        Semua Bulan ({rawRowsCount})
+                      </button>
+                      {availableMonths.map((m) => {
+                        const isSelected =
+                          selectedMonthFilter.toLowerCase() === m.name.toLowerCase();
+                        return (
+                          <button
+                            key={m.name}
+                            type="button"
+                            onClick={() => {
+                              setSelectedMonthFilter(m.name);
+                              setCurrentPage(1);
+                            }}
+                            className={`rounded-lg px-2.5 py-1 text-xs font-bold transition shadow-2xs ${
+                              isSelected
+                                ? "bg-emerald-600 text-white shadow-emerald-600/20"
+                                : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                            }`}
+                          >
+                            {m.name} ({m.count})
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div />
+                  )}
 
-                    {/* Tombol Tambah Baris Baru jika tabel vertikal dan bukan dokumen read-only */}
-                    {!isHorizontalMonthTable && !spreadsheets.find((s) => s.id === selectedSpId)?.is_readonly && (
+                  {/* Tombol Aksi Tabel Vertikal: Template Excel, Import Excel & Tambah Baris */}
+                  {!isHorizontalMonthTable && !spreadsheets.find((s) => s.id === selectedSpId)?.is_readonly && (
+                    <div className="flex flex-wrap items-center gap-2 ml-auto">
+                      {/* Tombol Unduh Template Excel */}
+                      <button
+                        type="button"
+                        onClick={handleDownloadExcelTemplate}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 shadow-2xs"
+                        title="Unduh format template Excel sesuai susunan kolom tab ini"
+                      >
+                        <Icon icon="ri:file-excel-2-fill" width={14} className="text-emerald-600" />
+                        <span>Template Excel</span>
+                      </button>
+
+                      {/* Tombol Import Excel */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExcelFile(null);
+                          setExcelParsedRows([]);
+                          setExcelError(null);
+                          setShowExcelModal(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-800 transition hover:bg-blue-100 shadow-2xs"
+                        title="Import banyak data sekaligus dari file Excel (.xlsx / .csv)"
+                      >
+                        <Icon icon="solar:upload-track-bold" width={14} className="text-blue-700" />
+                        <span>Import Excel</span>
+                      </button>
+
+                      {/* Tombol Tambah Baris */}
                       <button
                         type="button"
                         onClick={handleAddRow}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 transition hover:bg-emerald-100 shadow-2xs ml-auto"
-                        title="Tambah baris kegiatan baru pada bulan ini"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 transition hover:bg-emerald-100 shadow-2xs"
+                        title="Tambah baris kegiatan baru pada bulan ini (urutan paling atas)"
                       >
                         <Icon icon="solar:add-circle-bold" width={15} className="text-emerald-700" />
                         <span>+ Tambah Baris {selectedMonthFilter !== "all" ? `(${selectedMonthFilter})` : ""}</span>
                       </button>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  )}
+                </div>
 
                 {/* Row 2: Search input + Info baris + Top Pagination Controls */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -2983,6 +3042,234 @@ export default function TestLocalTableKatim() {
                   </>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Import Data Excel */}
+      {showExcelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Header Modal */}
+            <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 border border-emerald-200 shrink-0">
+                  <Icon icon="ri:file-excel-2-fill" width={22} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Import Data dari File Excel
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Tab: <span className="font-semibold text-emerald-700">{activeTab?.title}</span> {selectedMonthFilter !== "all" ? `• Bulan: ${selectedMonthFilter}` : ""}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowExcelModal(false);
+                  setExcelFile(null);
+                  setExcelParsedRows([]);
+                  setExcelError(null);
+                }}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-white hover:text-slate-600 transition"
+              >
+                <Icon icon="solar:close-circle-bold" width={20} />
+              </button>
+            </div>
+
+            {/* Isi Modal */}
+            <div className="p-6 space-y-5 overflow-y-auto">
+              {/* Langkah 1: Unduh Format Template */}
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white">1</span>
+                    <h4 className="text-xs font-bold text-emerald-950">Unduh Format Template Excel</h4>
+                  </div>
+                  <p className="text-[11px] text-emerald-800 ml-7">
+                    Gunakan template ini agar susunan kolom sesuai dengan tab <strong>{activeTab?.title}</strong>.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadExcelTemplate}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-600 bg-white px-3 py-1.5 text-xs font-bold text-emerald-800 shadow-2xs hover:bg-emerald-100 transition shrink-0"
+                >
+                  <Icon icon="solar:download-square-bold" width={16} />
+                  <span>Unduh Template (.xlsx)</span>
+                </button>
+              </div>
+
+              {/* Langkah 2: Mode Penyimpanan */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-700 text-[10px] font-bold text-white">2</span>
+                  <label className="text-xs font-bold text-slate-800">Pilih Strategi Penyimpanan:</label>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 ml-7">
+                  <label
+                    className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition ${
+                      excelMode === "append"
+                        ? "border-emerald-500 bg-emerald-50/50 text-emerald-900"
+                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="excelMode"
+                      value="append"
+                      checked={excelMode === "append"}
+                      onChange={() => setExcelMode("append")}
+                      className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <div>
+                      <p className="text-xs font-bold">Tambahkan Data (Append)</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Menambahkan baris dari file Excel tanpa menghapus data yang sudah ada sebelumnya.
+                      </p>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition ${
+                      excelMode === "replace"
+                        ? "border-amber-500 bg-amber-50/50 text-amber-900"
+                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="excelMode"
+                      value="replace"
+                      checked={excelMode === "replace"}
+                      onChange={() => setExcelMode("replace")}
+                      className="mt-0.5 text-amber-600 focus:ring-amber-500"
+                    />
+                    <div>
+                      <p className="text-xs font-bold">Ganti Data ({selectedMonthFilter !== "all" ? `Bulan ${selectedMonthFilter}` : "Semua Data"})</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Menimpa data {selectedMonthFilter !== "all" ? `pada bulan ${selectedMonthFilter}` : "pada seluruh tab ini"} dengan baris baru dari Excel.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Langkah 3: Unggah File */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-700 text-[10px] font-bold text-white">3</span>
+                  <label className="text-xs font-bold text-slate-800">Unggah File Excel yang Telah Diisi:</label>
+                </div>
+                <div className="ml-7">
+                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer bg-slate-50/50 hover:bg-slate-100/70 transition p-4">
+                    <Icon icon="ri:file-excel-2-line" width={32} className="text-emerald-600 mb-2" />
+                    <span className="text-xs font-semibold text-slate-700">
+                      {excelFile ? excelFile.name : "Klik atau seret file Excel ke sini (.xlsx, .xls, .csv)"}
+                    </span>
+                    <span className="text-[11px] text-slate-400 mt-0.5">
+                      {excelFile ? `${(excelFile.size / 1024).toFixed(1)} KB` : "Mendukung pengisian banyak baris sekaligus"}
+                    </span>
+                    <input
+                      type="file"
+                      accept=".xlsx, .xls, .csv"
+                      className="hidden"
+                      onChange={handleExcelFileSelect}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Pesan Kesalahan File */}
+              {excelError && (
+                <div className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800 ml-7">
+                  <Icon icon="solar:danger-circle-bold" width={16} className="text-rose-600 shrink-0 mt-0.5" />
+                  <span>{excelError}</span>
+                </div>
+              )}
+
+              {/* Tabel Pratinjau Baris Terbaca */}
+              {excelParsedRows.length > 0 && (
+                <div className="space-y-2 ml-7">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-emerald-800 flex items-center gap-1.5">
+                      <Icon icon="solar:check-circle-bold" width={15} className="text-emerald-600" />
+                      Ditemukan {excelParsedRows.length} baris data siap diimpor
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      Pratinjau {Math.min(3, excelParsedRows.length)} baris pertama:
+                    </span>
+                  </div>
+                  <div className="max-h-40 overflow-x-auto overflow-y-auto rounded-lg border border-slate-200 bg-white text-[11px]">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-100 text-slate-700 border-b border-slate-200">
+                          {effectiveColumnsSchema.slice(0, 6).map((c) => (
+                            <th key={c.key} className="px-2.5 py-1.5 font-semibold whitespace-nowrap">
+                              {c.label}
+                            </th>
+                          ))}
+                          {effectiveColumnsSchema.length > 6 && (
+                            <th className="px-2.5 py-1.5 font-semibold text-slate-400">...</th>
+                          )}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {excelParsedRows.slice(0, 3).map((r, i) => (
+                          <tr key={i} className="hover:bg-slate-50">
+                            {effectiveColumnsSchema.slice(0, 6).map((c) => (
+                              <td key={c.key} className="px-2.5 py-1 text-slate-600 max-w-[150px] truncate whitespace-nowrap">
+                                {String(r.cells?.[c.key] ?? "-")}
+                              </td>
+                            ))}
+                            {effectiveColumnsSchema.length > 6 && (
+                              <td className="px-2.5 py-1 text-slate-400">...</td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Modal */}
+            <div className="flex items-center justify-end gap-2.5 border-t border-slate-200 bg-slate-50 px-6 py-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowExcelModal(false);
+                  setExcelFile(null);
+                  setExcelParsedRows([]);
+                  setExcelError(null);
+                }}
+                disabled={excelSaving}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-100 transition"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveExcelImport}
+                disabled={excelParsedRows.length === 0 || excelSaving}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50 transition"
+              >
+                {excelSaving ? (
+                  <>
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent" />
+                    <span>Menyimpan ke Database...</span>
+                  </>
+                ) : (
+                  <>
+                    <Icon icon="solar:diskette-bold" width={15} />
+                    <span>Simpan {excelParsedRows.length > 0 ? `${excelParsedRows.length} Baris ` : ""}ke Database</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
