@@ -50,7 +50,7 @@ export default function PaulaAulaLayout({ children }: { children: ReactNode }) {
         }
     }, [user, isSynced]);
 
-    const isSecurity = Boolean(paulaUser?.is_security || user?.is_security);
+    const isSecurity = Boolean(paulaUser?.is_security || (user as any)?.is_security);
     const isAdmin = Boolean(
         paulaUser?.is_admin ||
         user?.role?.level === "superadmin" ||
@@ -63,8 +63,8 @@ export default function PaulaAulaLayout({ children }: { children: ReactNode }) {
     useEffect(() => {
         if (!loading && user && isSynced) {
             if (isSecurity) {
-                // Aktor Security HANYA boleh mengakses /paula/mobil/security
-                if (pathname !== "/paula/mobil/security") {
+                // Aktor Security boleh mengakses /paula/mobil/security dan /paula/mobil/servis
+                if (!pathname.startsWith("/paula/mobil/security") && !pathname.startsWith("/paula/mobil/servis")) {
                     router.replace("/paula/mobil/security");
                 }
             } else if (!isAdmin) {
@@ -85,7 +85,7 @@ export default function PaulaAulaLayout({ children }: { children: ReactNode }) {
         );
     }
 
-    if (isSecurity && pathname !== "/paula/mobil/security") {
+    if (isSecurity && !pathname.startsWith("/paula/mobil/security") && !pathname.startsWith("/paula/mobil/servis")) {
         return null;
     }
 
