@@ -231,6 +231,7 @@ export default function TestLocalTablePic() {
   const [selectedSpId, setSelectedSpId] = useState<number | null>(null);
   const [selectedTabId, setSelectedTabId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTabDetail | null>(null);
+  const [showExportDropdown, setShowExportDropdown] = useState<boolean>(false);
   const [katims, setKatims] = useState<KatimOption[]>([]);
   const [iksks, setIksks] = useState<IkskOption[]>([]);
 
