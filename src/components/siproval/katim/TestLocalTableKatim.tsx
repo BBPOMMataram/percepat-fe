@@ -3908,9 +3908,7 @@ export default function TestLocalTableKatim() {
                                 </div>
                               </div>
 
-                              {!collabModal.isLocked &&
-                                (isCurrentUserAuthor ||
-                                  user?.role?.level === "superadmin") && (
+                              {!collabModal.isLocked && (
                                   <div className="flex items-center gap-1 shrink-0">
                                     <button
                                       type="button"
