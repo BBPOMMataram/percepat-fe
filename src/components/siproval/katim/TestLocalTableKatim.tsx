@@ -445,6 +445,85 @@ export function getMonthNumberFromText(text?: string | null): number | null {
   return null;
 }
 
+// Helper evaluasi dan kalkulasi formula otomatis per baris data
+export const recalculateRowFormulas = (
+  cells: Record<string, any>,
+  columns: ColumnSchema[],
+): Record<string, any> => {
+  const updatedCells = { ...cells };
+
+  columns.forEach((col) => {
+    if (col.type === "formula" && col.formula) {
+      let expr = col.formula.trim();
+      if (expr.startsWith("=")) {
+        expr = expr.slice(1).trim();
+      }
+
+      // 1. Ganti persentase angka misal 20% -> (20/100) atau 70% -> (70/100)
+      expr = expr.replace(/(\d+(?:\.\d+)?)\s*%/g, "($1/100)");
+
+      // 2. Hilangkan nomor baris Excel jika ada, misal G2 -> G, H2 -> H, I11 -> I
+      // Memastikan rumus template baris selalu mengacu pada sel di baris data berjalan ini
+      expr = expr.replace(/([A-Za-z]+)\d+/g, "$1");
+
+      // 3. Buat token map untuk huruf kolom dan key kolom baris saat ini
+      const tokenMap: Record<string, number> = {};
+      columns.forEach((c) => {
+        const letter = (c.col_letter || "").toUpperCase().trim();
+        const rawVal = updatedCells[c.key];
+        const numVal =
+          rawVal !== undefined &&
+          rawVal !== null &&
+          rawVal !== "" &&
+          !isNaN(Number(rawVal))
+            ? Number(rawVal)
+            : 0;
+        if (letter) {
+          tokenMap[letter] = numVal;
+        }
+        tokenMap[c.key] = numVal;
+      });
+
+      // 4. Urutkan token terpanjang lebih dahulu untuk mencegah partial replacement
+      const tokens = Object.keys(tokenMap).sort((a, b) => b.length - a.length);
+      for (const tok of tokens) {
+        const regex = new RegExp(`\\b${tok}\\b`, "gi");
+        expr = expr.replace(regex, String(tokenMap[tok]));
+      }
+
+      // 5. Cek pembagian dengan 0 secara aman
+      if (/\/\s*0+(\.0+)?(?!\d)/.test(expr)) {
+        updatedCells[col.key] = 0;
+        return;
+      }
+
+      // 6. Tangani fungsi matematika umum Excel
+      expr = expr
+        .replace(/\bmin\s*\(/gi, "Math.min(")
+        .replace(/\bmax\s*\(/gi, "Math.max(")
+        .replace(/\babs\s*\(/gi, "Math.abs(")
+        .replace(/\bround\s*\(/gi, "Math.round(");
+
+      // 7. Evaluasi ekspresi aritmatika aman
+      const sanitized = expr.replace(/Math\.(min|max|abs|round)/g, "");
+      if (/^[\d\+\-\*/\(\)\,\.\s]+$/.test(sanitized)) {
+        try {
+          const res = Function(`"use strict"; return (${expr})`)();
+          if (typeof res === "number" && !isNaN(res) && isFinite(res)) {
+            updatedCells[col.key] = Math.round(res * 100) / 100;
+          } else {
+            updatedCells[col.key] = 0;
+          }
+        } catch {
+          // Abaikan jika ada kesalahan parsing matematika
+        }
+      }
+    }
+  });
+
+  return updatedCells;
+};
+
 export default function TestLocalTableKatim() {
   const { user } = useSelector((state: RootState) => state.auth);
   const authQuery = user?.id ? `?user_id=${user.id}` : "";
@@ -625,7 +704,12 @@ export default function TestLocalTableKatim() {
 
       if (d.active_tab) {
         setSelectedTabId(d.active_tab.id);
-        setActiveTab(d.active_tab);
+        const cols = d.active_tab.columns_schema || [];
+        const rows = (d.active_tab.rows_data || []).map((r: any) => ({
+          ...r,
+          cells: recalculateRowFormulas(r.cells || {}, cols),
+        }));
+        setActiveTab({ ...d.active_tab, rows_data: rows });
       } else {
         setSelectedTabId(null);
         setActiveTab(null);
@@ -848,12 +932,16 @@ export default function TestLocalTableKatim() {
             rKey === rowId ||
             (rowIdx !== undefined && (r.row_index === rowIdx || idx === rowIdx))
           ) {
-            return {
-              ...r,
-              cells: {
+            const updatedCells = recalculateRowFormulas(
+              {
                 ...r.cells,
                 [colKey]: parsedVal,
               },
+              effectiveColumnsSchema,
+            );
+            return {
+              ...r,
+              cells: updatedCells,
             };
           }
           return r;
@@ -2793,7 +2881,14 @@ export default function TestLocalTableKatim() {
                                         Editable
                                       </span>
                                     ) : col.type === "formula" ? (
-                                      <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-bold text-purple-800">
+                                      <span
+                                        className="rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-bold text-purple-800 cursor-help"
+                                        title={
+                                          col.formula
+                                            ? `Rumus: ${col.formula.replace(/([A-Za-z]+)\d+/g, '$1')} (dihitung otomatis per baris)`
+                                            : 'Dihitung otomatis untuk setiap baris bulan'
+                                        }
+                                      >
                                         Formula
                                       </span>
                                     ) : (
