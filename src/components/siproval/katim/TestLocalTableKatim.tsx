@@ -39,6 +39,7 @@ type ColumnSchema = {
   is_rtl?: boolean;
   parent_header?: string | null;
   sub_label?: string | null;
+  sub_parent?: string | null;
 };
 
 type RowData = {
@@ -2113,6 +2114,28 @@ export default function TestLocalTableKatim() {
   }, [headerGroups, isHorizontalMonthTable, selectedMonthFilter]);
 
   // Deteksi jumlah dan style kolom sticky freeze kiri
+    // Deteksi tab bertema cyan seperti KLB KP (sesuai template Excel asli)
+  const isCyanHeader = useMemo(() => {
+    const title = (activeTab?.title || "").toLowerCase();
+    return title.includes("klb") || activeTab?.id === 90;
+  }, [activeTab?.title, activeTab?.id]);
+
+  // Deteksi tabel ber-header 3 tingkat (memiliki sub_parent rumus)
+  const hasSubParents = useMemo(() => {
+    return displayedColumnsSchema.some((c) => Boolean(c.sub_parent));
+  }, [displayedColumnsSchema]);
+
+  const getColWidthStyle = (col: ColumnSchema) => {
+    const label = (col.label || "").toLowerCase();
+    if (col.col_letter === "A" || label.includes("periode")) return "w-[130px] min-w-[130px]";
+    if (col.col_letter === "B" || label === "upt") return "w-[140px] min-w-[140px]";
+    if (col.col_letter === "C" && label === "pic") return "w-[65px] min-w-[65px]";
+    if (col.col_letter === "D" || label.includes("identitas")) return "w-[300px] min-w-[280px]";
+    if (label.includes("kendala") || label.includes("tindak lanjut")) return "w-[300px] min-w-[280px]";
+    if (label.includes("justifikasi") || label.includes("dukung") || label.includes("verifikasi")) return "w-[180px] min-w-[160px]";
+    return "min-w-[110px]";
+  };
+
   const leftStickyConfig = useMemo(() => {
     const title = (activeTab?.title || "").toLowerCase();
 
@@ -2148,6 +2171,22 @@ export default function TestLocalTableKatim() {
           }
           if (cIdx === 2) {
             return `sticky left-[205px] ${isHeader ? "z-30 bg-slate-100 text-slate-900" : `z-10 ${bgClass || "bg-white"} text-slate-900`} min-w-[170px] max-w-[210px] shadow-r border-r border-slate-200`;
+          }
+          return "";
+        },
+      };
+    }
+
+    // Tab KLB KP (Tab 90 / title includes klb)
+    if (title.includes("klb") || activeTab?.id === 90) {
+      return {
+        count: 2,
+        getClasses: (cIdx: number, isHeader: boolean, bgClass?: string) => {
+          if (cIdx === 0) {
+            return `sticky left-0 ${isHeader ? "z-30 bg-cyan-200 text-cyan-950 font-bold" : `z-10 ${bgClass || "bg-white"} text-slate-900`} w-[130px] min-w-[130px] max-w-[130px] text-center border-r border-cyan-300`;
+          }
+          if (cIdx === 1) {
+            return `sticky left-[130px] ${isHeader ? "z-30 bg-cyan-200 text-cyan-950 font-bold" : `z-10 ${bgClass || "bg-white"} text-slate-900`} w-[140px] min-w-[140px] max-w-[140px] text-center shadow-r border-r border-cyan-300`;
           }
           return "";
         },
@@ -2860,20 +2899,27 @@ export default function TestLocalTableKatim() {
                 <thead className="border-b border-slate-200 bg-slate-50 sticky top-0 z-20">
                   {displayedHeaderGroups ? (
                     <>
-                      <tr className="border-b border-slate-200">
+                      {/* Baris 1: Header Non-Parent (rowSpan 2 atau 3) & Header Grup Utama */}
+                      <tr className={`border-b ${isCyanHeader ? "border-cyan-400 bg-cyan-300" : "border-slate-200"}`}>
                         {displayedHeaderGroups.map((grp, gIdx) => {
                           if (!grp.parent) {
-                            return grp.cols.map((col, cIdx) => {
-                              const stickyStyle = leftStickyConfig.getClasses(cIdx, true);
+                            return grp.cols.map((col) => {
+                              const globalColIdx = displayedColumnsSchema.findIndex((c) => c.key === col.key);
+                              const stickyStyle = leftStickyConfig.getClasses(globalColIdx, true);
+                              const widthCls = getColWidthStyle(col);
 
                               return (
                                 <th
                                   key={col.key}
-                                  rowSpan={2}
-                                  className={`py-3 px-3 font-bold text-left ${stickyStyle || "bg-slate-50 text-slate-800"}`}
+                                  rowSpan={hasSubParents ? 3 : 2}
+                                  className={`py-3 px-3 font-bold text-center border-r border-b ${
+                                    isCyanHeader
+                                      ? "bg-cyan-200 text-cyan-950 border-cyan-400"
+                                      : "bg-slate-50 text-slate-800 border-slate-200"
+                                  } ${widthCls} ${stickyStyle}`}
                                 >
                                   <div className="flex items-center justify-between gap-1 mb-1">
-                                    <span className="font-mono text-[10px] text-slate-400">
+                                    <span className={`font-mono text-[10px] ${isCyanHeader ? "text-cyan-800 font-bold" : "text-slate-400"}`}>
                                       [{col.col_letter}]
                                     </span>
                                     {col.can_edit ? (
@@ -2895,36 +2941,44 @@ export default function TestLocalTableKatim() {
                                       <Icon
                                         icon="solar:lock-bold"
                                         width={12}
-                                        className="text-slate-400"
+                                        className={isCyanHeader ? "text-cyan-700" : "text-slate-400"}
                                       />
                                     )}
                                   </div>
                                   <div className="text-xs font-bold leading-tight">
                                     {col.label}
                                   </div>
+                                  {col.sub_label && (
+                                    <div className={`text-[10px] font-normal mt-0.5 ${isCyanHeader ? "text-cyan-900" : "text-slate-500"}`}>
+                                      {col.sub_label}
+                                    </div>
+                                  )}
                                 </th>
                               );
                             });
                           }
 
                           const mColor = getMonthColor(grp.parent);
-                          const grpMonthNum = getMonthNumberFromText(
-                            grp.parent,
-                          );
+                          const grpMonthNum = getMonthNumberFromText(grp.parent);
                           const isGrpLocked =
                             !isPicUser &&
                             grpMonthNum !== null &&
                             Boolean(monthLocksMap[grpMonthNum]);
+
                           return (
                             <th
                               key={`grp-${gIdx}-${grp.parent}`}
                               colSpan={grp.cols.length}
-                              className={`py-2 px-3 font-bold border-b border-r border-slate-300 text-center text-xs tracking-wider uppercase ${mColor.header}`}
+                              className={`py-2.5 px-3 font-bold border-b border-r text-center text-xs tracking-wider uppercase ${
+                                isCyanHeader
+                                  ? "bg-cyan-300 text-cyan-950 border-cyan-400 shadow-2xs font-extrabold"
+                                  : `${mColor.header} border-slate-300`
+                              }`}
                             >
                               <div className="flex items-center justify-center gap-1.5">
-                                <span
-                                  className={`size-2 rounded-full inline-block ${mColor.dot}`}
-                                />
+                                {!isCyanHeader && (
+                                  <span className={`size-2 rounded-full inline-block ${mColor.dot}`} />
+                                )}
                                 <span>{grp.parent}</span>
                                 {isGrpLocked && (
                                   <span className="inline-flex items-center gap-0.5 rounded bg-slate-200/90 text-slate-700 px-1.5 py-0.5 text-[9px] font-bold lowercase tracking-normal">
@@ -2937,13 +2991,36 @@ export default function TestLocalTableKatim() {
                           );
                         })}
                       </tr>
-                      <tr className="border-b border-slate-200 bg-slate-50">
+
+                      {/* Baris 2: Sub-Parent Cara Perhitungan jika ada (Tier 2 untuk IKSK 4 KLB dsb) */}
+                      {hasSubParents && (
+                        <tr className={`border-b ${isCyanHeader ? "bg-cyan-100 border-cyan-400" : "bg-slate-100 border-slate-200"}`}>
+                          {displayedHeaderGroups.map((grp, gIdx) => {
+                            if (!grp.parent) return null;
+                            const subParentText = grp.cols[0]?.sub_parent || "";
+                            return (
+                              <th
+                                key={`subgrp-${gIdx}-${grp.parent}`}
+                                colSpan={grp.cols.length}
+                                className={`py-2.5 px-4 font-semibold text-center text-xs border-r border-b whitespace-pre-line leading-relaxed ${
+                                  isCyanHeader
+                                    ? "bg-cyan-100 text-cyan-950 border-cyan-400 shadow-inner"
+                                    : "bg-slate-100 text-slate-800 border-slate-200"
+                                }`}
+                              >
+                                {subParentText}
+                              </th>
+                            );
+                          })}
+                        </tr>
+                      )}
+
+                      {/* Baris 3 (atau Baris 2 normal): Sub-Kolom di bawah grup */}
+                      <tr className={`border-b ${isCyanHeader ? "bg-cyan-200 border-cyan-400" : "bg-slate-50 border-slate-200"}`}>
                         {displayedHeaderGroups.map((grp) => {
                           if (!grp.parent) return null;
                           const mColor = getMonthColor(grp.parent);
-                          const grpMonthNum = getMonthNumberFromText(
-                            grp.parent,
-                          );
+                          const grpMonthNum = getMonthNumberFromText(grp.parent);
                           const isGrpLocked =
                             !isPicUser &&
                             grpMonthNum !== null &&
@@ -2957,18 +3034,22 @@ export default function TestLocalTableKatim() {
                               Boolean(monthLocksMap[colMonthNum]);
                             const isEditableForMe =
                               col.can_edit && !isColMonthLocked;
-                            const subTitle = col.sub_label || col.label;
+                            const subTitle = col.label;
+                            const widthCls = getColWidthStyle(col);
+
                             return (
                               <th
                                 key={col.key}
-                                className={`py-2 px-3 font-semibold border-r border-slate-200 last:border-r-0 min-w-[125px] ${
-                                  isEditableForMe
-                                    ? "bg-emerald-50/60 text-emerald-950"
-                                    : mColor.sub
+                                className={`py-2 px-3 font-semibold border-r border-b last:border-r-0 ${widthCls} ${
+                                  isCyanHeader
+                                    ? "bg-cyan-200/90 text-cyan-950 border-cyan-400 text-center"
+                                    : isEditableForMe
+                                      ? "bg-emerald-50/60 text-emerald-950 border-slate-200"
+                                      : `${mColor.sub} border-slate-200`
                                 }`}
                               >
                                 <div className="flex items-center justify-between gap-1 mb-1">
-                                  <span className="font-mono text-[10px] text-slate-400">
+                                  <span className={`font-mono text-[10px] ${isCyanHeader ? "text-cyan-800 font-bold" : "text-slate-400"}`}>
                                     [{col.col_letter}]
                                   </span>
                                   {isEditableForMe ? (
@@ -2983,13 +3064,18 @@ export default function TestLocalTableKatim() {
                                     <Icon
                                       icon="solar:lock-bold"
                                       width={12}
-                                      className="text-slate-400"
+                                      className={isCyanHeader ? "text-cyan-700" : "text-slate-400"}
                                     />
                                   )}
                                 </div>
                                 <div className="text-[11px] leading-tight font-medium">
                                   {subTitle}
                                 </div>
+                                {col.sub_label && (
+                                  <div className={`text-[10px] font-normal mt-0.5 ${isCyanHeader ? "text-cyan-900" : "text-slate-500"}`}>
+                                    {col.sub_label}
+                                  </div>
+                                )}
                               </th>
                             );
                           });
@@ -3335,10 +3421,34 @@ export default function TestLocalTableKatim() {
                                       : "bg-emerald-50/20"
                                   }`}
                                 >
-                                  <input
-                                    type="text"
-                                    inputMode="decimal"
-                                    value={val}
+                                  {(col.col_letter === "D" || (col.label || "").toLowerCase().includes("identitas")) ? (
+                                    <textarea
+                                      rows={3}
+                                      value={val}
+                                      onChange={(e) =>
+                                        handleCellChange(
+                                          Number(rowKey),
+                                          col.key,
+                                          e.target.value,
+                                          rowIdxNum,
+                                        )
+                                      }
+                                      onBlur={(e) =>
+                                        handleCellBlur(
+                                          Number(rowKey),
+                                          col,
+                                          e.target.value,
+                                          rowIdxNum,
+                                        )
+                                      }
+                                      placeholder={getCellPlaceholder(col)}
+                                      className="w-full rounded-lg px-2.5 py-1.5 text-xs border border-slate-200 bg-white text-slate-900 leading-tight focus:ring-1 focus:outline-none focus:border-emerald-600 focus:ring-emerald-600 resize-y font-medium"
+                                    />
+                                  ) : (
+                                    <input
+                                      type="text"
+                                      inputMode="decimal"
+                                      value={val}
                                     onChange={(e) =>
                                       handleCellChange(
                                         Number(rowKey),
@@ -3392,6 +3502,7 @@ export default function TestLocalTableKatim() {
                                         : "border border-slate-200 bg-white text-slate-900 focus:border-emerald-600 focus:ring-emerald-600 font-medium"
                                     }`}
                                   />
+                                )}
                                 </td>
                               );
                             }
