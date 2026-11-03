@@ -60,6 +60,9 @@ export default function MobilServis({ hideHeader = false }: MobilServisProps) {
     const [settingModalMobil, setSettingModalMobil] = useState<MobilItem | null>(null);
     const [intervalKm, setIntervalKm] = useState<number>(10000);
     const [intervalBulan, setIntervalBulan] = useState<number>(3);
+    const [odoSaatIni, setOdoSaatIni] = useState<number>(0);
+    const [odoTerakhirServis, setOdoTerakhirServis] = useState<number>(0);
+    const [tglTerakhirServis, setTglTerakhirServis] = useState<string>("");
     const [isSavingSetting, setIsSavingSetting] = useState(false);
 
     // Modal Konfirmasi Servis Selesai
@@ -99,6 +102,9 @@ export default function MobilServis({ hideHeader = false }: MobilServisProps) {
             await api.put(`${backendUrl}/api/paula/admin/mobil/${settingModalMobil.id}/service-settings`, {
                 interval_km_service: intervalKm,
                 interval_bulan_service: intervalBulan,
+                odometer_saat_ini: odoSaatIni,
+                terakhir_service_km: odoTerakhirServis,
+                terakhir_service_tanggal: tglTerakhirServis || null,
             });
             toast.success("Batas servis berkala berhasil diperbarui!");
             setSettingModalMobil(null);
@@ -386,6 +392,9 @@ export default function MobilServis({ hideHeader = false }: MobilServisProps) {
                                                 setSettingModalMobil(m);
                                                 setIntervalKm(m.interval_km_service || 10000);
                                                 setIntervalBulan(m.interval_bulan_service || 3);
+                                                setOdoSaatIni(m.odometer_saat_ini || 0);
+                                                setOdoTerakhirServis(m.terakhir_service_km || 0);
+                                                setTglTerakhirServis(m.terakhir_service_tanggal ? m.terakhir_service_tanggal.split("T")[0] : "");
                                             }}
                                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition cursor-pointer"
                                         >
@@ -412,66 +421,133 @@ export default function MobilServis({ hideHeader = false }: MobilServisProps) {
                 )}
             </div>
 
-            {/* MODAL PENGATURAN BATAS SERVIS */}
+            {/* MODAL PENGATURAN BATAS SERVIS & KALIBRASI ODOMETER */}
             {settingModalMobil && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-                    <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
+                    <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
                         <div className="bg-slate-900 text-white p-5 flex items-center justify-between">
-                            <h3 className="font-bold text-sm">Pengaturan Batas Servis: {settingModalMobil.nama}</h3>
-                            <button onClick={() => setSettingModalMobil(null)} className="text-slate-400 hover:text-white">
-                                <Icon icon="solar:close-circle-bold" width={20} />
+                            <div>
+                                <h3 className="font-bold text-sm">Kalibrasi Odometer & Pengaturan Servis</h3>
+                                <p className="text-[11px] text-slate-400 mt-0.5">{settingModalMobil.nama} ({settingModalMobil.plat_nomor})</p>
+                            </div>
+                            <button onClick={() => setSettingModalMobil(null)} className="text-slate-400 hover:text-white cursor-pointer">
+                                <Icon icon="solar:close-circle-bold" width={22} />
                             </button>
                         </div>
 
                         <form onSubmit={handleSaveSetting} className="p-6 space-y-4 text-xs">
-                            <div className="space-y-1.5">
-                                <label className="font-bold text-slate-700">Interval Jarak Odometer (KM):</label>
-                                <div className="relative">
-                                    <input
-                                        type="number"
-                                        min={1000}
-                                        step={500}
-                                        required
-                                        value={intervalKm}
-                                        onChange={(e) => setIntervalKm(Number(e.target.value))}
-                                        className="w-full rounded-xl border border-slate-300 p-2.5 text-xs text-slate-800 font-bold focus:border-indigo-600 focus:outline-none"
-                                    />
-                                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">KM</span>
+                            {/* Section 1: Kalibrasi Odometer Fisik Riil */}
+                            <div className="p-3.5 bg-blue-50/60 border border-blue-200/70 rounded-2xl space-y-3">
+                                <div className="flex items-center gap-1.5 font-black text-blue-900 text-xs">
+                                    <Icon icon="solar:speedometer-bold" width={16} className="text-blue-600" />
+                                    <span>Kalibrasi Angka Odometer Riil Kendaraan</span>
                                 </div>
-                                <p className="text-[11px] text-slate-400">Standar operasional: 5.000 KM atau 10.000 KM.</p>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <label className="font-bold text-slate-700">Odometer Fisik Saat Ini (KM):</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                required
+                                                value={odoSaatIni}
+                                                onChange={(e) => setOdoSaatIni(Number(e.target.value))}
+                                                className="w-full rounded-xl border border-slate-300 p-2 text-xs text-slate-800 font-bold focus:border-blue-600 focus:outline-none bg-white"
+                                            />
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400">KM</span>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400">Angka riil di speedometer mobil</p>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="font-bold text-slate-700">Odometer Terakhir Servis (KM):</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                required
+                                                value={odoTerakhirServis}
+                                                onChange={(e) => setOdoTerakhirServis(Number(e.target.value))}
+                                                className="w-full rounded-xl border border-slate-300 p-2 text-xs text-slate-800 font-bold focus:border-blue-600 focus:outline-none bg-white"
+                                            />
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400">KM</span>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400">Angka KM saat terakhir ganti oli</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="font-bold text-slate-700">Tanggal Terakhir Servis:</label>
+                                    <input
+                                        type="date"
+                                        value={tglTerakhirServis}
+                                        onChange={(e) => setTglTerakhirServis(e.target.value)}
+                                        className="w-full rounded-xl border border-slate-300 p-2 text-xs text-slate-800 font-medium focus:border-blue-600 focus:outline-none bg-white"
+                                    />
+                                    <p className="text-[10px] text-slate-400">Digunakan untuk menghitung batas usia 3 bulan</p>
+                                </div>
+
+                                {/* Preview Hasil Kalibrasi */}
+                                <div className="p-2.5 rounded-xl bg-white border border-blue-200 flex items-center justify-between text-[11px]">
+                                    <span className="text-slate-600 font-medium">Jarak Sejak Servis Terakhir:</span>
+                                    <span className="font-black text-blue-700">
+                                        {Math.max(0, odoSaatIni - odoTerakhirServis).toLocaleString('id-ID')} KM ({Math.min(100, Math.round((Math.max(0, odoSaatIni - odoTerakhirServis) / (intervalKm || 10000)) * 100))}%)
+                                    </span>
+                                </div>
                             </div>
 
-                            <div className="space-y-1.5">
-                                <label className="font-bold text-slate-700">Interval Waktu Servis (Bulan):</label>
-                                <div className="relative">
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        max={12}
-                                        required
-                                        value={intervalBulan}
-                                        onChange={(e) => setIntervalBulan(Number(e.target.value))}
-                                        className="w-full rounded-xl border border-slate-300 p-2.5 text-xs text-slate-800 font-bold focus:border-indigo-600 focus:outline-none"
-                                    />
-                                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Bulan</span>
+                            {/* Section 2: Aturan Interval Servis Berkala */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                <div className="space-y-1">
+                                    <label className="font-bold text-slate-700">Interval Jarak Odometer:</label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            min={1000}
+                                            step={500}
+                                            required
+                                            value={intervalKm}
+                                            onChange={(e) => setIntervalKm(Number(e.target.value))}
+                                            className="w-full rounded-xl border border-slate-300 p-2 text-xs text-slate-800 font-bold focus:border-indigo-600 focus:outline-none"
+                                        />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">KM</span>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400">Standar: 5.000 atau 10.000 KM</p>
                                 </div>
-                                <p className="text-[11px] text-slate-400">Sesuai ketentuan, jika sudah mencapai 3 bulan maka mobil wajib servis.</p>
+
+                                <div className="space-y-1">
+                                    <label className="font-bold text-slate-700">Interval Waktu Servis:</label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={12}
+                                            required
+                                            value={intervalBulan}
+                                            onChange={(e) => setIntervalBulan(Number(e.target.value))}
+                                            className="w-full rounded-xl border border-slate-300 p-2 text-xs text-slate-800 font-bold focus:border-indigo-600 focus:outline-none"
+                                        />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Bulan</span>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400">Ketentuan: Maksimal 3 Bulan</p>
+                                </div>
                             </div>
 
                             <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                                 <button
                                     type="button"
                                     onClick={() => setSettingModalMobil(null)}
-                                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50"
+                                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 cursor-pointer"
                                 >
                                     Batal
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={isSavingSetting}
-                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-md disabled:opacity-50 transition"
+                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-md disabled:opacity-50 transition cursor-pointer"
                                 >
-                                    <span>{isSavingSetting ? "Menyimpan..." : "Simpan Pengaturan"}</span>
+                                    <span>{isSavingSetting ? "Menyimpan..." : "Simpan Kalibrasi & Batas"}</span>
                                 </button>
                             </div>
                         </form>

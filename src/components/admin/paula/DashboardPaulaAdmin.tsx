@@ -52,7 +52,19 @@ export default function DashboardPaulaAdmin() {
     // Monitoring Servis & Kerusakan
     const [serviceMonitoringList, setServiceMonitoringList] = useState<any[]>([]);
     const [kerusakanAlerts, setKerusakanAlerts] = useState<any[]>([]);
-    const [formMobil, setFormMobil] = useState({ id: null, nama: "", plat_nomor: "", kapasitas: "", status: "tersedia" });
+    const initialFormMobil = {
+        id: null,
+        nama: "",
+        plat_nomor: "",
+        kapasitas: "",
+        status: "tersedia",
+        odometer_saat_ini: 0,
+        terakhir_service_km: 0,
+        terakhir_service_tanggal: "",
+        interval_km_service: 10000,
+        interval_bulan_service: 3,
+    };
+    const [formMobil, setFormMobil] = useState(initialFormMobil);
 
     // STATE UMUM (REJECT & DETAIL)
     const [rejectModal, setRejectModal] = useState<{ id: number, type: 'pengajuan' | 'edit' | 'pengajuan_mobil' } | null>(null);
@@ -309,11 +321,15 @@ export default function DashboardPaulaAdmin() {
     const saveMasterMobil = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const payload = {
+                ...formMobil,
+                terakhir_service_tanggal: formMobil.terakhir_service_tanggal || null,
+            };
             if (formMobil.id) {
-                await api.put(`${baseURL}/api/paula/admin/mobil/${formMobil.id}`, formMobil);
+                await api.put(`${baseURL}/api/paula/admin/mobil/${formMobil.id}`, payload);
                 toast.success("Data mobil diperbarui");
             } else {
-                await api.post(`${baseURL}/api/paula/admin/mobil`, formMobil);
+                await api.post(`${baseURL}/api/paula/admin/mobil`, payload);
                 toast.success("Mobil baru ditambahkan");
             }
             setShowMobilModal(false);
@@ -1221,7 +1237,7 @@ export default function DashboardPaulaAdmin() {
                                 <button 
                                     type="button"
                                     onClick={() => {
-                                        setFormMobil({ id: null, nama: "", plat_nomor: "", kapasitas: "", status: "tersedia" });
+                                        setFormMobil(initialFormMobil);
                                         setShowMobilModal(true);
                                     }} 
                                     className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-500/25 transition-all cursor-pointer shrink-0"
@@ -1242,7 +1258,19 @@ export default function DashboardPaulaAdmin() {
                                                 <div className="flex gap-1">
                                                     <button 
                                                         type="button"
-                                                        onClick={() => { setFormMobil(mobil); setShowMobilModal(true); }} 
+                                                        onClick={() => { setFormMobil({
+                                                            id: mobil.id,
+                                                            nama: mobil.nama || "",
+                                                            plat_nomor: mobil.plat_nomor || "",
+                                                            kapasitas: mobil.kapasitas || "",
+                                                            status: mobil.status || "tersedia",
+                                                            odometer_saat_ini: mobil.odometer_saat_ini || 0,
+                                                            terakhir_service_km: mobil.terakhir_service_km || 0,
+                                                            terakhir_service_tanggal: mobil.terakhir_service_tanggal ? mobil.terakhir_service_tanggal.split('T')[0] : "",
+                                                            interval_km_service: mobil.interval_km_service || 10000,
+                                                            interval_bulan_service: mobil.interval_bulan_service || 3,
+                                                        });
+                                                        setShowMobilModal(true); }} 
                                                         className="w-7 h-7 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition flex items-center justify-center cursor-pointer"
                                                         title="Edit Mobil"
                                                     >
@@ -1522,31 +1550,135 @@ export default function DashboardPaulaAdmin() {
             {/* MODAL MASTER KENDARAAN (MOBIL) */}
             {showMobilModal && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
-                    <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
-                        <h3 className="text-xl font-black text-slate-800 mb-6">{formMobil.id ? 'Edit' : 'Tambah'} Master Kendaraan</h3>
+                    <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-xl shadow-2xl animate-in zoom-in-95 duration-200 max-h-[92vh] overflow-y-auto">
+                        <div className="flex justify-between items-center mb-5 border-b border-slate-100 pb-4">
+                            <div>
+                                <h3 className="text-xl font-black text-slate-800">{formMobil.id ? 'Edit' : 'Tambah'} Master Kendaraan</h3>
+                                <p className="text-xs text-slate-500 mt-0.5">Lengkapi identitas armada dan kalibrasi odometer riil kendaraan.</p>
+                            </div>
+                            <button onClick={() => setShowMobilModal(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                                <span className="material-symbols-outlined text-[24px]">close</span>
+                            </button>
+                        </div>
                         
                         <form onSubmit={saveMasterMobil} className="space-y-4">
                             <div>
-                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Nama Mobil (Merk & Warna)</label>
-                                <input type="text" required value={formMobil.nama} onChange={e => setFormMobil({...formMobil, nama: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm" />
+                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Nama Mobil (Merk & Warna)</label>
+                                <input type="text" required value={formMobil.nama} onChange={e => setFormMobil({...formMobil, nama: e.target.value})} placeholder="Contoh: Toyota Innova Reborn (Hitam)" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm text-slate-800" />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Plat Nomor</label>
-                                    <input type="text" required value={formMobil.plat_nomor} onChange={e => setFormMobil({...formMobil, plat_nomor: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm uppercase" />
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Plat Nomor Kendaraan</label>
+                                    <input type="text" required value={formMobil.plat_nomor} onChange={e => setFormMobil({...formMobil, plat_nomor: e.target.value})} placeholder="DR 1024 BP" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm uppercase text-slate-900" />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Kapasitas (Orang)</label>
-                                    <input type="number" min="1" required value={formMobil.kapasitas} onChange={e => setFormMobil({...formMobil, kapasitas: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm" />
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Kapasitas (Orang / Kursi)</label>
+                                    <input type="number" min="1" required value={formMobil.kapasitas} onChange={e => setFormMobil({...formMobil, kapasitas: e.target.value})} placeholder="7" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm text-slate-800" />
                                 </div>
                             </div>
+
                             <div>
-                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Status Kendaraan</label>
-                                <select required value={formMobil.status} onChange={e => setFormMobil({...formMobil, status: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm">
-                                    <option value="tersedia">Tersedia</option>
-                                    <option value="perbaikan">Sedang Diperbaiki</option>
+                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Status Ketersediaan</label>
+                                <select required value={formMobil.status} onChange={e => setFormMobil({...formMobil, status: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm text-slate-800 cursor-pointer">
+                                    <option value="tersedia">Tersedia (Siap Operasional)</option>
+                                    <option value="perbaikan">Sedang Diperbaiki (Bengkel)</option>
                                 </select>
                             </div>
+
+                            {/* SECTION KALIBRASI ODOMETER & SERVIS */}
+                            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3.5 mt-2">
+                                <div className="flex items-center gap-1.5 font-black text-slate-800 text-xs uppercase tracking-wider">
+                                    <span className="material-symbols-outlined text-[18px] text-indigo-600">speed</span>
+                                    <span>Baseline Odometer & Servis Riil</span>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                                    <div>
+                                        <label className="block font-bold text-slate-700 mb-1">Odometer Fisik Saat Ini (KM):</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={formMobil.odometer_saat_ini}
+                                                onChange={(e) => setFormMobil({ ...formMobil, odometer_saat_ini: Number(e.target.value) })}
+                                                placeholder="misal: 68350"
+                                                className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                            />
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400">KM</span>
+                                        </div>
+                                        <span className="text-[10px] text-slate-400 mt-0.5 block">Di speedometer fisik mobil</span>
+                                    </div>
+
+                                    <div>
+                                        <label className="block font-bold text-slate-700 mb-1">Odometer Terakhir Servis (KM):</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={formMobil.terakhir_service_km}
+                                                onChange={(e) => setFormMobil({ ...formMobil, terakhir_service_km: Number(e.target.value) })}
+                                                placeholder="misal: 60000"
+                                                className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                            />
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400">KM</span>
+                                        </div>
+                                        <span className="text-[10px] text-slate-400 mt-0.5 block">Saat terakhir ganti oli</span>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                                    <div>
+                                        <label className="block font-bold text-slate-700 mb-1">Tanggal Terakhir Servis:</label>
+                                        <input
+                                            type="date"
+                                            value={formMobil.terakhir_service_tanggal}
+                                            onChange={(e) => setFormMobil({ ...formMobil, terakhir_service_tanggal: e.target.value })}
+                                            className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block font-bold text-slate-700 mb-1">Interval KM Servis:</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                min="1000"
+                                                step="500"
+                                                value={formMobil.interval_km_service}
+                                                onChange={(e) => setFormMobil({ ...formMobil, interval_km_service: Number(e.target.value) })}
+                                                placeholder="10000"
+                                                className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                            />
+                                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">KM</span>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block font-bold text-slate-700 mb-1">Interval Bulan:</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="12"
+                                                value={formMobil.interval_bulan_service}
+                                                onChange={(e) => setFormMobil({ ...formMobil, interval_bulan_service: Number(e.target.value) })}
+                                                placeholder="3"
+                                                className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                            />
+                                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">Bln</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Preview Jarak Sejak Servis */}
+                                <div className="p-2.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between text-[11px]">
+                                    <span className="text-slate-600 font-medium">Jarak Tempuh Sejak Servis Terakhir:</span>
+                                    <span className="font-black text-indigo-700">
+                                        {Math.max(0, formMobil.odometer_saat_ini - formMobil.terakhir_service_km).toLocaleString('id-ID')} KM ({Math.min(100, Math.round((Math.max(0, formMobil.odometer_saat_ini - formMobil.terakhir_service_km) / (formMobil.interval_km_service || 10000)) * 100))}%)
+                                    </span>
+                                </div>
+                            </div>
+
                             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
                                 <button type="button" onClick={() => setShowMobilModal(false)} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer text-sm">Batal</button>
                                 <button type="submit" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition cursor-pointer text-sm">Simpan Mobil</button>
