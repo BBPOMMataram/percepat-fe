@@ -601,6 +601,21 @@ export default function TestLocalTableKatim() {
     >
   >({});
 
+  // Export Excel dropdown state (Point 3)
+  const [showExportDropdown, setShowExportDropdown] = useState<boolean>(false);
+
+  // Modal Kolaborasi Angka Multi-Katim (Point 6)
+  interface CollabNumModalState {
+    isOpen: boolean;
+    rowKey: number;
+    rowIndex: number;
+    monthName: string;
+    col: ColumnSchema;
+    contributors: Record<string, { user_id: string; author: string; value: number; updated_at?: string }>;
+    myValue: string;
+  }
+  const [collabNumModal, setCollabNumModal] = useState<CollabNumModalState | null>(null);
+
   // Modal validasi Kendala & RTL wajib diisi saat simpan perubahan
   const [validationModal, setValidationModal] =
     useState<IncompleteValidationModal | null>(null);
@@ -675,24 +690,22 @@ export default function TestLocalTableKatim() {
               : null;
       const qIksk = effectiveIkskId ? `&iksk_id=${effectiveIkskId}` : "";
 
+      // Ketika beralih IKSK, spId & tId diset null sehingga tidak memakai fallback spreadsheet/tab lama
+      const isSwitchingIksk = (ikskId !== undefined && ikskId !== null && ikskId !== selectedIkskId);
       const effectiveSpId =
-        spId !== undefined && spId !== null
+        spId !== undefined
           ? spId
-          : selectedSpId !== null
-            ? selectedSpId
-            : paramSpreadsheetId
-              ? Number(paramSpreadsheetId)
-              : null;
+          : isSwitchingIksk
+            ? null
+            : (selectedSpId !== null ? selectedSpId : (paramSpreadsheetId ? Number(paramSpreadsheetId) : null));
       const qSp = effectiveSpId ? `&spreadsheet_id=${effectiveSpId}` : "";
 
       const effectiveTabId =
-        tId !== undefined && tId !== null
+        tId !== undefined
           ? tId
-          : selectedTabId !== null
-            ? selectedTabId
-            : paramTabId
-              ? Number(paramTabId)
-              : null;
+          : isSwitchingIksk
+            ? null
+            : (selectedTabId !== null ? selectedTabId : (paramTabId ? Number(paramTabId) : null));
       const qTab = effectiveTabId ? `&tab_id=${effectiveTabId}` : "";
 
       const res = await api.get(
@@ -798,6 +811,7 @@ export default function TestLocalTableKatim() {
     setSelectedIkskId(ikskId);
     setSelectedSpId(null);
     setSelectedTabId(null);
+    setActiveTab(null); // Segera bersihkan tabel lama agar tidak muncul tabel IKSK sebelumnya
 
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
@@ -1598,6 +1612,26 @@ export default function TestLocalTableKatim() {
                   ? row.row_index
                   : rIdx;
 
+            // Simpan perubahan data angka ke server terlebih dahulu agar tidak hilang
+            setSaving(true);
+            setErrorMsg("");
+            try {
+              const res = await api.post(
+                `${baseUrl}/api/test-local-table/tab/${activeTab.id}/update${authQuery}`,
+                { updates: updatesList, rows_data: activeTab.rows_data },
+              );
+              setDirtyUpdates({});
+              if (res.data?.data?.rows_data) {
+                setActiveTab((prev) =>
+                  prev ? { ...prev, rows_data: res.data.data.rows_data } : prev,
+                );
+              }
+            } catch (saveErr: any) {
+              console.error("Gagal menyimpan data:", saveErr);
+            } finally {
+              setSaving(false);
+            }
+
             setValidationModal({
               isOpen: true,
               rowIndex: rIdx,
@@ -1613,8 +1647,8 @@ export default function TestLocalTableKatim() {
               Array.from(new Set([...prev, rKey, rIdx])),
             );
 
-            setErrorMsg(
-              `Anda harus mengisi kolom Kendala dan Rencana Tindak Lanjut (RTL) pada ${mName} terlebih dahulu.`,
+            setSuccessMsg(
+              `Data angka Anda berhasil disimpan ke sistem! Mohon lengkapi catatan Kendala dan RTL pada ${mName}.`,
             );
 
             // Scroll ke baris tabel
@@ -1624,7 +1658,7 @@ export default function TestLocalTableKatim() {
             if (rowElem) {
               rowElem.scrollIntoView({ behavior: "smooth", block: "center" });
             }
-            return; // Blokir penyimpanan perubahan!
+            return;
           }
         }
       }
@@ -1767,11 +1801,22 @@ export default function TestLocalTableKatim() {
         formatted,
         targetRowIdx,
       );
-      if (res.data?.data?.rows_data) {
-        setActiveTab((prev) =>
-          prev ? { ...prev, rows_data: res.data.data.rows_data } : prev,
-        );
-      }
+      // Update HANYA sel kendala/RTL di activeTab lokal agar tidak menghapus inputan angka di kolom lain
+      setActiveTab((prev) => {
+        if (!prev) return prev;
+        const newRows = [...prev.rows_data];
+        if (newRows[targetRowIdx]) {
+          newRows[targetRowIdx] = {
+            ...newRows[targetRowIdx],
+            is_updated: true,
+            cells: {
+              ...newRows[targetRowIdx].cells,
+              [collabModal.colKey]: formatted,
+            },
+          };
+        }
+        return { ...prev, rows_data: newRows };
+      });
       setCollabModal(null);
     } catch (err: any) {
       // Jika request API gagal, tetap simpan ke state tabel lokal
@@ -2412,6 +2457,56 @@ export default function TestLocalTableKatim() {
                   </>
                 )}
               </button>
+            )}
+
+            {/* Tombol Unduh Excel RHPK dengan Tanda Tangan Kabalai (Point 3) */}
+            {activeSpreadsheet && (
+              <div className="relative inline-block text-left">
+                <button
+                  type="button"
+                  onClick={() => setShowExportDropdown((prev) => !prev)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-white px-4 py-2.5 text-xs font-bold text-emerald-800 shadow-xs hover:bg-emerald-50 transition"
+                  title="Unduh file Excel dokumen RHPK lengkap dengan format Tanda Tangan Kabalai"
+                >
+                  <Icon icon="solar:file-download-bold" width={16} className="text-emerald-600" />
+                  <span>Unduh Excel (RHPK)</span>
+                  <Icon icon="solar:alt-arrow-down-linear" width={14} className="text-slate-400" />
+                </button>
+
+                {showExportDropdown && (
+                  <div className="absolute right-0 z-50 mt-1.5 w-64 origin-top-right rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl ring-1 ring-black/5 animate-in fade-in zoom-in-95">
+                    <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 border-b border-slate-100">
+                      PILIH PERIODE UNDUH (RHPK)
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleExportExcel("locked")}
+                      className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-lg flex flex-col gap-0.5 transition"
+                    >
+                      <div className="font-bold flex items-center gap-1.5">
+                        <Icon icon="solar:lock-keyhole-bold" width={13} className="text-amber-500" />
+                        <span>Bulan Terkunci (Final)</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500">
+                        Khusus bulan final terkunci + Tanda Tangan Kabalai
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleExportExcel("all")}
+                      className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg flex flex-col gap-0.5 transition"
+                    >
+                      <div className="font-bold flex items-center gap-1.5">
+                        <Icon icon="solar:calendar-bold" width={13} className="text-blue-500" />
+                        <span>Semua Bulan (1 - 12)</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500">
+                        Unduh seluruh 12 bulan + Tanda Tangan Kabalai
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -3298,26 +3393,30 @@ export default function TestLocalTableKatim() {
                         highlightedIncompleteRows.includes(rowIdxNum) ||
                         highlightedIncompleteRows.includes(originalIdx);
 
+                      const isUpdatedRow = Boolean(row.is_updated);
+                      const isDirtyRow = Object.values(dirtyUpdates).some(
+                        (up) =>
+                          (up.row_index !== undefined && up.row_index === originalIdx) ||
+                          (up.month !== undefined && up.month === row.month),
+                      );
+                      const isRowFilled = isUpdatedRow || isDirtyRow;
+
                       return (
                         <tr
                           key={rowKey}
                           id={`local-row-${rowKey}`}
                           className={`transition ${
                             isHighlightedIncomplete
-                              ? "ring-2 ring-inset ring-amber-400 bg-amber-50/40"
+                              ? "ring-2 ring-inset ring-amber-400 bg-amber-50/60"
                               : isSectionRow
                                 ? "bg-slate-100 font-bold border-y border-slate-300 text-slate-900"
                                 : isFormulaRow
                                   ? "bg-emerald-50/70 font-bold border-y border-emerald-300 text-slate-900 hover:bg-emerald-100/60"
                                   : isTotalRow
                                     ? "bg-emerald-50/70 font-bold border-t-2 border-emerald-300 text-slate-900 hover:bg-emerald-100/60"
-                                    : isCurrent
-                                      ? "bg-blue-50/20 font-medium"
-                                      : isMonthLocked
-                                        ? "bg-slate-50/40"
-                                        : !canEditThisRow
-                                          ? "bg-slate-50/20 opacity-80"
-                                          : "hover:bg-slate-50/80"
+                                    : isRowFilled
+                                      ? "bg-emerald-500/[0.08] hover:bg-emerald-500/[0.14] border-l-4 border-l-emerald-500"
+                                      : "bg-rose-500/[0.07] hover:bg-rose-500/[0.13] border-l-4 border-l-rose-400"
                           }`}
                         >
                           {displayedColumnsSchema.map((col, cIdx) => {
@@ -3486,6 +3585,57 @@ export default function TestLocalTableKatim() {
                               );
                             }
 
+                            // Kolom angka kolaboratif multi-katim (Point 6)
+                            const isCollabNumeric =
+                              canEditCell &&
+                              col.type !== "formula" &&
+                              col.type !== "readonly" &&
+                              !isCollab &&
+                              Array.isArray(col.allowed_katim_ids) &&
+                              col.allowed_katim_ids.length > 1;
+
+                            if (isCollabNumeric) {
+                              const contribs = (row.cells?.[col.key + "_contributors"] || {}) as Record<string, any>;
+                              const contribList = Object.values(contribs) as Array<{
+                                author?: string;
+                                value?: number;
+                                updated_at?: string;
+                                user_id?: string;
+                              }>;
+
+                              return (
+                                <td
+                                  key={col.key}
+                                  className={`p-1.5 border-r border-slate-100 last:border-r-0 ${stickyTdClass} bg-indigo-50/20`}
+                                >
+                                  <div className="flex flex-col items-end gap-1">
+                                    <div className="flex items-center justify-between w-full gap-1.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenCollabNumModal(row, col, rowIdxNum)}
+                                        className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-100 hover:bg-indigo-200 text-indigo-800 border border-indigo-300 transition shadow-2xs cursor-pointer"
+                                        title="Klik untuk membuka rincian kontributor & input angka Anda"
+                                      >
+                                        <Icon icon="solar:users-group-rounded-bold" width={12} className="text-indigo-600" />
+                                        <span>{contribList.length > 0 ? `${contribList.length} Katim` : "Isi Angka"}</span>
+                                      </button>
+                                      <span className="font-mono font-bold text-xs text-slate-900 pr-1">
+                                        {val !== "" ? String(val) : "0"}
+                                      </span>
+                                    </div>
+                                    {contribList.length > 0 && (
+                                      <div
+                                        className="text-[10px] text-slate-500 font-sans line-clamp-1 text-right max-w-[170px]"
+                                        title={contribList.map((c) => `${c.author || "Katim"}: ${c.value ?? 0}`).join(", ")}
+                                      >
+                                        {contribList.map((c) => `${(c.author || "Katim").split(" ")[0]}: ${c.value ?? 0}`).join(", ")}
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                              );
+                            }
+
                             // Kolom standar editable (input angka/teks)
                             if (canEditCell) {
                               return (
@@ -3593,6 +3743,12 @@ export default function TestLocalTableKatim() {
                                 ) &&
                                   col.key === "col_0"));
 
+                            const showStatusBadge =
+                              (isBulanCol || col.key === "col_0" || cIdx === 0) &&
+                              !isSectionRow &&
+                              !isTotalRow &&
+                              !isFormulaRow;
+
                             return (
                               <td
                                 key={col.key}
@@ -3612,8 +3768,21 @@ export default function TestLocalTableKatim() {
                                           : "text-slate-600"
                                 }`}
                               >
-                                <div className="flex items-center justify-between gap-2">
-                                  <span>{val !== "" ? String(val) : "-"}</span>
+                                <div className="flex items-center justify-between gap-1.5">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span>{val !== "" ? String(val) : "-"}</span>
+                                    {showStatusBadge && (
+                                      <span
+                                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${
+                                          isRowFilled
+                                            ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                            : "bg-rose-100 text-rose-700 border border-rose-300"
+                                        }`}
+                                      >
+                                        {isRowFilled ? "✓ Terisi" : "Belum Diisi"}
+                                      </span>
+                                    )}
+                                  </div>
                                   {showLockedBadge && (
                                     <span className="rounded bg-slate-200 px-1 py-0.2 text-[9px] text-slate-600">
                                       Terkunci

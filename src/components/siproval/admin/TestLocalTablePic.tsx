@@ -1099,16 +1099,56 @@ export default function TestLocalTablePic() {
                 </Link>
               )}
               {activeSpreadsheet && (
-                <a
-                  href={`${baseUrl}/api/test-local-table/spreadsheet/${activeSpreadsheet.id}/download`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-600 bg-emerald-50 px-4 py-2 text-xs font-bold text-emerald-800 shadow-xs transition hover:bg-emerald-100"
-                  title="Unduh file Excel lengkap hasil pengisian RHPK untuk dokumen ini"
-                >
-                  <Icon icon="ri:file-excel-2-fill" width={16} className="text-emerald-700" />
-                  <span>Unduh File Excel Lengkap (.xlsx)</span>
-                </a>
+                <div className="relative inline-block text-left">
+                  <button
+                    type="button"
+                    onClick={() => setShowExportDropdown((prev) => !prev)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-600 bg-emerald-50 px-4 py-2 text-xs font-bold text-emerald-800 shadow-xs transition hover:bg-emerald-100"
+                    title="Unduh file Excel RHPK dengan Tanda Tangan Kabalai"
+                  >
+                    <Icon icon="ri:file-excel-2-fill" width={16} className="text-emerald-700" />
+                    <span>Unduh Excel (RHPK)</span>
+                    <Icon icon="solar:alt-arrow-down-linear" width={14} className="text-emerald-700" />
+                  </button>
+
+                  {showExportDropdown && (
+                    <div className="absolute right-0 z-50 mt-1.5 w-64 origin-top-right rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl ring-1 ring-black/5 animate-in fade-in zoom-in-95">
+                      <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 border-b border-slate-100">
+                        PILIH PERIODE UNDUH (RHPK)
+                      </div>
+                      <a
+                        href={`${baseUrl}/api/test-local-table/spreadsheet/${activeSpreadsheet.id}/export?mode=locked`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setShowExportDropdown(false)}
+                        className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-lg flex flex-col gap-0.5 transition block"
+                      >
+                        <div className="font-bold flex items-center gap-1.5">
+                          <Icon icon="solar:lock-keyhole-bold" width={13} className="text-amber-500" />
+                          <span>Bulan Terkunci (Final)</span>
+                        </div>
+                        <span className="text-[10px] text-slate-500">
+                          Khusus bulan final terkunci + Tanda Tangan Kabalai
+                        </span>
+                      </a>
+                      <a
+                        href={`${baseUrl}/api/test-local-table/spreadsheet/${activeSpreadsheet.id}/export?mode=all`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setShowExportDropdown(false)}
+                        className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg flex flex-col gap-0.5 transition block"
+                      >
+                        <div className="font-bold flex items-center gap-1.5">
+                          <Icon icon="solar:calendar-bold" width={13} className="text-blue-500" />
+                          <span>Semua Bulan (1 - 12)</span>
+                        </div>
+                        <span className="text-[10px] text-slate-500">
+                          Unduh seluruh 12 bulan + Tanda Tangan Kabalai
+                        </span>
+                      </a>
+                    </div>
+                  )}
+                </div>
               )}
               <button
                 type="button"
@@ -1700,6 +1740,8 @@ export default function TestLocalTablePic() {
                       displayedHeaderGroups && !displayedHeaderGroups[0]?.parent && numLeftCols > 1
                     );
 
+                    const isRowFilled = Boolean(row.is_updated);
+
                     return (
                       <tr
                         key={`pic_row_${row.row_index ?? rIdx}_${row.cells?.[monthColKey || 'col_2'] ?? ''}_${row.cells?.col_0 ?? ''}_${rIdx}`}
@@ -1710,7 +1752,9 @@ export default function TestLocalTablePic() {
                             ? "bg-emerald-50/70 border-y border-emerald-300 font-bold"
                             : isTotalRow
                             ? "bg-emerald-50/70 border-t-2 border-emerald-300 font-bold"
-                            : "hover:bg-blue-50/30"
+                            : isRowFilled
+                            ? "bg-emerald-500/[0.08] hover:bg-emerald-500/[0.14] border-l-4 border-l-emerald-500"
+                            : "bg-rose-500/[0.07] hover:bg-rose-500/[0.13] border-l-4 border-l-rose-400"
                         }`}
                       >
                         {displayedColumnsSchema?.map((col, cIdx) => {

@@ -18,6 +18,8 @@ export interface IndicatorItem {
   tab_id?: number | null;
   label: string;
   sasaran: string;
+  sasaran_kode?: string;
+  sasaran_nama?: string;
   target_tahunan: string;
   target_bulan: string;
   realisasi_bulan: string;
@@ -673,8 +675,13 @@ export default function CatatanMonev() {
                           {ind.label}
                         </Link>
                         {ind.sasaran && (
-                          <div className="mt-1 text-[11px] text-slate-500 line-clamp-2">
-                            {ind.sasaran}
+                          <div className="mt-1 flex items-start gap-1.5 text-[11px] text-slate-500">
+                            <span className="inline-block px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-700 font-semibold text-[10px] shrink-0">
+                              Sasaran {ind.sasaran_kode || (ind.sasaran.includes(' - ') ? ind.sasaran.split(' - ')[0] : '01')}
+                            </span>
+                            <span className="line-clamp-2 text-slate-600">
+                              {ind.sasaran_nama || (ind.sasaran.includes(' - ') ? ind.sasaran.substring(ind.sasaran.indexOf(' - ') + 3) : ind.sasaran)}
+                            </span>
                           </div>
                         )}
                       </td>
