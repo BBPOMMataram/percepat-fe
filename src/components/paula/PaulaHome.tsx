@@ -21,6 +21,16 @@ export default function PaulaHome() {
 
     const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_PAULA;
 
+    const handleLogout = async () => {
+        try {
+            const authURL = process.env.NEXT_PUBLIC_BACKEND_URL_AUTH;
+            await api.post(`${authURL}/api/logout`);
+        } catch (error) {
+            console.error("Gagal logout:", error);
+        }
+        window.location.href = '/';
+    };
+
     useEffect(() => {
         dispatch(getUser());
     }, [dispatch]);
@@ -29,6 +39,11 @@ export default function PaulaHome() {
         if (!authLoading && !user) {
             router.replace("/login?redirectUrl=/paula");
         } else if (user) {
+            // Sinkronkan data user ke PAULA jika belum
+            if (baseURL) {
+                api.post(`${baseURL}/api/paula/sync-user`, user).catch(() => {});
+            }
+
             // Cek role user spesifik di PAULA (terutama is_security & is_admin)
             api.get(`${baseURL}/api/paula/user/me`)
                 .then((res) => {
@@ -108,7 +123,7 @@ export default function PaulaHome() {
                                         alt={user.name || "Foto Profil"}
                                         className="w-full h-full object-cover"
                                         onError={(e) => {
-                                            e.currentTarget.src = "/assets/images/noimage.svg";
+                                             e.currentTarget.src = "/assets/images/noimage.svg";
                                         }}
                                     />
                                 </div>
@@ -119,14 +134,14 @@ export default function PaulaHome() {
                                     </span>
                                 </div>
                             </div>
-                            <Link
-                                href="/logout"
-                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200/60 transition"
+                            <button
+                                onClick={handleLogout}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200/60 transition cursor-pointer"
                                 title="Keluar dari Akun"
                             >
                                 <span className="material-symbols-outlined text-[16px]">logout</span>
                                 <span className="hidden sm:inline">Keluar</span>
-                            </Link>
+                            </button>
                         </div>
                     )}
                 </div>
@@ -201,20 +216,6 @@ export default function PaulaHome() {
                                         Reservasi ruang rapat internal & aula pertemuan dinas
                                     </p>
                                 </div>
-                                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
-                                <div className="absolute top-4 left-4">
-                                    <span className="px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-slate-800 text-[11px] font-extrabold shadow-sm">
-                                        Ruang Pertemuan & Rapat
-                                    </span>
-                                </div>
-                                <div className="absolute bottom-4 left-4 right-4">
-                                    <h3 className="text-2xl font-black text-white tracking-tight group-hover:text-blue-300 transition-colors">
-                                        Peminjaman Aula
-                                    </h3>
-                                    <p className="text-xs text-slate-200 mt-1 line-clamp-1">
-                                        Reservasi ruang rapat internal & aula pertemuan dinas
-                                    </p>
-                                </div>
                             </div>
 
                             <div className="p-6 space-y-4">
@@ -251,20 +252,6 @@ export default function PaulaHome() {
                                     alt="Armada Mobil Dinas" 
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
-                                <div className="absolute top-4 left-4">
-                                    <span className="px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-slate-800 text-[11px] font-extrabold shadow-sm">
-                                        Armada Operasional Kedinasan
-                                    </span>
-                                </div>
-                                <div className="absolute bottom-4 left-4 right-4">
-                                    <h3 className="text-2xl font-black text-white tracking-tight group-hover:text-emerald-300 transition-colors">
-                                        Peminjaman Mobil
-                                    </h3>
-                                    <p className="text-xs text-slate-200 mt-1 line-clamp-1">
-                                        Pengajuan kendaraan operasional & perjalanan dinas lapangan
-                                    </p>
-                                </div>
                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
                                 <div className="absolute top-4 left-4">
                                     <span className="px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-slate-800 text-[11px] font-extrabold shadow-sm">

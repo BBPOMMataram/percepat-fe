@@ -117,7 +117,7 @@ export default function DashboardPaulaAdmin() {
             setPengajuans(resAula.data.pengajuans || []);
             setEditRequests(resAula.data.pengajuanEditRequests || []);
             setPendingRequests(resAula.data.pendingPengajuan || []);
-            
+
             // Ambil Data Mobil
             const resMobil = await api.get(`${baseURL}/api/paula/admin/mobil/dashboard`);
             setMobilPengajuans(resMobil.data.pengajuans || []);
@@ -125,8 +125,8 @@ export default function DashboardPaulaAdmin() {
 
             const resMaster = await api.get(`${baseURL}/api/paula/mobils`);
             setMasterMobils(resMaster.data.data || resMaster.data || []);
-            
-                        // Pengaturan
+
+            // Pengaturan
             const resSet = await api.get(`${baseURL}/api/paula/settings`);
             setSettings(resSet.data);
 
@@ -136,13 +136,13 @@ export default function DashboardPaulaAdmin() {
                     setSecurityUsers(res.data?.security_users || []);
                     setAllUsersList(res.data?.all_users || []);
                 })
-                .catch(() => {});
+                .catch(() => { });
 
             api.get(`${baseURL}/api/paula/admin/mobil/service-status`)
                 .then((res) => {
                     setServiceMonitoringList(res.data?.mobils || res.data || []);
                 })
-                .catch(() => {});
+                .catch(() => { });
 
             api.get(`${baseURL}/api/paula/admin/mobil/kerusakan`)
                 .then((res) => {
@@ -156,7 +156,7 @@ export default function DashboardPaulaAdmin() {
                 .catch(() => {
                     setKerusakanAlerts([]);
                 });
-            
+
         } catch (error) {
             toast.error("Gagal mengambil data dashboard admin");
         } finally {
@@ -180,10 +180,13 @@ export default function DashboardPaulaAdmin() {
             if (!canAccessAdmin) {
                 router.replace('/unauthorized');
             } else {
+                if (baseURL) {
+                    api.post(`${baseURL}/api/paula/sync-user`, user).catch(() => { });
+                }
                 fetchData();
             }
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, router]);
 
     // ================== LOGIKA AULA ==================
@@ -289,7 +292,7 @@ export default function DashboardPaulaAdmin() {
             setEditTimeConflict(false);
             setEditConflictMessage("");
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editFormData.waktu_selesai, editFormData.waktu_mulai, editFormData.tanggal_pinjam, editFormData.aula, editAulaModal]);
 
     const handleSaveEditAula = async (e: React.FormEvent) => {
@@ -406,7 +409,7 @@ export default function DashboardPaulaAdmin() {
         } catch (error) { toast.error("Gagal menghapus mobil"); }
     };
 
-    
+
     // ================== LOGIKA SECURITY & SERVIS (AUTH BPOM) ==================
     const openAddSecurityModal = async () => {
         setShowSecurityModal(true);
@@ -442,7 +445,7 @@ export default function DashboardPaulaAdmin() {
             toast.success(res.data.message || `Pegawai ${selectedAuthEmployee.name} berhasil dijadikan Security Pos Jaga!`);
             setShowSecurityModal(false);
             setSelectedAuthEmployee(null);
-            
+
             // Refresh daftar security
             const resSec = await api.get(`${baseURL}/api/paula/admin/security-users`);
             setSecurityUsers(resSec.data?.security_users || []);
@@ -495,7 +498,7 @@ export default function DashboardPaulaAdmin() {
             if (rejectModal.type === 'pengajuan') url = `${baseURL}/api/paula/admin/reject-pengajuan/${rejectModal.id}`;
             else if (rejectModal.type === 'edit') url = `${baseURL}/api/paula/admin/reject-edit/${rejectModal.id}`;
             else if (rejectModal.type === 'pengajuan_mobil') url = `${baseURL}/api/paula/admin/mobil/reject-pengajuan/${rejectModal.id}`;
-            
+
             await api.patch(url, { edit_reject_reason: rejectReason });
             toast.success("Penolakan berhasil dikirim");
             setRejectModal(null);
@@ -585,13 +588,12 @@ export default function DashboardPaulaAdmin() {
 
                 {/* 4 Stat Overview Quick Cards */}
                 <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/10">
-                    <div 
+                    <div
                         onClick={() => setActiveTab('aula')}
-                        className={`p-3.5 rounded-2xl transition cursor-pointer border ${
-                            activeTab === 'aula' 
-                                ? 'bg-white/15 border-blue-400/50 ring-1 ring-blue-400/30' 
+                        className={`p-3.5 rounded-2xl transition cursor-pointer border ${activeTab === 'aula'
+                                ? 'bg-white/15 border-blue-400/50 ring-1 ring-blue-400/30'
                                 : 'bg-white/5 border-white/5 hover:bg-white/10'
-                        }`}
+                            }`}
                     >
                         <div className="flex items-center justify-between">
                             <span className="text-[11px] font-bold text-slate-300">Kegiatan Aula</span>
@@ -612,13 +614,12 @@ export default function DashboardPaulaAdmin() {
                         )}
                     </div>
 
-                    <div 
+                    <div
                         onClick={() => { setActiveTab('mobil'); setMobilActiveSubTab('pengajuan'); }}
-                        className={`p-3.5 rounded-2xl transition cursor-pointer border ${
-                            activeTab === 'mobil' && mobilActiveSubTab === 'pengajuan'
-                                ? 'bg-white/15 border-indigo-400/50 ring-1 ring-indigo-400/30' 
+                        className={`p-3.5 rounded-2xl transition cursor-pointer border ${activeTab === 'mobil' && mobilActiveSubTab === 'pengajuan'
+                                ? 'bg-white/15 border-indigo-400/50 ring-1 ring-indigo-400/30'
                                 : 'bg-white/5 border-white/5 hover:bg-white/10'
-                        }`}
+                            }`}
                     >
                         <div className="flex items-center justify-between">
                             <span className="text-[11px] font-bold text-slate-300">Peminjaman Mobil</span>
@@ -639,13 +640,12 @@ export default function DashboardPaulaAdmin() {
                         )}
                     </div>
 
-                    <div 
+                    <div
                         onClick={() => { setActiveTab('mobil'); setMobilActiveSubTab('master'); }}
-                        className={`p-3.5 rounded-2xl transition cursor-pointer border ${
-                            activeTab === 'mobil' && mobilActiveSubTab === 'master'
-                                ? 'bg-white/15 border-indigo-400/50 ring-1 ring-indigo-400/30' 
+                        className={`p-3.5 rounded-2xl transition cursor-pointer border ${activeTab === 'mobil' && mobilActiveSubTab === 'master'
+                                ? 'bg-white/15 border-indigo-400/50 ring-1 ring-indigo-400/30'
                                 : 'bg-white/5 border-white/5 hover:bg-white/10'
-                        }`}
+                            }`}
                     >
                         <div className="flex items-center justify-between">
                             <span className="text-[11px] font-bold text-slate-300">Armada Mobil</span>
@@ -662,13 +662,12 @@ export default function DashboardPaulaAdmin() {
                         </span>
                     </div>
 
-                    <div 
+                    <div
                         onClick={() => { setActiveTab('mobil'); setMobilActiveSubTab((kerusakanAlerts?.length || 0) > 0 ? 'servis' : 'security'); }}
-                        className={`p-3.5 rounded-2xl transition cursor-pointer border ${
-                            activeTab === 'mobil' && (mobilActiveSubTab === 'servis' || mobilActiveSubTab === 'security')
-                                ? 'bg-white/15 border-indigo-400/50 ring-1 ring-indigo-400/30' 
+                        className={`p-3.5 rounded-2xl transition cursor-pointer border ${activeTab === 'mobil' && (mobilActiveSubTab === 'servis' || mobilActiveSubTab === 'security')
+                                ? 'bg-white/15 border-indigo-400/50 ring-1 ring-indigo-400/30'
                                 : 'bg-white/5 border-white/5 hover:bg-white/10'
-                        }`}
+                            }`}
                     >
                         <div className="flex items-center justify-between">
                             <span className="text-[11px] font-bold text-slate-300">Servis & Security</span>
@@ -689,14 +688,13 @@ export default function DashboardPaulaAdmin() {
 
             {/* SWITCH TAB AULA / MOBIL (SEGMENTED PILL) */}
             <div className="bg-slate-100/90 p-1.5 rounded-2xl flex items-center gap-1.5 max-w-xl mb-6 border border-slate-200/80 shadow-2xs">
-                <button 
+                <button
                     type="button"
                     onClick={() => setActiveTab('aula')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-extrabold text-xs md:text-sm transition-all cursor-pointer ${
-                        activeTab === 'aula' 
-                        ? 'bg-white text-blue-700 shadow-sm border border-slate-200/60' 
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-                    }`}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-extrabold text-xs md:text-sm transition-all cursor-pointer ${activeTab === 'aula'
+                            ? 'bg-white text-blue-700 shadow-sm border border-slate-200/60'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                        }`}
                 >
                     <span className="material-symbols-outlined text-[18px]">meeting_room</span>
                     <span>Peminjaman Aula</span>
@@ -706,14 +704,13 @@ export default function DashboardPaulaAdmin() {
                         </span>
                     )}
                 </button>
-                <button 
+                <button
                     type="button"
                     onClick={() => setActiveTab('mobil')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-extrabold text-xs md:text-sm transition-all cursor-pointer ${
-                        activeTab === 'mobil' 
-                        ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/60' 
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-                    }`}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-extrabold text-xs md:text-sm transition-all cursor-pointer ${activeTab === 'mobil'
+                            ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/60'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                        }`}
                 >
                     <span className="material-symbols-outlined text-[18px]">directions_car</span>
                     <span>Peminjaman Mobil Dinas</span>
@@ -730,7 +727,7 @@ export default function DashboardPaulaAdmin() {
             {/* ======================================================== */}
             {activeTab === 'aula' && (
                 <div className="space-y-6 animate-in fade-in duration-300">
-                    
+
                     {/* ACTION ALERTS: PENDING REQUESTS AULA */}
                     {pendingRequests.length > 0 && (
                         <div className="space-y-3">
@@ -746,9 +743,8 @@ export default function DashboardPaulaAdmin() {
                                     <div key={req.id} className="bg-white border-l-4 border-l-blue-600 border border-slate-200/80 rounded-2xl p-5 shadow-xs hover:shadow-md transition flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                                         <div className="space-y-1.5">
                                             <div className="flex flex-wrap items-center gap-2">
-                                                <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
-                                                    req.aula === 'besar' ? 'bg-indigo-100 text-indigo-800' : 'bg-purple-100 text-purple-800'
-                                                }`}>
+                                                <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${req.aula === 'besar' ? 'bg-indigo-100 text-indigo-800' : 'bg-purple-100 text-purple-800'
+                                                    }`}>
                                                     Aula {req.aula}
                                                 </span>
                                                 <span className="text-xs font-semibold text-slate-500">
@@ -757,29 +753,29 @@ export default function DashboardPaulaAdmin() {
                                             </div>
                                             <h4 className="text-sm font-extrabold text-slate-900 leading-snug">{req.nama_kegiatan}</h4>
                                             <p className="text-xs text-slate-600 font-medium">
-                                                Pengusul: <strong className="text-slate-800">{req.user?.name || req.fungsi_pengusul}</strong> • Pelaksanaan: <span className="font-bold text-blue-700">{new Date(req.tanggal_pinjam).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} ({req.waktu_mulai?.slice(0,5)} - {req.waktu_selesai?.slice(0,5)} WITA)</span>
+                                                Pengusul: <strong className="text-slate-800">{req.user?.name || req.fungsi_pengusul}</strong> • Pelaksanaan: <span className="font-bold text-blue-700">{new Date(req.tanggal_pinjam).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} ({req.waktu_mulai?.slice(0, 5)} - {req.waktu_selesai?.slice(0, 5)} WITA)</span>
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setDetailPengajuanModal(req)} 
+                                            <button
+                                                type="button"
+                                                onClick={() => setDetailPengajuanModal(req)}
                                                 className="flex-1 md:flex-none px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
                                             >
                                                 <span className="material-symbols-outlined text-[16px]">visibility</span>
                                                 Rincian
                                             </button>
-                                            <button 
-                                                type="button" 
-                                                onClick={() => handleApprovePengajuan(req.id)} 
+                                            <button
+                                                type="button"
+                                                onClick={() => handleApprovePengajuan(req.id)}
                                                 className="flex-1 md:flex-none px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                                             >
                                                 <span className="material-symbols-outlined text-[16px]">check</span>
                                                 Setujui
                                             </button>
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setRejectModal({ id: req.id, type: 'pengajuan' })} 
+                                            <button
+                                                type="button"
+                                                onClick={() => setRejectModal({ id: req.id, type: 'pengajuan' })}
                                                 className="flex-1 md:flex-none px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                                             >
                                                 <span className="material-symbols-outlined text-[16px]">close</span>
@@ -820,25 +816,25 @@ export default function DashboardPaulaAdmin() {
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setDetailPengajuanModal(req)} 
+                                            <button
+                                                type="button"
+                                                onClick={() => setDetailPengajuanModal(req)}
                                                 className="flex-1 md:flex-none px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
                                             >
                                                 <span className="material-symbols-outlined text-[16px]">visibility</span>
                                                 Rincian
                                             </button>
-                                            <button 
-                                                type="button" 
-                                                onClick={() => handleApproveEdit(req.id)} 
+                                            <button
+                                                type="button"
+                                                onClick={() => handleApproveEdit(req.id)}
                                                 className="flex-1 md:flex-none px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                                             >
                                                 <span className="material-symbols-outlined text-[16px]">check</span>
                                                 Izinkan Edit
                                             </button>
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setRejectModal({ id: req.id, type: 'edit' })} 
+                                            <button
+                                                type="button"
+                                                onClick={() => setRejectModal({ id: req.id, type: 'edit' })}
                                                 className="flex-1 md:flex-none px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                                             >
                                                 <span className="material-symbols-outlined text-[16px]">close</span>
@@ -876,7 +872,7 @@ export default function DashboardPaulaAdmin() {
                                         className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:border-blue-500 focus:outline-none bg-slate-50 focus:bg-white transition"
                                     />
                                     {searchAula && (
-                                        <button 
+                                        <button
                                             type="button"
                                             onClick={() => setSearchAula("")}
                                             className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
@@ -898,9 +894,9 @@ export default function DashboardPaulaAdmin() {
                                 </select>
 
                                 {/* Settings Button */}
-                                <button 
+                                <button
                                     type="button"
-                                    onClick={() => setShowSettingsModal(true)} 
+                                    onClick={() => setShowSettingsModal(true)}
                                     className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-sm cursor-pointer shrink-0"
                                 >
                                     <span className="material-symbols-outlined text-[16px]">settings</span>
@@ -949,31 +945,30 @@ export default function DashboardPaulaAdmin() {
                                                 </div>
                                                 <div className="text-[11px] text-blue-600 font-bold mt-0.5 flex items-center gap-1">
                                                     <span className="material-symbols-outlined text-[13px]">schedule</span>
-                                                    {p.waktu_mulai.slice(0,5)} - {p.waktu_selesai.slice(0,5)} WITA
+                                                    {p.waktu_mulai.slice(0, 5)} - {p.waktu_selesai.slice(0, 5)} WITA
                                                 </div>
                                             </td>
                                             <td className="px-5 py-4">
-                                                <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
-                                                    p.aula === 'besar' 
-                                                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' 
+                                                <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${p.aula === 'besar'
+                                                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
                                                         : 'bg-purple-50 text-purple-700 border border-purple-200'
-                                                }`}>
+                                                    }`}>
                                                     Aula {p.aula}
                                                 </span>
                                             </td>
                                             <td className="px-5 py-4 text-center">
                                                 <div className="flex items-center justify-center gap-1.5">
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => handleOpenEditAula(p)} 
-                                                        className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-600 transition flex items-center justify-center shadow-2xs cursor-pointer" 
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenEditAula(p)}
+                                                        className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-600 transition flex items-center justify-center shadow-2xs cursor-pointer"
                                                         title="Edit Pengajuan"
                                                     >
                                                         <span className="material-symbols-outlined text-[16px]">edit</span>
                                                     </button>
-                                                    <button 
+                                                    <button
                                                         type="button"
-                                                        onClick={() => handleDelete(p.id)} 
+                                                        onClick={() => handleDelete(p.id)}
                                                         className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-600 transition flex items-center justify-center shadow-2xs cursor-pointer"
                                                         title="Hapus Pengajuan"
                                                     >
@@ -1008,18 +1003,17 @@ export default function DashboardPaulaAdmin() {
             {/* ======================================================== */}
             {activeTab === 'mobil' && (
                 <div className="space-y-6 animate-in fade-in duration-300">
-                    
+
                     {/* SUB-NAVIGASI TAB MOBIL */}
                     <div className="bg-white p-2.5 rounded-2xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
                         <div className="flex flex-wrap items-center gap-1.5">
                             <button
                                 type="button"
                                 onClick={() => setMobilActiveSubTab('pengajuan')}
-                                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                                    mobilActiveSubTab === 'pengajuan'
+                                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${mobilActiveSubTab === 'pengajuan'
                                         ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
                                         : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                                }`}
+                                    }`}
                             >
                                 <span className="material-symbols-outlined text-[16px]">assignment</span>
                                 <span>Pengajuan & Persetujuan</span>
@@ -1033,11 +1027,10 @@ export default function DashboardPaulaAdmin() {
                             <button
                                 type="button"
                                 onClick={() => setMobilActiveSubTab('master')}
-                                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                                    mobilActiveSubTab === 'master'
+                                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${mobilActiveSubTab === 'master'
                                         ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
                                         : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                                }`}
+                                    }`}
                             >
                                 <span className="material-symbols-outlined text-[16px]">directions_car</span>
                                 <span>Master Armada ({masterMobils.length})</span>
@@ -1046,11 +1039,10 @@ export default function DashboardPaulaAdmin() {
                             <button
                                 type="button"
                                 onClick={() => setMobilActiveSubTab('servis')}
-                                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                                    mobilActiveSubTab === 'servis'
+                                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${mobilActiveSubTab === 'servis'
                                         ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
                                         : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                                }`}
+                                    }`}
                             >
                                 <span className="material-symbols-outlined text-[16px]">build_circle</span>
                                 <span>Status & Servis Rutin</span>
@@ -1064,11 +1056,10 @@ export default function DashboardPaulaAdmin() {
                             <button
                                 type="button"
                                 onClick={() => setMobilActiveSubTab('security')}
-                                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                                    mobilActiveSubTab === 'security'
+                                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${mobilActiveSubTab === 'security'
                                         ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
                                         : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                                }`}
+                                    }`}
                             >
                                 <span className="material-symbols-outlined text-[16px]">shield_person</span>
                                 <span>Akun Security Pos Jaga ({securityUsers.length})</span>
@@ -1140,25 +1131,25 @@ export default function DashboardPaulaAdmin() {
                                                     </p>
                                                 </div>
                                                 <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => setDetailMobilModal(req)} 
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setDetailMobilModal(req)}
                                                         className="flex-1 md:flex-none px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
                                                     >
                                                         <span className="material-symbols-outlined text-[16px]">visibility</span>
                                                         Rincian
                                                     </button>
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => handleApproveMobil(req.id)} 
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleApproveMobil(req.id)}
                                                         className="flex-1 md:flex-none px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                                                     >
                                                         <span className="material-symbols-outlined text-[16px]">check</span>
                                                         Setujui
                                                     </button>
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => setRejectModal({ id: req.id, type: 'pengajuan_mobil' })} 
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setRejectModal({ id: req.id, type: 'pengajuan_mobil' })}
                                                         className="flex-1 md:flex-none px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                                                     >
                                                         <span className="material-symbols-outlined text-[16px]">close</span>
@@ -1200,7 +1191,7 @@ export default function DashboardPaulaAdmin() {
                                             className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:border-indigo-500 focus:outline-none bg-slate-50 focus:bg-white transition"
                                         />
                                         {searchMobil && (
-                                            <button 
+                                            <button
                                                 type="button"
                                                 onClick={() => setSearchMobil("")}
                                                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
@@ -1249,7 +1240,7 @@ export default function DashboardPaulaAdmin() {
                                                         </div>
                                                         <div className="text-[11px] text-indigo-600 font-bold mt-0.5 flex items-center gap-1">
                                                             <span className="material-symbols-outlined text-[13px]">schedule</span>
-                                                            {p.waktu_mulai?.slice(0,5)} {p.waktu_selesai ? `- ${p.waktu_selesai?.slice(0,5)} WITA` : 'WITA'}
+                                                            {p.waktu_mulai?.slice(0, 5)} {p.waktu_selesai ? `- ${p.waktu_selesai?.slice(0, 5)} WITA` : 'WITA'}
                                                         </div>
                                                     </td>
                                                     <td className="px-5 py-4">
@@ -1261,10 +1252,10 @@ export default function DashboardPaulaAdmin() {
                                                         </div>
                                                     </td>
                                                     <td className="px-5 py-4 text-center">
-                                                        <button 
+                                                        <button
                                                             type="button"
-                                                            onClick={() => handleDeleteMobil(p.id)} 
-                                                            className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-600 transition flex items-center justify-center shadow-2xs mx-auto cursor-pointer" 
+                                                            onClick={() => handleDeleteMobil(p.id)}
+                                                            className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-600 transition flex items-center justify-center shadow-2xs mx-auto cursor-pointer"
                                                             title="Hapus Pengajuan Mobil"
                                                         >
                                                             <span className="material-symbols-outlined text-[16px]">delete</span>
@@ -1300,12 +1291,12 @@ export default function DashboardPaulaAdmin() {
                                     <h3 className="font-black text-slate-900 text-base md:text-lg">Daftar Master Kendaraan Dinas</h3>
                                     <p className="text-xs text-slate-500 mt-0.5">Kelola data seluruh kendaraan operasional BBPOM di Mataram.</p>
                                 </div>
-                                <button 
+                                <button
                                     type="button"
                                     onClick={() => {
                                         setFormMobil(initialFormMobil);
                                         setShowMobilModal(true);
-                                    }} 
+                                    }}
                                     className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-500/25 transition-all cursor-pointer shrink-0"
                                 >
                                     <span className="material-symbols-outlined text-[16px]">add</span>
@@ -1322,30 +1313,32 @@ export default function DashboardPaulaAdmin() {
                                                     {mobil.plat_nomor}
                                                 </span>
                                                 <div className="flex gap-1">
-                                                    <button 
+                                                    <button
                                                         type="button"
-                                                        onClick={() => { setFormMobil({
-                                                            id: mobil.id,
-                                                            nama: mobil.nama || "",
-                                                            plat_nomor: mobil.plat_nomor || "",
-                                                            kapasitas: mobil.kapasitas || "",
-                                                            status: mobil.status || "tersedia",
-                                                            odometer_saat_ini: mobil.odometer_saat_ini || 0,
-                                                            terakhir_service_km: mobil.terakhir_service_km || 0,
-                                                            terakhir_service_tanggal: mobil.terakhir_service_tanggal ? mobil.terakhir_service_tanggal.split('T')[0] : "",
-                                                            interval_km_service: mobil.interval_km_service || 10000,
-                                                            interval_bulan_service: mobil.interval_bulan_service || 3,
-                                                            foto: mobil.foto || "",
-                                                        });
-                                                        setShowMobilModal(true); }} 
+                                                        onClick={() => {
+                                                            setFormMobil({
+                                                                id: mobil.id,
+                                                                nama: mobil.nama || "",
+                                                                plat_nomor: mobil.plat_nomor || "",
+                                                                kapasitas: mobil.kapasitas || "",
+                                                                status: mobil.status || "tersedia",
+                                                                odometer_saat_ini: mobil.odometer_saat_ini || 0,
+                                                                terakhir_service_km: mobil.terakhir_service_km || 0,
+                                                                terakhir_service_tanggal: mobil.terakhir_service_tanggal ? mobil.terakhir_service_tanggal.split('T')[0] : "",
+                                                                interval_km_service: mobil.interval_km_service || 10000,
+                                                                interval_bulan_service: mobil.interval_bulan_service || 3,
+                                                                foto: mobil.foto || "",
+                                                            });
+                                                            setShowMobilModal(true);
+                                                        }}
                                                         className="w-7 h-7 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition flex items-center justify-center cursor-pointer"
                                                         title="Edit Mobil"
                                                     >
                                                         <span className="material-symbols-outlined text-[16px]">edit</span>
                                                     </button>
-                                                    <button 
+                                                    <button
                                                         type="button"
-                                                        onClick={() => deleteMasterMobil(mobil.id)} 
+                                                        onClick={() => deleteMasterMobil(mobil.id)}
                                                         className="w-7 h-7 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition flex items-center justify-center cursor-pointer"
                                                         title="Hapus Mobil"
                                                     >
@@ -1372,11 +1365,10 @@ export default function DashboardPaulaAdmin() {
                                                 <span className="material-symbols-outlined text-[16px] text-indigo-600">group</span>
                                                 <span>{mobil.kapasitas} Kursi</span>
                                             </span>
-                                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                                                mobil.status === 'tersedia' 
-                                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
+                                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${mobil.status === 'tersedia'
+                                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                                                     : 'bg-rose-100 text-rose-800 border border-rose-200'
-                                            }`}>
+                                                }`}>
                                                 {mobil.status === 'tersedia' ? 'Tersedia' : 'Perbaikan'}
                                             </span>
                                         </div>
@@ -1458,13 +1450,12 @@ export default function DashboardPaulaAdmin() {
                                         const isUrgent = m.status_servis === 'wajib_servis' || m.kondisi_fisik === 'rusak';
 
                                         return (
-                                            <div 
-                                                key={m.id} 
-                                                className={`p-5 rounded-3xl border transition shadow-2xs space-y-3 ${
-                                                    isUrgent || isDue
+                                            <div
+                                                key={m.id}
+                                                className={`p-5 rounded-3xl border transition shadow-2xs space-y-3 ${isUrgent || isDue
                                                         ? 'bg-rose-50/50 border-rose-300'
                                                         : 'bg-white border-slate-200'
-                                                }`}
+                                                    }`}
                                             >
                                                 <div className="flex justify-between items-start">
                                                     <div>
@@ -1483,11 +1474,10 @@ export default function DashboardPaulaAdmin() {
                                                             <h4 className="font-extrabold text-slate-900 text-sm">{m.nama}</h4>
                                                         </div>
                                                     </div>
-                                                    <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
-                                                        isUrgent || isDue
+                                                    <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full ${isUrgent || isDue
                                                             ? 'bg-rose-100 text-rose-800 border border-rose-200'
                                                             : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                                    }`}>
+                                                        }`}>
                                                         {isUrgent || isDue ? 'Wajib Servis' : 'Kondisi Prima'}
                                                     </span>
                                                 </div>
@@ -1614,7 +1604,7 @@ export default function DashboardPaulaAdmin() {
                             </button>
                         </div>
                         <form onSubmit={submitReject}>
-                            <textarea 
+                            <textarea
                                 className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 focus:ring-2 focus:ring-rose-500 outline-none text-slate-700 min-h-[120px] resize-none font-medium text-sm"
                                 placeholder="Tuliskan alasan penolakan di sini..."
                                 value={rejectReason}
@@ -1645,7 +1635,7 @@ export default function DashboardPaulaAdmin() {
                                 <span className="material-symbols-outlined text-[24px]">close</span>
                             </button>
                         </div>
-                        
+
                         <form onSubmit={saveMasterMobil} className="space-y-4">
                             <div>
                                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Foto Kendaraan (Opsional)</label>
@@ -1674,22 +1664,22 @@ export default function DashboardPaulaAdmin() {
                                     </div>
                                 </div>
                                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Nama Mobil (Merk & Warna)</label>
-                                <input type="text" required value={formMobil.nama} onChange={e => setFormMobil({...formMobil, nama: e.target.value})} placeholder="Contoh: Toyota Innova Reborn (Hitam)" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm text-slate-800" />
+                                <input type="text" required value={formMobil.nama} onChange={e => setFormMobil({ ...formMobil, nama: e.target.value })} placeholder="Contoh: Toyota Innova Reborn (Hitam)" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm text-slate-800" />
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Plat Nomor Kendaraan</label>
-                                    <input type="text" required value={formMobil.plat_nomor} onChange={e => setFormMobil({...formMobil, plat_nomor: e.target.value})} placeholder="DR 1024 BP" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm uppercase text-slate-900" />
+                                    <input type="text" required value={formMobil.plat_nomor} onChange={e => setFormMobil({ ...formMobil, plat_nomor: e.target.value })} placeholder="DR 1024 BP" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm uppercase text-slate-900" />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Kapasitas (Orang / Kursi)</label>
-                                    <input type="number" min="1" required value={formMobil.kapasitas} onChange={e => setFormMobil({...formMobil, kapasitas: e.target.value})} placeholder="7" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm text-slate-800" />
+                                    <input type="number" min="1" required value={formMobil.kapasitas} onChange={e => setFormMobil({ ...formMobil, kapasitas: e.target.value })} placeholder="7" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm text-slate-800" />
                                 </div>
                             </div>
 
                             <div>
                                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Status Ketersediaan</label>
-                                <select required value={formMobil.status} onChange={e => setFormMobil({...formMobil, status: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm text-slate-800 cursor-pointer">
+                                <select required value={formMobil.status} onChange={e => setFormMobil({ ...formMobil, status: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm text-slate-800 cursor-pointer">
                                     <option value="tersedia">Tersedia (Siap Operasional)</option>
                                     <option value="perbaikan">Sedang Diperbaiki (Bengkel)</option>
                                 </select>
@@ -1804,19 +1794,19 @@ export default function DashboardPaulaAdmin() {
                     <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
                         <h3 className="text-xl font-black text-slate-800 mb-1">Pengaturan Sistem Aula</h3>
                         <p className="text-slate-500 text-xs mb-6 font-medium">Atur batas waktu pemesanan dan kapasitas maksimal aula.</p>
-                        
+
                         <form onSubmit={saveSettings} className="space-y-4">
                             <div>
                                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Batas Hari Peminjaman (H+)</label>
-                                <input type="number" min="1" required value={settings.max_booking_days} onChange={e => setSettings({...settings, max_booking_days: Number(e.target.value)})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm" />
+                                <input type="number" min="1" required value={settings.max_booking_days} onChange={e => setSettings({ ...settings, max_booking_days: Number(e.target.value) })} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Maks. Peserta Aula Besar</label>
-                                <input type="number" min="1" required value={settings.max_peserta_besar} onChange={e => setSettings({...settings, max_peserta_besar: Number(e.target.value)})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm" />
+                                <input type="number" min="1" required value={settings.max_peserta_besar} onChange={e => setSettings({ ...settings, max_peserta_besar: Number(e.target.value) })} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Maks. Peserta Aula Kecil</label>
-                                <input type="number" min="1" required value={settings.max_peserta_kecil} onChange={e => setSettings({...settings, max_peserta_kecil: Number(e.target.value)})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm" />
+                                <input type="number" min="1" required value={settings.max_peserta_kecil} onChange={e => setSettings({ ...settings, max_peserta_kecil: Number(e.target.value) })} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm" />
                             </div>
                             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
                                 <button type="button" onClick={() => setShowSettingsModal(false)} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer text-sm">Batal</button>
@@ -1836,8 +1826,8 @@ export default function DashboardPaulaAdmin() {
                                 <h3 className="text-xl font-black text-slate-800">Edit Pengajuan Aula</h3>
                                 <p className="text-slate-500 text-xs font-medium">Ubah rincian kegiatan aula yang telah disetujui.</p>
                             </div>
-                            <button 
-                                onClick={() => setEditAulaModal(null)} 
+                            <button
+                                onClick={() => setEditAulaModal(null)}
                                 className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
                             >
                                 <span className="material-symbols-outlined text-[24px]">close</span>
@@ -1854,32 +1844,32 @@ export default function DashboardPaulaAdmin() {
                         <form onSubmit={handleSaveEditAula} className="space-y-4">
                             <div>
                                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Nama Kegiatan</label>
-                                <input 
-                                    type="text" 
-                                    required 
-                                    value={editFormData.nama_kegiatan} 
-                                    onChange={e => setEditFormData({ ...editFormData, nama_kegiatan: e.target.value })} 
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800" 
+                                <input
+                                    type="text"
+                                    required
+                                    value={editFormData.nama_kegiatan}
+                                    onChange={e => setEditFormData({ ...editFormData, nama_kegiatan: e.target.value })}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800"
                                 />
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Tanggal Pelaksanaan</label>
-                                    <input 
-                                        type="date" 
-                                        required 
-                                        value={editFormData.tanggal_pinjam} 
-                                        onChange={e => setEditFormData({ ...editFormData, tanggal_pinjam: e.target.value })} 
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800" 
+                                    <input
+                                        type="date"
+                                        required
+                                        value={editFormData.tanggal_pinjam}
+                                        onChange={e => setEditFormData({ ...editFormData, tanggal_pinjam: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800"
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Pilihan Aula</label>
-                                    <select 
-                                        required 
-                                        value={editFormData.aula} 
-                                        onChange={e => setEditFormData({ ...editFormData, aula: e.target.value })} 
+                                    <select
+                                        required
+                                        value={editFormData.aula}
+                                        onChange={e => setEditFormData({ ...editFormData, aula: e.target.value })}
                                         className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800"
                                     >
                                         <option value="besar">Aula Besar (Maks. {settings.max_peserta_besar} orang)</option>
@@ -1891,22 +1881,22 @@ export default function DashboardPaulaAdmin() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Waktu Mulai</label>
-                                    <input 
-                                        type="time" 
-                                        required 
-                                        value={editFormData.waktu_mulai} 
-                                        onChange={e => setEditFormData({ ...editFormData, waktu_mulai: e.target.value })} 
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800" 
+                                    <input
+                                        type="time"
+                                        required
+                                        value={editFormData.waktu_mulai}
+                                        onChange={e => setEditFormData({ ...editFormData, waktu_mulai: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800"
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Waktu Selesai</label>
-                                    <input 
-                                        type="time" 
-                                        required 
-                                        value={editFormData.waktu_selesai} 
-                                        onChange={e => setEditFormData({ ...editFormData, waktu_selesai: e.target.value })} 
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800" 
+                                    <input
+                                        type="time"
+                                        required
+                                        value={editFormData.waktu_selesai}
+                                        onChange={e => setEditFormData({ ...editFormData, waktu_selesai: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800"
                                     />
                                 </div>
                             </div>
@@ -1914,10 +1904,10 @@ export default function DashboardPaulaAdmin() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Narasumber</label>
-                                    <select 
-                                        required 
-                                        value={editFormData.pilihan} 
-                                        onChange={e => setEditFormData({ ...editFormData, pilihan: e.target.value })} 
+                                    <select
+                                        required
+                                        value={editFormData.pilihan}
+                                        onChange={e => setEditFormData({ ...editFormData, pilihan: e.target.value })}
                                         className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800"
                                     >
                                         <option value="Internal">Internal</option>
@@ -1927,13 +1917,13 @@ export default function DashboardPaulaAdmin() {
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Asal Peserta</label>
-                                    <input 
-                                        type="text" 
-                                        required 
-                                        value={editFormData.peserta} 
-                                        onChange={e => setEditFormData({ ...editFormData, peserta: e.target.value })} 
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800" 
-                                        placeholder="Instansi/Asal Peserta..." 
+                                    <input
+                                        type="text"
+                                        required
+                                        value={editFormData.peserta}
+                                        onChange={e => setEditFormData({ ...editFormData, peserta: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800"
+                                        placeholder="Instansi/Asal Peserta..."
                                     />
                                 </div>
                             </div>
@@ -1941,23 +1931,23 @@ export default function DashboardPaulaAdmin() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Jumlah Peserta</label>
-                                    <input 
-                                        type="number" 
-                                        min="1" 
-                                        required 
-                                        value={editFormData.jumlah_peserta} 
-                                        onChange={e => setEditFormData({ ...editFormData, jumlah_peserta: e.target.value })} 
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800" 
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        required
+                                        value={editFormData.jumlah_peserta}
+                                        onChange={e => setEditFormData({ ...editFormData, jumlah_peserta: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800"
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Penanggung Jawab</label>
-                                    <input 
-                                        type="text" 
-                                        required 
-                                        value={editFormData.penanggung_jawab} 
-                                        onChange={e => setEditFormData({ ...editFormData, penanggung_jawab: e.target.value })} 
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800" 
+                                    <input
+                                        type="text"
+                                        required
+                                        value={editFormData.penanggung_jawab}
+                                        onChange={e => setEditFormData({ ...editFormData, penanggung_jawab: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-800"
                                     />
                                 </div>
                             </div>
@@ -1966,27 +1956,27 @@ export default function DashboardPaulaAdmin() {
                                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Sarana & Prasarana</label>
                                 <div className="flex flex-wrap gap-2 mb-3">
                                     {opsiSarana.map(item => (
-                                        <label 
-                                            key={item} 
+                                        <label
+                                            key={item}
                                             className={`px-3 py-1.5 border rounded-full text-xs font-bold cursor-pointer transition ${editSarana.includes(item) ? 'bg-blue-100 border-blue-400 text-blue-700' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
                                         >
-                                            <input 
-                                                type="checkbox" 
-                                                className="hidden" 
-                                                checked={editSarana.includes(item)} 
-                                                onChange={() => setEditSarana(p => p.includes(item) ? p.filter(i => i !== item) : [...p, item])} 
+                                            <input
+                                                type="checkbox"
+                                                className="hidden"
+                                                checked={editSarana.includes(item)}
+                                                onChange={() => setEditSarana(p => p.includes(item) ? p.filter(i => i !== item) : [...p, item])}
                                             />
                                             {item}
                                         </label>
                                     ))}
                                     {editSarana.filter(s => !opsiSarana.includes(s)).map(customItem => (
-                                        <span 
-                                            key={customItem} 
+                                        <span
+                                            key={customItem}
                                             className="px-3 py-1.5 bg-blue-50 text-blue-800 border border-blue-200 rounded-full text-xs font-bold flex items-center gap-1.5"
                                         >
                                             {customItem}
-                                            <button 
-                                                type="button" 
+                                            <button
+                                                type="button"
                                                 onClick={() => setEditSarana(editSarana.filter(s => s !== customItem))}
                                                 className="hover:text-rose-600 font-bold"
                                             >
@@ -1996,16 +1986,16 @@ export default function DashboardPaulaAdmin() {
                                     ))}
                                 </div>
                                 <div className="flex gap-2">
-                                    <input 
-                                        type="text" 
-                                        placeholder="Tambah sarana lainnya..." 
-                                        value={editCustomSarana} 
-                                        onChange={e => setEditCustomSarana(e.target.value)} 
-                                        className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-500 text-slate-800" 
+                                    <input
+                                        type="text"
+                                        placeholder="Tambah sarana lainnya..."
+                                        value={editCustomSarana}
+                                        onChange={e => setEditCustomSarana(e.target.value)}
+                                        className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
                                     />
-                                    <button 
-                                        type="button" 
-                                        onClick={handleAddEditCustomSarana} 
+                                    <button
+                                        type="button"
+                                        onClick={handleAddEditCustomSarana}
                                         className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
                                     >
                                         Tambah
@@ -2014,16 +2004,16 @@ export default function DashboardPaulaAdmin() {
                             </div>
 
                             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
-                                <button 
-                                    type="button" 
-                                    onClick={() => setEditAulaModal(null)} 
+                                <button
+                                    type="button"
+                                    onClick={() => setEditAulaModal(null)}
                                     className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer text-sm"
                                 >
                                     Batal
                                 </button>
-                                <button 
-                                    type="submit" 
-                                    disabled={isSavingAula || editTimeConflict} 
+                                <button
+                                    type="submit"
+                                    disabled={isSavingAula || editTimeConflict}
                                     className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 transition cursor-pointer text-sm flex items-center gap-2"
                                 >
                                     {isSavingAula ? (
@@ -2046,9 +2036,8 @@ export default function DashboardPaulaAdmin() {
                     <div className="bg-white rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
                         <div className="flex justify-between items-start border-b border-slate-100 pb-4">
                             <div>
-                                <span className={`inline-block px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider mb-2 ${
-                                    detailPengajuanModal.aula === 'besar' ? 'bg-indigo-100 text-indigo-700' : 'bg-pink-100 text-pink-700'
-                                }`}>
+                                <span className={`inline-block px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider mb-2 ${detailPengajuanModal.aula === 'besar' ? 'bg-indigo-100 text-indigo-700' : 'bg-pink-100 text-pink-700'
+                                    }`}>
                                     Aula {detailPengajuanModal.aula}
                                 </span>
                                 <h3 className="text-xl font-black text-slate-900 leading-snug">
@@ -2058,8 +2047,8 @@ export default function DashboardPaulaAdmin() {
                                     Diajukan oleh <strong className="text-slate-800">{detailPengajuanModal.user?.name}</strong> ({detailPengajuanModal.user?.email || detailPengajuanModal.fungsi_pengusul || '-'})
                                 </p>
                             </div>
-                            <button 
-                                onClick={() => setDetailPengajuanModal(null)} 
+                            <button
+                                onClick={() => setDetailPengajuanModal(null)}
                                 className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer"
                             >
                                 <span className="material-symbols-outlined text-[22px]">close</span>
@@ -2079,7 +2068,7 @@ export default function DashboardPaulaAdmin() {
                                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Waktu Pelaksanaan</span>
                                 <span className="font-bold text-slate-800 flex items-center gap-1.5">
                                     <span className="material-symbols-outlined text-[16px] text-blue-600">schedule</span>
-                                    {detailPengajuanModal.waktu_mulai?.slice(0,5)} - {detailPengajuanModal.waktu_selesai?.slice(0,5)} WITA
+                                    {detailPengajuanModal.waktu_mulai?.slice(0, 5)} - {detailPengajuanModal.waktu_selesai?.slice(0, 5)} WITA
                                 </span>
                             </div>
 
@@ -2148,28 +2137,28 @@ export default function DashboardPaulaAdmin() {
                         </div>
 
                         <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-3 pt-4 border-t border-slate-100">
-                            <button 
-                                type="button" 
-                                onClick={() => setDetailPengajuanModal(null)} 
+                            <button
+                                type="button"
+                                onClick={() => setDetailPengajuanModal(null)}
                                 className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer text-xs"
                             >
                                 Tutup
                             </button>
                             <div className="flex gap-2 w-full sm:w-auto">
-                                <button 
-                                    type="button" 
+                                <button
+                                    type="button"
                                     onClick={() => {
                                         const id = detailPengajuanModal.id;
                                         const type = detailPengajuanModal.is_edit_requested ? 'edit' : 'pengajuan';
                                         setDetailPengajuanModal(null);
                                         setRejectModal({ id, type });
-                                    }} 
+                                    }}
                                     className="flex-1 sm:flex-none bg-rose-600 hover:bg-rose-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-rose-600/20 transition cursor-pointer"
                                 >
                                     Tolak Pengajuan
                                 </button>
-                                <button 
-                                    type="button" 
+                                <button
+                                    type="button"
                                     onClick={() => {
                                         const id = detailPengajuanModal.id;
                                         setDetailPengajuanModal(null);
@@ -2178,7 +2167,7 @@ export default function DashboardPaulaAdmin() {
                                         } else {
                                             handleApprovePengajuan(id);
                                         }
-                                    }} 
+                                    }}
                                     className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition cursor-pointer"
                                 >
                                     Izinkan / Setujui
@@ -2205,8 +2194,8 @@ export default function DashboardPaulaAdmin() {
                                     Diajukan oleh <strong className="text-slate-800">{detailMobilModal.user?.name}</strong> ({detailMobilModal.user?.email || detailMobilModal.fungsi_pengusul || '-'})
                                 </p>
                             </div>
-                            <button 
-                                onClick={() => setDetailMobilModal(null)} 
+                            <button
+                                onClick={() => setDetailMobilModal(null)}
                                 className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer"
                             >
                                 <span className="material-symbols-outlined text-[22px]">close</span>
@@ -2226,7 +2215,7 @@ export default function DashboardPaulaAdmin() {
                                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Waktu Peminjaman</span>
                                 <span className="font-bold text-slate-800 flex items-center gap-1.5">
                                     <span className="material-symbols-outlined text-[16px] text-indigo-600">schedule</span>
-                                    {detailMobilModal.waktu_mulai?.slice(0,5)} {detailMobilModal.waktu_selesai ? `- ${detailMobilModal.waktu_selesai?.slice(0,5)}` : ''} WITA
+                                    {detailMobilModal.waktu_mulai?.slice(0, 5)} {detailMobilModal.waktu_selesai ? `- ${detailMobilModal.waktu_selesai?.slice(0, 5)}` : ''} WITA
                                 </span>
                             </div>
 
@@ -2263,32 +2252,32 @@ export default function DashboardPaulaAdmin() {
                         </div>
 
                         <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-3 pt-4 border-t border-slate-100">
-                            <button 
-                                type="button" 
-                                onClick={() => setDetailMobilModal(null)} 
+                            <button
+                                type="button"
+                                onClick={() => setDetailMobilModal(null)}
                                 className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer text-xs"
                             >
                                 Tutup
                             </button>
                             <div className="flex gap-2 w-full sm:w-auto">
-                                <button 
-                                    type="button" 
+                                <button
+                                    type="button"
                                     onClick={() => {
                                         const id = detailMobilModal.id;
                                         setDetailMobilModal(null);
                                         setRejectModal({ id, type: 'pengajuan_mobil' });
-                                    }} 
+                                    }}
                                     className="flex-1 sm:flex-none bg-rose-600 hover:bg-rose-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-rose-600/20 transition cursor-pointer"
                                 >
                                     Tolak Permohonan
                                 </button>
-                                <button 
-                                    type="button" 
+                                <button
+                                    type="button"
                                     onClick={() => {
                                         const id = detailMobilModal.id;
                                         setDetailMobilModal(null);
                                         handleApproveMobil(id);
-                                    }} 
+                                    }}
                                     className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition cursor-pointer"
                                 >
                                     Izinkan / Setujui
@@ -2298,12 +2287,12 @@ export default function DashboardPaulaAdmin() {
                     </div>
                 </div>
             )}
-        
+
             {/* MODAL TAMBAH AKUN SECURITY DARI AUTH BPOM */}
             {showSecurityModal && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl max-w-xl w-full p-6 md:p-8 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-                        
+
                         {/* Header Modal */}
                         <div className="flex justify-between items-start border-b border-slate-100 pb-4 shrink-0">
                             <div>
@@ -2318,8 +2307,8 @@ export default function DashboardPaulaAdmin() {
                                     Pilih pegawai dari database central <strong>Auth BPOM</strong> untuk diberikan hak akses sebagai Petugas Security.
                                 </p>
                             </div>
-                            <button 
-                                onClick={() => setShowSecurityModal(false)} 
+                            <button
+                                onClick={() => setShowSecurityModal(false)}
                                 className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer"
                             >
                                 <span className="material-symbols-outlined text-[22px]">close</span>
@@ -2368,16 +2357,14 @@ export default function DashboardPaulaAdmin() {
                                                 <div
                                                     key={emp.id}
                                                     onClick={() => setSelectedAuthEmployee(emp)}
-                                                    className={`p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between gap-3 ${
-                                                        isSelected
+                                                    className={`p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between gap-3 ${isSelected
                                                             ? 'border-blue-500 bg-blue-50/70 ring-2 ring-blue-500/20 shadow-xs'
                                                             : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     <div className="flex items-center gap-3">
-                                                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
-                                                            isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'
-                                                        }`}>
+                                                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'
+                                                            }`}>
                                                             {emp.name?.charAt(0) || 'P'}
                                                         </div>
                                                         <div>
@@ -2397,9 +2384,8 @@ export default function DashboardPaulaAdmin() {
                                                     </div>
 
                                                     <div className="shrink-0">
-                                                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                                                            isSelected ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white'
-                                                        }`}>
+                                                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${isSelected ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white'
+                                                            }`}>
                                                             {isSelected && <span className="material-symbols-outlined text-[14px]">check</span>}
                                                         </div>
                                                     </div>
@@ -2414,10 +2400,10 @@ export default function DashboardPaulaAdmin() {
                                         const s = authSearch.toLowerCase();
                                         return String(emp.name || '').toLowerCase().includes(s) || String(emp.email || '').toLowerCase().includes(s);
                                     }).length === 0 && (
-                                        <div className="text-center py-8 text-xs text-slate-400 italic">
-                                            Tidak ditemukan pegawai yang cocok dengan kata kunci "{authSearch}".
-                                        </div>
-                                    )}
+                                            <div className="text-center py-8 text-xs text-slate-400 italic">
+                                                Tidak ditemukan pegawai yang cocok dengan kata kunci "{authSearch}".
+                                            </div>
+                                        )}
                                 </>
                             )}
                         </div>
