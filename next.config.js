@@ -31,6 +31,10 @@ const nextConfig = {
                 protocol: 'https',
                 hostname: 'simpel.bbpommataram.id',
             },
+            {
+                protocol: 'http',
+                hostname: 'auth-bpom.test',
+            },
         ],
     },
     eslint: {
