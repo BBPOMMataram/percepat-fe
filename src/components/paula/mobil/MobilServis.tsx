@@ -44,7 +44,11 @@ interface LaporanKerusakanItem {
     created_at: string;
 }
 
-export default function MobilServis() {
+interface MobilServisProps {
+    hideHeader?: boolean;
+}
+
+export default function MobilServis({ hideHeader = false }: MobilServisProps) {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL_PAULA || "http://localhost:8000";
 
     const [mobils, setMobils] = useState<MobilItem[]>([]);
@@ -140,29 +144,31 @@ export default function MobilServis() {
     return (
         <div className="max-w-7xl mx-auto space-y-6 pb-20 animate-in fade-in duration-300">
             {/* Header Banner */}
-            <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-emerald-950 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
-                <div className="space-y-2 z-10">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 text-xs font-bold">
-                        <Icon icon="solar:wrench-bold" width={16} />
-                        Pemeliharaan Armada & Notifikasi Insiden
+            {!hideHeader && (
+                <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-emerald-950 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+                    <div className="space-y-2 z-10">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 text-xs font-bold">
+                            <Icon icon="solar:wrench-bold" width={16} />
+                            Pemeliharaan Armada & Notifikasi Insiden
+                        </div>
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                            Monitoring Servis Rutin & Laporan Kerusakan
+                        </h1>
+                        <p className="text-emerald-100/80 text-xs sm:text-sm max-w-2xl leading-relaxed">
+                            Pantau jadwal servis berkala otomatis berdasarkan batas Odometer atau interval 3 bulan, serta tindak lanjuti laporan kerusakan dari pos Security.
+                        </p>
                     </div>
-                    <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-                        Monitoring Servis Rutin & Laporan Kerusakan
-                    </h1>
-                    <p className="text-emerald-100/80 text-xs sm:text-sm max-w-2xl leading-relaxed">
-                        Pantau jadwal servis berkala otomatis berdasarkan batas Odometer atau interval 3 bulan, serta tindak lanjuti laporan kerusakan dari pos Security.
-                    </p>
+                    <div className="flex items-center gap-3 shrink-0 z-10">
+                        <button
+                            onClick={fetchData}
+                            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold backdrop-blur-md transition border border-white/10 cursor-pointer"
+                        >
+                            <Icon icon="solar:refresh-linear" width={16} />
+                            Segarkan Data
+                        </button>
+                    </div>
                 </div>
-                <div className="flex items-center gap-3 shrink-0 z-10">
-                    <button
-                        onClick={fetchData}
-                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold backdrop-blur-md transition border border-white/10 cursor-pointer"
-                    >
-                        <Icon icon="solar:refresh-linear" width={16} />
-                        Segarkan Data
-                    </button>
-                </div>
-            </div>
+            )}
 
             {/* SECTION 1: ALERT NOTIFIKASI KERUSAKAN (KA BALAI & KA TU) */}
             <div className="space-y-3">
@@ -282,7 +288,7 @@ export default function MobilServis() {
                         </h2>
                     </div>
                     <span className="text-xs text-slate-400">
-                        Otomatis Wajib Servis jika $\ge$ Batas KM atau $\ge$ 3 Bulan
+                        Otomatis Wajib Servis jika ≥ Batas KM atau ≥ 3 Bulan
                     </span>
                 </div>
 

@@ -5,7 +5,7 @@ import dayjs from "@/utils/dayjs";
 import Image from "next/image";
 import Link from "next/link";
 import LogoutBtn from "../LogoutBtn";
-import NotificationBell from "../NotificationBell";
+import NotificationBell from "@/components/simandalika/hero/NotificationBell";
 
 export default function HeaderUserArea({ user, callName }: { user: User | null, callName: string }) {
     return (

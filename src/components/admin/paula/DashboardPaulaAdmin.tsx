@@ -20,6 +20,11 @@ export default function DashboardPaulaAdmin() {
     const [activeTab, setActiveTab] = useState<'aula' | 'mobil'>('aula');
     const [isLoading, setIsLoading] = useState(true);
 
+    // Filter & Search states (UX Enhancement)
+    const [searchAula, setSearchAula] = useState("");
+    const [filterAulaType, setFilterAulaType] = useState<'all' | 'besar' | 'kecil'>('all');
+    const [searchMobil, setSearchMobil] = useState("");
+
     // STATE AULA
     const [pengajuans, setPengajuans] = useState<any[]>([]);
     const [editRequests, setEditRequests] = useState<any[]>([]);
@@ -420,6 +425,31 @@ export default function DashboardPaulaAdmin() {
     };
 
 
+    // Data terfilter untuk pencarian & filtering instan
+    const filteredPengajuans = pengajuans.filter((p) => {
+        const matchSearch =
+            !searchAula.trim() ||
+            p.nama_kegiatan?.toLowerCase().includes(searchAula.toLowerCase()) ||
+            p.fungsi_pengusul?.toLowerCase().includes(searchAula.toLowerCase()) ||
+            p.penanggung_jawab?.toLowerCase().includes(searchAula.toLowerCase()) ||
+            p.user?.name?.toLowerCase().includes(searchAula.toLowerCase());
+        const matchType = filterAulaType === 'all' || p.aula?.toLowerCase() === filterAulaType;
+        return matchSearch && matchType;
+    });
+
+    const filteredMobilPengajuans = mobilPengajuans.filter((p) => {
+        if (!searchMobil.trim()) return true;
+        const q = searchMobil.toLowerCase();
+        return (
+            p.tujuan_dinas?.toLowerCase().includes(q) ||
+            p.tujuan_lokasi?.toLowerCase().includes(q) ||
+            p.fungsi_pengusul?.toLowerCase().includes(q) ||
+            p.kendaraan?.toLowerCase().includes(q) ||
+            p.driver?.toLowerCase().includes(q) ||
+            p.user?.name?.toLowerCase().includes(q)
+        );
+    });
+
     if (authLoading || isLoading) {
         return (
             <div className="flex h-[60vh] w-full items-center justify-center mt-5">
@@ -430,156 +460,459 @@ export default function DashboardPaulaAdmin() {
 
     return (
         <div className="max-w-screen-2xl mx-auto animate-in fade-in duration-500 pb-16 px-4 md:px-8">
-            
-            <div className="mt-5 mb-8 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">Dashboard Admin</h1>
-                <p className="text-slate-500 text-sm mt-1 font-medium">Kelola persetujuan, jadwal, dan konfigurasi layanan PAULA.</p>
-            </div>
+            {/* HERO HEADER ADMIN MODERN */}
+            <div className="mt-4 mb-6 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden border border-slate-800">
+                <div className="absolute -right-16 -top-16 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute right-32 -bottom-20 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
-            {/* SWITCH TAB AULA / MOBIL */}
-            <div className="flex items-center gap-2 mb-6 border-b border-slate-200 pb-4">
-                <button 
-                    onClick={() => setActiveTab('aula')}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all cursor-pointer ${
-                        activeTab === 'aula' 
-                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25' 
-                        : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-                    }`}
-                >
-                    <span className="material-symbols-outlined text-[20px]">meeting_room</span>
-                    Peminjaman Aula
-                    {(pendingRequests.length > 0 || editRequests.length > 0) && (
-                        <span className="bg-rose-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full ml-1">{pendingRequests.length + editRequests.length}</span>
-                    )}
-                </button>
-                <button 
-                    onClick={() => setActiveTab('mobil')}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all cursor-pointer ${
-                        activeTab === 'mobil' 
-                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25' 
-                        : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-                    }`}
-                >
-                    <span className="material-symbols-outlined text-[20px]">directions_car</span>
-                    Peminjaman Mobil Dinas
-                    {mobilPending.length > 0 && (
-                        <span className="bg-rose-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full ml-1">{mobilPending.length}</span>
-                    )}
-                </button>
-            </div>
-
-
-            {/* KONTEN TAB AULA */}
-            {activeTab === 'aula' && (
-                <div className="space-y-6 animate-in fade-in duration-300">
-                    <div className="flex justify-end">
-                        <button 
-                            onClick={() => setShowSettingsModal(true)} 
-                            className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-3 rounded-2xl text-sm font-bold flex items-center gap-2 shadow-md shadow-slate-900/10 transition-all cursor-pointer"
-                        >
-                            <span className="material-symbols-outlined text-[18px]">settings</span> Pengaturan Sistem Aula
-                        </button>
+                <div className="relative z-10 flex flex-col lg:flex-row justify-between lg:items-center gap-6">
+                    <div className="space-y-2">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold text-blue-200">
+                            <Icon icon="solar:shield-check-bold" width={16} />
+                            <span>Portal Administrator PAULA</span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span className="text-white/70 font-normal">BBPOM di Mataram</span>
+                        </div>
+                        <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
+                            Dashboard Admin PAULA
+                        </h1>
+                        <p className="text-slate-300 text-xs md:text-sm max-w-2xl leading-relaxed">
+                            Kelola persetujuan reservasi aula rapat, peminjaman mobil dinas, perawatan armada, dan akun operasional dalam satu kendali terpadu.
+                        </p>
                     </div>
 
+                    <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                        <button
+                            type="button"
+                            onClick={fetchData}
+                            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs backdrop-blur-md border border-white/10 transition shadow-sm cursor-pointer"
+                            title="Segarkan data terbaru"
+                        >
+                            <Icon icon="solar:refresh-linear" width={16} />
+                            <span>Segarkan Data</span>
+                        </button>
+                        <Link
+                            href="/paula"
+                            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition shadow-lg shadow-blue-500/30"
+                        >
+                            <Icon icon="solar:home-smile-angle-bold" width={16} />
+                            <span>Beranda Layanan PAULA</span>
+                        </Link>
+                    </div>
+                </div>
+
+                {/* 4 Stat Overview Quick Cards */}
+                <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/10">
+                    <div 
+                        onClick={() => setActiveTab('aula')}
+                        className={`p-3.5 rounded-2xl transition cursor-pointer border ${
+                            activeTab === 'aula' 
+                                ? 'bg-white/15 border-blue-400/50 ring-1 ring-blue-400/30' 
+                                : 'bg-white/5 border-white/5 hover:bg-white/10'
+                        }`}
+                    >
+                        <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-slate-300">Kegiatan Aula</span>
+                            <div className="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-300 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-[16px]">meeting_room</span>
+                            </div>
+                        </div>
+                        <div className="mt-2 flex items-baseline gap-2">
+                            <span className="text-xl font-black text-white">{pengajuans.length}</span>
+                            <span className="text-[10px] text-slate-300">Disetujui</span>
+                        </div>
+                        {(pendingRequests.length + editRequests.length) > 0 ? (
+                            <span className="inline-block mt-1 text-[10px] font-bold text-amber-300 bg-amber-400/10 px-2 py-0.5 rounded-md">
+                                {pendingRequests.length + editRequests.length} butuh tindakan
+                            </span>
+                        ) : (
+                            <span className="text-[10px] text-emerald-400 mt-1 block">Semua tertangani</span>
+                        )}
+                    </div>
+
+                    <div 
+                        onClick={() => { setActiveTab('mobil'); setMobilActiveSubTab('pengajuan'); }}
+                        className={`p-3.5 rounded-2xl transition cursor-pointer border ${
+                            activeTab === 'mobil' && mobilActiveSubTab === 'pengajuan'
+                                ? 'bg-white/15 border-indigo-400/50 ring-1 ring-indigo-400/30' 
+                                : 'bg-white/5 border-white/5 hover:bg-white/10'
+                        }`}
+                    >
+                        <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-slate-300">Peminjaman Mobil</span>
+                            <div className="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-300 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-[16px]">directions_car</span>
+                            </div>
+                        </div>
+                        <div className="mt-2 flex items-baseline gap-2">
+                            <span className="text-xl font-black text-white">{mobilPengajuans.length}</span>
+                            <span className="text-[10px] text-slate-300">Disetujui</span>
+                        </div>
+                        {mobilPending.length > 0 ? (
+                            <span className="inline-block mt-1 text-[10px] font-bold text-rose-300 bg-rose-400/10 px-2 py-0.5 rounded-md">
+                                {mobilPending.length} menunggu izin
+                            </span>
+                        ) : (
+                            <span className="text-[10px] text-emerald-400 mt-1 block">Tidak ada antrean</span>
+                        )}
+                    </div>
+
+                    <div 
+                        onClick={() => { setActiveTab('mobil'); setMobilActiveSubTab('master'); }}
+                        className={`p-3.5 rounded-2xl transition cursor-pointer border ${
+                            activeTab === 'mobil' && mobilActiveSubTab === 'master'
+                                ? 'bg-white/15 border-indigo-400/50 ring-1 ring-indigo-400/30' 
+                                : 'bg-white/5 border-white/5 hover:bg-white/10'
+                        }`}
+                    >
+                        <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-slate-300">Armada Mobil</span>
+                            <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-[16px]">commute</span>
+                            </div>
+                        </div>
+                        <div className="mt-2 flex items-baseline gap-2">
+                            <span className="text-xl font-black text-white">{masterMobils.length}</span>
+                            <span className="text-[10px] text-slate-300">Unit Terdaftar</span>
+                        </div>
+                        <span className="text-[10px] text-emerald-300 mt-1 block">
+                            {masterMobils.filter(m => m.status === 'tersedia').length} unit siap jalan
+                        </span>
+                    </div>
+
+                    <div 
+                        onClick={() => { setActiveTab('mobil'); setMobilActiveSubTab(kerusakanAlerts.length > 0 ? 'servis' : 'security'); }}
+                        className={`p-3.5 rounded-2xl transition cursor-pointer border ${
+                            activeTab === 'mobil' && (mobilActiveSubTab === 'servis' || mobilActiveSubTab === 'security')
+                                ? 'bg-white/15 border-indigo-400/50 ring-1 ring-indigo-400/30' 
+                                : 'bg-white/5 border-white/5 hover:bg-white/10'
+                        }`}
+                    >
+                        <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-slate-300">Servis & Security</span>
+                            <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-[16px]">build</span>
+                            </div>
+                        </div>
+                        <div className="mt-2 flex items-baseline gap-2">
+                            <span className="text-xl font-black text-white">{kerusakanAlerts.length}</span>
+                            <span className="text-[10px] text-slate-300">Laporan Rusak</span>
+                        </div>
+                        <span className="text-[10px] text-slate-300 mt-1 block">
+                            {securityUsers.length} Personil Pos Jaga
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* SWITCH TAB AULA / MOBIL (SEGMENTED PILL) */}
+            <div className="bg-slate-100/90 p-1.5 rounded-2xl flex items-center gap-1.5 max-w-xl mb-6 border border-slate-200/80 shadow-2xs">
+                <button 
+                    type="button"
+                    onClick={() => setActiveTab('aula')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-extrabold text-xs md:text-sm transition-all cursor-pointer ${
+                        activeTab === 'aula' 
+                        ? 'bg-white text-blue-700 shadow-sm border border-slate-200/60' 
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                    }`}
+                >
+                    <span className="material-symbols-outlined text-[18px]">meeting_room</span>
+                    <span>Peminjaman Aula</span>
+                    {(pendingRequests.length > 0 || editRequests.length > 0) && (
+                        <span className="bg-rose-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black animate-pulse">
+                            {pendingRequests.length + editRequests.length}
+                        </span>
+                    )}
+                </button>
+                <button 
+                    type="button"
+                    onClick={() => setActiveTab('mobil')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-extrabold text-xs md:text-sm transition-all cursor-pointer ${
+                        activeTab === 'mobil' 
+                        ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/60' 
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                    }`}
+                >
+                    <span className="material-symbols-outlined text-[18px]">directions_car</span>
+                    <span>Peminjaman Mobil Dinas</span>
+                    {(mobilPending.length > 0 || kerusakanAlerts.length > 0) && (
+                        <span className="bg-rose-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black animate-pulse">
+                            {mobilPending.length + kerusakanAlerts.length}
+                        </span>
+                    )}
+                </button>
+            </div>
+
+            {/* ======================================================== */}
+            {/* KONTEN TAB AULA                                           */}
+            {/* ======================================================== */}
+            {activeTab === 'aula' && (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                    
+                    {/* ACTION ALERTS: PENDING REQUESTS AULA */}
                     {pendingRequests.length > 0 && (
                         <div className="space-y-3">
-                            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Menunggu Persetujuan Baru (Dari User Biasa)</h2>
-                            {pendingRequests.map(req => (
-                                <div key={req.id} className="bg-blue-50/70 border border-blue-200 text-blue-900 px-6 py-4 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
-                                    <p className="font-medium text-sm">Pengajuan baru dari <strong className="text-blue-950">{req.user?.name}</strong> untuk kegiatan "{req.nama_kegiatan}"</p>
-                                    <div className="flex gap-2 w-full md:w-auto">
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setDetailPengajuanModal(req)} 
-                                            className="flex-1 md:flex-none bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer flex items-center justify-center gap-1.5"
-                                        >
-                                            <span className="material-symbols-outlined text-[16px]">visibility</span>
-                                            Lihat
-                                        </button>
-                                        <button onClick={() => handleApprovePengajuan(req.id)} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer">Izinkan</button>
-                                        <button onClick={() => setRejectModal({ id: req.id, type: 'pengajuan' })} className="flex-1 md:flex-none bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer">Tolak</button>
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xs font-black uppercase tracking-wider text-blue-800 flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
+                                    Permohonan Peminjaman Aula Baru ({pendingRequests.length})
+                                </h2>
+                                <span className="text-[11px] text-slate-500 font-semibold">Menunggu persetujuan admin</span>
+                            </div>
+                            <div className="grid grid-cols-1 gap-3">
+                                {pendingRequests.map(req => (
+                                    <div key={req.id} className="bg-white border-l-4 border-l-blue-600 border border-slate-200/80 rounded-2xl p-5 shadow-xs hover:shadow-md transition flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                        <div className="space-y-1.5">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                                                    req.aula === 'besar' ? 'bg-indigo-100 text-indigo-800' : 'bg-purple-100 text-purple-800'
+                                                }`}>
+                                                    Aula {req.aula}
+                                                </span>
+                                                <span className="text-xs font-semibold text-slate-500">
+                                                    Diajukan: {new Date(req.tanggal_pengajuan || req.created_at).toLocaleDateString('id-ID')}
+                                                </span>
+                                            </div>
+                                            <h4 className="text-sm font-extrabold text-slate-900 leading-snug">{req.nama_kegiatan}</h4>
+                                            <p className="text-xs text-slate-600 font-medium">
+                                                Pengusul: <strong className="text-slate-800">{req.user?.name || req.fungsi_pengusul}</strong> • Pelaksanaan: <span className="font-bold text-blue-700">{new Date(req.tanggal_pinjam).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} ({req.waktu_mulai?.slice(0,5)} - {req.waktu_selesai?.slice(0,5)} WITA)</span>
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setDetailPengajuanModal(req)} 
+                                                className="flex-1 md:flex-none px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                                            >
+                                                <span className="material-symbols-outlined text-[16px]">visibility</span>
+                                                Rincian
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => handleApprovePengajuan(req.id)} 
+                                                className="flex-1 md:flex-none px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                                            >
+                                                <span className="material-symbols-outlined text-[16px]">check</span>
+                                                Setujui
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setRejectModal({ id: req.id, type: 'pengajuan' })} 
+                                                className="flex-1 md:flex-none px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                                            >
+                                                <span className="material-symbols-outlined text-[16px]">close</span>
+                                                Tolak
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     )}
 
+                    {/* ACTION ALERTS: PERMINTAAN EDIT AULA */}
                     {editRequests.length > 0 && (
                         <div className="space-y-3">
-                            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Permintaan Edit Pengajuan</h2>
-                            {editRequests.map(req => (
-                                <div key={req.id} className="bg-amber-50/70 border border-amber-200 text-amber-900 px-6 py-4 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
-                                    <p className="font-medium text-sm">User <strong className="text-amber-950">{req.user?.name}</strong> meminta izin edit data kegiatan "{req.nama_kegiatan}"</p>
-                                    <div className="flex gap-2 w-full md:w-auto">
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setDetailPengajuanModal(req)} 
-                                            className="flex-1 md:flex-none bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer flex items-center justify-center gap-1.5"
-                                        >
-                                            <span className="material-symbols-outlined text-[16px]">visibility</span>
-                                            Lihat
-                                        </button>
-                                        <button onClick={() => handleApproveEdit(req.id)} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer">Izinkan</button>
-                                        <button onClick={() => setRejectModal({ id: req.id, type: 'edit' })} className="flex-1 md:flex-none bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer">Tolak</button>
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xs font-black uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                                    Permintaan Izin Edit Data Kegiatan ({editRequests.length})
+                                </h2>
+                                <span className="text-[11px] text-slate-500 font-semibold">User meminta izin edit jadwal/detail</span>
+                            </div>
+                            <div className="grid grid-cols-1 gap-3">
+                                {editRequests.map(req => (
+                                    <div key={req.id} className="bg-white border-l-4 border-l-amber-500 border border-slate-200/80 rounded-2xl p-5 shadow-xs hover:shadow-md transition flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                        <div className="space-y-1.5">
+                                            <div className="flex items-center gap-2">
+                                                <span className="bg-amber-100 text-amber-800 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md">
+                                                    Izin Edit
+                                                </span>
+                                                <span className="text-xs font-semibold text-slate-500">
+                                                    Aula {req.aula}
+                                                </span>
+                                            </div>
+                                            <h4 className="text-sm font-extrabold text-slate-900 leading-snug">{req.nama_kegiatan}</h4>
+                                            <p className="text-xs text-slate-600 font-medium">
+                                                User <strong className="text-amber-950">{req.user?.name}</strong> mengajukan izin untuk mengubah detail kegiatan.
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setDetailPengajuanModal(req)} 
+                                                className="flex-1 md:flex-none px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                                            >
+                                                <span className="material-symbols-outlined text-[16px]">visibility</span>
+                                                Rincian
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => handleApproveEdit(req.id)} 
+                                                className="flex-1 md:flex-none px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                                            >
+                                                <span className="material-symbols-outlined text-[16px]">check</span>
+                                                Izinkan Edit
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setRejectModal({ id: req.id, type: 'edit' })} 
+                                                className="flex-1 md:flex-none px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                                            >
+                                                <span className="material-symbols-outlined text-[16px]">close</span>
+                                                Tolak
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     )}
 
-                    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                            <h3 className="font-extrabold text-slate-800 text-lg">Daftar Jadwal & Pengajuan Disetujui</h3>
-                            <span className="bg-blue-50 text-blue-700 font-bold px-3 py-1 rounded-full text-xs">{pengajuans.length} Kegiatan</span>
+                    {/* DAFTAR JADWAL AULA DISETUJUI & KONTROL PENCARIAN */}
+                    <div className="bg-white border border-slate-200 rounded-3xl shadow-xs overflow-hidden">
+                        <div className="p-5 md:p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between md:items-center gap-4">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="font-black text-slate-900 text-base md:text-lg">Daftar Jadwal & Pengajuan Disetujui</h3>
+                                    <span className="bg-blue-50 text-blue-700 font-extrabold px-2.5 py-0.5 rounded-full text-xs">
+                                        {filteredPengajuans.length} dari {pengajuans.length} Kegiatan
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-0.5">Daftar reservasi resmi aula yang telah disetujui untuk kegiatan operasional.</p>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2.5">
+                                {/* Search Input */}
+                                <div className="relative flex-1 sm:w-64">
+                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+                                    <input
+                                        type="text"
+                                        value={searchAula}
+                                        onChange={(e) => setSearchAula(e.target.value)}
+                                        placeholder="Cari kegiatan, pengusul..."
+                                        className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:border-blue-500 focus:outline-none bg-slate-50 focus:bg-white transition"
+                                    />
+                                    {searchAula && (
+                                        <button 
+                                            type="button"
+                                            onClick={() => setSearchAula("")}
+                                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Filter Aula Type */}
+                                <select
+                                    value={filterAulaType}
+                                    onChange={(e: any) => setFilterAulaType(e.target.value)}
+                                    className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-500 cursor-pointer"
+                                >
+                                    <option value="all">Semua Aula</option>
+                                    <option value="besar">Aula Besar</option>
+                                    <option value="kecil">Aula Kecil</option>
+                                </select>
+
+                                {/* Settings Button */}
+                                <button 
+                                    type="button"
+                                    onClick={() => setShowSettingsModal(true)} 
+                                    className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-sm cursor-pointer shrink-0"
+                                >
+                                    <span className="material-symbols-outlined text-[16px]">settings</span>
+                                    <span>Pengaturan Sistem</span>
+                                </button>
+                            </div>
                         </div>
+
+                        {/* Table Aula */}
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse text-sm min-w-[1100px]">
+                            <table className="w-full text-left border-collapse text-sm min-w-[950px]">
                                 <thead>
-                                    <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wider font-bold border-b border-slate-200">
-                                        <th className="px-6 py-4">Tgl Pengajuan</th>
-                                        <th className="px-6 py-4">Nama Kegiatan</th>
-                                        <th className="px-6 py-4">Pengusul</th>
-                                        <th className="px-6 py-4">Pelaksanaan</th>
-                                        <th className="px-6 py-4">Aula</th>
-                                        <th className="px-6 py-4 text-center">Aksi</th>
+                                    <tr className="bg-slate-50/80 text-slate-500 text-[11px] uppercase tracking-wider font-extrabold border-b border-slate-200/80">
+                                        <th className="px-5 py-3.5">Tgl Pengajuan</th>
+                                        <th className="px-5 py-3.5">Nama Kegiatan</th>
+                                        <th className="px-5 py-3.5">Pengusul & PJ</th>
+                                        <th className="px-5 py-3.5">Pelaksanaan</th>
+                                        <th className="px-5 py-3.5">Aula</th>
+                                        <th className="px-5 py-3.5 text-center">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 text-slate-700">
-                                    {pengajuans.map((p) => {
-                                        return (
-                                            <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                                                <td className="px-6 py-4 whitespace-nowrap text-slate-500">{new Date(p.tanggal_pengajuan).toLocaleDateString('id-ID')}</td>
-                                                <td className="px-6 py-4 font-bold text-slate-900">{p.nama_kegiatan}</td>
-                                                <td className="px-6 py-4 font-medium">{p.fungsi_pengusul}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="font-semibold text-slate-800">{new Date(p.tanggal_pinjam).toLocaleDateString('id-ID')}</div>
-                                                    <div className="text-xs text-blue-600 font-bold mt-0.5">{p.waktu_mulai.slice(0,5)} - {p.waktu_selesai.slice(0,5)}</div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className={`px-2.5 py-1 rounded-lg text-xs font-bold uppercase ${p.aula === 'besar' ? 'bg-indigo-100 text-indigo-700' : 'bg-pink-100 text-pink-700'}`}>
-                                                        {p.aula}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 text-center">
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={() => handleOpenEditAula(p)} 
-                                                            className="bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 p-2 rounded-xl text-xs font-bold transition flex items-center justify-center w-8 h-8 shadow-sm cursor-pointer" 
-                                                            title="Edit Pengajuan"
-                                                        >
-                                                            <span className="material-symbols-outlined text-[16px]">edit</span>
-                                                        </button>
-                                                        <button onClick={() => handleDelete(p.id)} className="bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-700 p-2 rounded-xl text-xs font-bold transition flex items-center justify-center w-8 h-8 shadow-sm">
-                                                            <span className="material-symbols-outlined text-[16px]">delete</span>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                    {pengajuans.length === 0 && (
-                                        <tr><td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic font-medium">Belum ada data pengajuan aula yang disetujui.</td></tr>
+                                <tbody className="divide-y divide-slate-100 text-slate-700 text-xs">
+                                    {filteredPengajuans.map((p) => (
+                                        <tr key={p.id} className="hover:bg-blue-50/30 transition-colors">
+                                            <td className="px-5 py-4 whitespace-nowrap text-slate-500 font-medium">
+                                                {new Date(p.tanggal_pengajuan).toLocaleDateString('id-ID')}
+                                            </td>
+                                            <td className="px-5 py-4">
+                                                <div className="font-extrabold text-slate-900 leading-snug">{p.nama_kegiatan}</div>
+                                                <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">
+                                                    <span>{p.pilihan || 'Internal'}</span>
+                                                    <span>•</span>
+                                                    <span>{p.jumlah_peserta ? `${p.jumlah_peserta} Peserta` : 'Peserta -'}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-5 py-4">
+                                                <div className="font-bold text-slate-800">{p.fungsi_pengusul || p.user?.name || '-'}</div>
+                                                {p.penanggung_jawab && (
+                                                    <div className="text-[11px] text-slate-500 mt-0.5">PJ: {p.penanggung_jawab}</div>
+                                                )}
+                                            </td>
+                                            <td className="px-5 py-4 whitespace-nowrap">
+                                                <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
+                                                    <span className="material-symbols-outlined text-[15px] text-blue-600">calendar_today</span>
+                                                    {new Date(p.tanggal_pinjam).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                </div>
+                                                <div className="text-[11px] text-blue-600 font-bold mt-0.5 flex items-center gap-1">
+                                                    <span className="material-symbols-outlined text-[13px]">schedule</span>
+                                                    {p.waktu_mulai.slice(0,5)} - {p.waktu_selesai.slice(0,5)} WITA
+                                                </div>
+                                            </td>
+                                            <td className="px-5 py-4">
+                                                <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
+                                                    p.aula === 'besar' 
+                                                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' 
+                                                        : 'bg-purple-50 text-purple-700 border border-purple-200'
+                                                }`}>
+                                                    Aula {p.aula}
+                                                </span>
+                                            </td>
+                                            <td className="px-5 py-4 text-center">
+                                                <div className="flex items-center justify-center gap-1.5">
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => handleOpenEditAula(p)} 
+                                                        className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-600 transition flex items-center justify-center shadow-2xs cursor-pointer" 
+                                                        title="Edit Pengajuan"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[16px]">edit</span>
+                                                    </button>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => handleDelete(p.id)} 
+                                                        className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-600 transition flex items-center justify-center shadow-2xs cursor-pointer"
+                                                        title="Hapus Pengajuan"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredPengajuans.length === 0 && (
+                                        <tr>
+                                            <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                                                <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center mb-2">
+                                                    <span className="material-symbols-outlined text-[24px]">event_busy</span>
+                                                </div>
+                                                <p className="text-xs font-bold text-slate-700">Tidak ada data kegiatan ditemukan</p>
+                                                <p className="text-[11px] text-slate-400 mt-0.5">
+                                                    {searchAula ? `Tidak ada kegiatan yang sesuai kata kunci "${searchAula}"` : 'Belum ada data pengajuan aula yang disetujui.'}
+                                                </p>
+                                            </td>
+                                        </tr>
                                     )}
                                 </tbody>
                             </table>
@@ -588,70 +921,75 @@ export default function DashboardPaulaAdmin() {
                 </div>
             )}
 
-            {/* KONTEN TAB MOBIL DINAS */}
-            {/* KONTEN TAB MOBIL DINAS */}
+            {/* ======================================================== */}
+            {/* KONTEN TAB MOBIL DINAS                                    */}
+            {/* ======================================================== */}
             {activeTab === 'mobil' && (
                 <div className="space-y-6 animate-in fade-in duration-300">
                     
                     {/* SUB-NAVIGASI TAB MOBIL */}
-                    <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+                    <div className="bg-white p-2.5 rounded-2xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
                         <div className="flex flex-wrap items-center gap-1.5">
                             <button
                                 type="button"
                                 onClick={() => setMobilActiveSubTab('pengajuan')}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
                                     mobilActiveSubTab === 'pengajuan'
-                                        ? 'bg-indigo-600 text-white shadow-sm'
+                                        ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
                                         : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                                 }`}
                             >
                                 <span className="material-symbols-outlined text-[16px]">assignment</span>
-                                Pengajuan & Persetujuan
+                                <span>Pengajuan & Persetujuan</span>
                                 {mobilPending.length > 0 && (
-                                    <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{mobilPending.length}</span>
+                                    <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black animate-pulse">
+                                        {mobilPending.length}
+                                    </span>
                                 )}
                             </button>
 
                             <button
                                 type="button"
                                 onClick={() => setMobilActiveSubTab('master')}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
                                     mobilActiveSubTab === 'master'
-                                        ? 'bg-indigo-600 text-white shadow-sm'
+                                        ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
                                         : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                                 }`}
                             >
                                 <span className="material-symbols-outlined text-[16px]">directions_car</span>
-                                Master Armada ({masterMobils.length})
+                                <span>Master Armada ({masterMobils.length})</span>
                             </button>
 
                             <button
                                 type="button"
                                 onClick={() => setMobilActiveSubTab('servis')}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
                                     mobilActiveSubTab === 'servis'
-                                        ? 'bg-indigo-600 text-white shadow-sm'
+                                        ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
                                         : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                                 }`}
                             >
                                 <span className="material-symbols-outlined text-[16px]">build_circle</span>
-                                Status & Servis Rutin
+                                <span>Status & Servis Rutin</span>
                                 {kerusakanAlerts.length > 0 && (
-                                    <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">{kerusakanAlerts.length} Rusak</span>
+                                    <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black animate-pulse">
+                                        {kerusakanAlerts.length} Rusak
+                                    </span>
                                 )}
                             </button>
 
                             <button
                                 type="button"
                                 onClick={() => setMobilActiveSubTab('security')}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
                                     mobilActiveSubTab === 'security'
-                                        ? 'bg-indigo-600 text-white shadow-sm'
+                                        ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
                                         : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                                 }`}
                             >
                                 <span className="material-symbols-outlined text-[16px]">shield_person</span>
-                                Akun Security Pos Jaga ({securityUsers.length})
+                                <span>Akun Security Pos Jaga ({securityUsers.length})</span>
                             </button>
                         </div>
 
@@ -663,7 +1001,7 @@ export default function DashboardPaulaAdmin() {
                                 title="Buka Formulir Gate In / Gate Out Pos Jaga"
                             >
                                 <span className="material-symbols-outlined text-[16px] text-blue-700">shield</span>
-                                Pos Security
+                                <span>Pos Security (Gate)</span>
                             </Link>
 
                             <Link
@@ -672,90 +1010,198 @@ export default function DashboardPaulaAdmin() {
                                 title="Buka Monitoring Jadwal Servis & Laporan Kerusakan Lengkap"
                             >
                                 <span className="material-symbols-outlined text-[16px] text-amber-700">car_repair</span>
-                                Jadwal Servis
+                                <span>Jadwal Servis</span>
                             </Link>
                         </div>
                     </div>
 
-                    {/* SUBTAB 1: PENGAJUAN & PERSETUJUAN */}
+                    {/* SUBTAB 1: PENGAJUAN & PERSETUJUAN MOBIL */}
                     {mobilActiveSubTab === 'pengajuan' && (
                         <div className="space-y-6">
                             {/* NOTIFIKASI PENGAJUAN MOBIL BARU */}
                             {mobilPending.length > 0 ? (
                                 <div className="space-y-3">
-                                    <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Permohonan Mobil (Menunggu Persetujuan)</h2>
-                                    {mobilPending.map(req => (
-                                        <div key={req.id} className="bg-indigo-50/70 border border-indigo-200 text-indigo-900 px-6 py-4 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
-                                            <div className="flex-1">
-                                                <p className="font-medium text-sm">User <strong className="text-indigo-950">{req.user?.name}</strong> mengajukan <strong className="text-indigo-700">{req.kendaraan}</strong></p>
-                                                <p className="text-xs mt-1 text-indigo-800 font-medium">{req.tujuan_dinas} ({new Date(req.tanggal_pinjam).toLocaleDateString('id-ID')})</p>
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="text-xs font-black uppercase tracking-wider text-indigo-900 flex items-center gap-1.5">
+                                            <span className="w-2 h-2 rounded-full bg-rose-600 animate-ping" />
+                                            Permohonan Mobil Menunggu Persetujuan ({mobilPending.length})
+                                        </h2>
+                                        <span className="text-[11px] text-slate-500 font-semibold">Memerlukan disposisi admin</span>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {mobilPending.map(req => (
+                                            <div key={req.id} className="bg-white border-l-4 border-l-indigo-600 border border-slate-200/80 rounded-2xl p-5 shadow-xs hover:shadow-md transition flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                                <div className="space-y-1.5 flex-1">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <span className="bg-indigo-100 text-indigo-800 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md">
+                                                            {req.kendaraan || 'Kendaraan Dinas'}
+                                                        </span>
+                                                        <span className="text-xs font-semibold text-slate-500">
+                                                            Tgl Pinjam: {new Date(req.tanggal_pinjam).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                        </span>
+                                                    </div>
+                                                    <h4 className="text-sm font-extrabold text-slate-900 leading-snug">{req.tujuan_dinas}</h4>
+                                                    <p className="text-xs text-slate-600 font-medium flex flex-wrap items-center gap-x-2">
+                                                        <span>Pemohon: <strong className="text-slate-800">{req.user?.name || req.fungsi_pengusul}</strong></span>
+                                                        <span>•</span>
+                                                        <span className="flex items-center gap-0.5 text-indigo-700 font-semibold">
+                                                            <span className="material-symbols-outlined text-[13px]">location_on</span>
+                                                            {req.tujuan_lokasi || 'Dalam Kota'}
+                                                        </span>
+                                                        {req.driver && (
+                                                            <>
+                                                                <span>•</span>
+                                                                <span>Driver: <strong className="text-slate-700">{req.driver}</strong></span>
+                                                            </>
+                                                        )}
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => setDetailMobilModal(req)} 
+                                                        className="flex-1 md:flex-none px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[16px]">visibility</span>
+                                                        Rincian
+                                                    </button>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => handleApproveMobil(req.id)} 
+                                                        className="flex-1 md:flex-none px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[16px]">check</span>
+                                                        Setujui
+                                                    </button>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => setRejectModal({ id: req.id, type: 'pengajuan_mobil' })} 
+                                                        className="flex-1 md:flex-none px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[16px]">close</span>
+                                                        Tolak
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <div className="flex gap-2 w-full md:w-auto">
-                                                <button 
-                                                    type="button" 
-                                                    onClick={() => setDetailMobilModal(req)} 
-                                                    className="flex-1 md:flex-none bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer flex items-center justify-center gap-1.5"
-                                                >
-                                                    <span className="material-symbols-outlined text-[16px]">visibility</span>
-                                                    Lihat
-                                                </button>
-                                                <button onClick={() => handleApproveMobil(req.id)} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer">Izinkan</button>
-                                                <button onClick={() => setRejectModal({ id: req.id, type: 'pengajuan_mobil' })} className="flex-1 md:flex-none bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer">Tolak</button>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
                             ) : (
-                                <div className="bg-white border border-slate-200 rounded-2xl p-4 text-xs font-semibold text-slate-500 flex items-center gap-2">
+                                <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 text-xs font-semibold text-emerald-800 flex items-center gap-2">
                                     <span className="material-symbols-outlined text-emerald-600 text-[18px]">check_circle</span>
-                                    Tidak ada permohonan peminjaman mobil yang menunggu persetujuan.
+                                    <span>Tidak ada permohonan peminjaman mobil yang menunggu persetujuan. Semua permohonan telah ditangani.</span>
                                 </div>
                             )}
 
                             {/* TABEL PENGAJUAN MOBIL DISETUJUI */}
-                            <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
-                                <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                                    <h3 className="font-extrabold text-slate-800 text-lg">Daftar Peminjaman Mobil Disetujui</h3>
-                                    <span className="bg-indigo-50 text-indigo-700 font-bold px-3 py-1 rounded-full text-xs">{mobilPengajuans.length} Kendaraan</span>
+                            <div className="bg-white border border-slate-200 rounded-3xl shadow-xs overflow-hidden">
+                                <div className="p-5 md:p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between md:items-center gap-4">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-black text-slate-900 text-base md:text-lg">Daftar Peminjaman Mobil Disetujui</h3>
+                                            <span className="bg-indigo-50 text-indigo-700 font-extrabold px-2.5 py-0.5 rounded-full text-xs">
+                                                {filteredMobilPengajuans.length} dari {mobilPengajuans.length} Kendaraan
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-slate-500 mt-0.5">Daftar peminjaman armada dinas operasional yang telah disetujui.</p>
+                                    </div>
+
+                                    {/* Search Input Mobil */}
+                                    <div className="relative w-full sm:w-72">
+                                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+                                        <input
+                                            type="text"
+                                            value={searchMobil}
+                                            onChange={(e) => setSearchMobil(e.target.value)}
+                                            placeholder="Cari tujuan, kendaraan, driver..."
+                                            className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:border-indigo-500 focus:outline-none bg-slate-50 focus:bg-white transition"
+                                        />
+                                        {searchMobil && (
+                                            <button 
+                                                type="button"
+                                                onClick={() => setSearchMobil("")}
+                                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                                            >
+                                                ✕
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
+
                                 <div className="overflow-x-auto">
-                                    <table className="w-full text-left border-collapse text-sm min-w-[1100px]">
+                                    <table className="w-full text-left border-collapse text-sm min-w-[950px]">
                                         <thead>
-                                            <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wider font-bold border-b border-slate-200">
-                                                <th className="px-6 py-4">Tgl Pengajuan</th>
-                                                <th className="px-6 py-4">Tujuan</th>
-                                                <th className="px-6 py-4">Pengusul</th>
-                                                <th className="px-6 py-4">Waktu Peminjaman</th>
-                                                <th className="px-6 py-4">Mobil & Driver</th>
-                                                <th className="px-6 py-4 text-center">Aksi</th>
+                                            <tr className="bg-slate-50/80 text-slate-500 text-[11px] uppercase tracking-wider font-extrabold border-b border-slate-200/80">
+                                                <th className="px-5 py-3.5">Tgl Pengajuan</th>
+                                                <th className="px-5 py-3.5">Tujuan & Lokasi</th>
+                                                <th className="px-5 py-3.5">Pengusul</th>
+                                                <th className="px-5 py-3.5">Waktu Peminjaman</th>
+                                                <th className="px-5 py-3.5">Mobil & Driver</th>
+                                                <th className="px-5 py-3.5 text-center">Aksi</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-100 text-slate-700">
-                                            {mobilPengajuans.map((p) => (
-                                                <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                                                    <td className="px-6 py-4 whitespace-nowrap text-slate-500">{new Date(p.tanggal_pengajuan).toLocaleDateString('id-ID')}</td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="font-bold text-slate-900">{p.tujuan_dinas}</div>
-                                                        <div className="text-xs text-slate-500 flex items-center gap-1 mt-1"><span className="material-symbols-outlined text-[12px]">location_on</span> {p.tujuan_lokasi}</div>
+                                        <tbody className="divide-y divide-slate-100 text-slate-700 text-xs">
+                                            {filteredMobilPengajuans.map((p) => (
+                                                <tr key={p.id} className="hover:bg-indigo-50/30 transition-colors">
+                                                    <td className="px-5 py-4 whitespace-nowrap text-slate-500 font-medium">
+                                                        {new Date(p.tanggal_pengajuan).toLocaleDateString('id-ID')}
                                                     </td>
-                                                    <td className="px-6 py-4 font-medium">{p.fungsi_pengusul}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="font-semibold text-slate-800">{new Date(p.tanggal_pinjam).toLocaleDateString('id-ID')}</div>
-                                                        <div className="text-xs text-indigo-600 font-bold mt-0.5">{p.waktu_mulai?.slice(0,5)} {p.waktu_selesai ? `- ${p.waktu_selesai?.slice(0,5)}` : ''}</div>
+                                                    <td className="px-5 py-4">
+                                                        <div className="font-extrabold text-slate-900 leading-snug">{p.tujuan_dinas}</div>
+                                                        <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                                                            <span className="material-symbols-outlined text-[13px] text-indigo-600">location_on</span>
+                                                            <span>{p.tujuan_lokasi || 'Dalam Kota'}</span>
+                                                        </div>
                                                     </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="text-sm font-semibold">{p.kendaraan}</div>
-                                                        {p.driver && <div className="text-xs text-slate-500 mt-1 font-medium bg-slate-100 px-2 py-0.5 rounded inline-block">Driver: {p.driver}</div>}
+                                                    <td className="px-5 py-4">
+                                                        <div className="font-bold text-slate-800">{p.fungsi_pengusul || p.user?.name || '-'}</div>
+                                                        {p.penanggung_jawab && (
+                                                            <div className="text-[11px] text-slate-500 mt-0.5">PJ: {p.penanggung_jawab}</div>
+                                                        )}
                                                     </td>
-                                                    <td className="px-6 py-4 text-center">
-                                                        <button onClick={() => handleDeleteMobil(p.id)} className="bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-700 p-2 rounded-xl text-xs font-bold transition flex items-center justify-center w-8 h-8 shadow-sm mx-auto" title="Hapus">
+                                                    <td className="px-5 py-4 whitespace-nowrap">
+                                                        <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
+                                                            <span className="material-symbols-outlined text-[15px] text-indigo-600">calendar_today</span>
+                                                            {new Date(p.tanggal_pinjam).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                        </div>
+                                                        <div className="text-[11px] text-indigo-600 font-bold mt-0.5 flex items-center gap-1">
+                                                            <span className="material-symbols-outlined text-[13px]">schedule</span>
+                                                            {p.waktu_mulai?.slice(0,5)} {p.waktu_selesai ? `- ${p.waktu_selesai?.slice(0,5)} WITA` : 'WITA'}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-5 py-4">
+                                                        <div className="font-bold text-slate-900">{p.kendaraan}</div>
+                                                        <div className="mt-1 flex items-center gap-1.5">
+                                                            <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
+                                                                Driver: {p.driver || 'Mandiri'}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-5 py-4 text-center">
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => handleDeleteMobil(p.id)} 
+                                                            className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-rose-600 hover:text-white text-slate-600 transition flex items-center justify-center shadow-2xs mx-auto cursor-pointer" 
+                                                            title="Hapus Pengajuan Mobil"
+                                                        >
                                                             <span className="material-symbols-outlined text-[16px]">delete</span>
                                                         </button>
                                                     </td>
                                                 </tr>
                                             ))}
-                                            {mobilPengajuans.length === 0 && (
-                                                <tr><td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic font-medium">Belum ada data peminjaman mobil yang disetujui.</td></tr>
+                                            {filteredMobilPengajuans.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                                                        <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center mb-2">
+                                                            <span className="material-symbols-outlined text-[24px]">directions_car</span>
+                                                        </div>
+                                                        <p className="text-xs font-bold text-slate-700">Tidak ada peminjaman mobil ditemukan</p>
+                                                        <p className="text-[11px] text-slate-400 mt-0.5">
+                                                            {searchMobil ? `Tidak ada riwayat yang sesuai kata kunci "${searchMobil}"` : 'Belum ada data peminjaman mobil yang disetujui.'}
+                                                        </p>
+                                                    </td>
+                                                </tr>
                                             )}
                                         </tbody>
                                     </table>
@@ -764,39 +1210,72 @@ export default function DashboardPaulaAdmin() {
                         </div>
                     )}
 
-                    {/* SUBTAB 2: MASTER KENDARAAN */}
+                    {/* SUBTAB 2: MASTER KENDARAAN (ARMADA) */}
                     {mobilActiveSubTab === 'master' && (
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center">
+                        <div className="space-y-5">
+                            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-xs">
                                 <div>
-                                    <h3 className="font-bold text-slate-800 text-base">Daftar Armada Kendaraan Dinas</h3>
-                                    <p className="text-xs text-slate-500">Kelola master data kendaraan operasional BBPOM di Mataram.</p>
+                                    <h3 className="font-black text-slate-900 text-base md:text-lg">Daftar Master Kendaraan Dinas</h3>
+                                    <p className="text-xs text-slate-500 mt-0.5">Kelola data seluruh kendaraan operasional BBPOM di Mataram.</p>
                                 </div>
                                 <button 
+                                    type="button"
                                     onClick={() => {
                                         setFormMobil({ id: null, nama: "", plat_nomor: "", kapasitas: "", status: "tersedia" });
                                         setShowMobilModal(true);
                                     }} 
-                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-500/25 transition-all cursor-pointer"
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-500/25 transition-all cursor-pointer shrink-0"
                                 >
-                                    <span className="material-symbols-outlined text-[16px]">add</span> Tambah Kendaraan
+                                    <span className="material-symbols-outlined text-[16px]">add</span>
+                                    <span>Tambah Kendaraan Baru</span>
                                 </button>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                 {masterMobils.map(mobil => (
-                                    <div key={mobil.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm relative group">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="bg-slate-100 text-slate-700 text-xs font-black px-2 py-1 rounded tracking-widest uppercase border border-slate-300">{mobil.plat_nomor}</div>
-                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => { setFormMobil(mobil); setShowMobilModal(true); }} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><span className="material-symbols-outlined text-[16px]">edit</span></button>
-                                                <button onClick={() => deleteMasterMobil(mobil.id)} className="text-rose-600 hover:bg-rose-50 p-1 rounded"><span className="material-symbols-outlined text-[16px]">delete</span></button>
+                                    <div key={mobil.id} className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs hover:shadow-md transition flex flex-col justify-between group">
+                                        <div>
+                                            <div className="flex justify-between items-start mb-3">
+                                                <span className="bg-slate-900 text-white text-xs font-mono font-black px-2.5 py-1 rounded-xl tracking-wider uppercase shadow-2xs">
+                                                    {mobil.plat_nomor}
+                                                </span>
+                                                <div className="flex gap-1">
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => { setFormMobil(mobil); setShowMobilModal(true); }} 
+                                                        className="w-7 h-7 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition flex items-center justify-center cursor-pointer"
+                                                        title="Edit Mobil"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[16px]">edit</span>
+                                                    </button>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => deleteMasterMobil(mobil.id)} 
+                                                        className="w-7 h-7 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition flex items-center justify-center cursor-pointer"
+                                                        title="Hapus Mobil"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                                                    </button>
+                                                </div>
                                             </div>
+
+                                            <h3 className="font-extrabold text-slate-900 text-sm leading-snug mb-1">
+                                                {mobil.nama}
+                                            </h3>
                                         </div>
-                                        <h3 className="font-bold text-slate-800 text-sm leading-tight mb-3">{mobil.nama}</h3>
-                                        <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mt-auto pt-3 border-t border-slate-100">
-                                            <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">group</span> {mobil.kapasitas} Org</span>
-                                            <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${mobil.status === 'tersedia' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>{mobil.status}</span>
+
+                                        <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mt-4 pt-3 border-t border-slate-100">
+                                            <span className="flex items-center gap-1 font-bold text-slate-700">
+                                                <span className="material-symbols-outlined text-[16px] text-indigo-600">group</span>
+                                                <span>{mobil.kapasitas} Kursi</span>
+                                            </span>
+                                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                                mobil.status === 'tersedia' 
+                                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
+                                                    : 'bg-rose-100 text-rose-800 border border-rose-200'
+                                            }`}>
+                                                {mobil.status === 'tersedia' ? 'Tersedia' : 'Perbaikan'}
+                                            </span>
                                         </div>
                                     </div>
                                 ))}
@@ -811,37 +1290,37 @@ export default function DashboardPaulaAdmin() {
                             {kerusakanAlerts.length > 0 && (
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between">
-                                        <h3 className="text-sm font-bold uppercase tracking-wider text-rose-600 flex items-center gap-1.5">
+                                        <h3 className="text-xs font-black uppercase tracking-wider text-rose-600 flex items-center gap-1.5">
                                             <span className="material-symbols-outlined text-[18px]">warning</span>
-                                            Laporan Kerusakan Masuk (Perlu Tindak Lanjut Ka Balai & Kasubbag TU)
+                                            Laporan Kerusakan Masuk dari Security ({kerusakanAlerts.length})
                                         </h3>
-                                        <span className="bg-rose-100 text-rose-700 px-2.5 py-0.5 rounded-full text-xs font-bold">{kerusakanAlerts.length} Belum Selesai</span>
+                                        <span className="bg-rose-100 text-rose-700 px-2.5 py-0.5 rounded-full text-xs font-bold">Perlu Tindak Lanjut</span>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {kerusakanAlerts.map((k) => (
-                                            <div key={k.id} className="bg-rose-50/70 border border-rose-200 rounded-2xl p-5 shadow-sm space-y-3">
+                                            <div key={k.id} className="bg-white border-l-4 border-l-rose-600 border border-slate-200 rounded-3xl p-5 shadow-xs space-y-3">
                                                 <div className="flex justify-between items-start">
                                                     <div>
-                                                        <span className="bg-rose-600 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
+                                                        <span className="bg-rose-600 text-white text-[10px] font-mono font-black px-2.5 py-0.5 rounded-lg uppercase tracking-wider">
                                                             {k.mobil?.plat_nomor || 'MOBIL'}
                                                         </span>
-                                                        <h4 className="font-bold text-slate-900 text-sm mt-1">{k.mobil?.nama || 'Kendaraan Dinas'}</h4>
+                                                        <h4 className="font-extrabold text-slate-900 text-sm mt-1.5">{k.mobil?.nama || 'Kendaraan Dinas'}</h4>
                                                     </div>
                                                     <span className="text-[11px] text-slate-500 font-medium">
                                                         {new Date(k.created_at).toLocaleDateString('id-ID')}
                                                     </span>
                                                 </div>
-                                                <div className="bg-white/80 p-3 rounded-xl border border-rose-200/60 text-xs text-rose-950">
-                                                    <span className="font-bold block mb-0.5">Catatan Kerusakan dari Security:</span>
-                                                    <p>{k.catatan_kerusakan}</p>
-                                                    <p className="text-[11px] text-slate-500 mt-1 italic">Pelapor: {k.pelapor_security}</p>
+                                                <div className="bg-rose-50/70 p-3 rounded-2xl border border-rose-200/60 text-xs text-rose-950">
+                                                    <span className="font-extrabold block mb-0.5">Catatan Kerusakan dari Security:</span>
+                                                    <p className="leading-relaxed">{k.catatan_kerusakan}</p>
+                                                    <p className="text-[11px] text-slate-500 mt-1.5 italic">Pelapor: {k.pelapor_security}</p>
                                                 </div>
                                                 <div className="flex justify-end pt-1">
                                                     <button
                                                         type="button"
                                                         onClick={() => handleResolveKerusakan(k.id)}
-                                                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5"
+                                                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer"
                                                     >
                                                         <span className="material-symbols-outlined text-[16px]">check_circle</span>
                                                         Tandai Selesai / Diperbaiki
@@ -854,18 +1333,18 @@ export default function DashboardPaulaAdmin() {
                             )}
 
                             {/* Cards Status Odometer & Servis Realtime */}
-                            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+                            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
                                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                                     <div>
-                                        <h3 className="font-black text-slate-800 text-lg">Monitoring Odometer & Servis Armada</h3>
-                                        <p className="text-xs text-slate-500">Jadwal servis otomatis dihitung berdasarkan batas Odometer (KM) atau interval 3 bulan.</p>
+                                        <h3 className="font-black text-slate-900 text-base md:text-lg">Monitoring Odometer & Servis Armada</h3>
+                                        <p className="text-xs text-slate-500 mt-0.5">Perhitungan otomatis batas servis berdasarkan ambang batas KM atau interval 3 bulan.</p>
                                     </div>
                                     <Link
                                         href="/paula/mobil/servis"
                                         className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-700 transition shadow-xs shrink-0"
                                     >
                                         <span className="material-symbols-outlined text-[16px]">settings</span>
-                                        Pengaturan & Riwayat Lengkap
+                                        <span>Pengaturan & Riwayat Lengkap</span>
                                     </Link>
                                 </div>
 
@@ -878,25 +1357,25 @@ export default function DashboardPaulaAdmin() {
                                         return (
                                             <div 
                                                 key={m.id} 
-                                                className={`p-5 rounded-2xl border transition shadow-2xs space-y-3 ${
+                                                className={`p-5 rounded-3xl border transition shadow-2xs space-y-3 ${
                                                     isUrgent || isDue
-                                                        ? 'bg-rose-50/60 border-rose-300'
+                                                        ? 'bg-rose-50/50 border-rose-300'
                                                         : 'bg-white border-slate-200'
                                                 }`}
                                             >
                                                 <div className="flex justify-between items-start">
                                                     <div>
-                                                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                                                        <span className="text-[10px] font-mono font-black uppercase tracking-wider px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
                                                             {m.plat_nomor}
                                                         </span>
-                                                        <h4 className="font-bold text-slate-900 text-sm mt-1">{m.nama}</h4>
+                                                        <h4 className="font-extrabold text-slate-900 text-sm mt-1.5">{m.nama}</h4>
                                                     </div>
-                                                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                                    <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
                                                         isUrgent || isDue
-                                                            ? 'bg-rose-100 text-rose-700'
-                                                            : 'bg-emerald-100 text-emerald-700'
+                                                            ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                                                            : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                                                     }`}>
-                                                        {isUrgent || isDue ? 'Perlu Servis' : 'Kondisi Baik'}
+                                                        {isUrgent || isDue ? 'Wajib Servis' : 'Kondisi Prima'}
                                                     </span>
                                                 </div>
 
@@ -913,16 +1392,12 @@ export default function DashboardPaulaAdmin() {
 
                                                 <div className="text-[11px] text-slate-600 bg-slate-100/70 p-2.5 rounded-xl space-y-1">
                                                     <div className="flex justify-between">
-                                                        <span>Interval KM:</span>
-                                                        <span className="font-bold">{m.interval_km_service?.toLocaleString('id-ID') || 5000} KM</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span>Interval Bulan:</span>
-                                                        <span className="font-bold">{m.interval_bulan_service || 3} Bulan</span>
+                                                        <span>Interval Servis:</span>
+                                                        <span className="font-bold">{m.interval_km_service?.toLocaleString('id-ID') || 5000} KM / {m.interval_bulan_service || 3} Bln</span>
                                                     </div>
                                                     {metrics.km_until_service !== undefined && (
-                                                        <div className="flex justify-between pt-1 border-t border-slate-200 font-semibold text-indigo-700">
-                                                            <span>Sisa KM Servis:</span>
+                                                        <div className="flex justify-between pt-1 border-t border-slate-200 font-bold text-indigo-700">
+                                                            <span>Sisa Interval KM:</span>
                                                             <span>{metrics.km_until_service} KM</span>
                                                         </div>
                                                     )}
@@ -937,63 +1412,63 @@ export default function DashboardPaulaAdmin() {
 
                     {/* SUBTAB 4: KELOLA AKUN SECURITY POS JAGA */}
                     {mobilActiveSubTab === 'security' && (
-                        <div className="bg-white border border-slate-200 rounded-3xl shadow-sm p-6 space-y-6">
+                        <div className="bg-white border border-slate-200 rounded-3xl shadow-xs p-6 space-y-6">
                             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-slate-100 pb-5">
                                 <div>
                                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-xs mb-2">
                                         <span className="material-symbols-outlined text-[16px]">shield_person</span>
-                                        Personil Pos Jaga
+                                        <span>Personil Pos Jaga Terdaftar</span>
                                     </div>
-                                    <h3 className="font-black text-slate-800 text-lg">Kelola Akun Security (Gate Pass)</h3>
-                                    <p className="text-xs text-slate-500 mt-1">
-                                        User bertanda Security akan otomatis dialihkan ke halaman khusus Pos Jaga saat login di PAULA.
+                                    <h3 className="font-black text-slate-900 text-base md:text-lg">Kelola Akun Security (Gate Pass)</h3>
+                                    <p className="text-xs text-slate-500 mt-0.5">
+                                        Pegawai yang terdaftar sebagai Security akan memiliki akses untuk mencatat checklist mobil keluar & masuk.
                                     </p>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={openAddSecurityModal}
-                                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/25 transition cursor-pointer"
+                                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/25 transition cursor-pointer shrink-0"
                                 >
                                     <span className="material-symbols-outlined text-[16px]">person_add</span>
-                                    Tambah Akun Security
+                                    <span>Tambah Akun Security</span>
                                 </button>
                             </div>
 
                             {/* Tabel Petugas Security */}
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse text-sm">
+                                <table className="w-full text-left border-collapse text-sm min-w-[700px]">
                                     <thead>
-                                        <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wider font-bold border-b border-slate-200">
-                                            <th className="px-6 py-3.5">Nama Petugas</th>
-                                            <th className="px-6 py-3.5">Username</th>
-                                            <th className="px-6 py-3.5">Email</th>
-                                            <th className="px-6 py-3.5">Peran Sistem</th>
-                                            <th className="px-6 py-3.5 text-center">Aksi</th>
+                                        <tr className="bg-slate-50/80 text-slate-500 text-[11px] uppercase tracking-wider font-extrabold border-b border-slate-200/80">
+                                            <th className="px-5 py-3.5">Nama Petugas</th>
+                                            <th className="px-5 py-3.5">Username</th>
+                                            <th className="px-5 py-3.5">Email</th>
+                                            <th className="px-5 py-3.5">Peran Sistem</th>
+                                            <th className="px-5 py-3.5 text-center">Aksi</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                                    <tbody className="divide-y divide-slate-100 text-slate-700 text-xs">
                                         {securityUsers.map((sec) => (
-                                            <tr key={sec.id} className="hover:bg-slate-50/50 transition">
-                                                <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-2">
-                                                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs">
+                                            <tr key={sec.id} className="hover:bg-blue-50/30 transition">
+                                                <td className="px-5 py-4 font-bold text-slate-900 flex items-center gap-2.5">
+                                                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center font-black text-xs shrink-0">
                                                         {sec.name?.charAt(0) || 'S'}
                                                     </div>
-                                                    {sec.name}
+                                                    <span>{sec.name}</span>
                                                 </td>
-                                                <td className="px-6 py-4 font-mono text-xs text-slate-600">{sec.username || '-'}</td>
-                                                <td className="px-6 py-4 text-xs text-slate-500">{sec.email}</td>
-                                                <td className="px-6 py-4">
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
+                                                <td className="px-5 py-4 font-mono text-xs text-slate-600">{sec.username || '-'}</td>
+                                                <td className="px-5 py-4 text-xs text-slate-500">{sec.email}</td>
+                                                <td className="px-5 py-4">
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-200">
                                                         <span className="material-symbols-outlined text-[13px]">shield</span>
                                                         Security Pos Jaga
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 text-center">
+                                                <td className="px-5 py-4 text-center">
                                                     <button
                                                         type="button"
                                                         onClick={() => handleRemoveSecurity(sec.id, sec.name)}
-                                                        className="px-3 py-1 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-bold transition shadow-2xs"
-                                                        title="Cabut peran security"
+                                                        className="px-3 py-1 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-bold transition shadow-2xs cursor-pointer"
+                                                        title="Cabut status security"
                                                     >
                                                         Cabut Akses
                                                     </button>
@@ -1003,7 +1478,7 @@ export default function DashboardPaulaAdmin() {
                                         {securityUsers.length === 0 && (
                                             <tr>
                                                 <td colSpan={5} className="px-6 py-10 text-center text-slate-400 italic text-xs">
-                                                    Belum ada personil Security yang terdaftar. Klik "Tambah Akun Security" untuk menambahkan.
+                                                    Belum ada personil Security yang terdaftar. Klik tombol "Tambah Akun Security" untuk menambahkan.
                                                 </td>
                                             </tr>
                                         )}

@@ -5,10 +5,16 @@ import ButtonLogin from "./ButtonLogin";
 import DynamicText from "./DynamicText";
 import SimandalikaText from "./SimandalikaText";
 import PaulaHeroCalendar from "./PaulaHeroCalendar";
+import NotificationBell from "./NotificationBell";
 
 const Hero = () => {
     return (
-        <div className="pt-6 sm:pt-8 lg:pt-10 pb-6 flex flex-col items-center px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative z-10">
+        <div className="pt-4 sm:pt-6 lg:pt-8 pb-6 flex flex-col items-center px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative z-10">
+            {/* Top Navigation Bar: Central Notification Bell */}
+            <div className="w-full flex items-center justify-end gap-3 mb-2">
+                <NotificationBell />
+            </div>
+
             <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
                 {/* Left Column: Hero Brand & Info */}
                 <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left space-y-3 sm:space-y-3.5">
@@ -29,7 +35,7 @@ const Hero = () => {
                     <p className="text-sm sm:text-base text-slate-600 max-w-lg leading-relaxed">
                         Sistem Monitoring Digitalisasi Aplikasi Terpadu Balai Besar POM di Mataram
                     </p>
-                    <div className="pt-1.5">
+                    <div className="pt-1.5 flex items-center gap-3">
                         <Link href="/login" aria-label="Login to Si Mandalika">
                             <ButtonLogin />
                         </Link>

@@ -13,7 +13,7 @@ export default function PaulaSidebar() {
     const { user } = useSelector((state: RootState) => state.auth);
     const [paulaUser, setPaulaUser] = useState<any>(null);
 
-    const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_PAULA || "http://localhost:8000";
+    const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_PAULA;
 
     useEffect(() => {
         if (user) {
@@ -25,7 +25,7 @@ export default function PaulaSidebar() {
         }
     }, [user, baseURL]);
 
-    const isSecurity = Boolean(paulaUser?.is_security || user?.is_security);
+    const isSecurity = Boolean(paulaUser?.is_security || (user as any)?.is_security);
     const isAdmin = Boolean(
         paulaUser?.is_admin ||
         user?.role?.level === "superadmin" ||
@@ -35,8 +35,9 @@ export default function PaulaSidebar() {
     );
 
     // Logika Otomatis: Hanya true jika URL diawali dengan rute yang sesuai
+    const isSecurityRoute = pathname.startsWith('/paula/mobil/security') || pathname.startsWith('/paula/mobil/servis');
     const isAulaActive = pathname.startsWith('/paula/aula');
-    const isMobilActive = pathname.startsWith('/paula/mobil');
+    const isMobilActive = pathname.startsWith('/paula/mobil') && !isSecurityRoute;
 
     return (
         <aside className="w-64 bg-white border-r border-slate-200 flex-col hidden md:flex h-full shadow-sm z-20">
@@ -49,12 +50,12 @@ export default function PaulaSidebar() {
 
             <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
                 
-                {/* JIKA AKTOR SECURITY: HANYA TAMPILKAN MENU POS JAGA */}
-                {isSecurity ? (
+                {/* MENU POS JAGA SECURITY & SERVIS ARMADA (Tampil untuk Security atau saat berada di rute pos security/servis) */}
+                {isSecurityRoute || isSecurity ? (
                     <div>
                         <div className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm bg-blue-50 text-blue-800 cursor-default">
                             <span className="material-symbols-outlined text-[20px]">shield</span>
-                            Pos Jaga Security
+                            Pos Jaga & Armada
                         </div>
                         <div className="pl-11 pr-2 mt-2 space-y-1 relative before:absolute before:inset-y-0 before:left-[30px] before:w-px before:bg-slate-200">
                             <Link 
@@ -65,7 +66,35 @@ export default function PaulaSidebar() {
                             >
                                 Pemeriksaan Keluar & Masuk
                             </Link>
+                            <Link 
+                                href="/paula/mobil/servis"
+                                className={`block py-2 px-3 rounded-lg text-[13px] font-bold transition-colors ${
+                                    pathname === "/paula/mobil/servis" ? "text-blue-700 bg-blue-100/70" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                                }`}
+                            >
+                                Status Servis & Kerusakan
+                            </Link>
                         </div>
+
+                        {isAdmin && (
+                            <div className="mt-8 pt-4 border-t border-slate-100 space-y-1">
+                                <p className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mb-2">Navigasi Admin</p>
+                                <Link
+                                    href="/paula/mobil"
+                                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50 transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">directions_car</span>
+                                    Pengajuan Mobil
+                                </Link>
+                                <Link
+                                    href="/admin/paula"
+                                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">admin_panel_settings</span>
+                                    Dashboard Admin
+                                </Link>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <>
@@ -98,7 +127,7 @@ export default function PaulaSidebar() {
                             </div>
                         )}
 
-                        {/* Menu Mobil (Hanya tampil jika sedang di rute /paula/mobil) */}
+                        {/* Menu Mobil (Hanya tampil jika sedang di rute /paula/mobil, TANPA menu pos security) */}
                         {isMobilActive && (
                             <div>
                                 <div className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm bg-indigo-50 text-indigo-700 cursor-default">
@@ -112,8 +141,6 @@ export default function PaulaSidebar() {
                                         { name: "Kalender Mobil", path: "/paula/mobil/kalender" },
                                         { name: "Pengajuan Mobil", path: "/paula/mobil/pengajuan" },
                                         { name: "Riwayat Mobil", path: "/paula/mobil/riwayat" },
-                                        // Pos Security HANYA dapat diakses/dilihat oleh Admin di sidebar user
-                                        ...(isAdmin ? [{ name: "Pos Security (Gate)", path: "/paula/mobil/security" }] : [])
                                     ].map(item => (
                                         <Link 
                                             key={item.name} 

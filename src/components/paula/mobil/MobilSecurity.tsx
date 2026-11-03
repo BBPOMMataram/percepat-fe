@@ -9,6 +9,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import MobilServis from "./MobilServis";
 
 interface PengajuanMobilItem {
     id: number;
@@ -52,10 +53,18 @@ interface PengajuanMobilItem {
     };
 }
 
-export default function MobilSecurity() {
+interface MobilSecurityProps {
+    initialTab?: "gate" | "servis";
+}
+
+export default function MobilSecurity({ initialTab = "gate" }: MobilSecurityProps) {
     const router = useRouter();
     const { user } = useSelector((state: RootState) => state.auth);
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL_PAULA || "http://localhost:8000";
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL_PAULA;
+
+    const [mainTab, setMainTab] = useState<"gate" | "servis">(initialTab);
+    const [wajibServisCount, setWajibServisCount] = useState(0);
+    const [unreadKerusakanCount, setUnreadKerusakanCount] = useState(0);
 
     const [activeTab, setActiveTab] = useState<"ready" | "outside" | "history">("ready");
     const [readyList, setReadyList] = useState<PengajuanMobilItem[]>([]);
@@ -91,6 +100,19 @@ export default function MobilSecurity() {
     const [fotoKerusakanFile, setFotoKerusakanFile] = useState<File | null>(null);
     const [isSubmittingIn, setIsSubmittingIn] = useState(false);
 
+    const fetchSummaryCounts = async () => {
+        try {
+            const [resService, resKerusakan] = await Promise.all([
+                api.get(`${backendUrl}/api/paula/admin/mobil/service-status`),
+                api.get(`${backendUrl}/api/paula/admin/mobil/kerusakan`),
+            ]);
+            setWajibServisCount(resService.data?.wajib_servis_count || 0);
+            setUnreadKerusakanCount(resKerusakan.data?.unread_count || 0);
+        } catch {
+            // silent fallback
+        }
+    };
+
     const fetchSecurityData = async () => {
         setIsLoading(true);
         try {
@@ -106,8 +128,35 @@ export default function MobilSecurity() {
         }
     };
 
+    const handleRefreshAll = () => {
+        fetchSecurityData();
+        fetchSummaryCounts();
+    };
+
+    const handleSwitchMainTab = (tab: "gate" | "servis") => {
+        setMainTab(tab);
+        if (typeof window !== "undefined") {
+            const url = new URL(window.location.href);
+            url.searchParams.set("tab", tab);
+            window.history.replaceState(null, "", url.toString());
+        }
+    };
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tabParam = urlParams.get("tab");
+            if (tabParam === "servis" || tabParam === "gate") {
+                setMainTab(tabParam);
+            } else if (initialTab) {
+                setMainTab(initialTab);
+            }
+        }
+    }, [initialTab]);
+
     useEffect(() => {
         fetchSecurityData();
+        fetchSummaryCounts();
         api.get(`${backendUrl}/api/paula/user/me`)
             .then((res) => {
                 setPaulaUser(res.data?.user || null);
@@ -263,13 +312,13 @@ export default function MobilSecurity() {
                 <div className="space-y-2 z-10">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-xs font-bold">
                         <Icon icon="solar:shield-check-bold" width={16} />
-                        Pos Jaga Security (Gate Pass)
+                        Pos Jaga Security & Kontrol Armada
                     </div>
                     <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-                        Pemeriksaan Kendaraan Keluar & Masuk
+                        Pemeriksaan Kendaraan & Pemantauan Servis
                     </h1>
                     <p className="text-blue-200/80 text-xs sm:text-sm max-w-2xl leading-relaxed">
-                        Catat odometer awal sebelum mobil keluar gerbang, dan lakukan checklist fisik, odometer akhir, serta struk BBM saat kendaraan kembali.
+                        Pusat kontrol pos jaga untuk pencatatan keluar & masuk (Gate Pass Odometer & BBM), serta pemantauan kondisi fisik dan status servis berkala armada dinas.
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 shrink-0 z-10">
@@ -281,9 +330,9 @@ export default function MobilSecurity() {
                     </div>
 
                     <button
-                        onClick={fetchSecurityData}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold backdrop-blur-md transition border border-white/10 shadow-2xs"
-                        title="Segarkan Data"
+                        onClick={handleRefreshAll}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold backdrop-blur-md transition border border-white/10 shadow-2xs cursor-pointer"
+                        title="Segarkan Semua Data"
                     >
                         <Icon icon="solar:refresh-linear" width={15} />
                         <span>Segarkan</span>
@@ -291,6 +340,63 @@ export default function MobilSecurity() {
                 </div>
             </div>
 
+            {/* NAVIGASI TAB UTAMA: GATE PASS vs MONITORING SERVIS */}
+            <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 pb-3">
+                <button
+                    type="button"
+                    onClick={() => handleSwitchMainTab("gate")}
+                    className={`flex items-center gap-2.5 px-5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+                        mainTab === "gate"
+                            ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                            : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                    }`}
+                >
+                    <Icon icon="solar:shield-check-bold" width={18} />
+                    <span>Pemeriksaan Keluar & Masuk (Gate Pass)</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-black ${
+                        mainTab === "gate" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700"
+                    }`}>
+                        {readyList.length + outsideList.length}
+                    </span>
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => handleSwitchMainTab("servis")}
+                    className={`flex items-center gap-2.5 px-5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+                        mainTab === "servis"
+                            ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
+                            : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                    }`}
+                >
+                    <Icon icon="solar:wrench-bold" width={18} />
+                    <span>Status Servis & Kerusakan Armada</span>
+                    {(unreadKerusakanCount > 0 || wajibServisCount > 0) ? (
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-black ${
+                            mainTab === "servis" ? "bg-rose-500 text-white" : "bg-rose-100 text-rose-700"
+                        }`}>
+                            {unreadKerusakanCount + wajibServisCount} Perhatian
+                        </span>
+                    ) : (
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-black ${
+                            mainTab === "servis" ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-700"
+                        }`}>
+                            Prima
+                        </span>
+                    )}
+                </button>
+            </div>
+
+            {/* TAB CONTENT: MONITORING SERVIS */}
+            {mainTab === "servis" && (
+                <div className="animate-in fade-in duration-200">
+                    <MobilServis hideHeader={true} />
+                </div>
+            )}
+
+            {/* TAB CONTENT: GATE PASS */}
+            {mainTab === "gate" && (
+                <div className="space-y-6 animate-in fade-in duration-200">
             {/* Quick Metrics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div
@@ -604,6 +710,8 @@ export default function MobilSecurity() {
                         </table>
                     </div>
                 </div>
+            )}
+            </div>
             )}
 
             {/* MODAL GATE OUT */}

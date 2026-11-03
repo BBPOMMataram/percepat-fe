@@ -105,6 +105,8 @@ export interface User {
     student?: Student | null;
     sites?: Sites[] | [];
     katims?: KatimRelation[];
+    is_security?: boolean;
+    is_admin?: boolean;
     created_at: string;
     updated_at: string;
 }
