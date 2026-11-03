@@ -875,6 +875,94 @@ export default function TestLocalTableKatim() {
     }));
   };
 
+  // Helper placeholder & evaluasi formula instan untuk kolom angka/target
+  const getCellPlaceholder = (col: ColumnSchema) => {
+    const l = (col.label || "").toLowerCase();
+    const letter = (col.col_letter || "").toUpperCase();
+    if (letter === "F" || l.includes("target sampel")) {
+      return "Cth: 16 (atau =F2+9)";
+    }
+    if (letter === "G" || l.includes("target indikator")) {
+      return "Cth: 99.71";
+    }
+    return "0";
+  };
+
+  // Evaluasi formula atau input aritmatika saat onBlur di input cell
+  const handleCellBlur = (
+    rowId: number,
+    col: ColumnSchema,
+    rawVal: string | number,
+    rowIdxNum?: number,
+  ) => {
+    if (!activeTab || typeof rawVal !== "string") return;
+    const trimmed = rawVal.trim();
+    if (!trimmed) return;
+
+    // 1. Jika mengandung koma desimal Indonesia (cth: 99,71 -> 99.71)
+    if (trimmed.includes(",") && !trimmed.includes(".")) {
+      const normalized = trimmed.replace(",", ".");
+      if (!isNaN(Number(normalized))) {
+        handleCellChange(rowId, col.key, Number(normalized), rowIdxNum);
+        return;
+      }
+    }
+
+    // 2. Jika diawali tanda '=' (formula, cth: =F2+9 atau =16+9 atau =7+9)
+    if (trimmed.startsWith("=")) {
+      const expr = trimmed.slice(1).trim();
+
+      // Cek apakah formula merujuk ke cell baris sebelumnya (cth: F2+9)
+      const prevRowMatch = expr.match(
+        /^([A-Za-z]+)(d+)s*([\+\-\*\/])s*([\d\.]+)$/,
+      );
+      if (prevRowMatch && activeTab.rows_data) {
+        const [, targetLetter, targetRowNum, op, operandStr] = prevRowMatch;
+        const operand = parseFloat(operandStr);
+        // Baris Excel row 2 = index 0, row 3 = index 1
+        const targetRIdx = parseInt(targetRowNum, 10) - 2;
+        const targetRow = activeTab.rows_data[targetRIdx];
+        const targetCol = effectiveColumnsSchema.find(
+          (c) => c.col_letter?.toUpperCase() === targetLetter.toUpperCase(),
+        );
+
+        if (targetRow && targetCol) {
+          const baseVal = parseFloat(
+            String(targetRow.cells?.[targetCol.key] || 0),
+          );
+          let res = baseVal;
+          if (op === "+") res = baseVal + operand;
+          else if (op === "-") res = baseVal - operand;
+          else if (op === "*") res = baseVal * operand;
+          else if (op === "/" && operand !== 0) res = baseVal / operand;
+
+          const finalRes = Math.round(res * 100) / 100;
+          handleCellChange(rowId, col.key, finalRes, rowIdxNum);
+          return;
+        }
+      }
+
+      // Cek apakah formula aritmatika murni (cth: =16+9 atau =7+9)
+      const simpleMathMatch = expr.match(
+        /^([\d\.]+)s*([\+\-\*\/])s*([\d\.]+)$/,
+      );
+      if (simpleMathMatch) {
+        const [, aStr, op, bStr] = simpleMathMatch;
+        const a = parseFloat(aStr);
+        const b = parseFloat(bStr);
+        let res = a;
+        if (op === "+") res = a + b;
+        else if (op === "-") res = a - b;
+        else if (op === "*") res = a * b;
+        else if (op === "/" && b !== 0) res = a / b;
+
+        const finalRes = Math.round(res * 100) / 100;
+        handleCellChange(rowId, col.key, finalRes, rowIdxNum);
+        return;
+      }
+    }
+  };
+
   // Unduh template Excel sesuai struktur kolom tab yang sedang aktif
   const handleDownloadExcelTemplate = () => {
     if (!activeTab || effectiveColumnsSchema.length === 0) return;
@@ -3105,10 +3193,31 @@ export default function TestLocalTableKatim() {
                                         rowIdxNum,
                                       )
                                     }
+                                    onBlur={(e) =>
+                                      handleCellBlur(
+                                        Number(rowKey),
+                                        col,
+                                        e.target.value,
+                                        rowIdxNum,
+                                      )
+                                    }
                                     onWheel={(e) =>
                                       (e.target as HTMLElement).blur()
                                     }
-                                    placeholder="0"
+                                    placeholder={getCellPlaceholder(col)}
+                                    title={
+                                      col.col_letter === "F" ||
+                                      (col.label || "")
+                                        .toLowerCase()
+                                        .includes("target sampel")
+                                        ? "Target Sampel: Masukkan nilai exact (misal 16) atau formula (misal =F2+9)"
+                                        : col.col_letter === "G" ||
+                                            (col.label || "")
+                                              .toLowerCase()
+                                              .includes("target indikator")
+                                          ? "Target Indikator (%): Masukkan nilai exact target (misal 99.71)"
+                                          : undefined
+                                    }
                                     className={`w-full rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                                       isQuestionRow
                                         ? "border border-blue-300 bg-white text-blue-950 focus:border-blue-600 focus:ring-blue-600 font-semibold text-right"
