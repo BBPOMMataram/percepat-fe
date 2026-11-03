@@ -8,6 +8,13 @@ import api from "@/utils/api";
 import { toast } from "react-toastify";
 import PopupSurvey from "./PopupSurvey";
 import NavbarETamu from "./layout/NavbarETamu";
+import {
+    loadFaceRecognitionModels,
+    isFaceApiReady,
+    detectFaceDescriptor,
+    findBestFaceMatch,
+    KnownGuestFace,
+} from "@/utils/faceRecognition";
 
 const BPOM_LAT = -8.5877864;
 const BPOM_LNG = 116.1157653;
@@ -41,10 +48,26 @@ export default function ETamuGuestBook() {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
+    const isDetectingRef = useRef(false);
     
     const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
     const [selectedCamera, setSelectedCamera] = useState<string>("");
     const [imageUri, setImageUri] = useState<string | null>(null);
+    const [manualFaceDescriptor, setManualFaceDescriptor] = useState<number[] | null>(null);
+
+    // ==========================================
+    // STATE FACE RECOGNITION (SMART GUESTBOOK)
+    // ==========================================
+    const [knownFaces, setKnownFaces] = useState<KnownGuestFace[]>([]);
+    const [isFaceScanEnabled, setIsFaceScanEnabled] = useState(true);
+    const [isModelsReady, setIsModelsReady] = useState(false);
+    const [faceDetectionStatus, setFaceDetectionStatus] = useState<'idle' | 'scanning' | 'detected' | 'recognized'>('idle');
+    const [recognizedGuest, setRecognizedGuest] = useState<KnownGuestFace | null>(null);
+    const [recognizedPhoto, setRecognizedPhoto] = useState<string | null>(null);
+    const [recognitionConfidence, setRecognitionConfidence] = useState(0);
+    const [showRecognizedModal, setShowRecognizedModal] = useState(false);
+    const [recognizedService, setRecognizedService] = useState("");
+    const [recognizedServiceCustom, setRecognizedServiceCustom] = useState("");
 
     const [showSurvey, setShowSurvey] = useState(false);
     const [guestIdSaved, setGuestIdSaved] = useState<number | null>(null);
@@ -60,7 +83,6 @@ export default function ETamuGuestBook() {
                 (pos) => {
                     const { latitude, longitude, accuracy } = pos.coords;
                     
-                    // Jika akurasi lebih dari 100m (buruk), coba lagi maksimal 5 kali
                     if (accuracy > 100 && retryCount < 5) {
                         setTimeout(() => checkLocation(retryCount + 1), 2000);
                         return;
@@ -91,14 +113,44 @@ export default function ETamuGuestBook() {
         checkLocation();
     }, [checkLocation]);
 
+    // Inisialisasi Data Tamu, Layanan & Bobot Model Face Recognition
     useEffect(() => {
         api.get(`${baseURL}/api/e-tamu/init`).then(res => {
-            setServices(res.data.services);
-            setGuestNames(res.data.guests);
-            setTotalGuests(res.data.guests_this_year);
+            setServices(res.data.services || []);
+            setGuestNames(res.data.guests || []);
+            setTotalGuests(res.data.guests_this_year || 0);
         }).catch(err => console.error(err));
 
-        navigator.mediaDevices.enumerateDevices().then(devices => {
+        // Ambil daftar tamu yang memiliki face descriptor dari database
+        api.get(`${baseURL}/api/e-tamu/faces`).then(res => {
+            const list = res.data?.faces || [];
+            const parsed: KnownGuestFace[] = list.map((item: any) => {
+                let desc = item.face_descriptor;
+                if (typeof desc === 'string') {
+                    try { desc = JSON.parse(desc); } catch (e) { desc = null; }
+                }
+                return {
+                    id: item.id,
+                    name: item.name,
+                    hp: item.hp,
+                    company: item.company,
+                    address: item.address,
+                    email: item.email,
+                    pangkat: item.pangkat,
+                    jabatan: item.jabatan,
+                    descriptor: desc,
+                };
+            }).filter((item: any) => Array.isArray(item.descriptor) && item.descriptor.length === 128);
+
+            setKnownFaces(parsed);
+        }).catch(err => console.error("Gagal memuat face descriptors:", err));
+
+        // Memuat model AI secara asynchronous di latar belakang
+        loadFaceRecognitionModels().then(loaded => {
+            setIsModelsReady(loaded);
+        });
+
+        navigator.mediaDevices?.enumerateDevices().then(devices => {
             const videoInputs = devices.filter(device => device.kind === 'videoinput');
             setCameras(videoInputs);
             if (videoInputs.length > 0) {
@@ -139,15 +191,15 @@ export default function ETamuGuestBook() {
         };
     }, [selectedCamera, startCamera, imageUri, locationStatus]);
 
-    const handleSnap = () => {
+    // Ambil Snapshot dari feed video (digunakan baik manual snap maupun auto face-recognition)
+    const captureSnapshotFromVideo = useCallback(() => {
         const video = videoRef.current;
         const canvas = canvasRef.current;
-        if (!video || !canvas) return;
+        if (!video || !canvas) return null;
 
         const vWidth = video.videoWidth || 640;
         const vHeight = video.videoHeight || 480;
 
-        // Dapatkan rasio aspek dari container preview video yang tampak di layar
         const boxWidth = video.clientWidth || 4;
         const boxHeight = video.clientHeight || 3;
         const targetAspect = boxWidth / boxHeight;
@@ -158,18 +210,14 @@ export default function ETamuGuestBook() {
         let sWidth = vWidth;
         let sHeight = vHeight;
 
-        // Simulasi CSS object-cover: hitung area video yang benar-benar terlihat di layar
         if (videoAspect > targetAspect) {
-            // Video lebih lebar dari container (crop bagian kiri dan kanan)
             sWidth = vHeight * targetAspect;
             sx = (vWidth - sWidth) / 2;
         } else {
-            // Video lebih tinggi dari container (crop bagian atas dan bawah, misal kamera portrait HP)
             sHeight = vWidth / targetAspect;
             sy = (vHeight - sHeight) / 2;
         }
 
-        // Resolusi output canvas yang jernih dan proporsional (lebar standar 640px)
         const outputWidth = Math.round(sWidth > 640 ? 640 : sWidth);
         const outputHeight = Math.round(outputWidth / targetAspect);
 
@@ -183,12 +231,116 @@ export default function ETamuGuestBook() {
                 sx, sy, sWidth, sHeight,
                 0, 0, outputWidth, outputHeight
             );
-            setImageUri(canvas.toDataURL('image/jpeg', 0.85));
+            return canvas.toDataURL('image/jpeg', 0.85);
+        }
+        return null;
+    }, []);
+
+    // ========================================================
+    // REAL-TIME FACE RECOGNITION SCANNER LOOP
+    // ========================================================
+    useEffect(() => {
+        if (
+            locationStatus !== 'allowed' ||
+            imageUri ||
+            showRecognizedModal ||
+            showSurvey ||
+            !isFaceScanEnabled ||
+            !isModelsReady
+        ) {
+            setFaceDetectionStatus('idle');
+            return;
+        }
+
+        const intervalId = setInterval(async () => {
+            const video = videoRef.current;
+            if (!video || video.paused || video.ended || video.readyState < 2) return;
+            if (isDetectingRef.current || !isFaceApiReady()) return;
+
+            isDetectingRef.current = true;
+            try {
+                setFaceDetectionStatus('scanning');
+                const result = await detectFaceDescriptor(video);
+
+                if (result && result.descriptor) {
+                    setFaceDetectionStatus('detected');
+
+                    // Jika ada tamu yang telah terdaftar, lakukan pencocokan wajah
+                    if (knownFaces.length > 0) {
+                        const match = findBestFaceMatch(result.descriptor, knownFaces, 0.48);
+                        if (match) {
+                            setFaceDetectionStatus('recognized');
+                            // Ambil snapshot wajah terkini secara instan
+                            const snapshot = captureSnapshotFromVideo();
+                            if (snapshot) {
+                                setRecognizedPhoto(snapshot);
+                                setRecognizedGuest(match.guest);
+                                setRecognitionConfidence(match.similarity);
+                                setRecognizedService("");
+                                setRecognizedServiceCustom("");
+                                setShowRecognizedModal(true);
+                                toast.success(`Wajah Dikenali: ${match.guest.name}!`);
+                            }
+                        }
+                    }
+                } else {
+                    setFaceDetectionStatus('scanning');
+                }
+            } catch (err) {
+                console.error("Scanner error:", err);
+            } finally {
+                isDetectingRef.current = false;
+            }
+        }, 800);
+
+        return () => clearInterval(intervalId);
+    }, [
+        locationStatus,
+        imageUri,
+        showRecognizedModal,
+        showSurvey,
+        isFaceScanEnabled,
+        isModelsReady,
+        knownFaces,
+        captureSnapshotFromVideo,
+    ]);
+
+    // Handle Snap Foto Manual (untuk tamu baru atau jika tidak memakai auto scan)
+    const handleSnap = async () => {
+        const snapshot = captureSnapshotFromVideo();
+        if (snapshot) {
+            setImageUri(snapshot);
+            // Ekstraksi descriptor wajah di latar belakang untuk disimpan saat form di-submit
+            if (canvasRef.current) {
+                detectFaceDescriptor(canvasRef.current).then(res => {
+                    if (res && res.descriptor) {
+                        setManualFaceDescriptor(res.descriptor);
+                        // Cek apakah wajah ini cocok dengan tamu yang sudah ada
+                        if (knownFaces.length > 0) {
+                            const match = findBestFaceMatch(res.descriptor, knownFaces, 0.48);
+                            if (match && !formData.nama) {
+                                setFormData(prev => ({
+                                    ...prev,
+                                    nama: match.guest.name,
+                                    hp: match.guest.hp || '',
+                                    email: match.guest.email || '',
+                                    instansi: match.guest.company || '',
+                                    alamat: match.guest.address || '',
+                                }));
+                                toast.info(`Wajah cocok dengan ${match.guest.name}. Data diri diisi otomatis.`);
+                            }
+                        }
+                    }
+                }).catch(err => {
+                    console.error("Gagal mendeteksi wajah pada foto:", err);
+                });
+            }
         }
     };
 
     const handleRetake = () => {
         setImageUri(null);
+        setManualFaceDescriptor(null);
     };
 
     const handleNameChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -209,15 +361,89 @@ export default function ETamuGuestBook() {
                     }));
                     toast.info("Data diisi otomatis berdasarkan riwayat kunjungan.");
                 }
-            } catch (err) { }
+            } catch (err) {}
         }
     };
 
     const handleReset = () => {
         setFormData({ nama: '', hp: '', email: '', instansi: '', alamat: '', layanan: '', layananCustom: '' });
         setImageUri(null);
+        setManualFaceDescriptor(null);
     };
 
+    // ========================================================
+    // KONFIRMASI KEDATANGAN DARI POPUP WAJAH DIKENALI
+    // ========================================================
+    const handleConfirmRecognizedGuest = async () => {
+        if (!recognizedGuest || !recognizedService) {
+            toast.error("Silakan pilih layanan/tujuan kunjungan Anda!");
+            return;
+        }
+
+        if (recognizedService === '8' && !recognizedServiceCustom.trim()) {
+            toast.error("Harap isi rincian keperluan spesifik untuk Layanan Lainnya!");
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            const payload = {
+                nama: recognizedGuest.name,
+                hp: recognizedGuest.hp || '-',
+                email: recognizedGuest.email || '',
+                instansi: recognizedGuest.company || 'Umum',
+                alamat: recognizedGuest.address || '-',
+                pangkat: recognizedGuest.pangkat || '',
+                jabatan: recognizedGuest.jabatan || '',
+                layanan: recognizedService,
+                layananCustom: recognizedServiceCustom,
+                imageUri: recognizedPhoto, // Foto hasil scan terkini
+                face_descriptor: recognizedGuest.descriptor,
+                latitude: userCoords?.lat,
+                longitude: userCoords?.lng,
+                accuracy: userCoords?.acc,
+            };
+
+            const res = await api.post(`${baseURL}/api/e-tamu/store`, payload);
+
+            setGuestIdSaved(res.data.data.id);
+            setGuestNameSaved(res.data.data.name);
+            setTotalGuests(prev => prev + 1);
+
+            setShowRecognizedModal(false);
+            setRecognizedGuest(null);
+            setRecognizedPhoto(null);
+
+            setShowSurvey(true);
+            handleReset();
+            toast.success(`Selamat datang kembali, ${recognizedGuest.name}! Presensi Anda berhasil dicatat.`);
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Gagal menyimpan data pengunjung via Face Recognition.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDismissRecognizedModal = () => {
+        if (recognizedGuest) {
+            setFormData({
+                nama: recognizedGuest.name,
+                hp: recognizedGuest.hp || '',
+                email: recognizedGuest.email || '',
+                instansi: recognizedGuest.company || '',
+                alamat: recognizedGuest.address || '',
+                layanan: '',
+                layananCustom: '',
+            });
+            if (recognizedPhoto) {
+                setImageUri(recognizedPhoto);
+            }
+        }
+        setShowRecognizedModal(false);
+        toast.info("Silakan periksa atau lengkapi formulir pendaftaran manual.");
+    };
+
+    // Submit Formulir Manual
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!imageUri) {
@@ -227,10 +453,10 @@ export default function ETamuGuestBook() {
 
         setSubmitting(true);
         try {
-            // Mengirim latitude, longitude, dan accuracy asli ke backend untuk divalidasi ulang
             const payload = { 
                 ...formData, 
                 imageUri, 
+                face_descriptor: manualFaceDescriptor,
                 latitude: userCoords?.lat,
                 longitude: userCoords?.lng,
                 accuracy: userCoords?.acc
@@ -240,6 +466,22 @@ export default function ETamuGuestBook() {
             setGuestIdSaved(res.data.data.id);
             setGuestNameSaved(res.data.data.name);
             
+            // Perbarui daftar lokal jika ada face descriptor baru
+            if (manualFaceDescriptor) {
+                setKnownFaces(prev => [
+                    ...prev.filter(f => f.name.toLowerCase() !== formData.nama.toLowerCase()),
+                    {
+                        id: res.data.data.id,
+                        name: formData.nama,
+                        hp: formData.hp,
+                        company: formData.instansi,
+                        address: formData.alamat,
+                        email: formData.email,
+                        descriptor: manualFaceDescriptor,
+                    }
+                ]);
+            }
+
             setTotalGuests(prev => prev + 1);
 
             setShowSurvey(true);
@@ -327,15 +569,21 @@ export default function ETamuGuestBook() {
                 <h1 className="text-black font-bold text-3xl">E Tamu - BBPOM di Mataram</h1>
             </header>
 
-            <div className="w-full max-w-1400px mx-auto px-4 md:px-8 flex-1 flex flex-col justify-center">
+            <div className="w-full max-w-[1400px] mx-auto px-4 md:px-8 flex-1 flex flex-col justify-center">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                     
+                    {/* SISI KIRI: TOTAL PENGUNJUNG & KAMERA SWAFOTO / SCANNER */}
                     <div className="lg:col-span-4 flex flex-col gap-6">
                         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                                     <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Total Pengunjung
                                 </h3>
+                                {knownFaces.length > 0 && (
+                                    <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full">
+                                        {knownFaces.length} Wajah Terdaftar
+                                    </span>
+                                )}
                             </div>
                             <div className="flex items-end gap-3 mb-2">
                                 <span className="text-5xl font-black text-slate-800">{totalGuests}</span>
@@ -347,10 +595,23 @@ export default function ETamuGuestBook() {
                             <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-4">
                                 <div className="flex items-center gap-2">
                                     <div>
-                                        <h3 className="text-sm font-bold text-slate-800">Swafoto Pengunjung</h3>
+                                        <h3 className="text-sm font-bold text-slate-800">Swafoto & Face Recognition</h3>
+                                        <p className="text-[11px] text-slate-500">Scan otomatis tamu terdaftar</p>
                                     </div>
                                 </div>
-                                <span className="bg-red-50 text-red-600 border border-red-100 text-[10px] px-2 py-0.5 rounded font-bold">* Diperlukan</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsFaceScanEnabled(!isFaceScanEnabled)}
+                                    className={`text-[10px] px-2.5 py-1 rounded-full font-bold border transition-colors flex items-center gap-1 cursor-pointer ${
+                                        isFaceScanEnabled 
+                                            ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                                            : "bg-slate-100 text-slate-500 border-slate-200"
+                                    }`}
+                                    title="Klik untuk aktifkan/nonaktifkan pemindai wajah otomatis"
+                                >
+                                    <span className={`w-1.5 h-1.5 rounded-full ${isFaceScanEnabled ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`}></span>
+                                    {isFaceScanEnabled ? "AI Scan: ON" : "AI Scan: OFF"}
+                                </button>
                             </div>
 
                             <div className="mb-4">
@@ -368,9 +629,39 @@ export default function ETamuGuestBook() {
                                 </select>
                             </div>
 
+                            {/* CONTAINER VIDEO KAMERA & OVERLAY PEMINDAI */}
                             <div className="relative w-full aspect-[4/3] bg-black rounded-xl overflow-hidden border-[6px] border-slate-100 mb-4 group shadow-inner">
                                 {!imageUri ? (
-                                    <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover transform scale-x-[-1]" />
+                                    <>
+                                        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover transform scale-x-[-1]" />
+                                        
+                                        {/* HUD / Scanning Frame Overlay */}
+                                        {isFaceScanEnabled && (
+                                            <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-between p-4">
+                                                <div className="w-full flex justify-between items-center">
+                                                    <span className="bg-slate-900/60 backdrop-blur-md text-emerald-300 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-emerald-500/30">
+                                                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                                                        {faceDetectionStatus === 'detected' ? 'Menganalisis Wajah...' : 'Memindai Wajah...'}
+                                                    </span>
+                                                </div>
+
+                                                {/* Bingkai Target Wajah */}
+                                                <div className={`w-44 h-52 border-2 rounded-3xl transition-all duration-300 flex items-center justify-center ${
+                                                    faceDetectionStatus === 'detected' 
+                                                        ? 'border-emerald-400 bg-emerald-500/10 scale-105' 
+                                                        : 'border-white/40 border-dashed'
+                                                }`}>
+                                                    <span className="bg-slate-900/70 text-slate-200 text-[10px] font-medium px-2.5 py-1 rounded-full backdrop-blur-md">
+                                                        {faceDetectionStatus === 'detected' ? 'Wajah Terdeteksi' : 'Arahkan Wajah ke Sini'}
+                                                    </span>
+                                                </div>
+
+                                                <span className="text-[10px] text-white/80 bg-slate-900/50 px-2 py-0.5 rounded-full backdrop-blur-xs">
+                                                    Tamu terdaftar akan terisi otomatis
+                                                </span>
+                                            </div>
+                                        )}
+                                    </>
                                 ) : (
                                     <img src={imageUri} alt="Selfie Snapshot" className="w-full h-full object-cover transform scale-x-[-1]" />
                                 )}
@@ -387,17 +678,19 @@ export default function ETamuGuestBook() {
                             </div>
                             <p className="text-[10px] text-center text-slate-500 mt-4 flex items-center justify-center gap-1">
                                 <span className="material-symbols-outlined text-[12px] text-amber-500">lightbulb</span> 
-                                Posisikan wajah tepat di dalam bingkai dan lepaskan masker sementara.
+                                Posisikan wajah tepat di dalam bingkai. Tamu yang pernah datang akan otomatis dikenali.
                             </p>
                         </div>
                     </div>
 
+                    {/* SISI KANAN: FORMULIR DATA DIRI PENGUNJUNG */}
                     <div className="lg:col-span-8">
                         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                             
                             <div className="bg-teal-700 p-6 md:p-4 flex justify-between items-center relative overflow-hidden">
                                 <div className="relative z-10">
                                     <h2 className="text-2xl font-bold text-white mb-1">Formulir Data Diri Pengunjung</h2>
+                                    <p className="text-teal-100 text-xs">Isi formulir ini jika Anda baru pertama kali berkunjung</p>
                                 </div>
                             </div>
 
@@ -547,6 +840,105 @@ export default function ETamuGuestBook() {
                 </div>
             </div>
 
+            {/* POPUP WAJAH DIKENALI (MODAL KONFIRMASI KEDATANGAN CEPAT) */}
+            {showRecognizedModal && recognizedGuest && (
+                <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 animate-in zoom-in-95">
+                        {/* Header Modal */}
+                        <div className="bg-gradient-to-r from-emerald-600 to-teal-700 p-6 text-white text-center relative">
+                            <button
+                                onClick={() => setShowRecognizedModal(false)}
+                                className="absolute top-4 right-4 text-white/80 hover:text-white p-1 rounded-full transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-[20px]">close</span>
+                            </button>
+                            <h3 className="text-xl font-black">Selamat Datang Kembali!</h3>
+                            <p className="text-emerald-100 text-xs mt-0.5">Identitas Anda terdeteksi melalui Face Recognition</p>
+                        </div>
+
+                        {/* Content Modal */}
+                        <div className="p-6 space-y-5">
+                            {/* Kartu Ringkasan Tamu & Foto Terkini */}
+                            <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                                {recognizedPhoto && (
+                                    <div className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0 border-2 border-emerald-500 shadow-sm">
+                                        <img src={recognizedPhoto} alt="Tangkapan Wajah" className="w-full h-full object-cover transform scale-x-[-1]" />
+                                        <span className="absolute bottom-1 right-1 bg-emerald-500 text-white p-0.5 rounded-full flex items-center justify-center">
+                                            <span className="material-symbols-outlined text-[10px]">check</span>
+                                        </span>
+                                    </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="text-base font-bold text-slate-800 truncate">{recognizedGuest.name}</h4>
+                                    <p className="text-xs text-slate-600 font-medium truncate mt-0.5">
+                                        {recognizedGuest.company || "Umum / Pribadi"}
+                                    </p>
+                                    <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-[14px]">call</span>
+                                        {recognizedGuest.hp || "-"}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Dropdown Pemilihan Layanan Tujuan */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 uppercase mb-2">
+                                    Pilih Layanan / Unit Tujuan Hari Ini <span className="text-red-500">*</span>
+                                </label>
+                                <div className="relative">
+                                    <span className="material-symbols-outlined absolute left-3.5 top-3 text-slate-400 text-[20px]">toc</span>
+                                    <select 
+                                        className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl py-3 pl-11 pr-4 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all appearance-none cursor-pointer"
+                                        value={recognizedService} 
+                                        onChange={e => setRecognizedService(e.target.value)}
+                                    >
+                                        <option value="" disabled>== Pilih Layanan Tujuan ==</option>
+                                        {services.map((item) => (
+                                            <option key={item.id} value={item.id}>{item.name}</option>
+                                        ))}
+                                    </select>
+                                    <span className="material-symbols-outlined absolute right-3.5 top-3 text-slate-400 pointer-events-none">expand_more</span>
+                                </div>
+                            </div>
+
+                            {recognizedService === '8' && (
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 uppercase mb-2">
+                                        Keperluan Spesifik & Pejabat Yang Dituju <span className="text-red-500">*</span>
+                                    </label>
+                                    <textarea 
+                                        className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl py-3 pl-4 pr-4 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all placeholder:text-slate-400 min-h-[70px]"
+                                        placeholder="Contoh: Koordinasi pengujian sampel dengan Lab Kimia"
+                                        value={recognizedServiceCustom}
+                                        onChange={e => setRecognizedServiceCustom(e.target.value)}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Tombol Aksi */}
+                            <div className="space-y-2 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={handleConfirmRecognizedGuest}
+                                    disabled={!recognizedService || (recognizedService === '8' && !recognizedServiceCustom.trim()) || submitting}
+                                    className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 text-sm cursor-pointer"
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">how_to_reg</span>
+                                    {submitting ? 'Menyimpan Kehadiran...' : 'Konfirmasi Kedatangan & Simpan'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleDismissRecognizedModal}
+                                    className="w-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition-all text-xs cursor-pointer"
+                                >
+                                    Bukan Saya? Isi Formulir Manual
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* POPUP SURVEY MODAL */}
             <PopupSurvey 
                 show={showSurvey} 
@@ -572,7 +964,7 @@ export default function ETamuGuestBook() {
                     <div className="relative max-h-[90vh] flex flex-col items-end">
                         <button 
                             onClick={() => setShowEvacuationPopup(false)}
-                            className="mb-2 text-white/70 hover:text-white flex items-center gap-1 font-medium transition-colors"
+                            className="mb-2 text-white/70 hover:text-white flex items-center gap-1 font-medium transition-colors cursor-pointer"
                         >
                             Tutup <span className="text-xl leading-none">&times;</span>
                         </button>
