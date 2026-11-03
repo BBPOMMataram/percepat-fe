@@ -48,7 +48,10 @@ export default function ETamuGuestBook() {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
+    const activeDeviceIdRef = useRef<string>("");
     const isDetectingRef = useRef(false);
+    const [isCameraLoading, setIsCameraLoading] = useState(true);
+    const [isSnapping, setIsSnapping] = useState(false);
     
     const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
     const [selectedCamera, setSelectedCamera] = useState<string>("");
@@ -150,43 +153,75 @@ export default function ETamuGuestBook() {
             setIsModelsReady(loaded);
         });
 
-        navigator.mediaDevices?.enumerateDevices().then(devices => {
-            const videoInputs = devices.filter(device => device.kind === 'videoinput');
-            setCameras(videoInputs);
-            if (videoInputs.length > 0) {
-                setSelectedCamera(videoInputs[0].deviceId);
-            }
-        });
     }, [baseURL]);
 
     const startCamera = useCallback(async (deviceId?: string) => {
+        // Jika kamera dengan deviceId ini sudah aktif berjalan, jangan restart hardware!
+        if (
+            streamRef.current && 
+            streamRef.current.active && 
+            activeDeviceIdRef.current === (deviceId || "default")
+        ) {
+            setIsCameraLoading(false);
+            return;
+        }
+
+        setIsCameraLoading(true);
+
         if (streamRef.current) {
             streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
         }
+
         try {
-            const constraints = {
+            const constraints: MediaStreamConstraints = {
                 video: deviceId 
                     ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 960 } } 
                     : { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 960 } }
             };
             const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
             streamRef.current = mediaStream;
+            activeDeviceIdRef.current = deviceId || "default";
+
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;
+                videoRef.current.onloadedmetadata = () => {
+                    videoRef.current?.play().catch(e => console.log("Play error:", e));
+                    setIsCameraLoading(false);
+                };
+            } else {
+                setIsCameraLoading(false);
+            }
+
+            // Setelah izin kamera didapat, isi daftar kamera tanpa me-restart stream
+            if (navigator.mediaDevices?.enumerateDevices) {
+                navigator.mediaDevices.enumerateDevices().then(devices => {
+                    const videoInputs = devices.filter(d => d.kind === 'videoinput');
+                    setCameras(videoInputs);
+                    if (videoInputs.length > 0 && !selectedCamera) {
+                        const activeTrack = mediaStream.getVideoTracks()[0];
+                        const activeId = activeTrack?.getSettings()?.deviceId || videoInputs[0].deviceId;
+                        activeDeviceIdRef.current = activeId;
+                        setSelectedCamera(activeId);
+                    }
+                }).catch(err => console.error("Enumerate devices error:", err));
             }
         } catch (error) {
-            console.error("Camera access denied:", error);
-            toast.error("Gagal mengakses kamera. Pastikan izin diberikan.");
+            console.error("Camera access error:", error);
+            setIsCameraLoading(false);
+            toast.error("Gagal mengakses kamera. Pastikan izin kamera telah diberikan.");
         }
-    }, []);
+    }, [selectedCamera]);
 
     useEffect(() => {
         if (locationStatus === 'allowed' && !imageUri) {
             startCamera(selectedCamera);
         }
         return () => {
-            if (streamRef.current) {
+            if (imageUri && streamRef.current) {
                 streamRef.current.getTracks().forEach(track => track.stop());
+                streamRef.current = null;
+                activeDeviceIdRef.current = "";
             }
         };
     }, [selectedCamera, startCamera, imageUri, locationStatus]);
@@ -224,7 +259,7 @@ export default function ETamuGuestBook() {
         canvas.width = outputWidth;
         canvas.height = outputHeight;
 
-        const context = canvas.getContext('2d');
+        const context = canvas.getContext('2d', { willReadFrequently: true });
         if (context) {
             context.drawImage(
                 video,
@@ -255,7 +290,7 @@ export default function ETamuGuestBook() {
         const intervalId = setInterval(async () => {
             const video = videoRef.current;
             if (!video || video.paused || video.ended || video.readyState < 2) return;
-            if (isDetectingRef.current || !isFaceApiReady()) return;
+            if (isDetectingRef.current || !isFaceApiReady() || imageUri || showRecognizedModal) return;
 
             isDetectingRef.current = true;
             try {
@@ -291,7 +326,7 @@ export default function ETamuGuestBook() {
             } finally {
                 isDetectingRef.current = false;
             }
-        }, 800);
+        }, 1200);
 
         return () => clearInterval(intervalId);
     }, [
@@ -307,40 +342,57 @@ export default function ETamuGuestBook() {
 
     // Handle Snap Foto Manual (untuk tamu baru atau jika tidak memakai auto scan)
     const handleSnap = async () => {
-        const snapshot = captureSnapshotFromVideo();
-        if (snapshot) {
-            setImageUri(snapshot);
-            // Ekstraksi descriptor wajah di latar belakang untuk disimpan saat form di-submit
-            if (canvasRef.current) {
-                detectFaceDescriptor(canvasRef.current).then(res => {
-                    if (res && res.descriptor) {
-                        setManualFaceDescriptor(res.descriptor);
-                        // Cek apakah wajah ini cocok dengan tamu yang sudah ada
-                        if (knownFaces.length > 0) {
-                            const match = findBestFaceMatch(res.descriptor, knownFaces, 0.48);
-                            if (match && !formData.nama) {
-                                setFormData(prev => ({
-                                    ...prev,
-                                    nama: match.guest.name,
-                                    hp: match.guest.hp || '',
-                                    email: match.guest.email || '',
-                                    instansi: match.guest.company || '',
-                                    alamat: match.guest.address || '',
-                                }));
-                                toast.info(`Wajah cocok dengan ${match.guest.name}. Data diri diisi otomatis.`);
+        if (isSnapping || !!imageUri) return;
+        setIsSnapping(true);
+
+        // Hentikan scanner loop segera agar main thread langsung lega
+        isDetectingRef.current = true;
+
+        try {
+            const snapshot = captureSnapshotFromVideo();
+            if (snapshot) {
+                // Tampilkan foto instan ke user dalam 0ms tanpa freeze
+                setImageUri(snapshot);
+                setFaceDetectionStatus('idle');
+
+                // Ekstraksi descriptor wajah di latar belakang (async) tanpa memblokir UI
+                setTimeout(async () => {
+                    try {
+                        if (canvasRef.current && isFaceApiReady()) {
+                            const res = await detectFaceDescriptor(canvasRef.current);
+                            if (res && res.descriptor) {
+                                setManualFaceDescriptor(res.descriptor);
+                                if (knownFaces.length > 0) {
+                                    const match = findBestFaceMatch(res.descriptor, knownFaces, 0.48);
+                                    if (match && !formData.nama) {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            nama: match.guest.name,
+                                            hp: match.guest.hp || '',
+                                            email: match.guest.email || '',
+                                            instansi: match.guest.company || '',
+                                            alamat: match.guest.address || '',
+                                        }));
+                                        toast.info(`Wajah cocok dengan ${match.guest.name}. Data diri diisi otomatis.`);
+                                    }
+                                }
                             }
                         }
+                    } catch (err) {
+                        console.error("Gagal mendeteksi wajah pada foto:", err);
                     }
-                }).catch(err => {
-                    console.error("Gagal mendeteksi wajah pada foto:", err);
-                });
+                }, 100);
             }
+        } finally {
+            setIsSnapping(false);
         }
     };
 
     const handleRetake = () => {
         setImageUri(null);
         setManualFaceDescriptor(null);
+        setFaceDetectionStatus('idle');
+        isDetectingRef.current = false;
     };
 
     const handleNameChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -635,6 +687,14 @@ export default function ETamuGuestBook() {
                                     <>
                                         <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover transform scale-x-[-1]" />
                                         
+                                        {/* Loading Indicator saat kamera pertama dinyalakan */}
+                                        {isCameraLoading && (
+                                            <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center gap-3 z-10">
+                                                <span className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin"></span>
+                                                <span className="text-slate-300 text-xs font-medium">Menghubungkan Kamera...</span>
+                                            </div>
+                                        )}
+                                        
                                         {/* HUD / Scanning Frame Overlay */}
                                         {isFaceScanEnabled && (
                                             <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-between p-4">
@@ -669,8 +729,9 @@ export default function ETamuGuestBook() {
                             </div>
 
                             <div className="flex gap-3">
-                                <button type="button" onClick={handleSnap} disabled={!!imageUri} className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-bold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5 shadow-sm">
-                                    Ambil Foto
+                                <button type="button" onClick={handleSnap} disabled={!!imageUri || isCameraLoading || isSnapping} className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-bold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5 shadow-sm cursor-pointer">
+                                    <span className="material-symbols-outlined text-[18px]">photo_camera</span>
+                                    {isSnapping ? 'Mengambil...' : 'Ambil Foto'}
                                 </button>
                                 <button type="button" onClick={handleRetake} disabled={!imageUri} className="flex-1 bg-white hover:bg-slate-50 border border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 text-slate-700 text-sm font-bold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1.5">
                                     <span className="material-symbols-outlined text-[18px]">refresh</span> Foto Ulang
