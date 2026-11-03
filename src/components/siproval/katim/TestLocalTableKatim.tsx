@@ -882,10 +882,19 @@ export default function TestLocalTableKatim() {
     if (letter === "F" || l.includes("target sampel")) {
       return "Cth: 16 (atau =F2+9)";
     }
-    if (letter === "G" || l.includes("target indikator")) {
+    if (letter === "G" && l.includes("target indikator")) {
       return "Cth: 99.71";
     }
-    return "0";
+    if (
+      ["G", "H", "J", "K", "M", "N"].includes(letter) ||
+      l.includes("sarana yang diperiksa") ||
+      l.includes("renlak") ||
+      l.includes("ditindaklanjuti") ||
+      l.includes("tepat waktu")
+    ) {
+      return letter ? `Cth: 24 (atau =${letter}2+11)` : "Cth: 24";
+    }
+    return letter ? `Cth: 10 (atau =${letter}2+5)` : "0";
   };
 
   // Evaluasi formula atau input aritmatika saat onBlur di input cell
@@ -908,17 +917,23 @@ export default function TestLocalTableKatim() {
       }
     }
 
-    // 2. Jika diawali tanda '=' (formula, cth: =F2+9 atau =16+9 atau =7+9)
+    // 2. Jika diawali tanda '=' (formula, cth: =F2+9 atau =G2+13 atau =G2 atau =16+9 atau =24)
     if (trimmed.startsWith("=")) {
       const expr = trimmed.slice(1).trim();
 
-      // Cek apakah formula merujuk ke cell baris sebelumnya (cth: F2+9)
+      // Cek apakah hanya angka langsung setelah '=' (cth: =24)
+      if (!isNaN(Number(expr)) && expr !== "") {
+        handleCellChange(rowId, col.key, Number(expr), rowIdxNum);
+        return;
+      }
+
+      // Cek apakah formula merujuk ke cell baris sebelumnya (cth: F2+9 atau G2+13 atau G2)
       const prevRowMatch = expr.match(
-        /^([A-Za-z]+)(d+)s*([\+\-\*\/])s*([\d\.]+)$/,
+        /^([A-Za-z]+)(\d+)(?:\s*([\+\-\*/])\s*([\d\.]+))?$/,
       );
       if (prevRowMatch && activeTab.rows_data) {
         const [, targetLetter, targetRowNum, op, operandStr] = prevRowMatch;
-        const operand = parseFloat(operandStr);
+        const operand = operandStr !== undefined ? parseFloat(operandStr) : 0;
         // Baris Excel row 2 = index 0, row 3 = index 1
         const targetRIdx = parseInt(targetRowNum, 10) - 2;
         const targetRow = activeTab.rows_data[targetRIdx];
@@ -935,6 +950,7 @@ export default function TestLocalTableKatim() {
           else if (op === "-") res = baseVal - operand;
           else if (op === "*") res = baseVal * operand;
           else if (op === "/" && operand !== 0) res = baseVal / operand;
+          else if (!op) res = baseVal;
 
           const finalRes = Math.round(res * 100) / 100;
           handleCellChange(rowId, col.key, finalRes, rowIdxNum);
@@ -944,7 +960,7 @@ export default function TestLocalTableKatim() {
 
       // Cek apakah formula aritmatika murni (cth: =16+9 atau =7+9)
       const simpleMathMatch = expr.match(
-        /^([\d\.]+)s*([\+\-\*\/])s*([\d\.]+)$/,
+        /^([\d\.]+)\s*([\+\-\*/])\s*([\d\.]+)$/,
       );
       if (simpleMathMatch) {
         const [, aStr, op, bStr] = simpleMathMatch;
@@ -3254,12 +3270,26 @@ export default function TestLocalTableKatim() {
                                         .toLowerCase()
                                         .includes("target sampel")
                                         ? "Target Sampel: Masukkan nilai exact (misal 16) atau formula (misal =F2+9)"
-                                        : col.col_letter === "G" ||
+                                        : col.col_letter === "G" &&
                                             (col.label || "")
                                               .toLowerCase()
                                               .includes("target indikator")
                                           ? "Target Indikator (%): Masukkan nilai exact target (misal 99.71)"
-                                          : undefined
+                                          : ["G", "H", "J", "K", "M", "N"].includes(
+                                                (col.col_letter || "").toUpperCase(),
+                                              ) ||
+                                              (col.label || "")
+                                                .toLowerCase()
+                                                .includes("sarana") ||
+                                              (col.label || "")
+                                                .toLowerCase()
+                                                .includes("renlak")
+                                            ? `Masukkan nilai exact kumulatif (misal 24) atau formula penjumlahan (misal =${(
+                                                col.col_letter || "G"
+                                              ).toUpperCase()}2+11)`
+                                            : col.col_letter
+                                              ? `Masukkan nilai exact atau formula penjumlahan (misal =${col.col_letter.toUpperCase()}2+5)`
+                                              : "Masukkan angka"
                                     }
                                     className={`w-full rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                                       isQuestionRow
