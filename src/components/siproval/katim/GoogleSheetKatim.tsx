@@ -557,7 +557,28 @@ export default function GoogleSheetKatim() {
     setErrorMsg("");
     setSuccessMsg("");
 
-    const formatted = formatNotes(collabModal.notes);
+    let currentNotes = [...collabModal.notes];
+
+    // Jika sedang dalam mode edit
+    if (collabModal.editingIndex !== null && collabModal.editingText.trim()) {
+      currentNotes[collabModal.editingIndex] = {
+        ...currentNotes[collabModal.editingIndex],
+        text: collabModal.editingText.trim(),
+      };
+    }
+
+    // Jika ada teks catatan baru di textarea
+    if (collabModal.newNoteText.trim()) {
+      const author = user?.name || user?.call_name || "PIC Katim";
+      currentNotes.push({
+        num: currentNotes.length + 1,
+        text: collabModal.newNoteText.trim(),
+        author,
+      });
+    }
+
+    const finalNotes = currentNotes.map((n, idx) => ({ ...n, num: idx + 1 }));
+    const formatted = formatNotes(finalNotes);
     const currentTabObj = tabs.find((t) => t.id === selectedTab);
 
     // Dapatkan nilai awal cell dari rows
@@ -579,13 +600,13 @@ export default function GoogleSheetKatim() {
         ],
       });
 
-      setSuccessMsg(res.data?.message || "Catatan kendala/RTL berhasil disimpan ke Google Sheet!");
+      setSuccessMsg(res.data?.message || "Catatan kendala/RTL berhasil disimpan ke database!");
       handleCellChange(collabModal.cellCoord, formatted);
       setCollabModal(null);
       fetchSheetData(selectedIksk, selectedSpreadsheet, selectedTab);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
-      setErrorMsg(e.response?.data?.message || "Gagal menyimpan catatan ke Google Sheet.");
+      setErrorMsg(e.response?.data?.message || "Gagal menyimpan catatan.");
     } finally {
       setSavingCollab(false);
     }
@@ -1774,16 +1795,10 @@ export default function GoogleSheetKatim() {
                     className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-900 focus:border-[#005baa] focus:outline-none focus:ring-1 focus:ring-[#005baa]"
                   />
 
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      disabled={!collabModal.newNoteText.trim()}
-                      onClick={handleAddCollabNote}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-white border border-[#005baa] px-4 py-2 text-xs font-bold text-[#005baa] shadow-xs hover:bg-blue-50 transition disabled:opacity-40"
-                    >
-                      <Icon icon="solar:add-circle-bold" width={16} />
-                      <span>Tambahkan ke Daftar</span>
-                    </button>
+                  <div className="text-[11px] text-slate-500 italic">
+                    Cukup tulis di sini, lalu klik tombol{" "}
+                    <strong>"Simpan"</strong> di bawah untuk langsung menyimpan
+                    ke database dan menampilkan ke tabel.
                   </div>
                 </div>
               ) : (
@@ -1793,45 +1808,51 @@ export default function GoogleSheetKatim() {
               )}
             </div>
 
-            {/* Modal Footer */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/50 px-6 py-4">
-              <span className="text-[11px] text-slate-400">
-                Total Catatan: <strong>{collabModal.notes.length}</strong>
-              </span>
+            {/* Modal Footer - HANYA 1 TOMBOL SIMPAN & 1 TOMBOL BATAL */}
+            <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-3.5">
+              <div className="text-xs text-slate-500 flex items-center gap-1.5">
+                <Icon
+                  icon="solar:info-circle-linear"
+                  width={14}
+                  className="text-slate-400"
+                />
+                <span>
+                  Penanda PIC:{" "}
+                  <strong className="text-slate-700">
+                    +{user?.name || "Anda"}
+                  </strong>
+                </span>
+              </div>
 
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setCollabModal(null)}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  disabled={savingCollab}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
                 >
-                  Tutup
+                  Batal
                 </button>
-
                 {!collabModal.isLocked && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleApplyCollabModal}
-                      className="rounded-xl border border-[#005baa] bg-white px-4 py-2 text-xs font-bold text-[#005baa] hover:bg-blue-50"
-                    >
-                      Terapkan ke Formulir
-                    </button>
-
-                    <button
-                      type="button"
-                      disabled={savingCollab}
-                      onClick={handleDirectSaveCollabModal}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-[#005baa] px-4 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-[#004785] disabled:opacity-50"
-                    >
-                      <Icon
-                        icon={savingCollab ? "solar:refresh-circle-bold" : "solar:diskette-bold"}
-                        width={16}
-                        className={savingCollab ? "animate-spin" : ""}
-                      />
-                      <span>{savingCollab ? "Menyimpan..." : "Simpan Langsung ke Sheet"}</span>
-                    </button>
-                  </>
+                  <button
+                    type="button"
+                    disabled={savingCollab}
+                    onClick={handleDirectSaveCollabModal}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#005baa] px-5 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition hover:bg-[#004785] disabled:opacity-50 cursor-pointer"
+                    title="Simpan langsung ke database dan tampilkan di tabel"
+                  >
+                    {savingCollab ? (
+                      <>
+                        <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent" />
+                        <span>Menyimpan...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Icon icon="solar:diskette-bold" width={16} />
+                        <span>Simpan</span>
+                      </>
+                    )}
+                  </button>
                 )}
               </div>
             </div>
