@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
@@ -5,6 +6,7 @@ import { useEffect, useState } from "react";
 import api from "@/utils/axios";
 import { toast } from "react-toastify";
 import { Icon } from "@iconify/react";
+import { getMobilPhotoUrl } from "@/utils/carPhoto";
 
 interface MobilItem {
     id: number;
@@ -12,6 +14,7 @@ interface MobilItem {
     plat_nomor: string;
     kapasitas: number;
     status: string;
+    foto?: string | null;
     odometer_saat_ini: number;
     terakhir_service_km: number;
     terakhir_service_tanggal: string | null;
@@ -55,6 +58,7 @@ export default function MobilServis({ hideHeader = false }: MobilServisProps) {
     const [notifikasi, setNotifikasi] = useState<LaporanKerusakanItem[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
+    const [showResolved, setShowResolved] = useState(false);
 
     // Modal Edit Setting Servis
     const [settingModalMobil, setSettingModalMobil] = useState<MobilItem | null>(null);
@@ -63,6 +67,8 @@ export default function MobilServis({ hideHeader = false }: MobilServisProps) {
     const [odoSaatIni, setOdoSaatIni] = useState<number>(0);
     const [odoTerakhirServis, setOdoTerakhirServis] = useState<number>(0);
     const [tglTerakhirServis, setTglTerakhirServis] = useState<string>("");
+    const [fotoFile, setFotoFile] = useState<File | null>(null);
+    const [fotoPreview, setFotoPreview] = useState<string | null>(null);
     const [isSavingSetting, setIsSavingSetting] = useState(false);
 
     // Modal Konfirmasi Servis Selesai
@@ -79,8 +85,9 @@ export default function MobilServis({ hideHeader = false }: MobilServisProps) {
                 api.get(`${backendUrl}/api/paula/admin/mobil/kerusakan`),
             ]);
             setMobils(resService.data.mobils || []);
-            setNotifikasi(resKerusakan.data.notifikasi || []);
-            setUnreadCount(resKerusakan.data.unread_count || 0);
+            const allNotifs: LaporanKerusakanItem[] = resKerusakan.data?.all || resKerusakan.data?.notifikasi || resKerusakan.data?.laporans || [];
+            setNotifikasi(allNotifs);
+            setUnreadCount(resKerusakan.data?.unread_count || allNotifs.filter(n => n.status === "baru").length);
         } catch (error) {
             console.error("Gagal memuat status servis:", error);
             toast.error("Gagal memuat data servis dan kerusakan");
@@ -93,12 +100,13 @@ export default function MobilServis({ hideHeader = false }: MobilServisProps) {
         fetchData();
     }, []);
 
-    // Simpan Pengaturan Servis
+    // Simpan Pengaturan Servis & Foto
     const handleSaveSetting = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!settingModalMobil) return;
         setIsSavingSetting(true);
         try {
+            // 1. Simpan batas servis & odometer
             await api.put(`${backendUrl}/api/paula/admin/mobil/${settingModalMobil.id}/service-settings`, {
                 interval_km_service: intervalKm,
                 interval_bulan_service: intervalBulan,
@@ -106,8 +114,20 @@ export default function MobilServis({ hideHeader = false }: MobilServisProps) {
                 terakhir_service_km: odoTerakhirServis,
                 terakhir_service_tanggal: tglTerakhirServis || null,
             });
-            toast.success("Batas servis berkala berhasil diperbarui!");
+
+            // 2. Simpan foto jika ada yang diupload
+            if (fotoFile) {
+                const fd = new FormData();
+                fd.append("foto", fotoFile);
+                await api.post(`${backendUrl}/api/paula/admin/mobil/${settingModalMobil.id}`, fd, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+            }
+
+            toast.success("Batas servis berkala & data kendaraan berhasil diperbarui!");
             setSettingModalMobil(null);
+            setFotoFile(null);
+            setFotoPreview(null);
             fetchData();
         } catch (err: any) {
             toast.error(err.response?.data?.message || "Gagal menyimpan pengaturan");
@@ -140,12 +160,17 @@ export default function MobilServis({ hideHeader = false }: MobilServisProps) {
     const handleResolveKerusakan = async (id: number, status: "ditindaklanjuti" | "selesai") => {
         try {
             await api.patch(`${backendUrl}/api/paula/admin/mobil/kerusakan/${id}/resolve`, { status });
-            toast.success(`Laporan kerusakan berhasil ditandai ${status}`);
+            toast.success(status === "selesai" ? "Laporan kerusakan berhasil diselesaikan! Kendaraan kembali prima." : "Status diubah menjadi ditindaklanjuti.");
+            setNotifikasi((prev) => prev.map((n) => (n.id === id ? { ...n, status } : n)));
             fetchData();
         } catch (err: any) {
             toast.error("Gagal memperbarui status kerusakan");
         }
     };
+
+    // Pisahkan notifikasi aktif dan yang sudah selesai
+    const activeNotifikasi = notifikasi.filter((n) => n.status !== "selesai");
+    const resolvedNotifikasi = notifikasi.filter((n) => n.status === "selesai");
 
     return (
         <div className="max-w-7xl mx-auto space-y-6 pb-20 animate-in fade-in duration-300">
@@ -176,7 +201,7 @@ export default function MobilServis({ hideHeader = false }: MobilServisProps) {
                 </div>
             )}
 
-            {/* SECTION 1: ALERT NOTIFIKASI KERUSAKAN (KA BALAI & KA TU) */}
+            {/* SECTION 1: ALERT NOTIFIKASI KERUSAKAN AKTIF */}
             <div className="space-y-3">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -184,26 +209,26 @@ export default function MobilServis({ hideHeader = false }: MobilServisProps) {
                             <Icon icon="solar:bell-bing-bold" width={16} />
                         </div>
                         <h2 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">
-                            Laporan Kerusakan Kendaraan (Notifikasi Masuk)
+                            Laporan Kerusakan Kendaraan (Perlu Tindak Lanjut)
                         </h2>
                     </div>
-                    {unreadCount > 0 && (
+                    {activeNotifikasi.length > 0 && (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600 text-white text-xs font-bold animate-pulse">
-                            {unreadCount} Laporan Baru
+                            {activeNotifikasi.length} Laporan Aktif
                         </span>
                     )}
                 </div>
 
                 {isLoading ? (
                     <div className="p-8 text-center text-xs text-slate-400 bg-white rounded-2xl border border-slate-200">Memuat laporan kerusakan...</div>
-                ) : notifikasi.length === 0 ? (
+                ) : activeNotifikasi.length === 0 ? (
                     <div className="bg-white p-5 rounded-2xl border border-slate-200 flex items-center gap-3 text-xs text-slate-500 shadow-sm">
                         <Icon icon="solar:check-circle-bold" width={22} className="text-emerald-500 shrink-0" />
-                        <span>Tidak ada laporan kerusakan kendaraan aktif. Semua armada dalam kondisi baik.</span>
+                        <span>Tidak ada laporan kerusakan aktif. Semua armada dalam kondisi prima & siap operasional.</span>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {notifikasi.map((notif) => (
+                        {activeNotifikasi.map((notif) => (
                             <div
                                 key={notif.id}
                                 className={`p-5 rounded-2xl border transition shadow-sm flex flex-col justify-between space-y-3 ${
@@ -224,9 +249,7 @@ export default function MobilServis({ hideHeader = false }: MobilServisProps) {
                                             className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
                                                 notif.status === "baru"
                                                     ? "bg-rose-600 text-white shadow-sm"
-                                                    : notif.status === "ditindaklanjuti"
-                                                    ? "bg-amber-100 text-amber-800 border border-amber-200"
-                                                    : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                                    : "bg-amber-100 text-amber-800 border border-amber-200"
                                             }`}
                                         >
                                             {notif.status}
@@ -267,17 +290,54 @@ export default function MobilServis({ hideHeader = false }: MobilServisProps) {
                                             Tandai Ditindaklanjuti
                                         </button>
                                     )}
-                                    {notif.status !== "selesai" && (
-                                        <button
-                                            onClick={() => handleResolveKerusakan(notif.id, "selesai")}
-                                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition cursor-pointer"
-                                        >
-                                            Tandai Selesai Diperbaiki
-                                        </button>
-                                    )}
+                                    <button
+                                        onClick={() => handleResolveKerusakan(notif.id, "selesai")}
+                                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition cursor-pointer flex items-center gap-1"
+                                    >
+                                        <Icon icon="solar:check-circle-bold" width={14} />
+                                        <span>Tandai Selesai Diperbaiki</span>
+                                    </button>
                                 </div>
                             </div>
                         ))}
+                    </div>
+                )}
+
+                {/* ACCORDION RIWAYAT KERUSAKAN SELESAI */}
+                {resolvedNotifikasi.length > 0 && (
+                    <div className="pt-1">
+                        <button
+                            type="button"
+                            onClick={() => setShowResolved(!showResolved)}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
+                        >
+                            <Icon icon={showResolved ? "solar:alt-arrow-up-bold" : "solar:alt-arrow-down-bold"} width={14} />
+                            <span>Lihat Riwayat Kerusakan yang Telah Selesai Diperbaiki ({resolvedNotifikasi.length})</span>
+                        </button>
+
+                        {showResolved && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 animate-in fade-in duration-200">
+                                {resolvedNotifikasi.map((notif) => (
+                                    <div key={notif.id} className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50/40 text-xs space-y-2">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <h4 className="font-extrabold text-slate-800">{notif.mobil_nama}</h4>
+                                                <span className="font-mono text-[10px] text-slate-600 font-bold">{notif.plat_nomor}</span>
+                                            </div>
+                                            <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-black text-[10px] uppercase border border-emerald-300">
+                                                Selesai
+                                            </span>
+                                        </div>
+                                        <div className="bg-white/90 p-2.5 rounded-xl border border-emerald-100 space-y-1">
+                                            <p className="font-medium text-slate-700">{notif.catatan_kerusakan}</p>
+                                            <p className="text-[10px] text-slate-400">
+                                                Peminjam: {notif.peminjam_nama} • Security: {notif.petugas_security}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -316,30 +376,50 @@ export default function MobilServis({ hideHeader = false }: MobilServisProps) {
                             return (
                                 <div
                                     key={m.id}
-                                    className={`bg-white rounded-3xl p-6 border transition shadow-sm hover:shadow-md flex flex-col justify-between space-y-4 ${
+                                    className={`bg-white rounded-3xl p-5 sm:p-6 border transition shadow-sm hover:shadow-md flex flex-col justify-between space-y-4 ${
                                         isDue
                                             ? "border-amber-400 ring-2 ring-amber-500/10"
                                             : "border-slate-200"
                                     }`}
                                 >
                                     <div className="space-y-4">
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div>
-                                                <h3 className="font-extrabold text-base text-slate-900">{m.nama}</h3>
-                                                <span className="inline-block mt-0.5 px-2.5 py-0.5 rounded-md bg-slate-100 text-[11px] font-bold text-slate-700 border border-slate-200">
-                                                    {m.plat_nomor} • Kapasitas {m.kapasitas} Kursi
-                                                </span>
+                                        {/* HEADER KARTU: FOTO MOBIL + NAMA + PLAT + STATUS */}
+                                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pb-1">
+                                            <div className="w-full sm:w-36 h-32 sm:h-28 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200/80 shadow-xs shrink-0 relative group">
+                                                <img
+                                                    src={getMobilPhotoUrl(m)}
+                                                    alt={m.nama}
+                                                    className="w-full h-full object-cover transition duration-300 group-hover:scale-105"
+                                                    onError={(e) => {
+                                                        e.currentTarget.src = "/assets/images/paula/cars.webp";
+                                                    }}
+                                                />
+                                                <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-xs text-[9px] text-white font-mono px-1.5 py-0.5 rounded">
+                                                    {m.kapasitas} Kursi
+                                                </div>
                                             </div>
-                                            <span
-                                                className={`px-3 py-1 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 ${
-                                                    isDue
-                                                        ? "bg-rose-100 text-rose-800 border border-rose-300 animate-pulse"
-                                                        : "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                                                }`}
-                                            >
-                                                <Icon icon={isDue ? "solar:danger-triangle-bold" : "solar:check-circle-bold"} width={15} />
-                                                {isDue ? "Wajib Servis" : "Kondisi Prima"}
-                                            </span>
+                                            <div className="flex-1 min-w-0 w-full">
+                                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                                    <span className="font-mono text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-lg bg-slate-900 text-white shadow-2xs">
+                                                        {m.plat_nomor}
+                                                    </span>
+                                                    <span
+                                                        className={`px-3 py-1 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 ${
+                                                            isDue
+                                                                ? "bg-rose-100 text-rose-800 border border-rose-300 animate-pulse"
+                                                                : "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                                        }`}
+                                                    >
+                                                        <Icon icon={isDue ? "solar:danger-triangle-bold" : "solar:check-circle-bold"} width={15} />
+                                                        {isDue ? "Wajib Servis" : "Kondisi Prima"}
+                                                    </span>
+                                                </div>
+                                                <h3 className="font-black text-base sm:text-lg text-slate-900 mt-1.5 leading-snug">{m.nama}</h3>
+                                                <p className="text-xs text-slate-500 font-medium mt-0.5 flex items-center gap-1">
+                                                    <Icon icon="solar:users-group-rounded-bold" width={14} className="text-slate-400" />
+                                                    <span>Kapasitas {m.kapasitas} Kursi Penumpang</span>
+                                                </p>
+                                            </div>
                                         </div>
 
                                         {/* Status Message */}
@@ -395,11 +475,13 @@ export default function MobilServis({ hideHeader = false }: MobilServisProps) {
                                                 setOdoSaatIni(m.odometer_saat_ini || 0);
                                                 setOdoTerakhirServis(m.terakhir_service_km || 0);
                                                 setTglTerakhirServis(m.terakhir_service_tanggal ? m.terakhir_service_tanggal.split("T")[0] : "");
+                                                setFotoFile(null);
+                                                setFotoPreview(null);
                                             }}
-                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition cursor-pointer"
+                                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition cursor-pointer"
                                         >
                                             <Icon icon="solar:settings-bold" width={14} />
-                                            <span>Atur Batas</span>
+                                            <span>Atur Batas & Foto</span>
                                         </button>
 
                                         <button
@@ -421,13 +503,13 @@ export default function MobilServis({ hideHeader = false }: MobilServisProps) {
                 )}
             </div>
 
-            {/* MODAL PENGATURAN BATAS SERVIS & KALIBRASI ODOMETER */}
+            {/* MODAL PENGATURAN BATAS SERVIS, KALIBRASI ODOMETER & UPLOAD FOTO */}
             {settingModalMobil && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
                     <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
                         <div className="bg-slate-900 text-white p-5 flex items-center justify-between">
                             <div>
-                                <h3 className="font-bold text-sm">Kalibrasi Odometer & Pengaturan Servis</h3>
+                                <h3 className="font-bold text-sm">Kalibrasi Odometer, Servis & Foto Armada</h3>
                                 <p className="text-[11px] text-slate-400 mt-0.5">{settingModalMobil.nama} ({settingModalMobil.plat_nomor})</p>
                             </div>
                             <button onClick={() => setSettingModalMobil(null)} className="text-slate-400 hover:text-white cursor-pointer">
@@ -435,7 +517,42 @@ export default function MobilServis({ hideHeader = false }: MobilServisProps) {
                             </button>
                         </div>
 
-                        <form onSubmit={handleSaveSetting} className="p-6 space-y-4 text-xs">
+                        <form onSubmit={handleSaveSetting} className="p-6 space-y-4 text-xs max-h-[85vh] overflow-y-auto">
+                            {/* Section: Upload Foto Kendaraan */}
+                            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                                <label className="font-bold text-slate-700 flex items-center gap-1.5 text-xs">
+                                    <Icon icon="solar:camera-bold" width={16} className="text-indigo-600" />
+                                    <span>Foto Kendaraan</span>
+                                </label>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-24 h-16 rounded-xl overflow-hidden bg-white border border-slate-200 shrink-0 shadow-2xs">
+                                        <img
+                                            src={fotoPreview || getMobilPhotoUrl(settingModalMobil)}
+                                            alt="Preview Foto Mobil"
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                e.currentTarget.src = "/assets/images/paula/cars.webp";
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="flex-1">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                                const f = e.target.files?.[0];
+                                                if (f) {
+                                                    setFotoFile(f);
+                                                    setFotoPreview(URL.createObjectURL(f));
+                                                }
+                                            }}
+                                            className="text-xs text-slate-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+                                        />
+                                        <p className="text-[10px] text-slate-400 mt-1">Unggah foto real kendaraan (JPG, PNG, WEBP)</p>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Section 1: Kalibrasi Odometer Fisik Riil */}
                             <div className="p-3.5 bg-blue-50/60 border border-blue-200/70 rounded-2xl space-y-3">
                                 <div className="flex items-center gap-1.5 font-black text-blue-900 text-xs">
@@ -547,7 +664,7 @@ export default function MobilServis({ hideHeader = false }: MobilServisProps) {
                                     disabled={isSavingSetting}
                                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-md disabled:opacity-50 transition cursor-pointer"
                                 >
-                                    <span>{isSavingSetting ? "Menyimpan..." : "Simpan Kalibrasi & Batas"}</span>
+                                    <span>{isSavingSetting ? "Menyimpan..." : "Simpan Pengaturan & Foto"}</span>
                                 </button>
                             </div>
                         </form>
@@ -627,4 +744,3 @@ export default function MobilServis({ hideHeader = false }: MobilServisProps) {
         </div>
     );
 }
-

@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 /* eslint-disable react/no-unescaped-entities */
 "use client";
 
@@ -10,6 +11,7 @@ import api from "@/utils/axios"; // Pastikan menggunakan utils/axios yang baru
 import { toast } from "react-toastify";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
+import { getMobilPhotoUrl } from "@/utils/carPhoto";
 
 export default function DashboardPaulaAdmin() {
     const dispatch = useDispatch<AppDispatch>();
@@ -52,12 +54,15 @@ export default function DashboardPaulaAdmin() {
     // Monitoring Servis & Kerusakan
     const [serviceMonitoringList, setServiceMonitoringList] = useState<any[]>([]);
     const [kerusakanAlerts, setKerusakanAlerts] = useState<any[]>([]);
+    const [fotoMobilFile, setFotoMobilFile] = useState<File | null>(null);
+    const [fotoMobilPreview, setFotoMobilPreview] = useState<string | null>(null);
     const initialFormMobil = {
         id: null,
         nama: "",
         plat_nomor: "",
         kapasitas: "",
         status: "tersedia",
+        foto: "",
         odometer_saat_ini: 0,
         terakhir_service_km: 0,
         terakhir_service_tanggal: "",
@@ -146,7 +151,7 @@ export default function DashboardPaulaAdmin() {
                         : (Array.isArray(res.data?.laporans)
                             ? res.data.laporans
                             : (Array.isArray(res.data) ? res.data : []));
-                    setKerusakanAlerts(list);
+                    setKerusakanAlerts(list.filter((k: any) => k.status !== 'selesai'));
                 })
                 .catch(() => {
                     setKerusakanAlerts([]);
@@ -336,6 +341,45 @@ export default function DashboardPaulaAdmin() {
     const saveMasterMobil = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const formData = new FormData();
+            formData.append("nama", formMobil.nama);
+            formData.append("plat_nomor", formMobil.plat_nomor);
+            formData.append("kapasitas", String(formMobil.kapasitas));
+            formData.append("status", formMobil.status);
+            formData.append("odometer_saat_ini", String(formMobil.odometer_saat_ini || 0));
+            formData.append("terakhir_service_km", String(formMobil.terakhir_service_km || 0));
+            if (formMobil.terakhir_service_tanggal) {
+                formData.append("terakhir_service_tanggal", formMobil.terakhir_service_tanggal);
+            }
+            formData.append("interval_km_service", String(formMobil.interval_km_service || 10000));
+            formData.append("interval_bulan_service", String(formMobil.interval_bulan_service || 3));
+            if (fotoMobilFile) {
+                formData.append("foto", fotoMobilFile);
+            }
+
+            if (formMobil.id) {
+                await api.post(`${baseURL}/api/paula/admin/mobil/${formMobil.id}`, formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+                toast.success("Data mobil diperbarui");
+            } else {
+                await api.post(`${baseURL}/api/paula/admin/mobil`, formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+                toast.success("Mobil baru ditambahkan");
+            }
+            setShowMobilModal(false);
+            setFotoMobilFile(null);
+            setFotoMobilPreview(null);
+            fetchData();
+            return;
+        } catch (error) { toast.error("Gagal menyimpan data mobil"); }
+    };
+
+    /*
+    const _unusedSaveMasterMobil = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
             const payload = {
                 ...formMobil,
                 terakhir_service_tanggal: formMobil.terakhir_service_tanggal || null,
@@ -352,6 +396,7 @@ export default function DashboardPaulaAdmin() {
         } catch (error) { toast.error("Gagal menyimpan data mobil"); }
     };
 
+    */
     const deleteMasterMobil = async (id: number) => {
         if (!confirm("Hapus mobil ini dari daftar master?")) return;
         try {
@@ -424,7 +469,8 @@ export default function DashboardPaulaAdmin() {
 
     const handleResolveKerusakan = async (id: number) => {
         try {
-            await api.patch(`${baseURL}/api/paula/admin/mobil/kerusakan/${id}/resolve`);
+            await api.patch(`${baseURL}/api/paula/admin/mobil/kerusakan/${id}/resolve`, { status: 'selesai' });
+            setKerusakanAlerts((prev) => prev.filter((k) => k.id !== id));
             toast.success("Laporan kerusakan berhasil ditandai selesai/diperbaiki");
             const resKerusakan = await api.get(`${baseURL}/api/paula/admin/mobil/kerusakan`);
             const list = Array.isArray(resKerusakan.data?.notifikasi)
@@ -432,7 +478,7 @@ export default function DashboardPaulaAdmin() {
                 : (Array.isArray(resKerusakan.data?.laporans)
                     ? resKerusakan.data.laporans
                     : (Array.isArray(resKerusakan.data) ? resKerusakan.data : []));
-            setKerusakanAlerts(list);
+            setKerusakanAlerts(list.filter((k: any) => k.status !== 'selesai'));
             const resServ = await api.get(`${baseURL}/api/paula/admin/mobil/service-status`);
             setServiceMonitoringList(resServ.data?.mobils || resServ.data || []);
         } catch (err: any) {
@@ -1289,6 +1335,7 @@ export default function DashboardPaulaAdmin() {
                                                             terakhir_service_tanggal: mobil.terakhir_service_tanggal ? mobil.terakhir_service_tanggal.split('T')[0] : "",
                                                             interval_km_service: mobil.interval_km_service || 10000,
                                                             interval_bulan_service: mobil.interval_bulan_service || 3,
+                                                            foto: mobil.foto || "",
                                                         });
                                                         setShowMobilModal(true); }} 
                                                         className="w-7 h-7 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition flex items-center justify-center cursor-pointer"
@@ -1307,6 +1354,14 @@ export default function DashboardPaulaAdmin() {
                                                 </div>
                                             </div>
 
+                                            <div className="w-full h-32 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200/80 mb-3 relative group">
+                                                <img
+                                                    src={getMobilPhotoUrl(mobil)}
+                                                    alt={mobil.nama}
+                                                    className="w-full h-full object-cover transition duration-300 group-hover:scale-105"
+                                                    onError={(e) => { e.currentTarget.src = "/assets/images/paula/cars.webp"; }}
+                                                />
+                                            </div>
                                             <h3 className="font-extrabold text-slate-900 text-sm leading-snug mb-1">
                                                 {mobil.nama}
                                             </h3>
@@ -1416,7 +1471,17 @@ export default function DashboardPaulaAdmin() {
                                                         <span className="text-[10px] font-mono font-black uppercase tracking-wider px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
                                                             {m.plat_nomor}
                                                         </span>
-                                                        <h4 className="font-extrabold text-slate-900 text-sm mt-1.5">{m.nama}</h4>
+                                                        <div className="flex items-center gap-2.5 mt-1.5">
+                                                            <div className="w-12 h-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200/80 shrink-0">
+                                                                <img
+                                                                    src={getMobilPhotoUrl(m)}
+                                                                    alt={m.nama}
+                                                                    className="w-full h-full object-cover"
+                                                                    onError={(e) => { e.currentTarget.src = "/assets/images/paula/cars.webp"; }}
+                                                                />
+                                                            </div>
+                                                            <h4 className="font-extrabold text-slate-900 text-sm">{m.nama}</h4>
+                                                        </div>
                                                     </div>
                                                     <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
                                                         isUrgent || isDue
@@ -1583,6 +1648,31 @@ export default function DashboardPaulaAdmin() {
                         
                         <form onSubmit={saveMasterMobil} className="space-y-4">
                             <div>
+                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Foto Kendaraan (Opsional)</label>
+                                <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-2xl p-3 mb-3">
+                                    <div className="w-20 h-16 rounded-xl overflow-hidden bg-white border border-slate-200 shrink-0">
+                                        <img
+                                            src={fotoMobilPreview || (formMobil.foto ? getMobilPhotoUrl(formMobil) : "/assets/images/paula/cars.webp")}
+                                            alt="Preview"
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                    <div className="flex-1">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    setFotoMobilFile(file);
+                                                    setFotoMobilPreview(URL.createObjectURL(file));
+                                                }
+                                            }}
+                                            className="text-xs text-slate-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+                                        />
+                                        <p className="text-[10px] text-slate-400 mt-1">Unggah foto real kendaraan (JPG, PNG, WEBP)</p>
+                                    </div>
+                                </div>
                                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Nama Mobil (Merk & Warna)</label>
                                 <input type="text" required value={formMobil.nama} onChange={e => setFormMobil({...formMobil, nama: e.target.value})} placeholder="Contoh: Toyota Innova Reborn (Hitam)" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm text-slate-800" />
                             </div>
