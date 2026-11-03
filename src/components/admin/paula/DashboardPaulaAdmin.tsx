@@ -141,9 +141,16 @@ export default function DashboardPaulaAdmin() {
 
             api.get(`${baseURL}/api/paula/admin/mobil/kerusakan`)
                 .then((res) => {
-                    setKerusakanAlerts(res.data?.laporans || res.data || []);
+                    const list = Array.isArray(res.data?.notifikasi)
+                        ? res.data.notifikasi
+                        : (Array.isArray(res.data?.laporans)
+                            ? res.data.laporans
+                            : (Array.isArray(res.data) ? res.data : []));
+                    setKerusakanAlerts(list);
                 })
-                .catch(() => {});
+                .catch(() => {
+                    setKerusakanAlerts([]);
+                });
             
         } catch (error) {
             toast.error("Gagal mengambil data dashboard admin");
@@ -155,9 +162,17 @@ export default function DashboardPaulaAdmin() {
     useEffect(() => {
         if (user) {
             const isSuperadmin = user.role?.level === 'superadmin';
-            const isAdmin = user.role?.level === 'admin'; 
+            const isPaulaPic = Boolean(
+                user?.sites?.some(
+                    (s: any) =>
+                        s.name?.trim().toUpperCase() === 'PAULA' ||
+                        s.link?.includes('paula') ||
+                        s.id === 8
+                )
+            );
+            const canAccessAdmin = isSuperadmin || isPaulaPic;
 
-            if (!isAdmin && !isSuperadmin) {
+            if (!canAccessAdmin) {
                 router.replace('/unauthorized');
             } else {
                 fetchData();
@@ -412,7 +427,12 @@ export default function DashboardPaulaAdmin() {
             await api.patch(`${baseURL}/api/paula/admin/mobil/kerusakan/${id}/resolve`);
             toast.success("Laporan kerusakan berhasil ditandai selesai/diperbaiki");
             const resKerusakan = await api.get(`${baseURL}/api/paula/admin/mobil/kerusakan`);
-            setKerusakanAlerts(resKerusakan.data?.laporans || resKerusakan.data || []);
+            const list = Array.isArray(resKerusakan.data?.notifikasi)
+                ? resKerusakan.data.notifikasi
+                : (Array.isArray(resKerusakan.data?.laporans)
+                    ? resKerusakan.data.laporans
+                    : (Array.isArray(resKerusakan.data) ? resKerusakan.data : []));
+            setKerusakanAlerts(list);
             const resServ = await api.get(`${baseURL}/api/paula/admin/mobil/service-status`);
             setServiceMonitoringList(resServ.data?.mobils || resServ.data || []);
         } catch (err: any) {
@@ -597,7 +617,7 @@ export default function DashboardPaulaAdmin() {
                     </div>
 
                     <div 
-                        onClick={() => { setActiveTab('mobil'); setMobilActiveSubTab(kerusakanAlerts.length > 0 ? 'servis' : 'security'); }}
+                        onClick={() => { setActiveTab('mobil'); setMobilActiveSubTab((kerusakanAlerts?.length || 0) > 0 ? 'servis' : 'security'); }}
                         className={`p-3.5 rounded-2xl transition cursor-pointer border ${
                             activeTab === 'mobil' && (mobilActiveSubTab === 'servis' || mobilActiveSubTab === 'security')
                                 ? 'bg-white/15 border-indigo-400/50 ring-1 ring-indigo-400/30' 
@@ -611,7 +631,7 @@ export default function DashboardPaulaAdmin() {
                             </div>
                         </div>
                         <div className="mt-2 flex items-baseline gap-2">
-                            <span className="text-xl font-black text-white">{kerusakanAlerts.length}</span>
+                            <span className="text-xl font-black text-white">{kerusakanAlerts?.length || 0}</span>
                             <span className="text-[10px] text-slate-300">Laporan Rusak</span>
                         </div>
                         <span className="text-[10px] text-slate-300 mt-1 block">
@@ -651,9 +671,9 @@ export default function DashboardPaulaAdmin() {
                 >
                     <span className="material-symbols-outlined text-[18px]">directions_car</span>
                     <span>Peminjaman Mobil Dinas</span>
-                    {(mobilPending.length > 0 || kerusakanAlerts.length > 0) && (
+                    {((mobilPending?.length || 0) > 0 || (kerusakanAlerts?.length || 0) > 0) && (
                         <span className="bg-rose-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black animate-pulse">
-                            {mobilPending.length + kerusakanAlerts.length}
+                            {(mobilPending?.length || 0) + (kerusakanAlerts?.length || 0)}
                         </span>
                     )}
                 </button>
@@ -988,9 +1008,9 @@ export default function DashboardPaulaAdmin() {
                             >
                                 <span className="material-symbols-outlined text-[16px]">build_circle</span>
                                 <span>Status & Servis Rutin</span>
-                                {kerusakanAlerts.length > 0 && (
+                                {(kerusakanAlerts?.length || 0) > 0 && (
                                     <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black animate-pulse">
-                                        {kerusakanAlerts.length} Rusak
+                                        {kerusakanAlerts?.length || 0} Rusak
                                     </span>
                                 )}
                             </button>
@@ -1315,12 +1335,12 @@ export default function DashboardPaulaAdmin() {
                     {mobilActiveSubTab === 'servis' && (
                         <div className="space-y-6">
                             {/* Alert Kerusakan Masuk */}
-                            {kerusakanAlerts.length > 0 && (
+                            {(kerusakanAlerts?.length || 0) > 0 && (
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-xs font-black uppercase tracking-wider text-rose-600 flex items-center gap-1.5">
                                             <span className="material-symbols-outlined text-[18px]">warning</span>
-                                            Laporan Kerusakan Masuk dari Security ({kerusakanAlerts.length})
+                                            Laporan Kerusakan Masuk dari Security ({kerusakanAlerts?.length || 0})
                                         </h3>
                                         <span className="bg-rose-100 text-rose-700 px-2.5 py-0.5 rounded-full text-xs font-bold">Perlu Tindak Lanjut</span>
                                     </div>
@@ -1331,9 +1351,9 @@ export default function DashboardPaulaAdmin() {
                                                 <div className="flex justify-between items-start">
                                                     <div>
                                                         <span className="bg-rose-600 text-white text-[10px] font-mono font-black px-2.5 py-0.5 rounded-lg uppercase tracking-wider">
-                                                            {k.mobil?.plat_nomor || 'MOBIL'}
+                                                            {k.plat_nomor || k.mobil?.plat_nomor || 'MOBIL'}
                                                         </span>
-                                                        <h4 className="font-extrabold text-slate-900 text-sm mt-1.5">{k.mobil?.nama || 'Kendaraan Dinas'}</h4>
+                                                        <h4 className="font-extrabold text-slate-900 text-sm mt-1.5">{k.mobil_nama || k.mobil?.nama || 'Kendaraan Dinas'}</h4>
                                                     </div>
                                                     <span className="text-[11px] text-slate-500 font-medium">
                                                         {new Date(k.created_at).toLocaleDateString('id-ID')}
@@ -1342,7 +1362,7 @@ export default function DashboardPaulaAdmin() {
                                                 <div className="bg-rose-50/70 p-3 rounded-2xl border border-rose-200/60 text-xs text-rose-950">
                                                     <span className="font-extrabold block mb-0.5">Catatan Kerusakan dari Security:</span>
                                                     <p className="leading-relaxed">{k.catatan_kerusakan}</p>
-                                                    <p className="text-[11px] text-slate-500 mt-1.5 italic">Pelapor: {k.pelapor_security}</p>
+                                                    <p className="text-[11px] text-slate-500 mt-1.5 italic">Pelapor: {k.petugas_security || k.pelapor_security || 'Pos Security'}</p>
                                                 </div>
                                                 <div className="flex justify-end pt-1">
                                                     <button

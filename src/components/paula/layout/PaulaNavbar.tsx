@@ -1,9 +1,11 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import api from "@/utils/axios";
 import NotificationBell from "@/components/simandalika/hero/NotificationBell";
+import { getUserPhotoUrl } from "@/utils/userPhoto";
 
 export default function PaulaNavbar() {
     const { user } = useSelector((state: RootState) => state.auth);
@@ -27,8 +29,15 @@ export default function PaulaNavbar() {
                         <p className="text-sm font-bold text-slate-800 leading-tight">{user.name}</p>
                         <p className="text-xs font-medium text-slate-500">{user?.employee?.fungsi?.name || 'User'}</p>
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold border border-blue-200">
-                        {user.name?.charAt(0).toUpperCase() || 'U'}
+                    <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-200 bg-slate-100 shrink-0 shadow-xs flex items-center justify-center">
+                        <img
+                            src={getUserPhotoUrl(user?.photo_path)}
+                            alt={user.name || "Foto Profil"}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                                e.currentTarget.src = "/assets/images/noimage.svg";
+                            }}
+                        />
                     </div>
                     <div className="h-8 w-px bg-slate-200 mx-1"></div>
                     <button 

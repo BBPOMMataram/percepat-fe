@@ -26,13 +26,16 @@ export default function PaulaSidebar() {
     }, [user, baseURL]);
 
     const isSecurity = Boolean(paulaUser?.is_security || (user as any)?.is_security);
-    const isAdmin = Boolean(
-        paulaUser?.is_admin ||
-        user?.role?.level === "superadmin" ||
-        user?.role?.level === "admin" ||
-        (user?.role as any) === "superadmin" ||
-        (user?.role as any) === "admin"
+    const isSuperadmin = user?.role?.level === "superadmin";
+    const isPaulaPic = Boolean(
+        user?.sites?.some(
+            (s: any) =>
+                s.name?.trim().toUpperCase() === "PAULA" ||
+                s.link?.includes("paula") ||
+                s.id === 8
+        )
     );
+    const isAdmin = Boolean(isSuperadmin || isPaulaPic);
 
     // Logika Otomatis: Hanya true jika URL diawali dengan rute yang sesuai
     const isSecurityRoute = pathname.startsWith('/paula/mobil/security') || pathname.startsWith('/paula/mobil/servis');
