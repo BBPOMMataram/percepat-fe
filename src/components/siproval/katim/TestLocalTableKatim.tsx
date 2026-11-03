@@ -2008,9 +2008,94 @@ export default function TestLocalTableKatim() {
       .filter((grp): grp is NonNullable<typeof grp> => grp !== null);
   }, [headerGroups, isHorizontalMonthTable, selectedMonthFilter]);
 
+  // Deteksi jumlah dan style kolom sticky freeze kiri
+  const leftStickyConfig = useMemo(() => {
+    const title = (activeTab?.title || "").toLowerCase();
+
+    // Tab 140 / KIE dan DuMas: 3 freeze columns (No [45px], DIPA Badan POM [140px], Layanan Informasi [240px])
+    if (title.includes("kie dan dumas") || activeTab?.id === 140) {
+      return {
+        count: 3,
+        getClasses: (cIdx: number, isHeader: boolean, bgClass?: string) => {
+          if (cIdx === 0) {
+            return `sticky left-0 ${isHeader ? "z-30 bg-slate-100 text-slate-900" : `z-10 ${bgClass || "bg-white"} text-slate-900`} w-[45px] min-w-[45px] max-w-[45px] text-center border-r border-slate-200`;
+          }
+          if (cIdx === 1) {
+            return `sticky left-[45px] ${isHeader ? "z-30 bg-slate-100 text-slate-900" : `z-10 ${bgClass || "bg-white"} text-slate-900`} w-[140px] min-w-[140px] max-w-[140px] border-r border-slate-200`;
+          }
+          if (cIdx === 2) {
+            return `sticky left-[185px] ${isHeader ? "z-30 bg-slate-100 text-slate-900" : `z-10 ${bgClass || "bg-white"} text-slate-900`} min-w-[240px] max-w-[280px] shadow-r border-r border-slate-200`;
+          }
+          return "";
+        },
+      };
+    }
+
+    // Tab 18 Sarana Pengaduan: 3 freeze columns (No [45px], Sarana [160px], Alamat [170px])
+    if (title.includes("sarana") || activeTab?.id === 161) {
+      return {
+        count: 3,
+        getClasses: (cIdx: number, isHeader: boolean, bgClass?: string) => {
+          if (cIdx === 0) {
+            return `sticky left-0 ${isHeader ? "z-30 bg-slate-100 text-slate-900" : `z-10 ${bgClass || "bg-white"} text-slate-900`} w-[45px] min-w-[45px] max-w-[45px] text-center border-r border-slate-200`;
+          }
+          if (cIdx === 1) {
+            return `sticky left-[45px] ${isHeader ? "z-30 bg-slate-100 text-slate-900" : `z-10 ${bgClass || "bg-white"} text-slate-900`} min-w-[160px] max-w-[190px] border-r border-slate-200`;
+          }
+          if (cIdx === 2) {
+            return `sticky left-[205px] ${isHeader ? "z-30 bg-slate-100 text-slate-900" : `z-10 ${bgClass || "bg-white"} text-slate-900`} min-w-[170px] max-w-[210px] shadow-r border-r border-slate-200`;
+          }
+          return "";
+        },
+      };
+    }
+
+    // Tab Indeks KIE, Caput Layanan Informasi, 17 Profesi Konsumen, atau tabel ber-header grup 2 kolom
+    if (
+      title.includes("indeks kie") ||
+      title.includes("caput layanan") ||
+      title.includes("profesi") ||
+      activeTab?.id === 135 ||
+      activeTab?.id === 136 ||
+      activeTab?.id === 160 ||
+      (displayedHeaderGroups && !displayedHeaderGroups[0]?.parent && displayedHeaderGroups[0].cols.length > 1)
+    ) {
+      return {
+        count: 2,
+        getClasses: (cIdx: number, isHeader: boolean, bgClass?: string) => {
+          if (cIdx === 0) {
+            return `sticky left-0 ${isHeader ? "z-30 bg-slate-100 text-slate-900" : `z-10 ${bgClass || "bg-white"} text-slate-900`} w-[50px] min-w-[50px] max-w-[50px] text-center border-r border-slate-200`;
+          }
+          if (cIdx === 1) {
+            return `sticky left-[50px] ${isHeader ? "z-30 bg-slate-100 text-slate-900" : `z-10 ${bgClass || "bg-white"} text-slate-900`} min-w-[260px] max-w-[290px] shadow-r border-r border-slate-200`;
+          }
+          return "";
+        },
+      };
+    }
+
+    // Header grup 1 kolom
+    if (displayedHeaderGroups && !displayedHeaderGroups[0]?.parent && displayedHeaderGroups[0].cols.length === 1) {
+      return {
+        count: 1,
+        getClasses: (cIdx: number, isHeader: boolean, bgClass?: string) => {
+          if (cIdx === 0) {
+            return `sticky left-0 ${isHeader ? "z-30 bg-slate-100 text-slate-900" : `z-10 ${bgClass || "bg-white"} text-slate-900`} min-w-[130px] shadow-r border-r border-slate-200`;
+          }
+          return "";
+        },
+      };
+    }
+
+    return {
+      count: 0,
+      getClasses: () => "",
+    };
+  }, [activeTab?.title, activeTab?.id, displayedHeaderGroups]);
+
   const rawRowsCount = activeTab?.rows_data?.length || 0;
   const totalRows = filteredRows.length;
-  const isPaginationNeeded = rawRowsCount > 25 || availableMonths.length > 1;
+  const isPaginationNeeded = !isHorizontalMonthTable && rawRowsCount > 25;
   const effectivePageSize = pageSize === 0 ? totalRows : pageSize;
   const totalPages =
     effectivePageSize > 0 ? Math.ceil(totalRows / effectivePageSize) : 1;
@@ -2674,24 +2759,14 @@ export default function TestLocalTableKatim() {
                       <tr className="border-b border-slate-200">
                         {displayedHeaderGroups.map((grp, gIdx) => {
                           if (!grp.parent) {
-                            const numLeftCols = grp.cols.length;
                             return grp.cols.map((col, cIdx) => {
-                              let stickyStyle = "bg-slate-50 text-slate-800";
-                              if (cIdx === 0) {
-                                stickyStyle =
-                                  numLeftCols > 1
-                                    ? "sticky left-0 z-30 bg-slate-100 text-slate-900 w-[50px] min-w-[50px] max-w-[50px] text-center border-r border-slate-200"
-                                    : "sticky left-0 z-30 bg-slate-100 shadow-r text-slate-900 min-w-[130px] border-r border-slate-200";
-                              } else if (cIdx === 1 && numLeftCols > 1) {
-                                stickyStyle =
-                                  "sticky left-[55px] z-30 bg-slate-100 shadow-r text-slate-900 min-w-[240px] max-w-[280px] border-r border-slate-200";
-                              }
+                              const stickyStyle = leftStickyConfig.getClasses(cIdx, true);
 
                               return (
                                 <th
                                   key={col.key}
                                   rowSpan={2}
-                                  className={`py-3 px-3 font-bold text-left ${stickyStyle}`}
+                                  className={`py-3 px-3 font-bold text-left ${stickyStyle || "bg-slate-50 text-slate-800"}`}
                                 >
                                   <div className="flex items-center justify-between gap-1 mb-1">
                                     <span className="font-mono text-[10px] text-slate-400">
@@ -2812,15 +2887,16 @@ export default function TestLocalTableKatim() {
                     </>
                   ) : (
                     <tr>
-                      {displayedColumnsSchema.map((col) => {
+                      {displayedColumnsSchema.map((col, cIdx) => {
                         const isEditableForMe = col.can_edit;
+                        const stickyStyle = leftStickyConfig.getClasses(cIdx, true);
                         return (
                           <th
                             key={col.key}
-                            className={`py-3 px-3.5 font-bold border-r border-slate-200 last:border-r-0 min-w-[130px] ${
-                              isEditableForMe
-                                ? "bg-emerald-50/60 text-emerald-950"
-                                : "text-slate-700"
+                            className={`py-3 px-3.5 font-bold border-r border-slate-200 last:border-r-0 ${
+                              stickyStyle || (isEditableForMe
+                                ? "bg-emerald-50/60 text-emerald-950 min-w-[130px]"
+                                : "text-slate-700 min-w-[130px]")
                             }`}
                           >
                             <div className="flex items-center justify-between gap-1 mb-1">
@@ -2945,17 +3021,6 @@ export default function TestLocalTableKatim() {
                         isFormulaRow,
                       );
 
-                      const numLeftCols =
-                        displayedHeaderGroups &&
-                        !displayedHeaderGroups[0]?.parent
-                          ? displayedHeaderGroups[0].cols.length
-                          : 1;
-                      const hasMultiLeftCols = Boolean(
-                        displayedHeaderGroups &&
-                        !displayedHeaderGroups[0]?.parent &&
-                        numLeftCols > 1,
-                      );
-
                       const isHighlightedIncomplete =
                         highlightedIncompleteRows.includes(rowIdxNum) ||
                         highlightedIncompleteRows.includes(originalIdx);
@@ -3016,42 +3081,20 @@ export default function TestLocalTableKatim() {
                             const isNum = typeof val === "number";
                             const isCollab = isCollaborativeCol(col);
 
-                            let stickyTdClass = "";
-                            if (hasMultiLeftCols) {
-                              if (cIdx === 0) {
-                                stickyTdClass = `sticky left-0 z-10 w-[55px] min-w-[55px] max-w-[55px] text-center border-r border-slate-200 ${
-                                  isSectionRow
-                                    ? "bg-slate-200 font-black text-slate-900"
-                                    : isFormulaRow || isTotalRow
-                                      ? "bg-emerald-100 text-emerald-950 font-bold"
-                                      : isQuestionRow
-                                        ? "bg-blue-50/80 font-bold text-blue-900"
-                                        : "bg-white font-medium text-slate-700"
-                                }`;
-                              } else if (cIdx === 1) {
-                                stickyTdClass = `sticky left-[55px] z-10 min-w-[240px] max-w-[280px] shadow-r border-r border-slate-200 ${
-                                  isSectionRow
-                                    ? "bg-slate-100 font-black text-slate-900"
-                                    : isFormulaRow || isTotalRow
-                                      ? "bg-emerald-50 text-emerald-950 font-bold"
-                                      : isQuestionRow
-                                        ? "bg-blue-50/40 font-semibold text-blue-950"
-                                        : "bg-white font-semibold text-slate-900"
-                                }`;
-                              }
-                            } else if (
-                              cIdx === 0 &&
-                              Boolean(displayedHeaderGroups)
-                            ) {
-                              stickyTdClass = `sticky left-0 z-10 min-w-[130px] shadow-r border-r border-slate-200 ${
-                                isTotalRow
-                                  ? "bg-emerald-100 text-emerald-950 font-bold"
-                                  : "bg-white text-slate-900 font-bold"
-                              }`;
-                            }
+                            const stickyBg = isSectionRow
+                              ? "bg-slate-200"
+                              : isFormulaRow || isTotalRow
+                                ? "bg-emerald-100"
+                                : isQuestionRow
+                                  ? "bg-blue-100"
+                                  : isHighlightedIncomplete
+                                    ? "bg-amber-100"
+                                    : "bg-white";
 
-                            // Untuk baris section header (cIdx >= 2 tampil kosong)
-                            if (isSectionRow && cIdx >= 2) {
+                            const stickyTdClass = leftStickyConfig.getClasses(cIdx, false, stickyBg);
+
+                            // Untuk baris section header (cIdx >= leftStickyConfig.count tampil kosong)
+                            if (isSectionRow && cIdx >= Math.max(leftStickyConfig.count, 2)) {
                               return (
                                 <td
                                   key={col.key}
@@ -3073,7 +3116,7 @@ export default function TestLocalTableKatim() {
                               return (
                                 <td
                                   key={col.key}
-                                  className={`p-2 border-r border-slate-100 last:border-r-0 min-w-[240px] max-w-[340px] align-top ${
+                                  className={`p-2 border-r border-slate-100 last:border-r-0 min-w-[240px] max-w-[340px] align-top ${stickyTdClass} ${
                                     canEditCell
                                       ? "bg-emerald-50/15"
                                       : "bg-slate-50/20"
@@ -3175,7 +3218,7 @@ export default function TestLocalTableKatim() {
                               return (
                                 <td
                                   key={col.key}
-                                  className={`p-1 border-r border-slate-100 last:border-r-0 ${
+                                  className={`p-1 border-r border-slate-100 last:border-r-0 ${stickyTdClass} ${
                                     isQuestionRow
                                       ? "bg-blue-50/25"
                                       : "bg-emerald-50/20"
