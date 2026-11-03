@@ -9,6 +9,7 @@ import { getUser } from "@/features/authSlice";
 import api from "@/utils/axios";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
+import { getUserPhotoUrl } from "@/utils/userPhoto";
 
 export default function PaulaHome() {
     const dispatch = useDispatch<AppDispatch>();
@@ -64,13 +65,16 @@ export default function PaulaHome() {
         );
     }
 
-    const isAdmin = Boolean(
-        paulaUser?.is_admin ||
-        user?.role?.level === "superadmin" ||
-        user?.role?.level === "admin" ||
-        (user?.role as any) === "superadmin" ||
-        (user?.role as any) === "admin"
+    const isSuperadmin = user?.role?.level === "superadmin";
+    const isPaulaPic = Boolean(
+        user?.sites?.some(
+            (s: any) =>
+                s.name?.trim().toUpperCase() === "PAULA" ||
+                s.link?.includes("paula") ||
+                s.id === 8
+        )
     );
+    const isAdmin = Boolean(isSuperadmin || isPaulaPic);
 
     return (
         <div className="bg-slate-50 min-h-screen flex flex-col justify-between font-sans selection:bg-blue-200">
@@ -98,8 +102,15 @@ export default function PaulaHome() {
                     {user && (
                         <div className="flex items-center gap-3">
                             <div className="hidden sm:flex items-center gap-3 pl-3 pr-4 py-1.5 rounded-2xl bg-slate-50 border border-slate-200/70">
-                                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
-                                    {user.name ? user.name.slice(0, 2).toUpperCase() : "BP"}
+                                <div className="w-8 h-8 rounded-xl overflow-hidden border border-slate-200/80 bg-slate-100 shrink-0 shadow-xs flex items-center justify-center">
+                                    <img
+                                        src={getUserPhotoUrl(user?.photo_path)}
+                                        alt={user.name || "Foto Profil"}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            e.currentTarget.src = "/assets/images/noimage.svg";
+                                        }}
+                                    />
                                 </div>
                                 <div className="text-left">
                                     <p className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[160px]">{user.name}</p>
