@@ -580,6 +580,11 @@ export default function TestLocalTableKatim() {
     paramTabId ? Number(paramTabId) : null,
   );
   const [activeTab, setActiveTab] = useState<ActiveTabDetail | null>(null);
+  const [katims, setKatims] = useState<any[]>([]);
+
+  const activeSpreadsheet = useMemo(() => {
+    return spreadsheets.find((s) => s.id === selectedSpId) || null;
+  }, [spreadsheets, selectedSpId]);
   const [currentMonth, setCurrentMonth] = useState<number>(
     new Date().getMonth() + 1,
   );
@@ -730,6 +735,9 @@ export default function TestLocalTableKatim() {
       }
       if (Array.isArray(d.my_iksks)) {
         setIksks(d.my_iksks);
+      }
+      if (Array.isArray(d.katims)) {
+        setKatims(d.katims);
       }
       if (d.selected_iksk_id) {
         setSelectedIkskId(Number(d.selected_iksk_id));
@@ -1687,6 +1695,117 @@ export default function TestLocalTableKatim() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Handler Ekspor Excel RHPK (Point 3)
+  const handleExportExcel = (mode: "locked" | "all") => {
+    setShowExportDropdown(false);
+    if (!activeSpreadsheet) {
+      setErrorMsg("Pilih dokumen spreadsheet terlebih dahulu.");
+      return;
+    }
+    const exportUrl = `${baseUrl}/api/test-local-table/spreadsheet/${activeSpreadsheet.id}/export?mode=${mode}${authQuery}`;
+    window.open(exportUrl, "_blank");
+  };
+
+  // Handlers Kolaborasi Angka Multi-Katim (Point 6)
+  const handleOpenCollabNumModal = (
+    row: any,
+    col: ColumnSchema,
+    rowIndex: number,
+  ) => {
+    const rKey =
+      row.month !== undefined && row.month !== null && row.month !== 0
+        ? row.month
+        : row.row_index !== undefined
+          ? row.row_index
+          : rowIndex;
+
+    const rowMonthName =
+      resolveRowMonthName(row, monthColKey) ||
+      row.month_name ||
+      `Baris ${rowIndex + 1}`;
+
+    const contribs = row.cells?.[col.key + "_contributors"] || {};
+    const myId = user?.id ? String(user.id) : "";
+    const myExisting =
+      myId && contribs[myId] ? String(contribs[myId].value ?? "") : "";
+
+    setCollabNumModal({
+      isOpen: true,
+      rowKey: Number(rKey),
+      rowIndex,
+      monthName: rowMonthName,
+      col,
+      contributors: contribs,
+      myValue: myExisting,
+    });
+  };
+
+  const handleSaveCollabNumModal = async () => {
+    if (!collabNumModal || !activeTab) return;
+    const { col, rowKey, rowIndex, contributors, myValue } = collabNumModal;
+    const myId = user?.id ? String(user.id) : (isPicUser ? "pic" : "katim_me");
+    const myName =
+      user?.name || user?.call_name || (isPicUser ? "PIC Balai" : "Katim");
+    const numVal = parseFloat(String(myValue).replace(",", ".")) || 0;
+
+    const updatedContribs: Record<string, { user_id: string; author: string; value: number; updated_at?: string }> = {
+      ...contributors,
+      [myId]: {
+        user_id: myId,
+        author: myName,
+        value: numVal,
+        updated_at: new Date().toISOString(),
+      },
+    };
+
+    let totalSum = 0;
+    Object.values(updatedContribs).forEach((c: any) => {
+      totalSum += parseFloat(c.value || 0);
+    });
+
+    handleCellChange(rowKey, col.key, totalSum, rowIndex);
+
+    try {
+      await api.post(
+        `${baseUrl}/api/test-local-table/tab/${activeTab.id}/update${authQuery}`,
+        {
+          updates: [
+            {
+              month: rowKey,
+              row_index: rowIndex,
+              key: col.key,
+              value: numVal,
+            },
+          ],
+        },
+      );
+      setSuccessMsg(
+        `Kontribusi angka untuk ${col.label} (${collabNumModal.monthName}) berhasil disimpan! Total: ${totalSum}`,
+      );
+    } catch (err: any) {
+      console.error("Gagal simpan kontribusi angka:", err);
+    }
+
+    setActiveTab((prev) => {
+      if (!prev) return prev;
+      const newRows = [...prev.rows_data];
+      if (newRows[rowIndex]) {
+        newRows[rowIndex] = {
+          ...newRows[rowIndex],
+          is_updated: true,
+          cells: {
+            ...newRows[rowIndex].cells,
+            [col.key]: totalSum,
+            [`${col.key}_contributors`]: updatedContribs,
+          },
+        };
+      }
+      return { ...prev, rows_data: newRows };
+    });
+
+    setCollabNumModal(null);
   };
 
   // Handlers untuk Modal Catatan Kolaboratif (Kendala / RTL PIC)
@@ -4742,6 +4861,156 @@ export default function TestLocalTableKatim() {
                   {validationModal.isKendalaMissing ? "Kendala" : "RTL"}{" "}
                   Sekarang
                 </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Kontribusi Angka Kolaboratif Multi-Katim (Point 6) */}
+      {collabNumModal && collabNumModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-200 bg-indigo-50/70 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 border border-indigo-200 shrink-0">
+                  <Icon icon="solar:users-group-rounded-bold" width={22} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800">
+                    Rincian Kontribusi Angka Katim
+                  </h3>
+                  <p className="text-[11px] font-semibold text-indigo-700">
+                    {collabNumModal.col.label} &bull; {collabNumModal.monthName}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCollabNumModal(null)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-white hover:text-slate-600 transition cursor-pointer"
+              >
+                <Icon icon="solar:close-circle-bold" width={20} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Kolom ini dikerjakan secara kolaboratif oleh beberapa Katim. Setiap Katim menginput angka kontribusinya masing-masing, dan sistem secara otomatis mengakumulasikan nilai akhirnya.
+              </p>
+
+              {/* Rincian Kontributor yang Terdaftar */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700">
+                  Daftar Kontribusi per Katim:
+                </label>
+                <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden bg-slate-50/50 max-h-56 overflow-y-auto">
+                  {collabNumModal.col.allowed_katim_ids && collabNumModal.col.allowed_katim_ids.length > 0 ? (
+                    collabNumModal.col.allowed_katim_ids.map((kId: string | number) => {
+                      const strId = String(kId);
+                      const katimProfile = katims.find((k: any) => String(k.user_id) === strId || String(k.id) === strId);
+                      const contrib = collabNumModal.contributors[strId];
+                      const isMe = user?.id && String(user.id) === strId;
+
+                      return (
+                        <div key={strId} className={`p-3 flex items-center justify-between text-xs ${isMe ? "bg-indigo-50/50 font-medium" : ""}`}>
+                          <div className="flex items-center gap-2.5">
+                            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 font-bold text-[11px] shrink-0">
+                              {(katimProfile?.name || contrib?.author || "K").charAt(0)}
+                            </span>
+                            <div>
+                              <div className="font-semibold text-slate-800 flex items-center gap-1.5">
+                                <span>{katimProfile?.name || contrib?.author || `Katim (${strId.substring(0, 8)}...)`}</span>
+                                {isMe && (
+                                  <span className="px-1.5 py-0.2 rounded bg-indigo-200 text-indigo-800 text-[9px] font-bold">
+                                    Anda
+                                  </span>
+                                )}
+                              </div>
+                              {contrib?.updated_at && (
+                                <span className="text-[10px] text-slate-400">
+                                  Diperbarui: {new Date(contrib.updated_at).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-mono font-bold text-sm text-slate-900">
+                              {contrib?.value !== undefined ? contrib.value : 0}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="p-3 text-xs text-slate-400 text-center">
+                      Belum ada penugasan Katim spesifik.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Input Bagian Saya */}
+              <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 space-y-2">
+                <label className="block text-xs font-bold text-indigo-950">
+                  Input / Ubah Angka Kontribusi Anda ({user?.name || user?.call_name || "Katim"}):
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    step="any"
+                    value={collabNumModal.myValue}
+                    onChange={(e) =>
+                      setCollabNumModal({
+                        ...collabNumModal,
+                        myValue: e.target.value,
+                      })
+                    }
+                    placeholder="Masukkan angka..."
+                    className="flex-1 rounded-lg border border-indigo-300 bg-white px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+
+              {/* Total Summary */}
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs">
+                <div>
+                  <span className="text-xs font-bold text-slate-700">Total Akumulasi Seluruh Katim</span>
+                  <p className="text-[10px] text-slate-400">Nilai total ini yang dihitung ke rumus formula & capaian</p>
+                </div>
+                <span className="text-base font-extrabold font-mono text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-lg">
+                  {(() => {
+                    const myId = user?.id ? String(user.id) : "temp_me";
+                    const myVal = parseFloat(String(collabNumModal.myValue).replace(",", ".")) || 0;
+                    let sum = 0;
+                    Object.entries(collabNumModal.contributors).forEach(([k, c]: [string, any]) => {
+                      if (k !== myId) sum += parseFloat(c.value || 0);
+                    });
+                    sum += myVal;
+                    return sum;
+                  })()}
+                </span>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-2.5 border-t border-slate-200 bg-slate-50/80 px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setCollabNumModal(null)}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveCollabNumModal}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-2 text-xs font-bold text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700 transition cursor-pointer"
+              >
+                <Icon icon="solar:diskette-bold" width={16} />
+                <span>Simpan Kontribusi</span>
               </button>
             </div>
           </div>
