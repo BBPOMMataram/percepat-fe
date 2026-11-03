@@ -453,6 +453,25 @@ export const recalculateRowFormulas = (
 ): Record<string, any> => {
   const updatedCells = { ...cells };
 
+  const excelMathEnv = {
+    sum: (...args: any[]) =>
+      args
+        .flat(Infinity)
+        .reduce((a: number, b: number) => Number(a) + (Number(b) || 0), 0),
+    average: (...args: any[]) => {
+      const flat = args
+        .flat(Infinity)
+        .filter((x: any) => typeof x === "number" && !isNaN(x));
+      return flat.length
+        ? flat.reduce((a: number, b: number) => a + b, 0) / flat.length
+        : 0;
+    },
+    min: Math.min,
+    max: Math.max,
+    abs: Math.abs,
+    round: Math.round,
+  };
+
   columns.forEach((col) => {
     if (col.type === "formula" && col.formula) {
       let expr = col.formula.trim();
@@ -500,16 +519,24 @@ export const recalculateRowFormulas = (
 
       // 6. Tangani fungsi matematika umum Excel
       expr = expr
-        .replace(/\bmin\s*\(/gi, "Math.min(")
-        .replace(/\bmax\s*\(/gi, "Math.max(")
-        .replace(/\babs\s*\(/gi, "Math.abs(")
-        .replace(/\bround\s*\(/gi, "Math.round(");
+        .replace(/\bsum\s*\(/gi, "excelMathEnv.sum(")
+        .replace(/\baveragea?\s*\(/gi, "excelMathEnv.average(")
+        .replace(/\bmin\s*\(/gi, "excelMathEnv.min(")
+        .replace(/\bmax\s*\(/gi, "excelMathEnv.max(")
+        .replace(/\babs\s*\(/gi, "excelMathEnv.abs(")
+        .replace(/\bround\s*\(/gi, "excelMathEnv.round(");
 
       // 7. Evaluasi ekspresi aritmatika aman
-      const sanitized = expr.replace(/Math\.(min|max|abs|round)/g, "");
+      const sanitized = expr.replace(
+        /excelMathEnv\.(sum|average|min|max|abs|round)/g,
+        "",
+      );
       if (/^[\d\+\-\*/\(\)\,\.\s]+$/.test(sanitized)) {
         try {
-          const res = Function(`"use strict"; return (${expr})`)();
+          const res = Function(
+            "excelMathEnv",
+            `"use strict"; return (${expr})`,
+          )(excelMathEnv);
           if (typeof res === "number" && !isNaN(res) && isFinite(res)) {
             updatedCells[col.key] = Math.round(res * 100) / 100;
           } else {
@@ -965,25 +992,32 @@ export default function TestLocalTableKatim() {
   };
 
   // Helper placeholder & evaluasi formula instan untuk kolom angka/target
-  const getCellPlaceholder = (col: ColumnSchema) => {
+  const getCellPlaceholder = (col: ColumnSchema, rowIdx?: number) => {
     const l = (col.label || "").toLowerCase();
     const letter = (col.col_letter || "").toUpperCase();
-    if (letter === "F" || l.includes("target sampel")) {
-      return "Cth: 16 (atau =F2+9)";
-    }
-    if (letter === "G" && l.includes("target indikator")) {
-      return "Cth: 99.71";
-    }
-    if (
+    const isCumulative =
       ["G", "H", "J", "K", "M", "N"].includes(letter) ||
       l.includes("sarana yang diperiksa") ||
       l.includes("renlak") ||
       l.includes("ditindaklanjuti") ||
-      l.includes("tepat waktu")
-    ) {
-      return letter ? `Cth: 24 (atau =${letter}2+11)` : "Cth: 24";
+      l.includes("tepat waktu") ||
+      l.includes("selesai diawasi");
+
+    if (rowIdx !== undefined && rowIdx > 0 && isCumulative) {
+      const prevExcelRow = rowIdx + 1;
+      return letter ? `Cth: 80 (atau =+13 atau =${letter}${prevExcelRow}+13)` : "Cth: 80";
     }
-    return letter ? `Cth: 10 (atau =${letter}2+5)` : "0";
+
+    if (letter === "F" || l.includes("target sampel")) {
+      return "Cth: 16 (atau =16)";
+    }
+    if (letter === "G" && l.includes("target indikator")) {
+      return "Cth: 99.71";
+    }
+    if (isCumulative) {
+      return letter ? `Cth: 24 (atau =+11)` : "Cth: 24";
+    }
+    return letter ? `Cth: 10` : "0";
   };
 
   // Evaluasi formula atau input aritmatika saat onBlur di input cell
@@ -1006,7 +1040,18 @@ export default function TestLocalTableKatim() {
       }
     }
 
-    // 2. Jika diawali tanda '=' (formula, cth: =F2+9 atau =G2+13 atau =G2 atau =16+9 atau =24)
+    // 2. Input diawali '+' (cth: +13 atau + 13) -> penjumlahan langsung dari bulan sebelumnya
+    if (/^\+\s*[\d\.]+$/.test(trimmed)) {
+      const addend = parseFloat(trimmed.replace("+", "").trim());
+      const prevRIdx = rowIdxNum !== undefined ? rowIdxNum - 1 : (rowId > 1 ? rowId - 2 : -1);
+      const prevRow = prevRIdx >= 0 && activeTab.rows_data ? activeTab.rows_data[prevRIdx] : null;
+      const baseVal = prevRow ? parseFloat(String(prevRow.cells?.[col.key] || 0)) || 0 : 0;
+      const finalRes = Math.round((baseVal + addend) * 100) / 100;
+      handleCellChange(rowId, col.key, finalRes, rowIdxNum);
+      return;
+    }
+
+    // 3. Jika diawali tanda '=' (formula, cth: =+13, =F2+9, =G+13, =G10+13, =16+9, atau =24)
     if (trimmed.startsWith("=")) {
       const expr = trimmed.slice(1).trim();
 
@@ -1016,7 +1061,43 @@ export default function TestLocalTableKatim() {
         return;
       }
 
-      // Cek apakah formula merujuk ke cell baris sebelumnya (cth: F2+9 atau G2+13 atau G2)
+      // Cek formula penjumlahan langsung dari bulan sebelumnya (cth: =+13 atau =-5)
+      if (/^[\+\-]\s*[\d\.]+$/.test(expr)) {
+        const delta = parseFloat(expr);
+        const prevRIdx = rowIdxNum !== undefined ? rowIdxNum - 1 : (rowId > 1 ? rowId - 2 : -1);
+        const prevRow = prevRIdx >= 0 && activeTab.rows_data ? activeTab.rows_data[prevRIdx] : null;
+        const baseVal = prevRow ? parseFloat(String(prevRow.cells?.[col.key] || 0)) || 0 : 0;
+        const finalRes = Math.round((baseVal + delta) * 100) / 100;
+        handleCellChange(rowId, col.key, finalRes, rowIdxNum);
+        return;
+      }
+
+      // Cek formula tanpa nomor baris (cth: =G+13 atau =F+9) -> mengacu ke kolom tersebut di baris sebelumnya
+      const colOnlyMatch = expr.match(/^([A-Za-z]+)(?:\s*([\+\-\*/])\s*([\d\.]+))?$/);
+      if (colOnlyMatch && !expr.match(/^[A-Za-z]+\d+/)) {
+        const [, targetLetter, op, operandStr] = colOnlyMatch;
+        const operand = operandStr !== undefined ? parseFloat(operandStr) : 0;
+        const prevRIdx = rowIdxNum !== undefined ? rowIdxNum - 1 : (rowId > 1 ? rowId - 2 : -1);
+        const prevRow = prevRIdx >= 0 && activeTab.rows_data ? activeTab.rows_data[prevRIdx] : null;
+        const targetCol = effectiveColumnsSchema.find(
+          (c) => c.col_letter?.toUpperCase() === targetLetter.toUpperCase(),
+        );
+        if (targetCol) {
+          const baseVal = prevRow ? parseFloat(String(prevRow.cells?.[targetCol.key] || 0)) || 0 : 0;
+          let res = baseVal;
+          if (op === "+") res = baseVal + operand;
+          else if (op === "-") res = baseVal - operand;
+          else if (op === "*") res = baseVal * operand;
+          else if (op === "/" && operand !== 0) res = baseVal / operand;
+          else if (!op) res = baseVal;
+
+          const finalRes = Math.round(res * 100) / 100;
+          handleCellChange(rowId, col.key, finalRes, rowIdxNum);
+          return;
+        }
+      }
+
+      // Cek apakah formula merujuk ke cell baris sebelumnya (cth: F2+9, G10+13, G2)
       const prevRowMatch = expr.match(
         /^([A-Za-z]+)(\d+)(?:\s*([\+\-\*/])\s*([\d\.]+))?$/,
       );
@@ -1033,7 +1114,7 @@ export default function TestLocalTableKatim() {
         if (targetRow && targetCol) {
           const baseVal = parseFloat(
             String(targetRow.cells?.[targetCol.key] || 0),
-          );
+          ) || 0;
           let res = baseVal;
           if (op === "+") res = baseVal + operand;
           else if (op === "-") res = baseVal - operand;
@@ -1047,23 +1128,18 @@ export default function TestLocalTableKatim() {
         }
       }
 
-      // Cek apakah formula aritmatika murni (cth: =16+9 atau =7+9)
-      const simpleMathMatch = expr.match(
-        /^([\d\.]+)\s*([\+\-\*/])\s*([\d\.]+)$/,
-      );
-      if (simpleMathMatch) {
-        const [, aStr, op, bStr] = simpleMathMatch;
-        const a = parseFloat(aStr);
-        const b = parseFloat(bStr);
-        let res = a;
-        if (op === "+") res = a + b;
-        else if (op === "-") res = a - b;
-        else if (op === "*") res = a * b;
-        else if (op === "/" && b !== 0) res = a / b;
-
-        const finalRes = Math.round(res * 100) / 100;
-        handleCellChange(rowId, col.key, finalRes, rowIdxNum);
-        return;
+      // Cek apakah formula aritmatika murni (cth: =16+9 atau =67+13)
+      try {
+        const sanitized = expr.replace(/[^0-9\+\-\*/\(\)\,\.\s]/g, "");
+        if (sanitized === expr) {
+          const res = Function(`"use strict"; return (${expr})`)();
+          if (typeof res === "number" && !isNaN(res) && isFinite(res)) {
+            handleCellChange(rowId, col.key, Math.round(res * 100) / 100, rowIdxNum);
+            return;
+          }
+        }
+      } catch {
+        // Abaikan
       }
     }
   };
@@ -3441,7 +3517,7 @@ export default function TestLocalTableKatim() {
                                           rowIdxNum,
                                         )
                                       }
-                                      placeholder={getCellPlaceholder(col)}
+                                      placeholder={getCellPlaceholder(col, rowIdxNum)}
                                       className="w-full rounded-lg px-2.5 py-1.5 text-xs border border-slate-200 bg-white text-slate-900 leading-tight focus:ring-1 focus:outline-none focus:border-emerald-600 focus:ring-emerald-600 resize-y font-medium"
                                     />
                                   ) : (
@@ -3468,13 +3544,13 @@ export default function TestLocalTableKatim() {
                                     onWheel={(e) =>
                                       (e.target as HTMLElement).blur()
                                     }
-                                    placeholder={getCellPlaceholder(col)}
+                                    placeholder={getCellPlaceholder(col, rowIdxNum)}
                                     title={
                                       col.col_letter === "F" ||
                                       (col.label || "")
                                         .toLowerCase()
                                         .includes("target sampel")
-                                        ? "Target Sampel: Masukkan nilai exact (misal 16) atau formula (misal =F2+9)"
+                                        ? "Target Sampel: Masukkan nilai exact (misal 16)"
                                         : col.col_letter === "G" &&
                                             (col.label || "")
                                               .toLowerCase()
@@ -3489,11 +3565,9 @@ export default function TestLocalTableKatim() {
                                               (col.label || "")
                                                 .toLowerCase()
                                                 .includes("renlak")
-                                            ? `Masukkan nilai exact kumulatif (misal 24) atau formula penjumlahan (misal =${(
-                                                col.col_letter || "G"
-                                              ).toUpperCase()}2+11)`
+                                            ? `Masukkan nilai exact kumulatif (misal 24) atau formula penjumlahan dari bulan sebelumnya (misal =+11 atau =${(col.col_letter || "G").toUpperCase()}${rowIdxNum ? rowIdxNum + 1 : 2}+11)`
                                             : col.col_letter
-                                              ? `Masukkan nilai exact atau formula penjumlahan (misal =${col.col_letter.toUpperCase()}2+5)`
+                                              ? `Masukkan nilai exact atau formula penjumlahan (misal =+5 atau =${col.col_letter.toUpperCase()}${rowIdxNum ? rowIdxNum + 1 : 2}+5)`
                                               : "Masukkan angka"
                                     }
                                     className={`w-full rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
