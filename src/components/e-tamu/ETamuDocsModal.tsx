@@ -68,6 +68,11 @@ export default function ETamuDocsModal({
             v2: "Native WebRTC + HTML5 Canvas dengan auto aspect-ratio cropping (object-cover hingga 640px), efek mirror, & pilih kamera.",
         },
         {
+            aspect: "Pengenalan Wajah (Smart Face Recognition AI)",
+            v1: "Tidak tersedia; semua pengunjung wajib mengisi formulir dan data diri secara manual setiap kali berkunjung.",
+            v2: "AI Face Recognition otomatis berbasis WebGL (TinyFaceDetector + ResNet 128-dimensi). Wajah tamu lama otomatis terdeteksi kamera, menampilkan popup sapaan instan, dan mencatat kedatangan cukup dengan memilih unit tujuan.",
+        },
+        {
             aspect: "Formulir & Autofill Tamu",
             v1: "Tampilan gradien lama; autofill hanya berjalan saat keluar dari kolom nama (onchange).",
             v2: "Desain modern & responsif; Autofill Real-Time saat mengetik nama (> 2 huruf) dilengkapi notifikasi toast.",
@@ -119,6 +124,11 @@ export default function ETamuDocsModal({
             date: "29 Okt 2026",
             code: "466aaa1 / d110046",
             desc: "Penambahan fitur perbandingan multi-tahun berdampingan per keperluan pada grafik batang dengan Checkbox Dropdown Tahun.",
+        },
+        {
+            date: "03 Nov 2026",
+            code: "bfef79b / dffdc39",
+            desc: "Penerapan Smart Face Recognition AI pada Buku Tamu (deteksi wajah instan, modal konfirmasi kedatangan, optimasi kamera zero-latency, & pembaruan handbook).",
         },
     ];
 
@@ -207,7 +217,7 @@ export default function ETamuDocsModal({
                                         Transformasi E-Tamu v1.0 ke E-Tamu v2.0
                                     </h3>
                                     <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
-                                        Periode: 22 Sep – 29 Okt 2026
+                                        Periode: 22 Sep – 03 Nov 2026
                                     </span>
                                 </div>
                                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
@@ -348,20 +358,28 @@ export default function ETamuDocsModal({
                                                 2
                                             </span>
                                             <h4 className="font-bold text-slate-900">
-                                                Mengambil Swafoto (Selfie) Pengunjung
+                                                Alur Pintar: Smart Face Recognition (Bagi Tamu yang Pernah Datang)
                                             </h4>
                                         </div>
                                         <ul className="list-disc list-inside text-xs sm:text-sm text-slate-600 space-y-1.5 ml-1">
                                             <li>
-                                                Pada kartu <strong>Swafoto Pengunjung</strong> di sebelah kiri, pilih perangkat kamera melalui dropdown <strong>Pilih Sumber Kamera</strong>.
+                                                Bagi pengunjung yang <strong>sudah pernah terdata sebelumnya</strong>, cukup arahkan wajah ke depan kamera pada bingkai pemindai.
                                             </li>
                                             <li>
-                                                Posisikan wajah tepat di dalam bingkai kamera dan klik tombol <strong>Ambil Foto</strong>.
+                                                Kamera AI akan mendeteksi wajah secara otomatis dalam 1–2 detik dan menampilkan popup konfirmasi <strong>Wajah Dikenali: Halo, [Nama Anda]!</strong> lengkap dengan foto jepretan terkini, nama instansi, serta skor kemiripan.
                                             </li>
                                             <li>
-                                                Apabila foto kurang jelas, klik tombol <strong>Foto Ulang</strong> untuk mengambil ulang gambar.
+                                                Pilih <strong>Layanan / Unit Tujuan</strong> untuk kunjungan hari ini, lalu klik tombol hijau <strong>Konfirmasi Kedatangan & Simpan</strong>. Kehadiran Anda langsung tercatat tanpa perlu mengetik ulang nama, instansi, atau nomor HP!
+                                            </li>
+                                            <li>
+                                                Jika sistem mendeteksi orang yang keliru, klik <em>Bukan Saya? Isi Formulir Manual</em> untuk mengisi formulir biasa.
                                             </li>
                                         </ul>
+                                        <ScreenshotSlot
+                                            src="/assets/images/e-tamu-handbook/02b-popup-face-recognition.png"
+                                            alt="Popup Konfirmasi Smart Face Recognition"
+                                            caption="Gambar 1.3 — Popup Konfirmasi Kedatangan Otomatis via Smart Face Recognition"
+                                        />
                                     </div>
 
                                     <div className="border border-slate-200 rounded-xl p-4 bg-white shadow-sm">
@@ -370,24 +388,24 @@ export default function ETamuDocsModal({
                                                 3
                                             </span>
                                             <h4 className="font-bold text-slate-900">
-                                                Mengisi Formulir Data Diri & Autofill Riwayat Tamu
+                                                Alur Mandiri: Swafoto & Pengisian Formulir (Bagi Tamu Baru)
                                             </h4>
                                         </div>
                                         <ul className="list-disc list-inside text-xs sm:text-sm text-slate-600 space-y-1.5 ml-1">
                                             <li>
-                                                Pilih <strong>Layanan / Unit Tujuan</strong> sesuai keperluan kunjungan (jika memilih <em>Lainnya</em>, isi kolom rincian keperluan & pejabat yang dituju).
+                                                Bagi tamu yang baru pertama kali berkunjung, posisikan wajah di dalam bingkai kamera lalu klik tombol <strong>Ambil Foto</strong> (tersedia tombol <em>Foto Ulang</em> bila hasil kurang pas).
                                             </li>
                                             <li>
-                                                Ketik <strong>Nama Lengkap Tamu</strong>. Jika Anda pernah berkunjung sebelumnya, pilih nama Anda dari daftar saran agar <strong>Nomor HP, Email, Instansi, dan Alamat</strong> terisi otomatis (<em>Autofill</em>).
+                                                Isi data diri pada formulir sebelah kanan: <strong>Layanan Tujuan</strong>, <strong>Nama Lengkap</strong>, <strong>Nomor WhatsApp/HP</strong>, <strong>Instansi</strong>, dan <strong>Alamat</strong>.
                                             </li>
                                             <li>
-                                                Periksa kembali kelengkapan data, lalu klik tombol <strong>SIMPAN</strong>.
+                                                Klik tombol <strong>SIMPAN</strong>. Sistem otomatis menyimpan data kehadiran serta merekam vektor ciri wajah (<em>Face Descriptor</em>) agar pada kedatangan berikutnya Anda otomatis dikenali oleh kamera.
                                             </li>
                                         </ul>
                                         <ScreenshotSlot
                                             src="/assets/images/e-tamu-handbook/03-form-buku-tamu.png"
                                             alt="Formulir Buku Tamu dan Swafoto"
-                                            caption="Gambar 1.3 — Halaman Utama Buku Tamu (Swafoto & Formulir Data Diri)"
+                                            caption="Gambar 1.4 — Halaman Formulir Buku Tamu & Pengambilan Swafoto"
                                         />
                                     </div>
 
@@ -411,7 +429,7 @@ export default function ETamuDocsModal({
                                         <ScreenshotSlot
                                             src="/assets/images/e-tamu-handbook/04-popup-survey.png"
                                             alt="Popup Survei Kepuasan"
-                                            caption="Gambar 1.4 — Popup Survei Kepuasan Pelayanan"
+                                            caption="Gambar 1.5 — Popup Survei Kepuasan Pelayanan"
                                         />
                                     </div>
                                 </div>
