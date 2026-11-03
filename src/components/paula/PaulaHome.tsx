@@ -294,7 +294,7 @@ export default function PaulaHome() {
                 {/* ALUR SOP SINGKAT */}
                 <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs max-w-4xl mx-auto w-full">
                     <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 text-center mb-4">
-                        Alur Standar Operasional Peminjaman (SOP)
+                        Alur Standar Operasional Peminjaman
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                         <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
