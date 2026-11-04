@@ -331,15 +331,6 @@ export default function AdminMasterHubPercepat() {
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                    <button
-                        type="button"
-                        onClick={() => setImportPdfOpen(true)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-colors"
-                        title="Import Berita Acara Stok Opname dari PDF multi-kategori"
-                    >
-                        <FileText size={14} />
-                        Import Berita Acara (PDF)
-                    </button>
 
                     <button
                         type="button"
@@ -409,14 +400,6 @@ export default function AdminMasterHubPercepat() {
                             Export Excel
                         </button>
 
-                        <button
-                            type="button"
-                            onClick={() => setImportExcelOpen(true)}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-xs transition-colors"
-                        >
-                            <UploadCloud size={14} />
-                            Import Data (Excel & PDF)
-                        </button>
 
                         <button
                             type="button"

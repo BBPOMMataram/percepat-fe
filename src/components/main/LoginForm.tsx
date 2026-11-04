@@ -68,7 +68,8 @@ export default function LoginForm() {
                         description: data.message ?? "No Message from Backend",
                     })
                 );
-                router.push(callbackUrl);
+                // Gunakan window.location.href agar redirect instan dan cookies auth langsung aktif tanpa jeda soft-navigation
+                window.location.href = callbackUrl;
             })
             .catch((err) => {
                 setCaptchaKey((k) => k + 1);

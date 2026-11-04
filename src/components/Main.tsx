@@ -1,12 +1,13 @@
 "use client";
-import { AR_One_Sans } from 'next/font/google';
 import Script from 'next/script';
 import AppSection from './simandalika/content/AppSection';
 import Footer from './simandalika/footer/Footer';
 import Hero from './simandalika/hero/Hero';
 import ParticlesBackground from './simandalika/hero/ParticlesBackground';
 
-const arOneSans = AR_One_Sans({ subsets: ['latin'] });
+const arOneSans = {
+    className: "font-['AR_One_Sans',sans-serif]",
+};
 
 const MainPage = () => {
     const particleColor = "#004282";

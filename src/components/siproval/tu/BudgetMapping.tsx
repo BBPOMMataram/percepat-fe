@@ -580,12 +580,13 @@ export default function BudgetMapping() {
                   max="2099"
                   required
                   value={newYearInput}
+                  onWheel={(e) => (e.target as HTMLElement).blur()}
                   onChange={(e) => {
                     const yr = parseInt(e.target.value) || 2027;
                     setNewYearInput(yr);
                     setNewNameInput(`Mapping Anggaran ${yr}`);
                   }}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-800 transition focus:border-[#005baa] focus:bg-white focus:outline-none"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-800 transition focus:border-[#005baa] focus:bg-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   placeholder="Contoh: 2027"
                 />
               </div>
@@ -711,9 +712,10 @@ export default function BudgetMapping() {
                     min={2020}
                     max={2099}
                     value={selectedYear}
+                    onWheel={(e) => (e.target as HTMLElement).blur()}
                     onChange={(e) => setSelectedYear(Number(e.target.value))}
                     required
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-[#005baa] focus:outline-none"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-[#005baa] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     placeholder="Contoh: 2026"
                   />
                 </div>

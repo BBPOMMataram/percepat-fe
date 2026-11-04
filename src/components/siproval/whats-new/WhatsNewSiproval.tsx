@@ -3,16 +3,13 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Plus_Jakarta_Sans } from "next/font/google";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
 import { getUser } from "@/features/authSlice";
 
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  display: "swap",
-});
+const plusJakartaSans = {
+  className: "font-['Plus_Jakarta_Sans',sans-serif]",
+};
 
 interface ComparisonAspect {
   category: string;

@@ -119,8 +119,11 @@ export default function BudgetMappingTable() {
         const err = data.googleSheetError;
         if (err) setApiNotice(err);
 
-        if (Array.isArray(data.iksks)) {
-          setIksks(data.iksks);
+        if (data.iksks) {
+          const ikskList: IkskInfo[] = Array.isArray(data.iksks)
+            ? data.iksks
+            : Object.values(data.iksks);
+          setIksks(ikskList);
         }
 
         if (Array.isArray(data.kegiatans)) {
@@ -354,7 +357,7 @@ export default function BudgetMappingTable() {
 
       await api.post(
         `${baseUrl}/api/budget-mapping/${year}/tab/${tabId}/update`,
-        { user_id: user?.id, updates: updateList },
+        { user_id: user?.id, updates: updateList, kegiatans: localKegiatans },
       );
 
       setSuccessMsg(
@@ -739,13 +742,14 @@ export default function BudgetMappingTable() {
                         <input
                           type="number"
                           value={keg.pagu}
+                          onWheel={(e) => (e.target as HTMLElement).blur()}
                           onChange={(e) =>
                             handlePaguChange(
                               kegIndex,
                               parseFloat(e.target.value) || 0,
                             )
                           }
-                          className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-xs font-bold text-slate-800 transition focus:border-[#005baa] focus:outline-none"
+                          className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-xs font-bold text-slate-800 transition focus:border-[#005baa] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                       <p className="mt-1.5 text-xs font-semibold text-slate-700">
@@ -765,13 +769,14 @@ export default function BudgetMappingTable() {
                         <input
                           type="number"
                           value={keg.realisasi}
+                          onWheel={(e) => (e.target as HTMLElement).blur()}
                           onChange={(e) =>
                             handleRealisasiChange(
                               kegIndex,
                               parseFloat(e.target.value) || 0,
                             )
                           }
-                          className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-xs font-bold text-slate-800 transition focus:border-[#005baa] focus:outline-none"
+                          className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-xs font-bold text-slate-800 transition focus:border-[#005baa] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                       <p className="mt-1.5 text-xs font-semibold text-emerald-700">
@@ -831,30 +836,42 @@ export default function BudgetMappingTable() {
                       </p>
                     </div>
 
-                    {availableIksksToAdd.length > 0 && (
-                      <div className="flex items-center gap-2">
-                        <select
-                          defaultValue=""
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value);
-                            if (val) {
-                              handleAddIkskAllocation(kegIndex, val);
-                              e.target.value = "";
-                            }
-                          }}
-                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 font-bold transition focus:border-[#005baa] focus:outline-none shadow-2xs"
-                        >
-                          <option value="" disabled>
-                            + Tambah Alokasi IKSK...
-                          </option>
-                          {availableIksksToAdd.map((i) => (
-                            <option key={i.iksk_number} value={i.iksk_number}>
-                              IKSK {i.iksk_number} - {i.full_title.slice(0, 48)}...
+                    <div className="flex items-center gap-2">
+                      {availableIksksToAdd.length > 0 ? (
+                        <div className="relative">
+                          <select
+                            defaultValue=""
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value);
+                              if (val) {
+                                handleAddIkskAllocation(kegIndex, val);
+                                e.target.value = "";
+                              }
+                            }}
+                            className="cursor-pointer appearance-none rounded-xl border border-blue-300 bg-blue-50/70 hover:bg-blue-100/70 pl-8 pr-8 py-2 text-xs font-bold text-[#005baa] transition focus:border-[#005baa] focus:ring-1 focus:ring-[#005baa] focus:outline-none shadow-xs"
+                          >
+                            <option value="" disabled>
+                              + Tambah Alokasi IKSK ({availableIksksToAdd.length} sasaran)
                             </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
+                            {availableIksksToAdd.map((i) => (
+                              <option key={i.iksk_number} value={i.iksk_number}>
+                                IKSK {i.iksk_number} - {i.full_title}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#005baa]">
+                            <Icon icon="solar:add-circle-bold" width={15} />
+                          </div>
+                          <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#005baa]">
+                            <Icon icon="solar:alt-arrow-down-linear" width={13} />
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="rounded-lg bg-slate-100 border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-500">
+                          Semua IKSK sudah ditambahkan
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Progress Bar Total Alokasi */}
@@ -918,6 +935,7 @@ export default function BudgetMappingTable() {
                                     min="0"
                                     max="100"
                                     value={alloc.percent}
+                                    onWheel={(e) => (e.target as HTMLElement).blur()}
                                     onChange={(e) =>
                                       handlePercentChange(
                                         kegIndex,
@@ -925,7 +943,7 @@ export default function BudgetMappingTable() {
                                         parseFloat(e.target.value) || 0,
                                       )
                                     }
-                                    className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 py-1.5 pr-5 text-xs font-bold text-slate-800 text-right transition focus:border-[#005baa] focus:bg-white focus:outline-none"
+                                    className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 py-1.5 pr-5 text-xs font-bold text-slate-800 text-right transition focus:border-[#005baa] focus:bg-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                   />
                                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
                                     %

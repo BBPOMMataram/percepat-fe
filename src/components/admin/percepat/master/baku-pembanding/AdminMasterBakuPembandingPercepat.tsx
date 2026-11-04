@@ -122,13 +122,6 @@ export default function AdminMasterBakuPembandingPercepat() {
                             Export Excel
                         </button>
                         <button
-                            className="btn btn-outline btn-info gap-2"
-                            onClick={() => setImportModalOpen(true)}
-                        >
-                            <UploadCloud size={16} />
-                            Import Data (Excel & PDF)
-                        </button>
-                        <button
                             className="btn btn-outline btn-error gap-2"
                             onClick={() => setPemusnahanModalOpen(true)}
                             title="Pemusnahan seluruh data baku pembanding"

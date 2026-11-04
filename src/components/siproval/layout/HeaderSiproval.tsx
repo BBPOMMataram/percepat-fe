@@ -51,7 +51,20 @@ export default function HeaderSiproval({
   let computedDesc = description;
 
   if (!computedTitle) {
-    if (pathname.startsWith("/siproval/katim/rhpk")) {
+    if (
+      pathname.startsWith("/siproval/admin/entry-data-rhpk") ||
+      pathname.startsWith("/siproval/pic/entry-data-rhpk")
+    ) {
+      computedTitle = "Entry Data RHPK (PIC / Admin)";
+      computedDesc =
+        computedDesc ||
+        "Pengisian angka target dan data capaian kegiatan bulanan seluruh IKSK";
+    } else if (pathname.startsWith("/siproval/katim/entry-data-rhpk")) {
+      computedTitle = "Entry Data RHPK";
+      computedDesc =
+        computedDesc ||
+        "Pengisian angka target dan data capaian kegiatan bulanan tim";
+    } else if (pathname.startsWith("/siproval/katim/rhpk")) {
       computedTitle = "Pengisian Data RHPK";
       computedDesc = computedDesc || "Pengisian capaian realisasi, target bulanan, kendala, dan tindak lanjut RHPK";
     } else if (pathname.startsWith("/siproval/katim/arahan-pimpinan")) {

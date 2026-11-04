@@ -120,13 +120,6 @@ export default function AdminMasterReagenPercepat() {
                             Export Excel
                         </button>
                         <button
-                            className="btn btn-outline btn-info gap-2"
-                            onClick={() => setImportModalOpen(true)}
-                        >
-                            <UploadCloud size={16} />
-                            Import Data (Excel & PDF)
-                        </button>
-                        <button
                             className="btn btn-outline btn-error gap-2 text-rose-600 hover:text-white hover:bg-rose-600"
                             onClick={() => setPemusnahanModalOpen(true)}
                         >

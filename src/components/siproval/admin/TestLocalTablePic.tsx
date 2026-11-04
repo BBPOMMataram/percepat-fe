@@ -147,6 +147,54 @@ export function getMonthColor(monthName?: string | null) {
   }
 }
 
+export const getMonthNumberFromText = (text?: string | null): number | null => {
+  if (!text) return null;
+  let t = text.trim().toLowerCase();
+  // Bersihkan prefix awalan seperti "sd ", "s.d. ", "sampai dengan "
+  t = t.replace(/^(s[\.\/]?d[\.\s]+|sampai\s+dengan\s+)/i, "").trim();
+
+  const map: Record<string, number> = {
+    januari: 1, jan: 1, january: 1,
+    februari: 2, feb: 2, pebruari: 2, february: 2,
+    maret: 3, mar: 3, march: 3,
+    april: 4, apr: 4,
+    mei: 5, may: 5,
+    juni: 6, jun: 6, june: 6,
+    juli: 7, jul: 7, july: 7,
+    agustus: 8, agu: 8, ags: 8, agst: 8, august: 8,
+    september: 9, sep: 9, sept: 9,
+    oktober: 10, okt: 10, oct: 10, october: 10,
+    november: 11, nov: 11, nopember: 11,
+    desember: 12, des: 12, dec: 12, december: 12,
+  };
+
+  // 1. Exact match (e.g. "Januari", "jan", "FEBRUARI")
+  if (map[t]) return map[t];
+
+  // 2. Starts with month followed by delimiter (e.g. "JANUARI - Jumlah Permohonan", "Januari (1)", "Januari 2026")
+  for (const [key, num] of Object.entries(map)) {
+    if (
+      t.startsWith(key + " ") ||
+      t.startsWith(key + " -") ||
+      t.startsWith(key + "-") ||
+      t.startsWith(key + ":") ||
+      t.startsWith(key + "/") ||
+      t.startsWith(key + "(")
+    ) {
+      return num;
+    }
+  }
+
+  // 3. Ends with month (e.g. "Bulan Januari", "Target Januari")
+  for (const [key, num] of Object.entries(map)) {
+    if (t.endsWith(" " + key) || t.endsWith("-" + key) || t.endsWith("/" + key)) {
+      return num;
+    }
+  }
+
+  return null;
+};
+
 type ActiveTabDetail = {
   id: number;
   title: string;
@@ -183,6 +231,7 @@ export default function TestLocalTablePic() {
   const [selectedSpId, setSelectedSpId] = useState<number | null>(null);
   const [selectedTabId, setSelectedTabId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTabDetail | null>(null);
+  const [showExportDropdown, setShowExportDropdown] = useState<boolean>(false);
   const [katims, setKatims] = useState<KatimOption[]>([]);
   const [iksks, setIksks] = useState<IkskOption[]>([]);
 
@@ -228,39 +277,100 @@ export default function TestLocalTablePic() {
     return spreadsheets.find((s) => s.id === selectedSpId) || null;
   }, [spreadsheets, selectedSpId]);
 
+  const headerGroups = useMemo(() => {
+    if (!activeTab?.columns_schema) return null;
+    const hasGroups = activeTab.columns_schema.some((c) => Boolean(c.parent_header));
+    if (!hasGroups) return null;
+
+    type HeaderGroup = {
+      parent: string | null;
+      cols: ColumnSchema[];
+    };
+
+    const groups: HeaderGroup[] = [];
+    let currentGroup: HeaderGroup | null = null;
+
+    activeTab.columns_schema.forEach((col) => {
+      const parentName = col.parent_header || null;
+      if (currentGroup && currentGroup.parent === parentName) {
+        currentGroup.cols.push(col);
+      } else {
+        currentGroup = { parent: parentName, cols: [col] };
+        groups.push(currentGroup);
+      }
+    });
+
+    return groups;
+  }, [activeTab]);
+
+  const isHorizontalMonthTable = useMemo(() => {
+    const schema = activeTab?.columns_schema;
+    if (!schema || schema.length === 0) return false;
+
+    // 1. Jika tabel memiliki kolom 'Bulan', pasti tabel vertikal
+    const hasBulanCol = schema.some(
+      (c) => (c.label || "").trim().toLowerCase() === "bulan"
+    );
+    if (hasBulanCol) return false;
+
+    // 2. Jika baris data terdefinisi untuk 12 bulan (month 1..12), pasti tabel vertikal
+    const rows = activeTab?.rows_data || [];
+    if (rows.length === 12 && rows.some((r) => r.month && r.month > 0)) {
+      return false;
+    }
+
+    // 3. Periksa parent_header (misal: JANUARI, FEBRUARI)
+    const parentMonths = new Set<number>();
+    schema.forEach((col) => {
+      if (col.parent_header) {
+        const pm = getMonthNumberFromText(col.parent_header);
+        if (pm !== null) parentMonths.add(pm);
+      }
+    });
+    if (parentMonths.size >= 3) return true;
+
+    // 4. Periksa label kolom (hanya jika label kolom mandiri menunjukkan bulan)
+    const labelMonths = new Set<number>();
+    schema.forEach((col) => {
+      const lm = getMonthNumberFromText(col.label);
+      if (lm !== null) labelMonths.add(lm);
+    });
+    return labelMonths.size >= 3;
+  }, [activeTab?.columns_schema, activeTab?.rows_data]);
+
   const monthColKey = useMemo(() => {
     if (!activeTab?.columns_schema) return null;
-    const col = activeTab.columns_schema.find(
-      (c) => (c.label || "").toLowerCase().trim() === "bulan"
-    );
+    const col = activeTab.columns_schema.find((c) => {
+      const l = (c.label || "").toLowerCase().trim();
+      return l === "bulan" || l.includes("bulan") || (c.key === "col_2" && c.col_letter === "C");
+    });
     return col ? col.key : null;
   }, [activeTab?.columns_schema]);
 
-  const availableMonths = useMemo(() => {
-    if (!activeTab?.rows_data || activeTab.rows_data.length === 0) return [];
-    const monthsMap: Record<string, number> = {};
+  // Ekstrak nomor bulan (1..12) dari sebuah baris data secara akurat dan presisi
+  const getRowMonthNumber = (r: RowData): number | null => {
+    if (!r) return null;
+    if (monthColKey && r.cells?.[monthColKey] !== undefined) {
+      const n = getMonthNumberFromText(String(r.cells[monthColKey]));
+      if (n !== null) return n;
+    }
+    if (r.cells?.col_2 !== undefined) {
+      const n = getMonthNumberFromText(String(r.cells.col_2));
+      if (n !== null) return n;
+    }
+    if (r.month_name) {
+      const n = getMonthNumberFromText(r.month_name);
+      if (n !== null) return n;
+    }
+    if (typeof r.month === "number" && r.month >= 1 && r.month <= 12) {
+      return r.month;
+    }
+    return null;
+  };
 
-    activeTab.rows_data.forEach((r) => {
-      let m = "";
-      if (monthColKey && r.cells?.[monthColKey]) {
-        m = String(r.cells[monthColKey]).trim();
-      } else if (r.month_name && typeof r.month_name === "string" && r.month_name.trim()) {
-        m = r.month_name.trim();
-      } else if (r.cells?.col_2 && typeof r.cells.col_2 === "string") {
-        const val = r.cells.col_2.trim();
-        if (
-          /(januari|februari|pebruari|maret|april|mei|juni|juli|agustus|september|oktober|november|nopember|desember)/i.test(
-            val
-          )
-        ) {
-          m = val;
-        }
-      }
-      if (m) {
-        const normalized = m.charAt(0).toUpperCase() + m.slice(1);
-        monthsMap[normalized] = (monthsMap[normalized] || 0) + 1;
-      }
-    });
+  const availableMonths = useMemo(() => {
+    const rawCount = activeTab?.rows_data?.length || 0;
+    if (rawCount === 0) return [];
 
     const standardOrder = [
       "Januari",
@@ -277,73 +387,167 @@ export default function TestLocalTablePic() {
       "Desember",
     ];
 
-    const result: { name: string; count: number }[] = [];
-    standardOrder.forEach((name) => {
-      const matchKey = Object.keys(monthsMap).find(
-        (k) =>
-          k.toLowerCase() === name.toLowerCase() ||
-          (name === "Februari" && k.toLowerCase() === "pebruari") ||
-          (name === "November" && k.toLowerCase() === "nopember")
-      );
-      if (matchKey) {
-        result.push({ name: matchKey, count: monthsMap[matchKey] });
+    if (isHorizontalMonthTable && activeTab?.columns_schema) {
+      const result: { name: string; count: number }[] = [];
+      standardOrder.forEach((name) => {
+        const targetNum = getMonthNumberFromText(name);
+        const hasMonthCol = activeTab.columns_schema.some((c) => {
+          const pNum = getMonthNumberFromText(c.parent_header);
+          const lNum = getMonthNumberFromText(c.label);
+          return pNum === targetNum || lNum === targetNum;
+        });
+        if (hasMonthCol) {
+          result.push({ name, count: rawCount });
+        }
+      });
+      return result;
+    }
+
+    const monthCounts: Record<number, number> = {};
+
+    activeTab?.rows_data?.forEach((r) => {
+      let mNum: number | null = null;
+      if (monthColKey && r.cells?.[monthColKey] !== undefined && String(r.cells[monthColKey]).trim() !== "") {
+        mNum = getMonthNumberFromText(String(r.cells[monthColKey]));
+      } else if (r.cells?.col_2 !== undefined && String(r.cells.col_2).trim() !== "") {
+        mNum = getMonthNumberFromText(String(r.cells.col_2));
+      } else {
+        mNum = getRowMonthNumber(r);
+      }
+
+      if (mNum !== null) {
+        monthCounts[mNum] = (monthCounts[mNum] || 0) + 1;
       }
     });
 
-    Object.keys(monthsMap).forEach((k) => {
-      if (!result.some((item) => item.name.toLowerCase() === k.toLowerCase())) {
-        result.push({ name: k, count: monthsMap[k] });
-      }
-    });
+    const hasAnyMonthColOrData =
+      Boolean(monthColKey) ||
+      Boolean(activeTab?.columns_schema?.some((c) => (c.label || "").toLowerCase().includes("bulan"))) ||
+      Object.keys(monthCounts).length > 0;
+
+    const result: { name: string; count: number }[] = [];
+
+    if (hasAnyMonthColOrData) {
+      standardOrder.forEach((name, idx) => {
+        const mNum = idx + 1;
+        result.push({
+          name,
+          count: monthCounts[mNum] || 0,
+        });
+      });
+    } else {
+      standardOrder.forEach((name, idx) => {
+        const mNum = idx + 1;
+        if (monthCounts[mNum]) {
+          result.push({ name, count: monthCounts[mNum] });
+        }
+      });
+    }
 
     return result;
-  }, [activeTab?.rows_data, monthColKey]);
+  }, [activeTab?.rows_data, activeTab?.columns_schema, monthColKey, isHorizontalMonthTable]);
 
   const filteredRows = useMemo(() => {
     if (!activeTab?.rows_data) return [];
     let rows = activeTab.rows_data;
 
-    // Filter per Bulan
-    if (selectedMonthFilter !== "all") {
-      const filterLower = selectedMonthFilter.toLowerCase();
-      rows = rows.filter((r) => {
-        let m = "";
-        if (monthColKey && r.cells?.[monthColKey]) {
-          m = String(r.cells[monthColKey]).trim().toLowerCase();
-        } else if (r.month_name) {
-          m = String(r.month_name).trim().toLowerCase();
-        } else if (r.cells?.col_2) {
-          m = String(r.cells.col_2).trim().toLowerCase();
-        }
-        return (
-          m === filterLower ||
-          (filterLower === "februari" && m === "pebruari") ||
-          (filterLower === "november" && m === "nopember")
-        );
-      });
+    if (selectedMonthFilter !== "all" && !isHorizontalMonthTable) {
+      const targetMonthNum = getMonthNumberFromText(selectedMonthFilter);
+      if (targetMonthNum !== null) {
+        rows = rows.filter((r) => {
+          // 1. Cek kolom Bulan spesifik (col_2 / monthColKey / label 'Bulan')
+          const cellBulan = monthColKey && r.cells?.[monthColKey] !== undefined
+            ? r.cells[monthColKey]
+            : r.cells?.col_2 !== undefined
+            ? r.cells.col_2
+            : null;
+
+          if (cellBulan !== null && cellBulan !== undefined && String(cellBulan).trim() !== "") {
+            const mNum = getMonthNumberFromText(String(cellBulan));
+            if (mNum !== null) {
+              return mNum === targetMonthNum;
+            }
+          }
+
+          // 2. Cek field month_name jika ada
+          if (r.month_name && String(r.month_name).trim() !== "") {
+            const mNum = getMonthNumberFromText(r.month_name);
+            if (mNum !== null) {
+              return mNum === targetMonthNum;
+            }
+          }
+
+          // 3. Fallback: nomor bulan dari row.month jika 1..12
+          if (typeof r.month === "number" && r.month >= 1 && r.month <= 12) {
+            return r.month === targetMonthNum;
+          }
+
+          return getRowMonthNumber(r) === targetMonthNum;
+        });
+      }
     }
 
-    // Filter per Pencarian
+    // Filter per Pencarian: Mencari di SEMUA kolom, terutama kolom Topik dan Judul Topik
     if (tableSearch.trim()) {
       const q = tableSearch.toLowerCase().trim();
+      const tokens = q.split(/\s+/).filter(Boolean);
+
       rows = rows.filter((r) => {
+        const cellValues: string[] = [];
         if (r.cells) {
-          const match = Object.values(r.cells).some(
-            (val) =>
-              val !== null &&
-              val !== undefined &&
-              String(val).toLowerCase().includes(q)
-          );
-          if (match) return true;
+          Object.values(r.cells).forEach((val) => {
+            if (val !== null && val !== undefined) {
+              cellValues.push(String(val));
+            }
+          });
         }
-        if (r.row_name && r.row_name.toLowerCase().includes(q)) return true;
-        if (r.month_name && r.month_name.toLowerCase().includes(q)) return true;
-        return false;
+        if (r.row_name) cellValues.push(String(r.row_name));
+        if (r.month_name) cellValues.push(String(r.month_name));
+
+        const fullRowText = cellValues.join(" ").toLowerCase();
+        return tokens.every((token) => fullRowText.includes(token));
       });
     }
 
     return rows;
-  }, [activeTab?.rows_data, selectedMonthFilter, tableSearch, monthColKey]);
+  }, [activeTab?.rows_data, selectedMonthFilter, isHorizontalMonthTable, tableSearch, monthColKey]);
+
+  const displayedColumnsSchema = useMemo<ColumnSchema[]>(() => {
+    const schema = activeTab?.columns_schema || [];
+    if (!isHorizontalMonthTable || selectedMonthFilter === "all") {
+      return schema;
+    }
+    const targetMonthNum = getMonthNumberFromText(selectedMonthFilter);
+    if (!targetMonthNum) return schema;
+
+    return schema.filter((col) => {
+      const isFixedLeft = col.key === "col_0" || col.key === "col_1" || (!col.parent_header && getMonthNumberFromText(col.label) === null);
+      const colMonthNum = getMonthNumberFromText(col.parent_header) || getMonthNumberFromText(col.label);
+      return isFixedLeft || colMonthNum === targetMonthNum;
+    });
+  }, [activeTab?.columns_schema, isHorizontalMonthTable, selectedMonthFilter]);
+
+  const displayedHeaderGroups = useMemo(() => {
+    if (!headerGroups) return null;
+    if (!isHorizontalMonthTable || selectedMonthFilter === "all") {
+      return headerGroups;
+    }
+    const targetMonthNum = getMonthNumberFromText(selectedMonthFilter);
+    if (!targetMonthNum) return headerGroups;
+
+    return headerGroups
+      .map((grp) => {
+        if (!grp.parent) {
+          return grp;
+        }
+        const grpMonthNum = getMonthNumberFromText(grp.parent);
+        if (grpMonthNum === targetMonthNum) {
+          return grp;
+        }
+        return null;
+      })
+      .filter((grp): grp is NonNullable<typeof grp> => grp !== null);
+  }, [headerGroups, isHorizontalMonthTable, selectedMonthFilter]);
 
   const rawRowsCount = activeTab?.rows_data?.length || 0;
   const totalRows = filteredRows.length;
@@ -380,32 +584,6 @@ export default function TestLocalTablePic() {
       totals[col.key] = isNumericCol && count > 0 ? Math.round(sum * 100) / 100 : null;
     });
     return totals;
-  }, [activeTab]);
-
-  const headerGroups = useMemo(() => {
-    if (!activeTab?.columns_schema) return null;
-    const hasGroups = activeTab.columns_schema.some((c) => Boolean(c.parent_header));
-    if (!hasGroups) return null;
-
-    type HeaderGroup = {
-      parent: string | null;
-      cols: ColumnSchema[];
-    };
-
-    const groups: HeaderGroup[] = [];
-    let currentGroup: HeaderGroup | null = null;
-
-    activeTab.columns_schema.forEach((col) => {
-      const parentName = col.parent_header || null;
-      if (currentGroup && currentGroup.parent === parentName) {
-        currentGroup.cols.push(col);
-      } else {
-        currentGroup = { parent: parentName, cols: [col] };
-        groups.push(currentGroup);
-      }
-    });
-
-    return groups;
   }, [activeTab]);
 
   const hasExplicitTotalRow = useMemo(() => {
@@ -913,7 +1091,7 @@ export default function TestLocalTablePic() {
             <div className="flex items-center gap-2">
               {activeSpreadsheet && (
                 <Link
-                  href={`/siproval/katim/entry-data-rhpk?iksk_id=${activeSpreadsheet.iksk_id || ""}&spreadsheet_id=${selectedSpId}&tab_id=${selectedTabId || ""}`}
+                  href={`/siproval/admin/entry-data-rhpk?iksk_id=${activeSpreadsheet.iksk_id || ""}&spreadsheet_id=${selectedSpId}&tab_id=${selectedTabId || ""}`}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-600 bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700"
                   title="Buka form input untuk memasukkan angka target dan data capaian RHPK"
                 >
@@ -922,16 +1100,56 @@ export default function TestLocalTablePic() {
                 </Link>
               )}
               {activeSpreadsheet && (
-                <a
-                  href={`${baseUrl}/api/test-local-table/spreadsheet/${activeSpreadsheet.id}/download`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-600 bg-emerald-50 px-4 py-2 text-xs font-bold text-emerald-800 shadow-xs transition hover:bg-emerald-100"
-                  title="Unduh file Excel lengkap hasil pengisian RHPK untuk dokumen ini"
-                >
-                  <Icon icon="ri:file-excel-2-fill" width={16} className="text-emerald-700" />
-                  <span>Unduh File Excel Lengkap (.xlsx)</span>
-                </a>
+                <div className="relative inline-block text-left">
+                  <button
+                    type="button"
+                    onClick={() => setShowExportDropdown((prev) => !prev)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-600 bg-emerald-50 px-4 py-2 text-xs font-bold text-emerald-800 shadow-xs transition hover:bg-emerald-100"
+                    title="Unduh file Excel RHPK dengan Tanda Tangan Kabalai"
+                  >
+                    <Icon icon="ri:file-excel-2-fill" width={16} className="text-emerald-700" />
+                    <span>Unduh Excel (RHPK)</span>
+                    <Icon icon="solar:alt-arrow-down-linear" width={14} className="text-emerald-700" />
+                  </button>
+
+                  {showExportDropdown && (
+                    <div className="absolute right-0 z-50 mt-1.5 w-64 origin-top-right rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl ring-1 ring-black/5 animate-in fade-in zoom-in-95">
+                      <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 border-b border-slate-100">
+                        PILIH PERIODE UNDUH (RHPK)
+                      </div>
+                      <a
+                        href={`${baseUrl}/api/test-local-table/spreadsheet/${activeSpreadsheet.id}/export?mode=locked`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setShowExportDropdown(false)}
+                        className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-lg flex flex-col gap-0.5 transition block"
+                      >
+                        <div className="font-bold flex items-center gap-1.5">
+                          <Icon icon="solar:lock-keyhole-bold" width={13} className="text-amber-500" />
+                          <span>Bulan Terkunci (Final)</span>
+                        </div>
+                        <span className="text-[10px] text-slate-500">
+                          Khusus bulan final terkunci + Tanda Tangan Kabalai
+                        </span>
+                      </a>
+                      <a
+                        href={`${baseUrl}/api/test-local-table/spreadsheet/${activeSpreadsheet.id}/export?mode=all`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setShowExportDropdown(false)}
+                        className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg flex flex-col gap-0.5 transition block"
+                      >
+                        <div className="font-bold flex items-center gap-1.5">
+                          <Icon icon="solar:calendar-bold" width={13} className="text-blue-500" />
+                          <span>Semua Bulan (1 - 12)</span>
+                        </div>
+                        <span className="text-[10px] text-slate-500">
+                          Unduh seluruh 12 bulan + Tanda Tangan Kabalai
+                        </span>
+                      </a>
+                    </div>
+                  )}
+                </div>
               )}
               <button
                 type="button"
@@ -1277,10 +1495,10 @@ export default function TestLocalTablePic() {
             <table className="w-full border-collapse text-left text-xs">
               {/* Sticky Table Header */}
               <thead className="bg-slate-50 text-slate-700 border-b border-slate-200 sticky top-0 z-20">
-                {headerGroups ? (
+                {displayedHeaderGroups ? (
                   <>
                     <tr className="border-b border-slate-200">
-                      {headerGroups.map((grp, gIdx) => {
+                      {displayedHeaderGroups.map((grp, gIdx) => {
                         if (!grp.parent) {
                           const numLeftCols = grp.cols.length;
                           return grp.cols.map((col, cIdx) => {
@@ -1333,7 +1551,7 @@ export default function TestLocalTablePic() {
                       })}
                     </tr>
                     <tr className="border-b border-slate-200 bg-slate-50">
-                      {headerGroups.map((grp) => {
+                      {displayedHeaderGroups.map((grp) => {
                         if (!grp.parent) return null;
                         const mColor = getMonthColor(grp.parent);
                         return grp.cols.map((col) => {
@@ -1408,12 +1626,12 @@ export default function TestLocalTablePic() {
                         </span>
                       </div>
                       <div className="text-xs font-bold text-slate-900">
-                        {activeTab.columns_schema?.[0]?.label || "Bulan"}
+                        {displayedColumnsSchema?.[0]?.label || "Bulan"}
                       </div>
                     </th>
 
                     {/* Sisa Kolom-Kolom Tabel */}
-                    {activeTab.columns_schema?.slice(1).map((col) => {
+                    {displayedColumnsSchema?.slice(1).map((col) => {
                       const katimNames = katims
                         .filter((k) => col.allowed_katim_ids?.includes(k.user_id))
                         .map((k) => k.name);
@@ -1484,7 +1702,7 @@ export default function TestLocalTablePic() {
                 {paginatedRows.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={activeTab.columns_schema?.length || 1}
+                      colSpan={displayedColumnsSchema?.length || 1}
                       className="py-12 text-center text-xs text-slate-400"
                     >
                       Tidak ada data yang cocok dengan pencarian &quot;{tableSearch}&quot;.
@@ -1516,16 +1734,18 @@ export default function TestLocalTablePic() {
                     );
 
                     const numLeftCols =
-                      headerGroups && !headerGroups[0]?.parent
-                        ? headerGroups[0].cols.length
+                      displayedHeaderGroups && !displayedHeaderGroups[0]?.parent
+                        ? displayedHeaderGroups[0].cols.length
                         : 1;
                     const hasMultiLeftCols = Boolean(
-                      headerGroups && !headerGroups[0]?.parent && numLeftCols > 1
+                      displayedHeaderGroups && !displayedHeaderGroups[0]?.parent && numLeftCols > 1
                     );
+
+                    const isRowFilled = Boolean(row.is_updated);
 
                     return (
                       <tr
-                        key={row.row_index ?? rIdx}
+                        key={`pic_row_${row.row_index ?? rIdx}_${row.cells?.[monthColKey || 'col_2'] ?? ''}_${row.cells?.col_0 ?? ''}_${rIdx}`}
                         className={`transition group ${
                           isSectionRow
                             ? "bg-slate-100 font-bold border-y border-slate-300 text-slate-900"
@@ -1533,10 +1753,12 @@ export default function TestLocalTablePic() {
                             ? "bg-emerald-50/70 border-y border-emerald-300 font-bold"
                             : isTotalRow
                             ? "bg-emerald-50/70 border-t-2 border-emerald-300 font-bold"
-                            : "hover:bg-blue-50/30"
+                            : isRowFilled
+                            ? "bg-emerald-500/[0.08] hover:bg-emerald-500/[0.14] border-l-4 border-l-emerald-500"
+                            : "bg-rose-500/[0.07] hover:bg-rose-500/[0.13] border-l-4 border-l-rose-400"
                         }`}
                       >
-                        {activeTab.columns_schema?.map((col, cIdx) => {
+                        {displayedColumnsSchema?.map((col, cIdx) => {
                           const val = row.cells?.[col.key] ?? "";
                           const isNum = typeof val === "number";
 
@@ -1546,7 +1768,7 @@ export default function TestLocalTablePic() {
                               stickyTdClass = `sticky left-0 z-10 w-[55px] min-w-[55px] max-w-[55px] text-center border-r border-slate-200 ${
                                 isSectionRow
                                   ? "bg-slate-200 font-black text-slate-900"
-                                  : isFormulaRow
+                                  : (isFormulaRow || isTotalRow)
                                   ? "bg-emerald-100 text-emerald-950 font-bold"
                                   : isQuestionRow
                                   ? "bg-blue-50/80 font-bold text-blue-900"
@@ -1556,14 +1778,14 @@ export default function TestLocalTablePic() {
                               stickyTdClass = `sticky left-[55px] z-10 min-w-[240px] max-w-[280px] shadow-r border-r border-slate-200 ${
                                 isSectionRow
                                   ? "bg-slate-100 font-black text-slate-900"
-                                  : isFormulaRow
-                                  ? "bg-emerald-50 text-emerald-950 font-bold"
+                                  : (isFormulaRow || isTotalRow)
+                                  ? "bg-emerald-100 text-emerald-950 font-bold"
                                   : isQuestionRow
                                   ? "bg-blue-50/40 font-semibold text-blue-950"
                                   : "bg-white font-semibold text-slate-900"
                               }`;
                             }
-                          } else if (cIdx === 0 && Boolean(headerGroups)) {
+                          } else if (cIdx === 0 && Boolean(displayedHeaderGroups)) {
                             stickyTdClass = `sticky left-0 z-10 min-w-[130px] shadow-r border-r border-slate-200 ${
                               isTotalRow
                                 ? "bg-emerald-100 text-emerald-950 font-bold"
@@ -1622,7 +1844,7 @@ export default function TestLocalTablePic() {
                       <span className="font-bold uppercase tracking-wider text-[11px] text-slate-700">Total Rekap</span>
                     </td>
 
-                    {activeTab.columns_schema?.slice(1).map((col) => {
+                    {displayedColumnsSchema?.slice(1).map((col) => {
                       const totalVal = columnTotals[col.key];
 
                       return (
@@ -2170,9 +2392,10 @@ export default function TestLocalTablePic() {
                   max={2099}
                   required
                   value={newYearNumber}
+                  onWheel={(e) => (e.target as HTMLElement).blur()}
                   onChange={(e) => setNewYearNumber(e.target.value === "" ? "" : Number(e.target.value))}
                   placeholder="Contoh: 2027"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-900 focus:border-[#005baa] focus:bg-white focus:outline-none"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-900 focus:border-[#005baa] focus:bg-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
 

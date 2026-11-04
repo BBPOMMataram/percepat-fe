@@ -11,6 +11,17 @@ import api from "@/utils/api";
 const baseUrl =
   process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000";
 
+function formatRp(val: string | number | undefined | null): string {
+  if (val === undefined || val === null || val === "" || val === "-") return "-";
+  const num = typeof val === "number" ? val : parseFloat(String(val).replace(/[^0-9.-]+/g, ""));
+  if (isNaN(num)) return String(val);
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(num);
+}
+
 const MONTHS = [
   "JANUARI",
   "FEBRUARI",
@@ -25,6 +36,8 @@ const MONTHS = [
   "NOVEMBER",
   "DESEMBER",
 ];
+
+const MONTH_NAMES = MONTHS;
 
 type MonthColumnHeader = {
   col_index: number;
@@ -56,11 +69,15 @@ type RowItem = {
   kode_ro: string;
   nama_ro: string;
   kode_ppk?: string;
-  pagu?: string;
+  pagu?: string | number;
+  target_awal?: string | number;
+  target_revisi?: string | number;
+  target_efisiensi?: string | number;
   status: "tercapai" | "belum";
   capaian_val: number | null;
   target_tahunan: TargetTahunanData;
   month_columns: Record<string, CellData>;
+  month_data?: Record<string, CellData>;
 };
 
 type RoYearItem = {
@@ -72,6 +89,77 @@ type RoYearItem = {
   uploaded_at_formatted?: string;
   is_locked?: boolean;
 };
+
+type SummaryMonthData = {
+  target: number;
+  realisasi: number;
+  rata_rata_capaian: number;
+  capaian_kumulatif: number;
+  status: "tercapai" | "belum";
+};
+
+type SummaryRowData = {
+  pagu: number;
+  target_awal: number;
+  target_revisi: number;
+  target_efisiensi: number;
+  selected_month: SummaryMonthData;
+  all_months: Record<string, SummaryMonthData>;
+};
+
+// Helper untuk mengevaluasi rumus Excel aritmetika kustom seperti =7/12*100 atau =2/6*100
+function evaluateFormulaClient(
+  formula: string,
+  realisasi?: number,
+  target?: number
+): { val: number | null; display: string } {
+  if (!formula || !formula.trim()) return { val: null, display: "" };
+  const trimmed = formula.trim();
+
+  // Angka murni biasa
+  const cleanNum = trimmed.replace("%", "").replace(",", ".");
+  if (!trimmed.startsWith("=") && !isNaN(Number(cleanNum)) && cleanNum !== "") {
+    const n = parseFloat(cleanNum);
+    return { val: n, display: n.toFixed(2) };
+  }
+
+  if (!trimmed.startsWith("=")) {
+    return { val: null, display: trimmed };
+  }
+
+  let expr = trimmed.substring(1).trim();
+
+  // IFERROR(expr, fallback)
+  const iferrorMatch = expr.match(/^IFERROR\s*\(\s*(.+?)\s*,\s*([\d.-]+)\s*\)$/i);
+  if (iferrorMatch) {
+    expr = iferrorMatch[1];
+  }
+
+  // Jika mengandung referensi sel Excel seperti J27/F27*100
+  if (/[A-Za-z]+[0-9]+/.test(expr)) {
+    if (target && target > 0 && realisasi !== undefined) {
+      const pct = (realisasi / target) * 100;
+      return { val: pct, display: pct.toFixed(2) };
+    }
+    return { val: 0, display: "0.00" };
+  }
+
+  // Aritmetika murni yang aman (hanya angka, +, -, *, /, (, ), spasi, .)
+  const safeExpr = expr.replace(/,/g, ".");
+  if (/^[\d.+\-*/()\s]+$/.test(safeExpr)) {
+    try {
+      // eslint-disable-next-line no-new-func
+      const res = Function(`"use strict"; return (${safeExpr})`)();
+      if (typeof res === "number" && !isNaN(res) && isFinite(res)) {
+        return { val: res, display: res.toFixed(2) };
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  return { val: null, display: trimmed };
+}
 
 type FileInfo = {
   is_locked: boolean;
@@ -112,6 +200,29 @@ export default function RealisasiRoTable() {
   const [newYearName, setNewYearName] = useState("");
   const [creatingYear, setCreatingYear] = useState(false);
 
+  // Modal Hapus Tahun
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [yearToDelete, setYearToDelete] = useState<number | null>(null);
+  const [deletingYear, setDeletingYear] = useState<number | null>(null);
+
+  const handleDeleteYear = async (yr: number) => {
+    setDeletingYear(yr);
+    setErrorMsg("");
+    setSuccessMsg("");
+    try {
+      const query = user?.id ? `?user_id=${user.id}` : "";
+      const res = await api.delete(`${baseUrl}/api/tu/realisasi-ro-years/${yr}${query}`);
+      setSuccessMsg(res.data?.message || `Tahun anggaran Realisasi RO ${yr} berhasil dihapus.`);
+      setShowDeleteModal(false);
+      setYearToDelete(null);
+      await fetchRoYears();
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || `Gagal menghapus tahun anggaran ${yr}.`);
+    } finally {
+      setDeletingYear(null);
+    }
+  };
+
   // Modal Upload File Excel
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -122,6 +233,17 @@ export default function RealisasiRoTable() {
   const [selectedMonth, setSelectedMonth] = useState("JANUARI");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [viewMode, setViewMode] = useState<"month" | "all">("month");
+  const [allMonthsData, setAllMonthsData] = useState<
+    Record<
+      string,
+      {
+        month: string;
+        headers: MonthColumnHeader[];
+        rows: RowItem[];
+      }
+    >
+  >({});
   const [monthHeaders, setMonthHeaders] = useState<MonthColumnHeader[]>([]);
   const [rows, setRows] = useState<RowItem[]>([]);
   const [editedCells, setEditedCells] = useState<Record<string, string>>({});
@@ -132,6 +254,7 @@ export default function RealisasiRoTable() {
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [apiNotice, setApiNotice] = useState("");
+  const [summaryRow, setSummaryRow] = useState<SummaryRowData | null>(null);
 
   const fetchRoYears = async () => {
     try {
@@ -226,6 +349,12 @@ export default function RealisasiRoTable() {
         const d = res.data.data;
         setMonthHeaders(d.month_columns_header || d.columns || []);
         setRows(d.rows || []);
+        if (d.all_months_data) {
+          setAllMonthsData(d.all_months_data);
+        }
+        if (d.summary_row) {
+          setSummaryRow(d.summary_row);
+        }
         if (d.file_info) {
           setFileInfo(d.file_info);
         }
@@ -388,6 +517,268 @@ export default function RealisasiRoTable() {
   const belumTercapaiCount = totalRO - tercapaiCount;
   const pendingCount = Object.keys(editedCells).length;
 
+  const allMonthsRowMap = useMemo(() => {
+    const map: Record<string, Record<number, RowItem>> = {};
+    for (const [mName, mData] of Object.entries(allMonthsData)) {
+      map[mName] = {};
+      for (const r of mData.rows || []) {
+        map[mName][r.row_number] = r;
+      }
+    }
+    return map;
+  }, [allMonthsData]);
+
+  // Ringkasan Total & Rata-rata Capaian (Live recalculation)
+  const computedSummary = useMemo(() => {
+    let pagu = 0;
+    let targetAwal = 0;
+    let targetRevisi = 0;
+    let targetEfisiensi = 0;
+    let monthTarget = 0;
+    let monthRealisasi = 0;
+    let capaianSum = 0;
+    let capaianCount = 0;
+
+    filteredRows.forEach((r) => {
+      // Pagu
+      const rawPagu = String(r.pagu ?? "").replace(/[^0-9.-]+/g, "");
+      const pNum = parseFloat(rawPagu);
+      if (!isNaN(pNum)) pagu += pNum;
+
+      // Target Tahunan (bisa diedit)
+      const tAwalVal = parseFloat(String(getCellValue(r.target_tahunan)).replace(",", ".")) || 0;
+      targetAwal += tAwalVal;
+
+      const tRevVal = parseFloat(String(r.target_revisi ?? "").replace(",", ".")) || 0;
+      targetRevisi += tRevVal;
+
+      const tEfiVal = parseFloat(String(r.target_efisiensi ?? "").replace(",", ".")) || 0;
+      targetEfisiensi += tEfiVal;
+
+      // Month cols
+      const mCols = r.month_columns || (r as any).month_data || {};
+      const mTgt = parseFloat(String(getCellValue(mCols.target)).replace(",", ".")) || 0;
+      const mReal = parseFloat(String(getCellValue(mCols.realisasi)).replace(",", ".")) || 0;
+      monthTarget += mTgt;
+      monthRealisasi += mReal;
+
+      // Capaian
+      const cVal = getCellValue(mCols.capaian);
+      const evalRes = evaluateFormulaClient(cVal, mReal, tAwalVal);
+      if (evalRes.val !== null) {
+        capaianSum += evalRes.val;
+        capaianCount++;
+      } else if (tAwalVal > 0) {
+        capaianSum += (mReal / tAwalVal) * 100;
+        capaianCount++;
+      }
+    });
+
+    const avgCapaian = capaianCount > 0 ? capaianSum / capaianCount : 0;
+    const kumCapaian = monthTarget > 0 ? (monthRealisasi / monthTarget) * 100 : avgCapaian;
+
+    return {
+      pagu,
+      targetAwal,
+      targetRevisi,
+      targetEfisiensi,
+      monthTarget,
+      monthRealisasi,
+      avgCapaian: avgCapaian.toFixed(2),
+      kumCapaian: kumCapaian.toFixed(2),
+    };
+  }, [filteredRows, editedCells]);
+
+  const renderSubheaderTh = (
+    col: MonthColumnHeader,
+    monthIndex: number = 0,
+    isLastInMonth: boolean = false
+  ) => {
+    const isCap = col.key === "capaian";
+    const isReal = col.key === "realisasi";
+    const isTgt = col.key === "target";
+
+    return (
+      <th
+        key={`${monthIndex}_${col.col_index}_${col.key}`}
+        className={`sticky top-[37px] z-30 px-2.5 py-2 border-r ${
+          isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+        } font-semibold text-[10px] ${
+          isCap
+            ? "bg-emerald-50 text-emerald-800 text-center"
+            : isReal
+              ? "bg-blue-50 text-blue-800 text-center"
+              : isTgt
+                ? "bg-slate-50 text-slate-700 text-center"
+                : "bg-[#f8fafc] text-slate-700"
+        }`}
+      >
+        <div
+          className={`flex items-center ${
+            isCap || isReal || isTgt ? "justify-center" : "justify-between"
+          }`}
+        >
+          <span>{col.label}</span>
+          {isCap && (
+            <span className="ml-1 text-[9px] lowercase font-normal text-emerald-600 bg-white px-1 rounded border border-emerald-200">
+              rumus
+            </span>
+          )}
+        </div>
+      </th>
+    );
+  };
+
+  const renderMonthCell = (
+    r: RowItem,
+    col: MonthColumnHeader,
+    mName: string,
+    isLastInMonth: boolean = false
+  ) => {
+    const monthCols = r.month_columns || (r as any).month_data || {};
+    const cellData = monthCols[col.key];
+    const cellCoord = cellData?.cell || `${col.col_letter}${r.row_number}`;
+    const cellVal = getCellValue(cellData);
+    const isEdited = isCellEdited(cellCoord);
+    const isFormula = cellData?.is_formula || col.key === "capaian";
+    const isNumericCol =
+      col.key === "target" ||
+      col.key === "realisasi" ||
+      col.key === "capaian";
+    const isLongText =
+      col.key === "kendala" ||
+      col.key === "rtl" ||
+      col.key === "rekomendasi" ||
+      col.key === "upaya" ||
+      col.key === "arahan_pimpinan";
+
+    if (col.key === "capaian") {
+      const tgtTahunanVal = getCellValue(r.target_tahunan);
+      const tgtNum = parseFloat(String(tgtTahunanVal).replace(",", ".")) || 0;
+      const realNum =
+        parseFloat(String(getCellValue(monthCols["realisasi"])).replace(",", ".")) || 0;
+
+      const evalRes = evaluateFormulaClient(cellVal, realNum, tgtNum);
+      let displayCap = evalRes.display;
+      let dynTercapai = false;
+
+      if (evalRes.val !== null) {
+        displayCap = evalRes.val.toFixed(2);
+        dynTercapai = evalRes.val >= 100;
+      } else if (tgtNum > 0) {
+        const pct = (realNum / tgtNum) * 100;
+        displayCap = pct.toFixed(2);
+        dynTercapai = pct >= 100;
+      }
+
+      return (
+        <td
+          key={`${mName}_${col.col_index}_${col.key}`}
+          className={`p-1.5 border-r ${
+            isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+          } align-middle text-center bg-white group-hover:bg-[#f8fafc]`}
+        >
+          <div className="flex flex-col items-center gap-1">
+            <input
+              type="text"
+              value={cellVal}
+              onChange={(e) => handleCellChange(cellCoord, e.target.value)}
+              placeholder={displayCap ? `${displayCap}%` : "0%"}
+              className={`w-full rounded-md border text-center font-mono text-[11px] font-bold px-1 py-1 transition focus:outline-none focus:ring-2 focus:ring-[#005baa] ${
+                isEdited
+                  ? "bg-amber-50 border-amber-400 text-amber-900 ring-1 ring-amber-400"
+                  : cellVal && cellVal.startsWith("=")
+                    ? "bg-blue-50/70 border-blue-200 text-blue-900 font-bold"
+                    : "bg-emerald-50/40 border-emerald-200 text-emerald-950 hover:bg-white hover:border-emerald-300"
+              }`}
+              title={`Capaian (${cellCoord}): Masukkan angka atau rumus misal =7/12*100 atau =2/6*100`}
+            />
+            <span
+              className={`inline-flex items-center justify-center rounded-md px-1.5 py-0.5 text-[10px] font-extrabold whitespace-nowrap ${
+                dynTercapai
+                  ? "bg-emerald-100 text-[#00a651]"
+                  : "bg-amber-100 text-amber-700"
+              }`}
+              title={`Hasil Capaian: ${displayCap ? `${displayCap}%` : "0%"} (${
+                dynTercapai ? "Tercapai" : "Belum Tercapai"
+              })`}
+            >
+              {displayCap ? `${displayCap}%` : "0%"}
+            </span>
+          </div>
+        </td>
+      );
+    }
+
+    if (isNumericCol) {
+      return (
+        <td
+          key={`${mName}_${col.col_index}_${col.key}`}
+          className={`p-1.5 border-r ${
+            isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+          } align-middle text-center bg-white group-hover:bg-[#f8fafc]`}
+        >
+          <input
+            type="text"
+            value={cellVal}
+            onChange={(e) => handleCellChange(cellCoord, e.target.value)}
+            className={`w-full rounded-lg border text-center font-mono text-xs font-bold px-2 py-1 transition focus:outline-none focus:ring-2 focus:ring-[#005baa] ${
+              isEdited
+                ? "bg-amber-50 border-amber-400 text-amber-900 ring-1 ring-amber-400"
+                : "bg-slate-50/60 border-slate-200 text-slate-800 hover:bg-white hover:border-slate-300"
+            }`}
+            title={`Edit ${col.label} (${cellCoord})`}
+          />
+        </td>
+      );
+    }
+
+    if (isLongText) {
+      return (
+        <td
+          key={`${mName}_${col.col_index}_${col.key}`}
+          className={`p-1.5 border-r ${
+            isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+          } align-top bg-white group-hover:bg-[#f8fafc]`}
+        >
+          <textarea
+            rows={2}
+            value={cellVal === "-" ? "" : cellVal}
+            onChange={(e) => handleCellChange(cellCoord, e.target.value)}
+            placeholder="Isi catatan..."
+            className={`w-full rounded-lg border text-xs px-2 py-1 leading-relaxed transition resize-y focus:outline-none focus:ring-2 focus:ring-[#005baa] ${
+              isEdited
+                ? "bg-amber-50 border-amber-400 text-amber-900 ring-1 ring-amber-400"
+                : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+            }`}
+            title={`Edit ${col.label} (${cellCoord})`}
+          />
+        </td>
+      );
+    }
+
+    return (
+      <td
+        key={`${mName}_${col.col_index}_${col.key}`}
+        className={`p-1.5 border-r ${
+          isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+        } align-middle bg-white group-hover:bg-[#f8fafc]`}
+      >
+        <input
+          type="text"
+          value={cellVal === "-" ? "" : cellVal}
+          onChange={(e) => handleCellChange(cellCoord, e.target.value)}
+          className={`w-full rounded-lg border text-xs px-2 py-1 transition focus:outline-none focus:ring-2 focus:ring-[#005baa] ${
+            isEdited
+              ? "bg-amber-50 border-amber-400 text-amber-900 ring-1 ring-amber-400"
+              : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+          }`}
+          title={`Edit ${col.label} (${cellCoord})`}
+        />
+      </td>
+    );
+  };
+
   const renderUploadModal = () => {
     if (!showUploadModal) return null;
     return (
@@ -417,9 +808,10 @@ export default function RealisasiRoTable() {
                   min={2020}
                   max={2099}
                   value={uploadYear}
+                  onWheel={(e) => (e.target as HTMLElement).blur()}
                   onChange={(e) => setUploadYear(Number(e.target.value))}
                   required
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-800 focus:border-[#005baa] focus:outline-none"
+                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-800 focus:border-[#005baa] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
 
@@ -666,9 +1058,28 @@ export default function RealisasiRoTable() {
                 <span className="rounded-xl bg-blue-50 px-3 py-1 text-sm font-bold text-[#005baa]">
                   {item.year}
                 </span>
-                <span className="text-xs font-semibold uppercase text-slate-400">
-                  Tahun Anggaran
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold uppercase text-slate-400">
+                    Tahun Anggaran
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setYearToDelete(item.year);
+                      setShowDeleteModal(true);
+                    }}
+                    disabled={deletingYear === item.year}
+                    title={`Hapus Tahun Anggaran ${item.year}`}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-slate-400 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 transition disabled:opacity-50"
+                  >
+                    <Icon
+                      icon={deletingYear === item.year ? "solar:refresh-circle-linear" : "solar:trash-bin-trash-bold"}
+                      width={15}
+                      className={deletingYear === item.year ? "animate-spin text-rose-600" : ""}
+                    />
+                  </button>
+                </div>
               </div>
 
               <div className="mt-4">
@@ -692,7 +1103,21 @@ export default function RealisasiRoTable() {
 
               <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-xs font-semibold text-[#005baa]">
                 <span>Buka Rincian RO &rarr;</span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setYearToDelete(item.year);
+                      setShowDeleteModal(true);
+                    }}
+                    disabled={deletingYear === item.year}
+                    title={`Hapus Tahun Anggaran ${item.year}`}
+                    className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50/70 px-2.5 py-1 text-[11px] font-bold text-rose-600 hover:bg-rose-100 transition shadow-2xs disabled:opacity-50"
+                  >
+                    <Icon icon="solar:trash-bin-trash-bold" width={13} />
+                    <span>Hapus</span>
+                  </button>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -742,9 +1167,10 @@ export default function RealisasiRoTable() {
                     min={2020}
                     max={2099}
                     value={newYearInput}
+                    onWheel={(e) => (e.target as HTMLElement).blur()}
                     onChange={(e) => setNewYearInput(Number(e.target.value))}
                     required
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-800 focus:border-[#005baa] focus:outline-none"
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-800 focus:border-[#005baa] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
 
@@ -784,6 +1210,68 @@ export default function RealisasiRoTable() {
 
         {/* Modal 2: Upload File Excel RO */}
         {renderUploadModal()}
+
+        {/* Modal 3: Konfirmasi Hapus Tahun */}
+        {showDeleteModal && yearToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
+              <div className="flex items-center gap-3 text-rose-600 mb-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100 text-rose-600 shrink-0">
+                  <Icon icon="solar:trash-bin-trash-bold" width={22} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Hapus Tahun Realisasi RO
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Konfirmasi penghapusan data tahun anggaran
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-rose-50 border border-rose-200 p-3.5 mb-5 text-xs text-rose-800 leading-relaxed">
+                <p className="font-semibold mb-1">
+                  Peringatan: Tindakan ini tidak dapat dibatalkan!
+                </p>
+                <p>
+                  Apakah Anda yakin ingin menghapus Tahun Anggaran <strong>{yearToDelete}</strong>? Seluruh data rincian output, target bulanan (12 bulan), dan file Excel terkait akan dihapus permanen dari sistem.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  disabled={deletingYear !== null}
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setYearToDelete(null);
+                  }}
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  disabled={deletingYear !== null}
+                  onClick={() => handleDeleteYear(yearToDelete)}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-700 transition disabled:opacity-50 shadow-md shadow-rose-200"
+                >
+                  {deletingYear === yearToDelete ? (
+                    <>
+                      <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent" />
+                      <span>Menghapus...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Icon icon="solar:trash-bin-trash-bold" width={15} />
+                      <span>Ya, Hapus Tahun {yearToDelete}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1130,7 +1618,38 @@ export default function RealisasiRoTable() {
             )}
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* View Mode Toggle: Per Bulan vs Format Lengkap Excel */}
+            <div className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-0.5 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setViewMode("month")}
+                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold transition ${
+                  viewMode === "month"
+                    ? "bg-white text-[#005baa] shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <Icon icon="solar:calendar-bold" width={13} />
+                <span>Bulan: {selectedMonth}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("all")}
+                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold transition ${
+                  viewMode === "all"
+                    ? "bg-white text-[#005baa] shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <Icon icon="solar:layers-bold" width={13} />
+                <span>Format Asli Excel (12 Bulan)</span>
+              </button>
+            </div>
+
+            <div className="h-4 w-px bg-slate-200 hidden sm:block" />
+
+            {/* Filter Status buttons */}
             <button
               type="button"
               onClick={() => setFilterStatus("all")}
@@ -1210,110 +1729,181 @@ export default function RealisasiRoTable() {
           </div>
         ) : (
           <div className="overflow-x-auto max-h-[720px] relative scrollbar-thin scrollbar-thumb-slate-200">
-            <table className="border-collapse text-left text-xs table-fixed min-w-[1700px] w-full">
+            <table
+              className={`border-collapse text-left text-xs table-fixed w-full ${
+                viewMode === "all" ? "min-w-[9500px]" : "min-w-[2200px]"
+              }`}
+            >
               {/* Kolom Width Rigid Enforced */}
               <colgroup>
-                <col style={{ width: "90px" }} />
+                {/* 1. No. */}
+                <col style={{ width: "48px" }} />
+                {/* 2. Kode RO */}
+                <col style={{ width: "96px" }} />
+                {/* 3. Program / Kegiatan / Output RO */}
                 <col style={{ width: "320px" }} />
-                <col style={{ width: "140px" }} />
-                {monthHeaders.map((col) => {
-                  const isCap = col.key === "capaian";
-                  const isReal = col.key === "realisasi";
-                  const isTgt = col.key === "target";
-                  const isTimeline = col.key === "timeline";
-                  const isLongText =
-                    col.key === "kendala" ||
-                    col.key === "rtl" ||
-                    col.key === "rekomendasi" ||
-                    col.key === "upaya" ||
-                    col.key === "arahan_pimpinan";
+                {/* 4. Target 2026 */}
+                <col style={{ width: "110px" }} />
+                {/* 5. Target Revisi */}
+                <col style={{ width: "120px" }} />
 
-                  let w = "160px";
-                  if (isTgt || isReal || isCap) w = "105px";
-                  if (isTimeline) w = "120px";
-                  if (isLongText) w = "260px";
+                {/* Kolom-kolom Bulan */}
+                {viewMode === "month"
+                  ? monthHeaders.map((col) => {
+                      const isCap = col.key === "capaian";
+                      const isReal = col.key === "realisasi";
+                      const isTgt = col.key === "target";
+                      const isTimeline = col.key === "timeline";
+                      const isLongText =
+                        col.key === "kendala" ||
+                        col.key === "rtl" ||
+                        col.key === "rekomendasi" ||
+                        col.key === "upaya" ||
+                        col.key === "arahan_pimpinan";
 
-                  return <col key={col.col_index} style={{ width: w }} />;
-                })}
+                      let w = "140px";
+                      if (isTgt || isReal || isCap) w = "100px";
+                      if (isTimeline) w = "120px";
+                      if (isLongText) w = "250px";
+
+                      return (
+                        <col
+                          key={`${col.col_index}_${col.key}`}
+                          style={{ width: w }}
+                        />
+                      );
+                    })
+                  : MONTH_NAMES.flatMap((mName) => {
+                      const mData = allMonthsData[mName];
+                      if (!mData?.headers?.length) return [];
+                      return mData.headers.map((col) => {
+                        const isCap = col.key === "capaian";
+                        const isReal = col.key === "realisasi";
+                        const isTgt = col.key === "target";
+                        const isTimeline = col.key === "timeline";
+                        const isLongText =
+                          col.key === "kendala" ||
+                          col.key === "rtl" ||
+                          col.key === "rekomendasi" ||
+                          col.key === "upaya" ||
+                          col.key === "arahan_pimpinan";
+
+                        let w = "140px";
+                        if (isTgt || isReal || isCap) w = "95px";
+                        if (isTimeline) w = "110px";
+                        if (isLongText) w = "220px";
+
+                        return (
+                          <col
+                            key={`${mName}_${col.col_index}_${col.key}`}
+                            style={{ width: w }}
+                          />
+                        );
+                      });
+                    })}
               </colgroup>
 
               {/* Header Tabel */}
               <thead className="sticky top-0 z-40 bg-[#f1f5f9] text-slate-700 uppercase tracking-wider text-[11px] font-bold border-b border-slate-300">
                 <tr>
-                  {/* 1. KODE RO (Sticky Left: 0px, w: 90px) - Solid Opaque Background */}
+                  {/* 1. NO (Sticky Left: 0px, w: 48px) */}
                   <th
                     rowSpan={2}
-                    className="sticky left-0 top-0 z-50 bg-[#e2e8f0] px-3 py-3 border-r border-slate-300 w-[90px] min-w-[90px] max-w-[90px] align-middle font-extrabold text-slate-800"
+                    className="sticky left-0 top-0 z-50 bg-[#e2e8f0] px-2 py-3 text-center border-r border-slate-300 w-[48px] min-w-[48px] max-w-[48px] align-middle font-extrabold text-slate-800"
+                  >
+                    No.
+                  </th>
+
+                  {/* 2. KODE RO (Sticky Left: 48px, w: 96px) */}
+                  <th
+                    rowSpan={2}
+                    className="sticky left-[48px] top-0 z-50 bg-[#e2e8f0] px-3 py-3 text-center border-r border-slate-300 w-[96px] min-w-[96px] max-w-[96px] align-middle font-extrabold text-slate-800"
                   >
                     Kode RO
                   </th>
 
-                  {/* 2. PROGRAM / KEGIATAN / OUTPUT RO (Sticky Left: 90px, w: 320px) - Solid Opaque Background */}
+                  {/* 3. PROGRAM / KEGIATAN / OUTPUT RO (Sticky Left: 144px, w: 320px) */}
                   <th
                     rowSpan={2}
-                    className="sticky left-[90px] top-0 z-50 bg-[#e2e8f0] px-4 py-3 border-r border-slate-300 w-[320px] min-w-[320px] max-w-[320px] align-middle font-extrabold text-slate-800"
+                    className="sticky left-[144px] top-0 z-50 bg-[#e2e8f0] px-4 py-3 border-r-2 border-slate-300 shadow-[4px_0_12px_rgba(0,0,0,0.12)] w-[320px] min-w-[320px] max-w-[320px] align-middle font-extrabold text-slate-800"
                   >
                     Program / Kegiatan / Output RO
                   </th>
 
-                  {/* 3. TARGET TAHUNAN (Sticky Left: 410px, w: 140px) - Solid Opaque Background + Divider Shadow */}
+                  {/* 4. TARGET 2026 */}
                   <th
                     rowSpan={2}
-                    className="sticky left-[410px] top-0 z-50 bg-[#e2e8f0] px-3 py-3 text-center border-r-2 border-slate-300 shadow-[4px_0_12px_rgba(0,0,0,0.12)] w-[140px] min-w-[140px] max-w-[140px] align-middle font-extrabold text-slate-800"
+                    className="sticky top-0 z-30 bg-[#f1f5f9] px-2 py-3 text-center border-r border-slate-300 w-[110px] min-w-[110px] align-middle font-extrabold text-slate-800"
                   >
-                    Target Tahunan
+                    Target 2026
                   </th>
 
-                  {/* Group header bulan terpilih (Scrollable Horizontal) */}
+                  {/* 5. TARGET 2026 REVISI */}
                   <th
-                    colSpan={monthHeaders.length}
-                    className="sticky top-0 z-30 px-4 py-2 text-center bg-[#f0f9ff] text-[#005baa] border-b border-blue-200 font-extrabold"
+                    rowSpan={2}
+                    className="sticky top-0 z-30 bg-[#f1f5f9] px-2 py-3 text-center border-r-2 border-slate-300 w-[120px] min-w-[120px] align-middle font-extrabold text-slate-800"
                   >
-                    Periode: {selectedMonth}
+                    Target Revisi
                   </th>
+
+                  {/* Bulan Group Header */}
+                  {viewMode === "month" ? (
+                    <th
+                      colSpan={monthHeaders.length}
+                      className="sticky top-0 z-30 px-4 py-2 text-center bg-[#f0f9ff] text-[#005baa] border-b border-blue-200 font-extrabold"
+                    >
+                      Periode: {selectedMonth}
+                    </th>
+                  ) : (
+                    MONTH_NAMES.map((mName, idx) => {
+                      const mData = allMonthsData[mName];
+                      const colLen = mData?.headers?.length || 0;
+                      if (colLen === 0) return null;
+                      const isEven = idx % 2 === 0;
+                      return (
+                        <th
+                          key={mName}
+                          colSpan={colLen}
+                          className={`sticky top-0 z-30 px-3 py-2 text-center border-b border-r-2 border-slate-300 font-extrabold ${
+                            isEven
+                              ? "bg-[#e0f2fe] text-[#005baa]"
+                              : "bg-[#f0fdf4] text-[#15803d]"
+                          }`}
+                        >
+                          {mName}
+                        </th>
+                      );
+                    })
+                  )}
                 </tr>
 
                 {/* Sub-Header Kolom Bulan */}
                 <tr className="bg-[#f8fafc] border-b border-slate-200">
-                  {monthHeaders.map((col) => {
-                    const isCap = col.key === "capaian";
-                    const isReal = col.key === "realisasi";
-                    const isTgt = col.key === "target";
-
-                    return (
-                      <th
-                        key={col.col_index}
-                        className={`sticky top-[37px] z-30 px-3 py-2 border-r border-slate-200 font-semibold ${
-                          isCap
-                            ? "bg-emerald-50 text-emerald-800 text-center"
-                            : isReal
-                              ? "bg-blue-50 text-blue-800 text-center"
-                              : isTgt
-                                ? "bg-slate-50 text-slate-700 text-center"
-                                : "bg-[#f8fafc] text-slate-700"
-                        }`}
-                      >
-                        <div
-                          className={`flex items-center ${isCap || isReal || isTgt ? "justify-center" : "justify-between"}`}
-                        >
-                          <span>{col.label}</span>
-                          {isCap && (
-                            <span className="ml-1 text-[10px] lowercase font-normal text-emerald-600 bg-white px-1 rounded border border-emerald-200">
-                              rumus
-                            </span>
-                          )}
-                        </div>
-                      </th>
-                    );
-                  })}
+                  {viewMode === "month"
+                    ? monthHeaders.map((col, idx) =>
+                        renderSubheaderTh(
+                          col,
+                          0,
+                          idx === monthHeaders.length - 1
+                        )
+                      )
+                    : MONTH_NAMES.flatMap((mName, idx) => {
+                        const mData = allMonthsData[mName];
+                        if (!mData?.headers?.length) return [];
+                        return mData.headers.map((col, cIdx) =>
+                          renderSubheaderTh(
+                            col,
+                            idx,
+                            cIdx === mData.headers.length - 1
+                          )
+                        );
+                      })}
                 </tr>
               </thead>
 
               {/* Body Tabel */}
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {filteredRows.map((row) => {
-                  const isTercapai = row.status === "tercapai";
-
                   // Target Tahunan (Col F)
                   const tgtTahunanCellCoord = row.target_tahunan.cell;
                   const tgtTahunanVal = getCellValue(row.target_tahunan);
@@ -1325,26 +1915,27 @@ export default function RealisasiRoTable() {
                       key={row.row_number}
                       className="hover:bg-slate-50/70 transition group"
                     >
-                      {/* 1. KODE RO (Sticky Left: 0px, w: 90px) - Solid Opaque Background */}
-                      <td className="sticky left-0 z-20 bg-white group-hover:bg-[#f8fafc] px-3 py-3 font-mono font-bold text-blue-700 border-r border-slate-200 align-top w-[90px] min-w-[90px] max-w-[90px] whitespace-nowrap">
+                      {/* 1. NO (Sticky 0px) */}
+                      <td className="sticky left-0 z-20 bg-white group-hover:bg-[#f8fafc] px-2 py-3 text-center font-mono font-bold text-slate-500 border-r border-slate-200 align-top w-[48px] min-w-[48px] max-w-[48px]">
+                        {row.no || row.row_number - 4}
+                      </td>
+
+                      {/* 2. KODE RO (Sticky 48px) */}
+                      <td className="sticky left-[48px] z-20 bg-white group-hover:bg-[#f8fafc] px-2 py-3 text-center font-mono font-bold border-r border-slate-200 align-top w-[96px] min-w-[96px] max-w-[96px] whitespace-nowrap">
                         <span className="inline-block rounded-md bg-blue-50 px-2 py-0.5 text-xs text-[#005baa]">
                           {row.kode_ro || "-"}
                         </span>
                       </td>
 
-                      {/* 2. PROGRAM / KEGIATAN / OUTPUT RO (Sticky Left: 90px, w: 320px) - Solid Opaque Background */}
-                      <td className="sticky left-[90px] z-20 bg-white group-hover:bg-[#f8fafc] px-4 py-3 border-r border-slate-200 align-top w-[320px] min-w-[320px] max-w-[320px]">
+                      {/* 3. PROGRAM / KEGIATAN / OUTPUT RO (Sticky 144px) */}
+                      <td className="sticky left-[144px] z-20 bg-white group-hover:bg-[#f8fafc] px-4 py-3 border-r-2 border-slate-300 shadow-[4px_0_12px_rgba(0,0,0,0.12)] align-top w-[320px] min-w-[320px] max-w-[320px]">
                         <p className="font-semibold text-slate-900 leading-snug break-words">
                           {row.nama_ro}
                         </p>
-                        <div className="mt-1 flex items-center gap-2 text-[10px] text-slate-400">
-                          {row.kode_ppk && <span>PPK: {row.kode_ppk}</span>}
-                          {row.pagu && <span>| Pagu: {row.pagu}</span>}
-                        </div>
                       </td>
 
-                      {/* 3. TARGET TAHUNAN (Sticky Left: 410px, w: 140px) - Solid Opaque Background + Divider Shadow */}
-                      <td className="sticky left-[410px] z-20 bg-white group-hover:bg-[#f8fafc] p-2 border-r-2 border-slate-300 shadow-[4px_0_12px_rgba(0,0,0,0.12)] align-middle text-center w-[140px] min-w-[140px] max-w-[140px]">
+                      {/* 4. TARGET 2026 (Editable Target Tahunan) */}
+                      <td className="p-2 border-r border-slate-200 align-top text-center w-[110px]">
                         <input
                           type="text"
                           value={tgtTahunanVal}
@@ -1362,135 +1953,211 @@ export default function RealisasiRoTable() {
                         />
                       </td>
 
-                      {/* 4. Kolom-kolom Dinamis Bulan (Scrollable - Mode Edit Aktif) */}
-                      {monthHeaders.map((col) => {
-                        const monthCols = row.month_columns || (row as any).month_data || {};
-                        const cellData = monthCols[col.key];
-                        const cellCoord = cellData?.cell || `${col.col_letter}${row.row_number}`;
-                        const cellVal = getCellValue(cellData);
-                        const isEdited = isCellEdited(cellCoord);
-                        const isFormula =
-                          cellData?.is_formula || col.key === "capaian";
+                      {/* 5. TARGET REVISI */}
+                      <td className="px-2 py-3 text-center font-mono text-xs text-slate-700 border-r-2 border-slate-300 align-top w-[120px]">
+                        {row.target_revisi !== undefined &&
+                        row.target_revisi !== null &&
+                        row.target_revisi !== ""
+                          ? String(row.target_revisi)
+                          : "-"}
+                      </td>
 
-                        const isNumericCol =
-                          col.key === "target" ||
-                          col.key === "realisasi" ||
-                          col.key === "capaian";
-                        const isLongText =
-                          col.key === "kendala" ||
-                          col.key === "rtl" ||
-                          col.key === "rekomendasi" ||
-                          col.key === "upaya" ||
-                          col.key === "arahan_pimpinan";
+                      {/* MONTH CELLS */}
+                      {viewMode === "month"
+                        ? monthHeaders.map((col, idx) =>
+                            renderMonthCell(
+                              row,
+                              col,
+                              selectedMonth,
+                              idx === monthHeaders.length - 1
+                            )
+                          )
+                        : MONTH_NAMES.flatMap((mName) => {
+                            const mData = allMonthsData[mName];
+                            if (!mData?.headers?.length) return [];
+                            const monthRow =
+                              allMonthsRowMap[mName]?.[row.row_number] || row;
+                            return mData.headers.map((col, cIdx) =>
+                              renderMonthCell(
+                                monthRow,
+                                col,
+                                mName,
+                                cIdx === mData.headers.length - 1
+                              )
+                            );
+                          })}
+                    </tr>
+                  );
+                })}
+              </tbody>
 
-                        // JIKA KOLOM RUMUS (CAPAIAN %) -> BADGE (Hitung Real-Time jika ada edit)
-                        if (isFormula) {
-                          const tgtNum = parseFloat(tgtTahunanVal) || 0;
-                          const realNum = parseFloat(getCellValue(monthCols["realisasi"])) || 0;
-                          let displayCap = cellVal;
-                          let dynTercapai = isTercapai;
-                          if (tgtNum > 0) {
-                            const pct = ((realNum / tgtNum) * 100).toFixed(2);
-                            displayCap = pct;
-                            dynTercapai = parseFloat(pct) >= 100;
-                          }
+              {/* Sticky Footer Ringkasan Total & Rata-rata */}
+              <tfoot className="sticky bottom-0 z-30 font-bold bg-slate-100/95 backdrop-blur border-t-2 border-slate-400 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
+                <tr>
+                  {/* 1. NO */}
+                  <td className="sticky left-0 z-30 bg-slate-200/95 px-2 py-2.5 text-center font-mono font-black text-slate-700 border-r border-slate-300 w-[48px] min-w-[48px] max-w-[48px]">
+                    &Sigma;
+                  </td>
 
+                  {/* 2. KODE RO */}
+                  <td className="sticky left-[48px] z-30 bg-slate-200/95 px-2 py-2.5 text-center font-mono text-xs text-slate-500 border-r border-slate-300 w-[96px] min-w-[96px] max-w-[96px]">
+                    -
+                  </td>
+
+                  {/* 3. PROGRAM / KEGIATAN / OUTPUT RO */}
+                  <td className="sticky left-[144px] z-30 bg-slate-200/95 px-4 py-2.5 border-r-2 border-slate-300 shadow-[4px_0_12px_rgba(0,0,0,0.12)] text-slate-900 w-[320px] min-w-[320px] max-w-[320px]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs uppercase tracking-wider font-extrabold text-slate-900">
+                        TOTAL & RATA-RATA CAPAIAN
+                      </span>
+                      <span className="text-[10px] bg-slate-300/80 text-slate-700 px-1.5 py-0.5 rounded">
+                        {filteredRows.length} RO
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* 4. TARGET 2026 */}
+                  <td className="px-2 py-2.5 text-center font-mono text-xs text-slate-900 border-r border-slate-200 w-[110px]">
+                    {computedSummary.targetAwal}
+                  </td>
+
+                  {/* 5. TARGET REVISI */}
+                  <td className="px-2 py-2.5 text-center font-mono text-xs text-slate-900 border-r-2 border-slate-300 w-[120px]">
+                    {computedSummary.targetRevisi || "-"}
+                  </td>
+
+                  {/* MONTH FOOTER CELLS */}
+                  {viewMode === "month"
+                    ? monthHeaders.map((col, idx) => {
+                        const isLastInMonth = idx === monthHeaders.length - 1;
+                        if (col.key === "target") {
                           return (
                             <td
-                              key={col.col_index}
-                              className="px-3 py-2 border-r border-slate-200 align-middle text-center bg-white group-hover:bg-[#f8fafc]"
+                              key={`foot_${col.key}`}
+                              className={`px-2 py-2.5 text-center font-mono text-xs text-slate-900 border-r ${
+                                isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+                              }`}
                             >
-                              <div className="flex items-center justify-center py-1">
+                              {computedSummary.monthTarget}
+                            </td>
+                          );
+                        }
+                        if (col.key === "realisasi") {
+                          return (
+                            <td
+                              key={`foot_${col.key}`}
+                              className={`px-2 py-2.5 text-center font-mono text-xs text-blue-900 font-extrabold border-r ${
+                                isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+                              }`}
+                            >
+                              {computedSummary.monthRealisasi}
+                            </td>
+                          );
+                        }
+                        if (col.key === "capaian") {
+                          const avgNum = parseFloat(computedSummary.avgCapaian) || 0;
+                          const isTercapai = avgNum >= 100;
+                          return (
+                            <td
+                              key={`foot_${col.key}`}
+                              className={`px-2 py-2.5 text-center border-r ${
+                                isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+                              }`}
+                            >
+                              <div className="flex flex-col items-center">
                                 <span
-                                  className={`inline-flex items-center justify-center rounded-lg px-2.5 py-1 text-xs font-extrabold ${
-                                    dynTercapai
-                                      ? "bg-emerald-100 text-[#00a651]"
-                                      : "bg-amber-100 text-amber-700"
+                                  className={`inline-flex items-center justify-center rounded-lg px-2 py-1 text-xs font-black shadow-sm ${
+                                    isTercapai
+                                      ? "bg-emerald-600 text-white"
+                                      : "bg-amber-500 text-white"
                                   }`}
-                                  title={`Formula Capaian (${cellCoord}) = (Realisasi / Target Tahunan) * 100%`}
+                                  title={`Rata-rata Capaian ${selectedMonth}: ${computedSummary.avgCapaian}%`}
                                 >
-                                  {displayCap ? `${displayCap}%` : "0%"}
+                                  {computedSummary.avgCapaian}%
                                 </span>
                               </div>
                             </td>
                           );
                         }
-
-                        // JIKA KOLOM NUMERIK (TARGET / REALISASI) -> INPUT EDITABLE
-                        if (isNumericCol) {
-                          return (
-                            <td
-                              key={col.col_index}
-                              className="p-2 border-r border-slate-200 align-middle text-center bg-white group-hover:bg-[#f8fafc]"
-                            >
-                              <input
-                                type="text"
-                                value={cellVal}
-                                onChange={(e) =>
-                                  handleCellChange(cellCoord, e.target.value)
-                                }
-                                className={`w-full rounded-lg border text-center font-mono text-xs font-bold px-2 py-1.5 transition focus:outline-none focus:ring-2 focus:ring-[#005baa] ${
-                                  isEdited
-                                    ? "bg-amber-50 border-amber-400 text-amber-900 ring-1 ring-amber-400"
-                                    : "bg-slate-50/60 border-slate-200 text-slate-800 hover:bg-white hover:border-slate-300"
-                                }`}
-                                title={`Edit ${col.label} (${cellCoord})`}
-                              />
-                            </td>
-                          );
-                        }
-
-                        // JIKA KOLOM TEKS PANJANG (KENDALA, REKOMENDASI, RTL, UPAYA, ARAHAN) -> TEXTAREA EDITABLE
-                        if (isLongText) {
-                          return (
-                            <td
-                              key={col.col_index}
-                              className="p-2 border-r border-slate-200 align-top bg-white group-hover:bg-[#f8fafc]"
-                            >
-                              <textarea
-                                rows={2}
-                                value={cellVal === "-" ? "" : cellVal}
-                                onChange={(e) =>
-                                  handleCellChange(cellCoord, e.target.value)
-                                }
-                                placeholder="Isi catatan..."
-                                className={`w-full rounded-lg border text-xs px-2.5 py-1.5 leading-relaxed transition resize-y focus:outline-none focus:ring-2 focus:ring-[#005baa] ${
-                                  isEdited
-                                    ? "bg-amber-50 border-amber-400 text-amber-900 ring-1 ring-amber-400"
-                                    : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
-                                }`}
-                                title={`Edit ${col.label} (${cellCoord})`}
-                              />
-                            </td>
-                          );
-                        }
-
-                        // KOLOM UMUM -> INPUT EDITABLE
                         return (
                           <td
-                            key={col.col_index}
-                            className="p-2 border-r border-slate-200 align-middle bg-white group-hover:bg-[#f8fafc]"
+                            key={`foot_${col.key}`}
+                            className={`px-2 py-2.5 text-center text-xs text-slate-400 border-r ${
+                              isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+                            }`}
                           >
-                            <input
-                              type="text"
-                              value={cellVal === "-" ? "" : cellVal}
-                              onChange={(e) =>
-                                handleCellChange(cellCoord, e.target.value)
-                              }
-                              className={`w-full rounded-lg border text-xs px-2 py-1.5 transition focus:outline-none focus:ring-2 focus:ring-[#005baa] ${
-                                isEdited
-                                  ? "bg-amber-50 border-amber-400 text-amber-900 ring-1 ring-amber-400"
-                                  : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
-                              }`}
-                              title={`Edit ${col.label} (${cellCoord})`}
-                            />
+                            -
                           </td>
                         );
+                      })
+                    : MONTH_NAMES.flatMap((mName) => {
+                        const mData = allMonthsData[mName];
+                        if (!mData?.headers?.length) return [];
+                        const mSum = summaryRow?.all_months?.[mName];
+
+                        return mData.headers.map((col, cIdx) => {
+                          const isLastInMonth = cIdx === mData.headers.length - 1;
+                          if (col.key === "target") {
+                            return (
+                              <td
+                                key={`foot_${mName}_${col.key}`}
+                                className={`px-2 py-2.5 text-center font-mono text-xs text-slate-900 border-r ${
+                                  isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+                                }`}
+                              >
+                                {mSum?.target ?? "-"}
+                              </td>
+                            );
+                          }
+                          if (col.key === "realisasi") {
+                            return (
+                              <td
+                                key={`foot_${mName}_${col.key}`}
+                                className={`px-2 py-2.5 text-center font-mono text-xs text-blue-900 font-extrabold border-r ${
+                                  isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+                                }`}
+                              >
+                                {mSum?.realisasi ?? "-"}
+                              </td>
+                            );
+                          }
+                          if (col.key === "capaian") {
+                            const avgVal = mSum?.rata_rata_capaian ?? 0;
+                            const isTercapai = avgVal >= 100;
+                            return (
+                              <td
+                                key={`foot_${mName}_${col.key}`}
+                                className={`px-2 py-2.5 text-center border-r ${
+                                  isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+                                }`}
+                              >
+                                <span
+                                  className={`inline-flex items-center justify-center rounded-lg px-2 py-0.5 text-xs font-black shadow-sm ${
+                                    isTercapai
+                                      ? "bg-emerald-600 text-white"
+                                      : "bg-amber-500 text-white"
+                                  }`}
+                                  title={`Rata-rata Capaian ${mName}: ${avgVal}%`}
+                                >
+                                  {avgVal}%
+                                </span>
+                              </td>
+                            );
+                          }
+                          return (
+                            <td
+                              key={`foot_${mName}_${col.key}`}
+                              className={`px-2 py-2.5 text-center text-xs text-slate-400 border-r ${
+                                isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+                              }`}
+                            >
+                              -
+                            </td>
+                          );
+                        });
                       })}
-                    </tr>
-                  );
-                })}
-              </tbody>
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}

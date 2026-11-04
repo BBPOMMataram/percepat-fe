@@ -100,8 +100,8 @@ const menus = {
     {
       name: "Entry Data RHPK",
       icon: "solar:pen-new-square-bold",
-      url: "/siproval/katim/entry-data-rhpk",
-      active: "/siproval/katim/entry-data-rhpk",
+      url: "/siproval/admin/entry-data-rhpk",
+      active: "/siproval/admin/entry-data-rhpk",
     },
     {
       name: "Kelola Akses RHPK",
@@ -164,6 +164,23 @@ export default function SidebarSiproval({ actor }: Props) {
     "019ab8b3-493b-71d8-abd5-01c8ebcaf50e", // Fatimah T. Wulandari
     "019ab8b3-2fca-71ee-ba81-e33f70548c10", // Hilmi Khairan
     "019ab8b3-1fb0-73ef-af89-ad09ef30f76f", // Nanang Setyadi Santoso
+    "019ab8b3-3a1c-73e0-ad51-4e07c7a343cc", // Syamsul Hady
+  ];
+  const allowedTuEmails = [
+    "hilmi.khairan@pom.go.id",
+    "nanang.setyadi@pom.go.id",
+    "fatimah.wulandari@pom.go.id",
+    "fatimah.wulandari03@gmail.com",
+    "syamsul.hady@pom.go.id",
+    "syamsul.hadi@pom.go.id",
+  ];
+  const allowedTuNames = [
+    "hilmi khairan",
+    "nanang setyadi santoso",
+    "fatimah tri wulandari",
+    "fatimah t. wulandari",
+    "syamsul hady",
+    "syamsul hadi",
   ];
 
   const userIdLower = String(user?.id || "")
@@ -172,15 +189,29 @@ export default function SidebarSiproval({ actor }: Props) {
   const userNameLower = (user?.name || "").toLowerCase().trim();
   const userEmailLower = (user?.email || "").toLowerCase().trim();
 
-  const hasFungsiTu =
-    Number(user?.employee?.fungsi_id) === 1 ||
-    (user?.employee?.fungsi?.name || "").toLowerCase().trim() === "tata usaha";
+  const isExplicitTuUser =
+    allowedTuIds.includes(userIdLower) ||
+    allowedTuEmails.includes(userEmailLower) ||
+    allowedTuNames.includes(userNameLower) ||
+    userNameLower.includes("syamsul hady") ||
+    userNameLower.includes("syamsul hadi") ||
+    userEmailLower.includes("syamsul.hady") ||
+    userEmailLower.includes("syamsul.hadi");
 
-  const hasTuAccess =
-    hasFungsiTu &&
-    (allowedTuIds.includes(userIdLower) ||
-      picEmails.includes(userEmailLower) ||
-      picNames.includes(userNameLower));
+  const groupJabatanId = user?.employee?.group_jabatan_id;
+  const isKabalai = groupJabatanId === 1;
+  const isKatimFromTable =
+    Array.isArray(user?.katims) && user.katims.length > 0;
+  const isKatim = groupJabatanId === 3 || isKatimFromTable;
+
+  const hasFungsiTu =
+    !isKatim &&
+    !isKabalai &&
+    (Number(user?.employee?.fungsi_id) === 1 ||
+      (user?.employee?.fungsi?.name || "").toLowerCase().trim() ===
+        "tata usaha");
+
+  const hasTuAccess = !isKabalai && (isExplicitTuUser || hasFungsiTu);
 
   let resolvedActor: Actor = actor || "katim";
   if (!actor) {
@@ -194,10 +225,6 @@ export default function SidebarSiproval({ actor }: Props) {
           (s: { id?: number; name?: string }) =>
             Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval"),
         ));
-    const groupJabatanId = user?.employee?.group_jabatan_id;
-    const isKatimFromTable =
-      Array.isArray(user?.katims) && user.katims.length > 0;
-    const isKatim = groupJabatanId === 3 || isKatimFromTable;
 
     if (
       hasTuAccess &&
@@ -215,8 +242,9 @@ export default function SidebarSiproval({ actor }: Props) {
       ) {
         resolvedActor = "kabalai";
       } else if (
-        pathname.startsWith("/siproval/katim") ||
-        pathname.startsWith("/siproval/google-sheets")
+        pathname === "/siproval/katim" ||
+        pathname.startsWith("/siproval/katim/anggota") ||
+        pathname.startsWith("/siproval/katim/arahan-pimpinan")
       ) {
         resolvedActor = "katim";
       } else {

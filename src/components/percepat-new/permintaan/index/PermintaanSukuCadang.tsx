@@ -203,7 +203,7 @@ export default function PermintaanSukuCadangPercepat() {
                                             </span>
                                         </span>
 
-                                        {(item.status?.id === 1 && item.peminta?.external_user_id === user?.id) && (
+                                        {Boolean(!item.peminta || item.peminta?.external_user_id == user?.id || item.peminta?.id == user?.id || item.peminta?.email === user?.email || user?.is_admin || user?.role?.level === 'admin' || user?.role?.level === 'superadmin' || user?.role?.name?.toLowerCase().includes('admin')) && (
                                             <span
                                                 className="btn btn-xs btn-ghost text-error tooltip tooltip-error tooltip-left"
                                                 data-tip="Hapus"
@@ -311,7 +311,7 @@ export default function PermintaanSukuCadangPercepat() {
                         <h3 className="text-lg font-semibold mb-2">Konfirmasi Hapus</h3>
                         <p className="text-gray-500 mb-6">
                             Apakah Anda yakin ingin menghapus data permintaan ini? <br />
-                            <span className="text-error font-medium">Tindakan ini tidak dapat dibatalkan.</span>
+                            <span className="text-error font-medium">Jika barang sudah diserahkan, stok barang akan otomatis dikembalikan (rollback). Tindakan ini tidak dapat dibatalkan.</span>
                         </p>
                         <div className="flex justify-center gap-3">
                             <button

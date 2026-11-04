@@ -201,9 +201,7 @@ export default function AdminStokOpnamePercepat() {
             formData.append("judul", file.name.replace(/\.pdf$/i, ""));
             formData.append("tanggal_ba", dayjs().format("YYYY-MM-DD"));
 
-            const res = await api.post(`/api/v1/stok-opname/berita-acara`, formData, {
-                headers: { "Content-Type": "multipart/form-data" },
-            });
+            const res = await api.post(`/api/v1/stok-opname/berita-acara`, formData);
 
             const savedDoc: BeritaAcaraDoc = res.data?.data;
             dispatch(showAlert({
@@ -221,10 +219,11 @@ export default function AdminStokOpnamePercepat() {
             }
         } catch (err: any) {
             console.error("Failed to upload Berita Acara PDF:", err);
+            const errDetail = err.response?.data?.errors?.file?.[0] || err.response?.data?.message || err.message || "Terjadi kesalahan saat menyimpan file PDF Berita Acara.";
             dispatch(showAlert({
                 type: "error",
                 message: "Gagal Upload PDF",
-                description: err.response?.data?.message || "Terjadi kesalahan saat menyimpan file PDF Berita Acara.",
+                description: errDetail,
             }));
         } finally {
             setIsUploadingBa(false);
@@ -589,14 +588,6 @@ export default function AdminStokOpnamePercepat() {
                 </div>
 
                 <div className="w-full sm:w-auto flex flex-wrap items-center justify-end gap-2 shrink-0">
-                    <button
-                        type="button"
-                        onClick={() => setImportPdfOpen(true)}
-                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-colors"
-                    >
-                        <FileText size={15} />
-                        Import Berita Acara (PDF)
-                    </button>
 
                     <button
                         type="button"

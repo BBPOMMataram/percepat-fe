@@ -2,18 +2,15 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { Plus_Jakarta_Sans } from "next/font/google";
 import { useSelector } from "react-redux";
 import { Icon } from "@iconify/react";
 import dayjs from "@/utils/dayjs";
 import api from "@/utils/axios";
 import { RootState } from "@/redux/store";
 
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  display: "swap",
-});
+const plusJakartaSans = {
+  className: "font-['Plus_Jakarta_Sans',sans-serif]",
+};
 
 export default function DashboardESapa() {
   const { user } = useSelector((state: RootState) => state.auth);

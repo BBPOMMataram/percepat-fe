@@ -831,9 +831,10 @@ export default function MatriksRekomendasiTu() {
                     min="2020"
                     max="2050"
                     value={newYearNumber}
+                    onWheel={(e) => (e.target as HTMLElement).blur()}
                     onChange={(e) => setNewYearNumber(parseInt(e.target.value) || 2026)}
                     required
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-800 focus:border-[#005baa] focus:outline-none"
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-800 focus:border-[#005baa] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
 
@@ -1458,10 +1459,11 @@ export default function MatriksRekomendasiTu() {
                       type="number"
                       required
                       value={formData.no}
+                      onWheel={(e) => (e.target as HTMLElement).blur()}
                       onChange={(e) =>
                         setFormData({ ...formData, no: parseInt(e.target.value) || 1 })
                       }
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-800 focus:border-[#005baa] focus:outline-none"
+                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-800 focus:border-[#005baa] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
                   <div className="sm:col-span-10">

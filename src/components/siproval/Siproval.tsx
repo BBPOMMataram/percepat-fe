@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Plus_Jakarta_Sans } from "next/font/google";
 import {
   motion,
   useScroll,
@@ -12,7 +11,8 @@ import {
 } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch } from "@/redux/store";
-import { getUser } from "@/features/authSlice";
+import { getUser, logout } from "@/features/authSlice";
+import { showAlert } from "@/features/alertSlice";
 import { Icon } from "@iconify/react";
 import { RootState } from "@/redux/store";
 import SiprovalDocumentHub from "./SiprovalDocumentHub";
@@ -25,11 +25,9 @@ import {
   SiprovalWordScrub,
 } from "./SiprovalMotion";
 
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  display: "swap",
-});
+const plusJakartaSans = {
+  className: "font-['Plus_Jakarta_Sans',sans-serif]",
+};
 
 interface AvailableRole {
   id: string;
@@ -48,6 +46,25 @@ export default function Siproval() {
     dispatch(getUser());
   }, [dispatch]);
   const [scrolled, setScrolled] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await dispatch(logout()).unwrap();
+      dispatch(
+        showAlert({
+          type: "success",
+          message: "Anda telah berhasil keluar dari akun SIPROVAL.",
+          description: "Sesi telah diakhiri. Silakan login kembali jika diperlukan.",
+        })
+      );
+    } catch {
+      // jika ada error, tetap redirect ke login
+    } finally {
+      window.location.href = "/login?redirectUrl=/siproval";
+    }
+  };
 
   // Dropdown states for multi-role users
   const [headerDropdownOpen, setHeaderDropdownOpen] = useState(false);
@@ -113,6 +130,23 @@ export default function Siproval() {
     "019ab8b3-493b-71d8-abd5-01c8ebcaf50e", // Fatimah T. Wulandari
     "019ab8b3-2fca-71ee-ba81-e33f70548c10", // Hilmi Khairan
     "019ab8b3-1fb0-73ef-af89-ad09ef30f76f", // Nanang Setyadi Santoso
+    "019ab8b3-3a1c-73e0-ad51-4e07c7a343cc", // Syamsul Hady
+  ];
+  const allowedTuEmails = [
+    "hilmi.khairan@pom.go.id",
+    "nanang.setyadi@pom.go.id",
+    "fatimah.wulandari@pom.go.id",
+    "fatimah.wulandari03@gmail.com",
+    "syamsul.hady@pom.go.id",
+    "syamsul.hadi@pom.go.id",
+  ];
+  const allowedTuNames = [
+    "hilmi khairan",
+    "nanang setyadi santoso",
+    "fatimah tri wulandari",
+    "fatimah t. wulandari",
+    "syamsul hady",
+    "syamsul hadi",
   ];
 
   const userId = String(user?.id || "")
@@ -121,15 +155,29 @@ export default function Siproval() {
   const userEmail = (user?.email || "").toLowerCase().trim();
   const userNameClean = (user?.name || "").toLowerCase().trim();
 
-  const hasFungsiTu =
-    Number(user?.employee?.fungsi_id) === 1 ||
-    (user?.employee?.fungsi?.name || "").toLowerCase().trim() === "tata usaha";
+  const isExplicitTuUser =
+    allowedTuIds.includes(userId) ||
+    allowedTuEmails.includes(userEmail) ||
+    allowedTuNames.includes(userNameClean) ||
+    userNameClean.includes("syamsul hady") ||
+    userNameClean.includes("syamsul hadi") ||
+    userEmail.includes("syamsul.hady") ||
+    userEmail.includes("syamsul.hadi");
 
-  const hasTuAccess =
-    hasFungsiTu &&
-    (allowedTuIds.includes(userId) ||
-      picEmails.includes(userEmail) ||
-      picNames.includes(userNameClean));
+  const groupJabatanId = user?.employee?.group_jabatan_id;
+  const isKabalai = groupJabatanId === 1;
+  const isKatimFromTable =
+    Array.isArray(user?.katims) && user.katims.length > 0;
+  const isKatim = groupJabatanId === 3 || isKatimFromTable;
+
+  const hasFungsiTu =
+    !isKatim &&
+    !isKabalai &&
+    (Number(user?.employee?.fungsi_id) === 1 ||
+      (user?.employee?.fungsi?.name || "").toLowerCase().trim() ===
+        "tata usaha");
+
+  const hasTuAccess = !isKabalai && (isExplicitTuUser || hasFungsiTu);
 
   const isPicAdmin =
     user?.role?.level === "superadmin" ||
@@ -140,11 +188,6 @@ export default function Siproval() {
           Number(s?.id) === 3 || s?.name?.toLowerCase().includes("siproval"),
       )) ||
     userEmail === "hilmi.khairan@pom.go.id";
-
-  const groupJabatanId = user?.employee?.group_jabatan_id;
-  const isKatimFromTable =
-    Array.isArray(user?.katims) && user.katims.length > 0;
-  const isKatim = groupJabatanId === 3 || isKatimFromTable;
 
   // Nama sapaan singkat dan peran aktif
   const firstName = user?.name ? user.name.trim().split(/\s+/)[0] : "";
@@ -399,6 +442,22 @@ export default function Siproval() {
                             </Link>
                           ))}
                         </div>
+                        <div className="pt-1 mt-1 border-t border-slate-100">
+                          <button
+                            type="button"
+                            onClick={handleLogout}
+                            disabled={isLoggingOut}
+                            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 transition-colors"
+                          >
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-600">
+                              <Icon icon="solar:logout-2-bold" width={16} />
+                            </div>
+                            <div className="text-left">
+                              <p className="text-xs font-bold">Keluar Akun</p>
+                              <p className="text-[11px] text-slate-400">Akhiri sesi login SIPROVAL</p>
+                            </div>
+                          </button>
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -415,6 +474,22 @@ export default function Siproval() {
                   }`}
                 />
               )}
+
+              {/* Tombol Logout Header */}
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                title="Keluar dari akun SIPROVAL"
+                className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-full border transition-all duration-200 ${
+                  scrolled
+                    ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300"
+                    : "border-white/30 bg-white/10 text-white hover:bg-red-600 hover:border-red-600 hover:text-white backdrop-blur-xs"
+                }`}
+              >
+                <Icon icon="solar:logout-2-bold" width={15} />
+                <span className="hidden sm:inline">Keluar</span>
+              </button>
             </div>
           ) : (
             <SiprovalPillButton
@@ -599,6 +674,22 @@ export default function Siproval() {
                             </Link>
                           ))}
                         </div>
+                        <div className="pt-1.5 mt-1 border-t border-slate-100">
+                          <button
+                            type="button"
+                            onClick={handleLogout}
+                            disabled={isLoggingOut}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-600 hover:bg-red-50 transition-colors"
+                          >
+                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-100 text-red-600 shrink-0">
+                              <Icon icon="solar:logout-2-bold" width={18} />
+                            </div>
+                            <div className="text-left">
+                              <p className="text-xs font-bold">Keluar Akun</p>
+                              <p className="text-[11px] text-slate-400">Akhiri sesi login SIPROVAL</p>
+                            </div>
+                          </button>
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -620,6 +711,18 @@ export default function Siproval() {
                 arrowDirection="download"
                 className="px-7 py-3.5 bg-white hover:bg-slate-50 text-[#001d3d] text-sm font-semibold shadow-lg shadow-[#001d3d]/15"
               />
+
+              {user && (
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  className="inline-flex items-center gap-2 px-6 py-3.5 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-semibold rounded-full border border-red-200 shadow-lg shadow-red-500/10 transition-all duration-200 active:scale-[0.98]"
+                >
+                  <Icon icon="solar:logout-2-bold" width={17} />
+                  <span>Keluar</span>
+                </button>
+              )}
             </motion.div>
           </motion.div>
         </div>
