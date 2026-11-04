@@ -45,6 +45,7 @@ type RowData = {
   row_name?: string;
   is_month_row?: boolean;
   is_total?: boolean;
+  is_updated?: boolean;
 };
 
 export function getPageNumbers(current: number, total: number): (number | string)[] {
@@ -277,9 +278,27 @@ export default function TestLocalTablePic() {
     return spreadsheets.find((s) => s.id === selectedSpId) || null;
   }, [spreadsheets, selectedSpId]);
 
+  // Pastikan kolom bertingkat dan sub-label tetap terdeteksi dengan baik
+  const effectiveColumnsSchema = useMemo<ColumnSchema[]>(() => {
+    if (!activeTab?.columns_schema || activeTab.columns_schema.length === 0) return [];
+    return activeTab.columns_schema.map((c) => ({
+      ...c,
+      parent_header:
+        c.parent_header ||
+        (c.label && c.label.includes(" - ")
+          ? c.label.split(" - ")[0].trim()
+          : null),
+      sub_label:
+        c.sub_label ||
+        (c.label && c.label.includes(" - ")
+          ? c.label.split(" - ").slice(1).join(" - ").trim()
+          : c.label),
+    }));
+  }, [activeTab?.columns_schema]);
+
   const headerGroups = useMemo(() => {
-    if (!activeTab?.columns_schema) return null;
-    const hasGroups = activeTab.columns_schema.some((c) => Boolean(c.parent_header));
+    if (!effectiveColumnsSchema.length) return null;
+    const hasGroups = effectiveColumnsSchema.some((c) => Boolean(c.parent_header));
     if (!hasGroups) return null;
 
     type HeaderGroup = {
@@ -290,7 +309,7 @@ export default function TestLocalTablePic() {
     const groups: HeaderGroup[] = [];
     let currentGroup: HeaderGroup | null = null;
 
-    activeTab.columns_schema.forEach((col) => {
+    effectiveColumnsSchema.forEach((col) => {
       const parentName = col.parent_header || null;
       if (currentGroup && currentGroup.parent === parentName) {
         currentGroup.cols.push(col);
@@ -301,10 +320,10 @@ export default function TestLocalTablePic() {
     });
 
     return groups;
-  }, [activeTab]);
+  }, [effectiveColumnsSchema]);
 
   const isHorizontalMonthTable = useMemo(() => {
-    const schema = activeTab?.columns_schema;
+    const schema = effectiveColumnsSchema;
     if (!schema || schema.length === 0) return false;
 
     // 1. Jika tabel memiliki kolom 'Bulan', pasti tabel vertikal
@@ -513,7 +532,7 @@ export default function TestLocalTablePic() {
   }, [activeTab?.rows_data, selectedMonthFilter, isHorizontalMonthTable, tableSearch, monthColKey]);
 
   const displayedColumnsSchema = useMemo<ColumnSchema[]>(() => {
-    const schema = activeTab?.columns_schema || [];
+    const schema = effectiveColumnsSchema;
     if (!isHorizontalMonthTable || selectedMonthFilter === "all") {
       return schema;
     }

@@ -34,6 +34,7 @@ type ColumnSchema = {
   type: "readonly" | "editable" | "formula";
   formula: string | null;
   can_edit: boolean;
+  allowed_katim_ids?: string[];
   is_collaborative?: boolean;
   is_kendala?: boolean;
   is_rtl?: boolean;
@@ -53,6 +54,7 @@ type RowData = {
   row_name?: string;
   is_month_row?: boolean;
   is_total?: boolean;
+  is_updated?: boolean;
   cells: Record<string, any>;
 };
 
