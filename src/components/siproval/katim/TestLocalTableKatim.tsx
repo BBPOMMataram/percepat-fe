@@ -783,6 +783,10 @@ export default function TestLocalTableKatim() {
   const excelFileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>("all");
   const [isPicUser, setIsPicUser] = useState(false);
+  const isPicEffective =
+    isPicUser ||
+    Boolean(pathname?.includes("/siproval/pic")) ||
+    Boolean(pathname?.includes("/siproval/admin"));
   const [isCurrentMonthLocked, setIsCurrentMonthLocked] = useState(false);
   const [monthLocksMap, setMonthLocksMap] = useState<Record<number, boolean>>(
     {},
@@ -1862,6 +1866,71 @@ export default function TestLocalTableKatim() {
     setSuccessMsg(
       `Baris baru untuk bulan ${targetMonthName} berhasil ditambahkan di urutan paling atas! Silakan lengkapi isian lalu klik Simpan Perubahan.`,
     );
+  };
+
+  // Handler Hapus Baris untuk PIC (Point Tambahan)
+  const handleDeleteRow = async (targetIdx: number) => {
+    if (!activeTab || !activeTab.rows_data) return;
+    const targetRow = activeTab.rows_data[targetIdx];
+    if (!targetRow) return;
+
+    const rowLabel =
+      targetRow.month_name ||
+      targetRow.cells?.[monthColKey || "col_2"] ||
+      targetRow.cells?.col_0 ||
+      `Baris ke-${targetIdx + 1}`;
+
+    const confirmed = window.confirm(
+      `Hapus "${rowLabel}" (Baris ke-${targetIdx + 1}) dari tabel ini?\n\nTindakan ini akan langsung menghapus baris dan memperbarui data di database.`
+    );
+    if (!confirmed) return;
+
+    // Filter baris yang dihapus
+    const remainingRows = activeTab.rows_data.filter((_, idx) => idx !== targetIdx);
+
+    // Tata ulang nomor urut dan row_index
+    let updatedRows = remainingRows.map((r, idx) => ({
+      ...r,
+      row_index: idx,
+    }));
+
+    // Hitung ulang kolom kumulatif jika ada
+    updatedRows = recalculateCumulativeRows(updatedRows, effectiveColumnsSchema);
+
+    // Hitung ulang rumus formula pada setiap baris
+    updatedRows = updatedRows.map((r) => ({
+      ...r,
+      cells: recalculateRowFormulas(r.cells, effectiveColumnsSchema),
+    }));
+
+    // Update state tabel seketika
+    setActiveTab((prev) => (prev ? { ...prev, rows_data: updatedRows } : prev));
+    setSaving(true);
+    setErrorMsg("");
+
+    try {
+      const res = await api.post(
+        `${baseUrl}/api/test-local-table/tab/${activeTab.id}/update${authQuery}`,
+        {
+          rows_data: updatedRows,
+        }
+      );
+      setSuccessMsg(`Baris "${rowLabel}" berhasil dihapus dari tabel.`);
+      if (res.data?.data?.rows_data) {
+        setActiveTab((prev) =>
+          prev ? { ...prev, rows_data: res.data.data.rows_data } : prev
+        );
+      }
+    } catch (err: any) {
+      console.error("Gagal menghapus baris:", err);
+      setErrorMsg(
+        err.response?.data?.message || "Gagal menghapus baris dari server."
+      );
+      // Pulihkan kembali data tabel asli dari server jika terjadi kendala
+      fetchTableData(activeTab.id, false);
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Kirim data ke backend lokal (Simpan Massal)
@@ -3397,6 +3466,26 @@ export default function TestLocalTableKatim() {
                     !spreadsheets.find((s) => s.id === selectedSpId)
                       ?.is_readonly && (
                       <div className="flex flex-wrap items-center gap-2 ml-auto">
+                        {/* Tombol Hapus Baris Terakhir (Khusus PIC) */}
+                        {isPicEffective &&
+                          activeTab?.rows_data &&
+                          activeTab.rows_data.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleDeleteRow(activeTab.rows_data.length - 1)
+                              }
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-300 bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700 transition hover:bg-rose-100 shadow-2xs cursor-pointer"
+                              title="Hapus baris paling akhir/bawah dari tabel ini"
+                            >
+                              <Icon
+                                icon="solar:trash-bin-trash-bold"
+                                width={14}
+                                className="text-rose-600"
+                              />
+                              <span>Hapus Baris Terakhir</span>
+                            </button>
+                          )}
                         {/* Tombol Tambah Baris */}
                         <button
                           type="button"
@@ -4592,6 +4681,26 @@ export default function TestLocalTableKatim() {
                                         </span>
                                       ))}
                                   </div>
+                                  {isPicEffective &&
+                                    cIdx === 0 &&
+                                    !isSectionRow &&
+                                    !isTotalRow &&
+                                    !isFormulaRow && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDeleteRow(originalIdx);
+                                        }}
+                                        className="inline-flex items-center justify-center h-5 w-5 rounded text-slate-300 hover:text-rose-600 hover:bg-rose-100/80 transition cursor-pointer shrink-0 ml-1"
+                                        title={`Hapus baris ini (${row.month_name || `Baris ke-${originalIdx + 1}`})`}
+                                      >
+                                        <Icon
+                                          icon="solar:trash-bin-trash-bold"
+                                          width={13}
+                                        />
+                                      </button>
+                                    )}
                                   {showLockedBadge && (
                                     <span className="rounded bg-slate-200 px-1 py-0.2 text-[9px] text-slate-600">
                                       Terkunci
