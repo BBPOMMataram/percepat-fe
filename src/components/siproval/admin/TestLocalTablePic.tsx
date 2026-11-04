@@ -30,7 +30,9 @@ type ColumnSchema = {
   key: string;
   col_letter: string;
   label: string;
-  type: "readonly" | "editable" | "formula";
+  type: "readonly" | "editable" | "formula" | "editable_cumulative" | "editable_collab_cumulative";
+  is_cumulative?: boolean;
+  is_collab_numeric?: boolean;
   formula: string | null;
   allowed_katim_ids: string[];
   parent_header?: string | null;
@@ -1785,8 +1787,8 @@ export default function TestLocalTablePic() {
                             : isTotalRow
                             ? "bg-emerald-50/70 border-t-2 border-emerald-300 font-bold"
                             : isRowFilled
-                            ? "bg-emerald-500/[0.08] hover:bg-emerald-500/[0.14] border-l-4 border-l-emerald-500"
-                            : "bg-rose-500/[0.07] hover:bg-rose-500/[0.13] border-l-4 border-l-rose-400"
+                            ? "bg-emerald-50/30 hover:bg-emerald-50/60"
+                            : "bg-white hover:bg-slate-50/80"
                         }`}
                       >
                         {displayedColumnsSchema?.map((col, cIdx) => {
@@ -2151,18 +2153,39 @@ export default function TestLocalTablePic() {
                         Tipe Kolom (Dropdown):
                       </label>
                       <select
-                        value={editingCols[selectedColIndex].type}
+                        value={
+                          editingCols[selectedColIndex].type === "editable_collab_cumulative"
+                            ? "editable_collab_cumulative"
+                            : editingCols[selectedColIndex].type === "editable_cumulative"
+                            ? "editable_cumulative"
+                            : (editingCols[selectedColIndex].is_collab_numeric && editingCols[selectedColIndex].is_cumulative)
+                            ? "editable_collab_cumulative"
+                            : (editingCols[selectedColIndex].is_cumulative && editingCols[selectedColIndex].type === "editable")
+                            ? "editable_cumulative"
+                            : editingCols[selectedColIndex].type
+                        }
                         onChange={(e) => {
                           const val = e.target.value as any;
                           setEditingCols((prev) =>
-                            prev.map((c, i) =>
-                              i === selectedColIndex ? { ...c, type: val } : c
-                            )
+                            prev.map((c, i) => {
+                              if (i !== selectedColIndex) return c;
+                              if (val === "editable_cumulative") {
+                                return { ...c, type: val, is_cumulative: true, is_collab_numeric: false };
+                              } else if (val === "editable_collab_cumulative") {
+                                return { ...c, type: val, is_cumulative: true, is_collab_numeric: true };
+                              } else if (val === "editable") {
+                                return { ...c, type: val, is_cumulative: false, is_collab_numeric: false };
+                              } else {
+                                return { ...c, type: val, is_cumulative: false, is_collab_numeric: false };
+                              }
+                            })
                           );
                         }}
                         className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:border-[#005baa] focus:outline-none shadow-sm"
                       >
-                        <option value="editable">Editable (Dapat Diisi Katim)</option>
+                        <option value="editable">Editable (Biasa / Input Mandiri)</option>
+                        <option value="editable_cumulative">Editable dengan akumulasi input ditambah bulan sebelumnya</option>
+                        <option value="editable_collab_cumulative">Editable dengan akumulasi nilai input katim dan bulan sebelumnya</option>
                         <option value="formula">Formula (Rumus Otomatis)</option>
                         <option value="readonly">Readonly (Terkunci / Header)</option>
                       </select>
@@ -2201,7 +2224,7 @@ export default function TestLocalTablePic() {
                   )}
 
                   {/* PIC DROPDOWN: JIKA TIPE EDITABLE */}
-                  {editingCols[selectedColIndex].type === "editable" && (
+                  {(editingCols[selectedColIndex].type === "editable" || editingCols[selectedColIndex].type === "editable_cumulative" || editingCols[selectedColIndex].type === "editable_collab_cumulative") && (
                     <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
                       <div>
                         <label className="block text-xs font-bold text-slate-800 mb-1">

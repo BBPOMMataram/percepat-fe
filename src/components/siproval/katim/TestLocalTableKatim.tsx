@@ -31,7 +31,7 @@ type ColumnSchema = {
   key: string;
   col_letter: string;
   label: string;
-  type: "readonly" | "editable" | "formula";
+  type: "readonly" | "editable" | "formula" | "editable_cumulative" | "editable_collab_cumulative";
   formula: string | null;
   can_edit: boolean;
   allowed_katim_ids?: string[];
@@ -3688,14 +3688,7 @@ export default function TestLocalTableKatim() {
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                  <Icon
-                    icon="solar:check-circle-bold"
-                    width={14}
-                    className="text-emerald-600 shrink-0"
-                  />
-                  <span className="text-slate-600 font-medium">Lihat</span>
-                </div>
+
               </div>
             </div>
 
@@ -4615,22 +4608,16 @@ export default function TestLocalTableKatim() {
                               );
                             }
 
-                            const isBulanCol =
-                              col.label?.toLowerCase() === "bulan" ||
-                              col.label?.toLowerCase().includes("bulan");
+                            const isTheMonthCol = monthColKey
+                              ? col.key === monthColKey
+                              : (cIdx === 0 || col.key === "col_0");
                             const showLockedBadge =
                               isMonthLocked &&
                               isMonthRow &&
-                              (isBulanCol ||
-                                (!effectiveColumnsSchema.some((c) =>
-                                  c.label?.toLowerCase().includes("bulan"),
-                                ) &&
-                                  col.key === "col_0"));
+                              isTheMonthCol;
 
                             const showStatusBadge =
-                              (isBulanCol ||
-                                col.key === "col_0" ||
-                                cIdx === 0) &&
+                              isTheMonthCol &&
                               !isSectionRow &&
                               !isTotalRow &&
                               !isFormulaRow;
