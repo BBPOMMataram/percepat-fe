@@ -1134,6 +1134,38 @@ export default function TestLocalTableKatim() {
         }));
       }
 
+      // Auto-recalculate Total row jika ada (misal pada tab Caput Sarprod PO / Caput RO)
+      const totalIdx = newRows.findIndex(
+        (r) =>
+          r.is_total ||
+          r.row_name === "Total" ||
+          r.cells?.col_0 === "Total" ||
+          (typeof r.cells?.col_0 === "string" && r.cells.col_0.toLowerCase() === "total") ||
+          (typeof r.cells?.col_1 === "string" && r.cells.col_1.toLowerCase() === "total"),
+      );
+      if (totalIdx !== -1) {
+        const totalRow = {
+          ...newRows[totalIdx],
+          cells: { ...newRows[totalIdx].cells },
+        };
+        effectiveColumnsSchema.forEach((col) => {
+          if (col.key === "col_0" || (col.key === "col_1" && isNaN(Number(newRows[0]?.cells?.[col.key])))) return;
+          let sum = 0;
+          let hasNum = false;
+          for (let r = 0; r < totalIdx; r++) {
+            const v = newRows[r]?.cells?.[col.key];
+            if (v !== undefined && v !== null && v !== "" && !isNaN(Number(v))) {
+              sum += Number(v);
+              hasNum = true;
+            }
+          }
+          if (hasNum) {
+            totalRow.cells[col.key] = Math.round(sum * 100) / 100;
+          }
+        });
+        newRows[totalIdx] = totalRow;
+      }
+
       return {
         ...prev,
         rows_data: newRows,
@@ -3414,7 +3446,7 @@ export default function TestLocalTableKatim() {
                                   <div className="text-xs font-bold leading-tight">
                                     {col.label}
                                   </div>
-                                  {col.sub_label && (
+                                  {col.sub_label && col.sub_label !== col.label && (
                                     <div className={`text-[10px] font-normal mt-0.5 ${isCyanHeader ? "text-cyan-900" : "text-slate-500"}`}>
                                       {col.sub_label}
                                     </div>
@@ -3500,7 +3532,11 @@ export default function TestLocalTableKatim() {
                               Boolean(monthLocksMap[colMonthNum]);
                             const isEditableForMe =
                               col.can_edit && !isColMonthLocked;
-                            const subTitle = col.label;
+                            const subTitle =
+                              col.sub_label ||
+                              (col.label && col.label.includes(" - ")
+                                ? col.label.split(" - ").slice(1).join(" - ").trim()
+                                : col.label);
                             const widthCls = getColWidthStyle(col);
 
                             return (
@@ -3537,7 +3573,7 @@ export default function TestLocalTableKatim() {
                                 <div className="text-[11px] leading-tight font-medium">
                                   {subTitle}
                                 </div>
-                                {col.sub_label && (
+                                {col.sub_label && col.sub_label !== subTitle && (
                                   <div className={`text-[10px] font-normal mt-0.5 ${isCyanHeader ? "text-cyan-900" : "text-slate-500"}`}>
                                     {col.sub_label}
                                   </div>
