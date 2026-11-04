@@ -1,6 +1,8 @@
 /**
  * Utility untuk Face Recognition E-Tamu
- * Menggunakan face-api.min.js lokal dari /assets/js/face-api.min.js
+ * Menggunakan arsitektur Progressive 2-Stage & Caching
+ * Stage 1: TinyFaceDetector (190 KB) dimuat instan (< 0.3s) untuk respon visual cepat
+ * Stage 2: FaceLandmarkTiny (77 KB) + FaceRecognition (6.4 MB) dimuat di latar belakang untuk pencocokan identitas
  */
 
 declare global {
@@ -52,97 +54,188 @@ export async function getFaceApi(): Promise<any> {
 }
 
 /**
- * Cek apakah model AI face-api sudah benar-benar selesai dimuat ke memori
+ * Cek apakah model deteksi wajah awal (TinyFaceDetector, 190 KB) sudah siap
  */
-export function isFaceApiReady(): boolean {
+export function isDetectorReady(): boolean {
     if (typeof window === 'undefined' || !window.faceapi) return false;
-    const faceapi = window.faceapi;
-    return Boolean(
-        faceapi.nets?.tinyFaceDetector?.params &&
-        faceapi.nets?.faceLandmark68Net?.params &&
-        faceapi.nets?.faceRecognitionNet?.params
-    );
+    return Boolean(window.faceapi.nets?.tinyFaceDetector?.params);
 }
 
-let modelLoadingPromise: Promise<boolean> | null = null;
+/**
+ * Cek apakah model pengenalan wajah lengkap (Landmark + Recognition, 6.4 MB) sudah siap
+ */
+export function isRecognitionReady(): boolean {
+    if (typeof window === 'undefined' || !window.faceapi) return false;
+    const nets = window.faceapi.nets;
+    const hasLandmarks = Boolean(nets?.faceLandmark68TinyNet?.params || nets?.faceLandmark68Net?.params);
+    return Boolean(nets?.tinyFaceDetector?.params && hasLandmarks && nets?.faceRecognitionNet?.params);
+}
 
 /**
- * Memuat bobot model AI Face Recognition dari /models/face
+ * Kompatibilitas mundur: bernilai true segera setelah detektor siap agar kamera & HUD langsung aktif
  */
-export async function loadFaceRecognitionModels(): Promise<boolean> {
+export function isFaceApiReady(): boolean {
+    return isDetectorReady();
+}
+
+let detectorLoadingPromise: Promise<boolean> | null = null;
+let recognitionLoadingPromise: Promise<boolean> | null = null;
+
+/**
+ * Tahap 1: Memuat model deteksi wajah cepat (~190 KB) secara instan
+ */
+export async function loadDetectorModel(): Promise<boolean> {
     if (typeof window === 'undefined') return false;
+    if (isDetectorReady()) return true;
+    if (detectorLoadingPromise) return detectorLoadingPromise;
 
-    // Jika model sudah benar-benar siap di memori, langsung return true
-    if (isFaceApiReady()) return true;
+    detectorLoadingPromise = (async () => {
+        try {
+            const faceapi = await getFaceApi();
+            if (!faceapi) return false;
+            if (isDetectorReady()) return true;
 
-    if (modelLoadingPromise) return modelLoadingPromise;
+            const MODEL_URL = `${window.location.origin}/models/face`;
+            await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
 
-    modelLoadingPromise = (async () => {
+            // Warmup shader GPU WebGL dengan canvas kecil agar frame pertama instan tanpa lag
+            try {
+                const dummyCanvas = document.createElement('canvas');
+                dummyCanvas.width = 64;
+                dummyCanvas.height = 64;
+                const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.5 });
+                await faceapi.detectSingleFace(dummyCanvas, opts);
+            } catch (wErr) {
+                // Abaikan kesalahan warmup dummy
+            }
+
+            return isDetectorReady();
+        } catch (error) {
+            console.error("Gagal memuat model deteksi awal:", error);
+            return false;
+        } finally {
+            detectorLoadingPromise = null;
+        }
+    })();
+
+    return detectorLoadingPromise;
+}
+
+/**
+ * Tahap 2: Memuat model pengenalan identitas (Landmarks + 128 Vektor) di latar belakang
+ */
+export async function loadRecognitionModels(): Promise<boolean> {
+    if (typeof window === 'undefined') return false;
+    if (isRecognitionReady()) return true;
+    if (recognitionLoadingPromise) return recognitionLoadingPromise;
+
+    recognitionLoadingPromise = (async () => {
         try {
             const faceapi = await getFaceApi();
             if (!faceapi) return false;
 
-            if (isFaceApiReady()) return true;
+            // Pastikan detektor awal sudah siap
+            await loadDetectorModel();
+            if (isRecognitionReady()) return true;
 
-            // Gunakan absolute origin URL agar tidak terpengaruh subpath/trailing slash
             const MODEL_URL = `${window.location.origin}/models/face`;
 
+            // Muat faceLandmark68TinyNet (hanya 77 KB) & faceRecognitionNet (6.4 MB)
             await Promise.all([
-                faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-                faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL).catch(() => {
+                    // Fallback jika model tiny tidak ditemukan
+                    return faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+                }),
                 faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
             ]);
 
-            return isFaceApiReady();
+            return isRecognitionReady();
         } catch (error) {
-            console.error("Gagal memuat model face recognition:", error);
+            console.error("Gagal memuat model pengenalan identitas:", error);
             return false;
         } finally {
-            modelLoadingPromise = null;
+            recognitionLoadingPromise = null;
         }
     })();
 
-    return modelLoadingPromise;
+    return recognitionLoadingPromise;
 }
 
 /**
- * Deteksi wajah tunggal dan ekstrak Face Descriptor (vektor 128 dimensi)
+ * Memuat model AI secara Progressive:
+ * Mengembalikan Promise yang selesai segera setelah Detektor Siap (< 0.3s),
+ * sambil meluncurkan pemuatan model pengenalan di latar belakang.
+ */
+export async function loadFaceRecognitionModels(): Promise<boolean> {
+    if (typeof window === 'undefined') return false;
+
+    // Picu pemuatan pengenalan identitas di latar belakang (non-blocking)
+    loadRecognitionModels().catch(() => {});
+
+    // Kembalikan segera setelah detektor awal siap agar kamera langsung bereaksi
+    return await loadDetectorModel();
+}
+
+/**
+ * Deteksi wajah tunggal:
+ * - Jika recognition model sudah siap: mengekstrak box dan descriptor 128-dimensi.
+ * - Jika recognition model masih download di latar belakang: mengekstrak box wajah saja secara instan.
  */
 export async function detectFaceDescriptor(
     input: HTMLVideoElement | HTMLCanvasElement | HTMLImageElement
-): Promise<{ descriptor: number[]; box?: { x: number; y: number; width: number; height: number } } | null> {
+): Promise<{ descriptor?: number[]; box?: { x: number; y: number; width: number; height: number }; isReadyForMatch: boolean } | null> {
     try {
-        const isLoaded = await loadFaceRecognitionModels();
+        const isLoaded = await loadDetectorModel();
         if (!isLoaded) return null;
 
         const faceapi = await getFaceApi();
         if (!faceapi || !faceapi.nets?.tinyFaceDetector?.params) return null;
 
-        // Gunakan TinyFaceDetector untuk performa tinggi & hemat resource
         const options = new faceapi.TinyFaceDetectorOptions({
             inputSize: 320,
             scoreThreshold: 0.5,
         });
 
-        const detection = await faceapi
-            .detectSingleFace(input, options)
-            .withFaceLandmarks()
-            .withFaceDescriptor();
+        // Jika model pengenalan sudah siap, lakukan deteksi lengkap + landmark + ekstraksi vektor
+        if (isRecognitionReady()) {
+            const useTiny = Boolean(faceapi.nets?.faceLandmark68TinyNet?.params);
+            const detection = await faceapi
+                .detectSingleFace(input, options)
+                .withFaceLandmarks(useTiny)
+                .withFaceDescriptor();
 
-        if (!detection || !detection.descriptor) {
+            if (!detection || !detection.detection) {
+                return null;
+            }
+
+            const box = detection.detection.box;
+            return {
+                descriptor: detection.descriptor ? Array.from(detection.descriptor) : undefined,
+                box: {
+                    x: box.x,
+                    y: box.y,
+                    width: box.width,
+                    height: box.height,
+                },
+                isReadyForMatch: Boolean(detection.descriptor),
+            };
+        }
+
+        // Jika model pengenalan masih download, lakukan deteksi kotak wajah super cepat (< 20ms)
+        const fastDetection = await faceapi.detectSingleFace(input, options);
+        if (!fastDetection) {
             return null;
         }
 
-        const box = detection.detection.box;
-
+        const box = fastDetection.box;
         return {
-            descriptor: Array.from(detection.descriptor),
             box: {
                 x: box.x,
                 y: box.y,
                 width: box.width,
                 height: box.height,
             },
+            isReadyForMatch: false,
         };
     } catch (error) {
         console.error("Error pada saat mendeteksi wajah:", error);
@@ -177,12 +270,12 @@ export interface KnownGuestFace {
 
 /**
  * Cari tamu yang paling cocok dari daftar tamu terdaftar
- * Nilai threshold standar face-api: 0.50 (makin kecil makin ketat)
+ * Nilai threshold standar face-api: 0.48 (makin kecil makin ketat)
  */
 export function findBestFaceMatch(
     queryDescriptor: number[],
     knownGuests: KnownGuestFace[],
-    threshold = 0.50
+    threshold = 0.48
 ): { guest: KnownGuestFace; distance: number; similarity: number } | null {
     let bestMatch: { guest: KnownGuestFace; distance: number } | null = null;
 

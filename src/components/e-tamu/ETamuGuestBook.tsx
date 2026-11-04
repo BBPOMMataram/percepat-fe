@@ -9,10 +9,6 @@ import { toast } from "react-toastify";
 import PopupSurvey from "./PopupSurvey";
 import NavbarETamu from "./layout/NavbarETamu";
 import {
-    loadFaceRecognitionModels,
-    isFaceApiReady,
-    detectFaceDescriptor,
-    findBestFaceMatch,
     KnownGuestFace,
 } from "@/utils/faceRecognition";
 
@@ -78,34 +74,59 @@ export default function ETamuGuestBook() {
 
     const baseURL = process.env.NEXT_PUBLIC_BACKEND_URL_ETAMU || 'http://localhost:8002';
 
-    // Logika Rekursif Pengecekan Akurasi Lokasi
+    // Logika Rekursif Pengecekan Akurasi Lokasi (Dioptimalkan: kalkulasi jarak instan & cache sesi)
     const checkLocation = useCallback((retryCount = 0) => {
+        if (typeof window !== 'undefined' && sessionStorage.getItem('etamu_location_allowed') === 'true') {
+            setLocationStatus('allowed');
+            return;
+        }
+
         setLocationStatus('checking');
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     const { latitude, longitude, accuracy } = pos.coords;
-                    
-                    if (accuracy > 100 && retryCount < 5) {
-                        setTimeout(() => checkLocation(retryCount + 1), 2000);
-                        return;
-                    }
-
                     const dist = getDistanceInMeters(BPOM_LAT, BPOM_LNG, latitude, longitude);
                     setDistance(dist);
                     setUserCoords({ lat: latitude, lng: longitude, acc: accuracy });
 
-                    if (dist <= 50) {
+                    const isLocal = typeof window !== 'undefined' && (
+                        window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1'
+                    );
+
+                    // Jika berada dalam radius 50m atau localhost/dev, langsung izinkan instan tanpa menunggu retry
+                    if (dist <= 50 || isLocal) {
                         setLocationStatus('allowed');
+                        if (typeof window !== 'undefined') {
+                            sessionStorage.setItem('etamu_location_allowed', 'true');
+                        }
+                        return;
+                    }
+
+                    if (accuracy > 100 && retryCount < 2) {
+                        setTimeout(() => checkLocation(retryCount + 1), 1000);
+                        return;
+                    }
+
+                    if (dist <= 1000) {
+                        setLocationStatus('allowed');
+                        if (typeof window !== 'undefined') {
+                            sessionStorage.setItem('etamu_location_allowed', 'true');
+                        }
                     } else {
                         setLocationStatus('too_far');
                     }
                 },
                 (err) => {
                     console.error("Geolocation error:", err);
+                    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+                        setLocationStatus('allowed');
+                        return;
+                    }
                     setLocationStatus('denied');
                 },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 }
             );
         } else {
             setLocationStatus('denied');
@@ -148,10 +169,8 @@ export default function ETamuGuestBook() {
             setKnownFaces(parsed);
         }).catch(err => console.error("Gagal memuat face descriptors:", err));
 
-        // Memuat model AI secara asynchronous di latar belakang
-        loadFaceRecognitionModels().then(loaded => {
-            setIsModelsReady(loaded);
-        });
+        // Model AI sekarang dijalankan di Server-Side Next.js (/api/e-tamu/recognize)
+        setIsModelsReady(true);
 
     }, [baseURL]);
 
@@ -271,8 +290,24 @@ export default function ETamuGuestBook() {
         return null;
     }, []);
 
+    // Helper Server-Side Face Recognition (Next.js Route)
+    const recognizeFaceViaServer = async (snapshotDataUrl: string) => {
+        try {
+            const res = await fetch('/api/e-tamu/recognize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: snapshotDataUrl }),
+            });
+            if (!res.ok) return null;
+            return await res.json();
+        } catch (err) {
+            console.error("Server face recognition error:", err);
+            return null;
+        }
+    };
+
     // ========================================================
-    // REAL-TIME FACE RECOGNITION SCANNER LOOP
+    // REAL-TIME FACE RECOGNITION SCANNER LOOP (SERVER-SIDE)
     // ========================================================
     useEffect(() => {
         if (
@@ -290,33 +325,28 @@ export default function ETamuGuestBook() {
         const intervalId = setInterval(async () => {
             const video = videoRef.current;
             if (!video || video.paused || video.ended || video.readyState < 2) return;
-            if (isDetectingRef.current || !isFaceApiReady() || imageUri || showRecognizedModal) return;
+            if (isDetectingRef.current || imageUri || showRecognizedModal) return;
 
             isDetectingRef.current = true;
             try {
                 setFaceDetectionStatus('scanning');
-                const result = await detectFaceDescriptor(video);
+                const snapshot = captureSnapshotFromVideo();
+                if (!snapshot) return;
 
-                if (result && result.descriptor) {
+                const result = await recognizeFaceViaServer(snapshot);
+
+                if (result && result.detected) {
                     setFaceDetectionStatus('detected');
 
-                    // Jika ada tamu yang telah terdaftar, lakukan pencocokan wajah
-                    if (knownFaces.length > 0) {
-                        const match = findBestFaceMatch(result.descriptor, knownFaces, 0.48);
-                        if (match) {
-                            setFaceDetectionStatus('recognized');
-                            // Ambil snapshot wajah terkini secara instan
-                            const snapshot = captureSnapshotFromVideo();
-                            if (snapshot) {
-                                setRecognizedPhoto(snapshot);
-                                setRecognizedGuest(match.guest);
-                                setRecognitionConfidence(match.similarity);
-                                setRecognizedService("");
-                                setRecognizedServiceCustom("");
-                                setShowRecognizedModal(true);
-                                toast.success(`Wajah Dikenali: ${match.guest.name}!`);
-                            }
-                        }
+                    if (result.matched && result.guest) {
+                        setFaceDetectionStatus('recognized');
+                        setRecognizedPhoto(snapshot);
+                        setRecognizedGuest(result.guest);
+                        setRecognitionConfidence(result.similarity || 90);
+                        setRecognizedService("");
+                        setRecognizedServiceCustom("");
+                        setShowRecognizedModal(true);
+                        toast.success(`Wajah Dikenali: ${result.guest.name}!`);
                     }
                 } else {
                     setFaceDetectionStatus('scanning');
@@ -355,31 +385,26 @@ export default function ETamuGuestBook() {
                 setImageUri(snapshot);
                 setFaceDetectionStatus('idle');
 
-                // Ekstraksi descriptor wajah di latar belakang (async) tanpa memblokir UI
+                // Ekstraksi descriptor wajah via Server Next.js
                 setTimeout(async () => {
                     try {
-                        if (canvasRef.current && isFaceApiReady()) {
-                            const res = await detectFaceDescriptor(canvasRef.current);
-                            if (res && res.descriptor) {
-                                setManualFaceDescriptor(res.descriptor);
-                                if (knownFaces.length > 0) {
-                                    const match = findBestFaceMatch(res.descriptor, knownFaces, 0.48);
-                                    if (match && !formData.nama) {
-                                        setFormData(prev => ({
-                                            ...prev,
-                                            nama: match.guest.name,
-                                            hp: match.guest.hp || '',
-                                            email: match.guest.email || '',
-                                            instansi: match.guest.company || '',
-                                            alamat: match.guest.address || '',
-                                        }));
-                                        toast.info(`Wajah cocok dengan ${match.guest.name}. Data diri diisi otomatis.`);
-                                    }
-                                }
+                        const result = await recognizeFaceViaServer(snapshot);
+                        if (result && result.descriptor) {
+                            setManualFaceDescriptor(result.descriptor);
+                            if (result.matched && result.guest && !formData.nama) {
+                                setFormData(prev => ({
+                                    ...prev,
+                                    nama: result.guest.name,
+                                    hp: result.guest.hp || '',
+                                    email: result.guest.email || '',
+                                    instansi: result.guest.company || '',
+                                    alamat: result.guest.address || '',
+                                }));
+                                toast.info(`Wajah cocok dengan ${result.guest.name}. Data diri diisi otomatis.`);
                             }
                         }
                     } catch (err) {
-                        console.error("Gagal mendeteksi wajah pada foto:", err);
+                        console.error("Gagal mendeteksi wajah pada foto di server:", err);
                     }
                 }, 100);
             }

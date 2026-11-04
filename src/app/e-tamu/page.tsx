@@ -7,6 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function ETamuPage() {
-    // Lepas LayoutETamu agar Navbar dan Footer terpisah tidak ikut di-render
     return <ETamuGuestBook />;
 }
