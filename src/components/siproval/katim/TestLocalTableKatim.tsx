@@ -2652,11 +2652,13 @@ export default function TestLocalTableKatim() {
       };
     }
 
-    // Tab Indeks KIE, Caput Layanan Informasi, 17 Profesi Konsumen, atau tabel ber-header grup 2 kolom
+    // Tab Indeks KIE, Caput Layanan Informasi, 17 Profesi Konsumen, Rincian Jenis Sardis, atau tabel ber-header grup 2 kolom
     if (
       title.includes("indeks kie") ||
       title.includes("caput layanan") ||
       title.includes("profesi") ||
+      title.includes("rincian jenis sardis") ||
+      activeTab?.id === 110 ||
       activeTab?.id === 135 ||
       activeTab?.id === 136 ||
       activeTab?.id === 160 ||
@@ -3411,7 +3413,7 @@ export default function TestLocalTableKatim() {
                                     <span className={`font-mono text-[10px] ${isCyanHeader ? "text-cyan-800 font-bold" : "text-slate-400"}`}>
                                       [{col.col_letter}]
                                     </span>
-                                    {col.can_edit ? (
+                                    {col.can_edit && (isPicUser || !col.allowed_katim_ids || col.allowed_katim_ids.length === 0 || col.allowed_katim_ids.some((id: string | number) => String(id) === String(user?.id))) ? (
                                       <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
                                         Editable
                                       </span>
@@ -3521,8 +3523,13 @@ export default function TestLocalTableKatim() {
                               !isPicUser &&
                               colMonthNum !== null &&
                               Boolean(monthLocksMap[colMonthNum]);
+                            const isColAllowedForUser =
+                              isPicUser ||
+                              !col.allowed_katim_ids ||
+                              col.allowed_katim_ids.length === 0 ||
+                              col.allowed_katim_ids.some((id: string | number) => String(id) === String(user?.id));
                             const isEditableForMe =
-                              col.can_edit && !isColMonthLocked;
+                              col.can_edit && isColAllowedForUser && !isColMonthLocked;
                             const subTitle =
                               col.sub_label ||
                               (col.label && col.label.includes(" - ")
@@ -3764,8 +3771,15 @@ export default function TestLocalTableKatim() {
                                 row.cells?.col_1 === "Target Indeks" ||
                                 isQuestionRow);
 
+                            const isUserAllowedForCol =
+                              isPicUser ||
+                              !col.allowed_katim_ids ||
+                              col.allowed_katim_ids.length === 0 ||
+                              col.allowed_katim_ids.some((id: string | number) => String(id) === String(user?.id));
+
                             const canEditCell =
                               col.can_edit &&
+                              isUserAllowedForCol &&
                               !isMonthLocked &&
                               !isColMonthLocked &&
                               canEditThisRow &&
