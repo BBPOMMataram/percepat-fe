@@ -842,6 +842,23 @@ export default function TestLocalTablePic() {
     }
   };
 
+  const handleDeleteTab = async (tId: number, tTitle: string) => {
+    if (!confirm(`Apakah Anda yakin ingin menghapus Tab "${tTitle}"? Seluruh data tabel pada tab ini akan dihapus permanen.`)) return;
+    setLoading(true);
+    try {
+      const res = await api.delete(
+        `${baseUrl}/api/superadmin/test-local-table/tab/${tId}${authQuery}`
+      );
+      setSuccessMsg(res.data?.message || `Tab "${tTitle}" berhasil dihapus.`);
+      setSelectedTabId(null);
+      setActiveTab(null);
+      fetchData(selectedYear, selectedSpId);
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || "Gagal menghapus tab.");
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Clean & Minimal */}
@@ -1193,13 +1210,25 @@ export default function TestLocalTablePic() {
                 <Icon icon="solar:shield-user-bold" width={16} />
                 Atur Hak Akses Kolom (Enkapsulasi)
               </button>
+              {activeTab && (
+                <button
+                  type="button"
+                  onClick={() => handleDeleteTab(activeTab.id, activeTab.title)}
+                  className="inline-flex items-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-100"
+                  title={`Hapus Tab "${activeTab.title}"`}
+                >
+                  <Icon icon="solar:trash-bin-trash-bold" width={14} />
+                  Hapus Tab
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => handleDeleteSpreadsheet(selectedSpId)}
                 className="inline-flex items-center gap-1 rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100"
+                title="Hapus seluruh dokumen spreadsheet beserta semua tab-nya"
               >
                 <Icon icon="solar:trash-bin-trash-bold" width={14} />
-                Hapus
+                Hapus Dokumen
               </button>
             </div>
           )}
@@ -1217,22 +1246,38 @@ export default function TestLocalTablePic() {
                 ?.tabs?.map((t) => {
                   const isSelected = selectedTabId === t.id;
                   return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => handleSelectTab(t.id)}
-                      className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
-                        isSelected
-                          ? "bg-[#005baa] text-white shadow-xs font-bold ring-2 ring-[#005baa]/20"
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900"
-                      }`}
-                    >
-                      <Icon
-                        icon={isSelected ? "solar:document-bold" : "solar:document-linear"}
-                        width={14}
-                      />
-                      <span>{t.title}</span>
-                    </button>
+                    <div key={t.id} className="inline-flex items-center group relative">
+                      <button
+                        type="button"
+                        onClick={() => handleSelectTab(t.id)}
+                        className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
+                          isSelected
+                            ? "bg-[#005baa] text-white shadow-xs font-bold ring-2 ring-[#005baa]/20 pr-8"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900 pr-7"
+                        }`}
+                      >
+                        <Icon
+                          icon={isSelected ? "solar:document-bold" : "solar:document-linear"}
+                          width={14}
+                        />
+                        <span>{t.title}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTab(t.id, t.title);
+                        }}
+                        className={`absolute right-1.5 p-1 rounded-lg transition opacity-60 hover:opacity-100 cursor-pointer ${
+                          isSelected
+                            ? "text-white/80 hover:text-white hover:bg-white/20"
+                            : "text-slate-400 hover:text-rose-600 hover:bg-rose-100"
+                        }`}
+                        title={`Hapus Tab "${t.title}"`}
+                      >
+                        <Icon icon="solar:trash-bin-trash-bold" width={12} />
+                      </button>
+                    </div>
                   );
                 })}
             </div>

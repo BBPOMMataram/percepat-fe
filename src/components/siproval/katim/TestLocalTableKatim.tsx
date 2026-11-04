@@ -3665,30 +3665,44 @@ export default function TestLocalTableKatim() {
               </div>
             )}
 
-            {/* Keterangan Status Isian Baris (Ringkas) */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-slate-50/70 px-4 py-2 text-[11px] text-slate-600">
+            {/* Keterangan Status & Petunjuk Pengisian (Ringkas & Jelas) */}
+            <div className="flex flex-wrap items-center justify-between gap-y-2 gap-x-5 border-b border-slate-200/80 bg-slate-50/70 px-4 py-2.5 text-[11px] text-slate-600">
               <div className="flex items-center gap-4 flex-wrap">
-                <span className="font-semibold text-slate-700">
+                <span className="font-bold text-slate-700 flex items-center gap-1">
+                  <Icon icon="solar:info-circle-bold" width={13} className="text-[#005baa]" />
                   Keterangan:
                 </span>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5" title="Baris pada bulan ini belum diisi oleh Katim">
                   <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-rose-200 shrink-0" />
-                  <span className="text-slate-600 font-medium">
-                    Belum diisi / belum diperbarui
-                  </span>
+                  <span className="text-slate-600 font-medium">Belum diisi</span>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5" title="Baris pada bulan ini sudah memiliki data terisi">
                   <Icon
                     icon="solar:check-circle-bold"
                     width={14}
                     className="text-emerald-600 shrink-0"
                   />
-                  <span className="text-slate-600 font-medium">
-                    Sudah diisi
+                  <span className="text-slate-600 font-medium">Sudah diisi</span>
+                </div>
+
+                {/* Penjelasan tanda ∑ (Akumulasi) vs tanpa ∑ */}
+                <div className="flex items-center gap-1.5" title="Kolom berlabel ∑ mengakumulasikan nilai dari bulan sebelumnya secara otomatis">
+                  <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-blue-100 font-mono text-[10px] font-black text-blue-800 border border-blue-200 shrink-0">
+                    ∑
+                  </span>
+                  <span className="text-slate-700 font-medium">
+                    <strong>∑ (Akumulasi):</strong> Cukup input angka bulanan, sistem otomatis menjumlahkan. <em>Tanpa ∑</em>: Input angka final langsung.
                   </span>
                 </div>
 
-
+                {/* Tombol Lihat (Multi-Katim / Mode Hanya Lihat) */}
+                <div className="flex items-center gap-1.5" title="Tombol untuk melihat rincian pengisi antar-katim atau membuka data saat periode terkunci">
+                  <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 shrink-0">
+                    <Icon icon="solar:eye-bold" width={12} className="text-indigo-600" />
+                    Lihat
+                  </span>
+                  <span className="text-slate-600 font-medium">Rincian kontributor / mode lihat saat periode terkunci</span>
+                </div>
               </div>
             </div>
 
@@ -3741,9 +3755,17 @@ export default function TestLocalTableKatim() {
                                         (id: string | number) =>
                                           String(id) === String(user?.id),
                                       )) ? (
-                                      <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
-                                        Editable
-                                      </span>
+                                      <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
+                                         <span>Editable</span>
+                                         {isCumulativeCol(col) && (
+                                           <span
+                                             className="rounded bg-emerald-200/90 px-1 font-mono text-[9px] text-emerald-950 font-black"
+                                             title="Kolom akumulasi otomatis: input angka bulanan, sistem otomatis menjumlahkan dengan bulan sebelumnya"
+                                           >
+                                             ∑
+                                           </span>
+                                         )}
+                                       </span>
                                     ) : col.type === "formula" ? (
                                       <span
                                         className="rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-bold text-purple-800 cursor-help"
@@ -3908,9 +3930,17 @@ export default function TestLocalTableKatim() {
                                     [{col.col_letter}]
                                   </span>
                                   {isEditableForMe ? (
-                                    <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
-                                      Editable
-                                    </span>
+                                    <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
+                                         <span>Editable</span>
+                                         {isCumulativeCol(col) && (
+                                           <span
+                                             className="rounded bg-emerald-200/90 px-1 font-mono text-[9px] text-emerald-950 font-black"
+                                             title="Kolom akumulasi otomatis: input angka bulanan, sistem otomatis menjumlahkan dengan bulan sebelumnya"
+                                           >
+                                             ∑
+                                           </span>
+                                         )}
+                                       </span>
                                   ) : col.type === "formula" ? (
                                     <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-bold text-purple-800">
                                       Formula
@@ -3967,9 +3997,17 @@ export default function TestLocalTableKatim() {
                                 [{col.col_letter}]
                               </span>
                               {isEditableForMe ? (
-                                <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
-                                  Editable
-                                </span>
+                                <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
+                                         <span>Editable</span>
+                                         {isCumulativeCol(col) && (
+                                           <span
+                                             className="rounded bg-emerald-200/90 px-1 font-mono text-[9px] text-emerald-950 font-black"
+                                             title="Kolom akumulasi otomatis: input angka bulanan, sistem otomatis menjumlahkan dengan bulan sebelumnya"
+                                           >
+                                             ∑
+                                           </span>
+                                         )}
+                                       </span>
                               ) : col.type === "formula" ? (
                                 <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-bold text-purple-800">
                                   Formula
