@@ -67,6 +67,14 @@ export default function ETamuGuestBook() {
     const [showRecognizedModal, setShowRecognizedModal] = useState(false);
     const [recognizedService, setRecognizedService] = useState("");
     const [recognizedServiceCustom, setRecognizedServiceCustom] = useState("");
+    const [isEditingGuestData, setIsEditingGuestData] = useState(false);
+    const [editGuestData, setEditGuestData] = useState({
+        name: '',
+        hp: '',
+        company: '',
+        address: '',
+        email: '',
+    });
 
     const [showSurvey, setShowSurvey] = useState(false);
     const [guestIdSaved, setGuestIdSaved] = useState<number | null>(null);
@@ -342,6 +350,14 @@ export default function ETamuGuestBook() {
                         setFaceDetectionStatus('recognized');
                         setRecognizedPhoto(snapshot);
                         setRecognizedGuest(result.guest);
+                        setEditGuestData({
+                            name: result.guest.name || '',
+                            hp: result.guest.hp || '',
+                            company: result.guest.company || '',
+                            address: result.guest.address || '',
+                            email: result.guest.email || '',
+                        });
+                        setIsEditingGuestData(false);
                         setRecognitionConfidence(result.similarity || 90);
                         setRecognizedService("");
                         setRecognizedServiceCustom("");
@@ -462,14 +478,25 @@ export default function ETamuGuestBook() {
             return;
         }
 
+        const nameToSave = (editGuestData.name || recognizedGuest.name || '').trim();
+        const hpToSave = (editGuestData.hp || recognizedGuest.hp || '-').trim();
+        const companyToSave = (editGuestData.company || recognizedGuest.company || 'Umum').trim();
+        const addressToSave = (editGuestData.address || recognizedGuest.address || '-').trim();
+        const emailToSave = (editGuestData.email || recognizedGuest.email || '').trim();
+
+        if (!nameToSave || !hpToSave) {
+            toast.error("Nama lengkap dan No. HP tidak boleh kosong!");
+            return;
+        }
+
         setSubmitting(true);
         try {
             const payload = {
-                nama: recognizedGuest.name,
-                hp: recognizedGuest.hp || '-',
-                email: recognizedGuest.email || '',
-                instansi: recognizedGuest.company || 'Umum',
-                alamat: recognizedGuest.address || '-',
+                nama: nameToSave,
+                hp: hpToSave,
+                email: emailToSave,
+                instansi: companyToSave,
+                alamat: addressToSave,
                 pangkat: recognizedGuest.pangkat || '',
                 jabatan: recognizedGuest.jabatan || '',
                 layanan: recognizedService,
@@ -487,13 +514,30 @@ export default function ETamuGuestBook() {
             setGuestNameSaved(res.data.data.name);
             setTotalGuests(prev => prev + 1);
 
+            // Perbarui daftar lokal jika ada data nama/instansi yang diubah
+            if (recognizedGuest.descriptor) {
+                setKnownFaces(prev => [
+                    ...prev.filter(f => f.id !== recognizedGuest.id && f.name.toLowerCase() !== nameToSave.toLowerCase()),
+                    {
+                        id: res.data.data.id,
+                        name: nameToSave,
+                        hp: hpToSave,
+                        company: companyToSave,
+                        address: addressToSave,
+                        email: emailToSave,
+                        descriptor: recognizedGuest.descriptor,
+                    }
+                ]);
+            }
+
             setShowRecognizedModal(false);
             setRecognizedGuest(null);
             setRecognizedPhoto(null);
+            setIsEditingGuestData(false);
 
             setShowSurvey(true);
             handleReset();
-            toast.success(`Selamat datang kembali, ${recognizedGuest.name}! Presensi Anda berhasil dicatat.`);
+            toast.success(`Selamat datang kembali, ${nameToSave}! Presensi Anda berhasil dicatat.`);
         } catch (error: any) {
             toast.error(error.response?.data?.message || 'Gagal menyimpan data pengunjung via Face Recognition.');
         } finally {
@@ -501,23 +545,38 @@ export default function ETamuGuestBook() {
         }
     };
 
-    const handleDismissRecognizedModal = () => {
+    // Beralih ke pengisian formulir manual lengkap
+    const handleSwitchToManualForm = () => {
         if (recognizedGuest) {
             setFormData({
-                nama: recognizedGuest.name,
-                hp: recognizedGuest.hp || '',
-                email: recognizedGuest.email || '',
-                instansi: recognizedGuest.company || '',
-                alamat: recognizedGuest.address || '',
-                layanan: '',
-                layananCustom: '',
+                nama: editGuestData.name || recognizedGuest.name,
+                hp: editGuestData.hp || recognizedGuest.hp || '',
+                email: editGuestData.email || recognizedGuest.email || '',
+                instansi: editGuestData.company || recognizedGuest.company || '',
+                alamat: editGuestData.address || recognizedGuest.address || '',
+                layanan: recognizedService || '',
+                layananCustom: recognizedServiceCustom || '',
             });
             if (recognizedPhoto) {
                 setImageUri(recognizedPhoto);
             }
+            if (recognizedGuest.descriptor) {
+                setManualFaceDescriptor(recognizedGuest.descriptor);
+            }
         }
         setShowRecognizedModal(false);
-        toast.info("Silakan periksa atau lengkapi formulir pendaftaran manual.");
+        setIsEditingGuestData(false);
+        toast.info("Data dimuat ke formulir utama. Silakan sesuaikan data Anda lalu klik Simpan.");
+    };
+
+    // Reset jika wajah yang terdeteksi bukan milik pengunjung (False Positive)
+    const handleResetToNewGuest = () => {
+        setShowRecognizedModal(false);
+        setRecognizedGuest(null);
+        setRecognizedPhoto(null);
+        setIsEditingGuestData(false);
+        handleReset();
+        toast.info("Silakan isi data formulir secara mandiri atau ambil foto baru.");
     };
 
     // Submit Formulir Manual
@@ -938,32 +997,127 @@ export default function ETamuGuestBook() {
                             >
                                 <span className="material-symbols-outlined text-[20px]">close</span>
                             </button>
-                            <h3 className="text-xl font-black">Selamat Datang Kembali!</h3>
-                            <p className="text-emerald-100 text-xs mt-0.5">Identitas Anda terdeteksi melalui Face Recognition</p>
+                            <h3 className="text-xl font-black">Selamat Datang Kembali! {editGuestData.name || recognizedGuest.name}</h3>
+                            <p className="text-emerald-100 text-xs mt-0.5">Identitas Anda terdeteksi</p>
                         </div>
 
                         {/* Content Modal */}
-                        <div className="p-6 space-y-5">
-                            {/* Kartu Ringkasan Tamu & Foto Terkini */}
-                            <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
-                                {recognizedPhoto && (
-                                    <div className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0 border-2 border-emerald-500 shadow-sm">
-                                        <img src={recognizedPhoto} alt="Tangkapan Wajah" className="w-full h-full object-cover transform scale-x-[-1]" />
-                                        <span className="absolute bottom-1 right-1 bg-emerald-500 text-white p-0.5 rounded-full flex items-center justify-center">
-                                            <span className="material-symbols-outlined text-[10px]">check</span>
-                                        </span>
+                        <div className="p-6 space-y-4">
+                            {/* Kartu Ringkasan Tamu & Foto Terkini (Dapat Diubah) */}
+                            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 transition-all">
+                                <div className="flex items-center gap-3.5">
+                                    {recognizedPhoto && (
+                                        <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 border-2 border-emerald-500 shadow-sm">
+                                            <img src={recognizedPhoto} alt="Tangkapan Wajah" className="w-full h-full object-cover transform scale-x-[-1]" />
+                                            <span className="absolute bottom-1 right-1 bg-emerald-500 text-white p-0.5 rounded-full flex items-center justify-center">
+                                                <span className="material-symbols-outlined text-[10px]">check</span>
+                                            </span>
+                                        </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <h4 className="text-base font-bold text-slate-800 truncate">
+                                                    {editGuestData.name || recognizedGuest.name}
+                                                </h4>
+                                                <p className="text-xs text-slate-600 font-medium truncate mt-0.5">
+                                                    {editGuestData.company || recognizedGuest.company || "Umum / Pribadi"}
+                                                </p>
+                                                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                                    <span className="material-symbols-outlined text-[13px]">call</span>
+                                                    {editGuestData.hp || recognizedGuest.hp || "-"}
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsEditingGuestData(!isEditingGuestData)}
+                                                className="shrink-0 flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors cursor-pointer"
+                                                title={isEditingGuestData ? "Tutup form ubah data" : "Ubah data tamu"}
+                                            >
+                                                <span className="material-symbols-outlined text-[14px]">
+                                                    {isEditingGuestData ? "check" : "edit"}
+                                                </span>
+                                                {isEditingGuestData ? "Selesai" : "Ubah Data"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Form Edit Data Tamu (Inline Mode di Dalam Modal) */}
+                                {isEditingGuestData && (
+                                    <div className="mt-3.5 pt-3.5 border-t border-slate-200 space-y-2.5 animate-in fade-in duration-150">
+                                        <div className="bg-emerald-50/90 text-emerald-800 text-[11px] font-medium p-2 rounded-lg flex items-center gap-1.5">
+                                            <span className="material-symbols-outlined text-[15px] shrink-0">edit_note</span>
+                                            <span>Anda dapat mengubah data diri di bawah ini jika terdapat pembaruan:</span>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">
+                                                    Nama Lengkap <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg py-1.5 px-2.5 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-400 outline-none"
+                                                    value={editGuestData.name}
+                                                    onChange={e => setEditGuestData({ ...editGuestData, name: e.target.value })}
+                                                    placeholder="Nama Lengkap"
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">
+                                                    Instansi / Perusahaan <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg py-1.5 px-2.5 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-400 outline-none"
+                                                    value={editGuestData.company}
+                                                    onChange={e => setEditGuestData({ ...editGuestData, company: e.target.value })}
+                                                    placeholder="Instansi / Perusahaan"
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">
+                                                    No. WhatsApp / HP <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="tel"
+                                                    className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg py-1.5 px-2.5 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-400 outline-none"
+                                                    value={editGuestData.hp}
+                                                    onChange={e => setEditGuestData({ ...editGuestData, hp: e.target.value })}
+                                                    placeholder="08xxxxxxxxxx"
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">
+                                                    Email (Opsional)
+                                                </label>
+                                                <input
+                                                    type="email"
+                                                    className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg py-1.5 px-2.5 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-400 outline-none"
+                                                    value={editGuestData.email}
+                                                    onChange={e => setEditGuestData({ ...editGuestData, email: e.target.value })}
+                                                    placeholder="nama@email.com"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">
+                                                Alamat Domisili
+                                            </label>
+                                            <input
+                                                type="text"
+                                                className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg py-1.5 px-2.5 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-400 outline-none"
+                                                value={editGuestData.address}
+                                                onChange={e => setEditGuestData({ ...editGuestData, address: e.target.value })}
+                                                placeholder="Alamat singkat"
+                                            />
+                                        </div>
                                     </div>
                                 )}
-                                <div className="flex-1 min-w-0">
-                                    <h4 className="text-base font-bold text-slate-800 truncate">{recognizedGuest.name}</h4>
-                                    <p className="text-xs text-slate-600 font-medium truncate mt-0.5">
-                                        {recognizedGuest.company || "Umum / Pribadi"}
-                                    </p>
-                                    <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                                        <span className="material-symbols-outlined text-[14px]">call</span>
-                                        {recognizedGuest.hp || "-"}
-                                    </p>
-                                </div>
                             </div>
 
                             {/* Dropdown Pemilihan Layanan Tujuan */}
@@ -1012,13 +1166,27 @@ export default function ETamuGuestBook() {
                                     <span className="material-symbols-outlined text-[18px]">how_to_reg</span>
                                     {submitting ? 'Menyimpan Kehadiran...' : 'Konfirmasi Kedatangan & Simpan'}
                                 </button>
-                                <button
-                                    type="button"
-                                    onClick={handleDismissRecognizedModal}
-                                    className="w-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition-all text-xs cursor-pointer"
-                                >
-                                    Bukan Saya? Isi Formulir Manual
-                                </button>
+                                
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleSwitchToManualForm}
+                                        className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition-all text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                                        title="Buka data di formulir lengkap halaman utama"
+                                    >
+                                        <span className="material-symbols-outlined text-[15px]">edit_note</span>
+                                        Ubah di Formulir
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleResetToNewGuest}
+                                        className="w-full bg-white hover:bg-red-50 border border-slate-200 hover:border-red-200 text-slate-500 hover:text-red-600 font-bold py-2.5 rounded-xl transition-all text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                                        title="Bukan saya, kosongkan form untuk tamu baru"
+                                    >
+                                        <span className="material-symbols-outlined text-[15px]">person_off</span>
+                                        Bukan Saya
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
