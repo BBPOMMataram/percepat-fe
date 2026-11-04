@@ -2652,12 +2652,14 @@ export default function TestLocalTableKatim() {
       };
     }
 
-    // Tab Indeks KIE, Caput Layanan Informasi, 17 Profesi Konsumen, Rincian Jenis Sardis, atau tabel ber-header grup 2 kolom
+    // Tab Indeks KIE, Caput Layanan Informasi, 17 Profesi Konsumen, Rincian Jenis Sardis, Rincian Sardis, atau tabel ber-header grup 2 kolom
     if (
       title.includes("indeks kie") ||
       title.includes("caput layanan") ||
       title.includes("profesi") ||
       title.includes("rincian jenis sardis") ||
+      title.includes("rincian sardis") ||
+      activeTab?.id === 109 ||
       activeTab?.id === 110 ||
       activeTab?.id === 135 ||
       activeTab?.id === 136 ||
