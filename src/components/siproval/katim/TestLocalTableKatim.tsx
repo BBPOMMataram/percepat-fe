@@ -538,7 +538,32 @@ export const recalculateRowFormulas = (
             `"use strict"; return (${expr})`,
           )(excelMathEnv);
           if (typeof res === "number" && !isNaN(res) && isFinite(res)) {
-            updatedCells[col.key] = Math.round(res * 100) / 100;
+            let calculatedVal = Math.round(res * 100) / 100;
+
+            // 1. Normalisasi Bobot (Bobot X%) sesuai Pedoman SAKIP
+            // Jika kolom memiliki pembobotan (misal Bobot 20%, Bobot 70%, Bobot 10%), nilai maksimal dibatasi sebesar bobotnya
+            const colMetaText = `${col.label || ""} ${col.parent_header || ""} ${col.sub_label || ""}`;
+            const weightMatch = colMetaText.match(
+              /bobot\s*:?\s*(\d+(?:\.\d+)?)\s*%/i,
+            );
+            if (weightMatch) {
+              const maxWeight = parseFloat(weightMatch[1]);
+              if (calculatedVal > maxWeight) {
+                calculatedVal = maxWeight;
+              }
+            }
+
+            // 2. Normalisasi Capaian RO / Indikator (Maksimal 110%) sesuai Pedoman SAKIP (Lampiran II Halaman 27)
+            // "Jika capaian kinerja setiap indikator > 110% maka dinormalisasi menjadi 110%; jika <= 110% maka tidak dilakukan normalisasi"
+            const isCapaianOrRo =
+              /\b(capaian\s*ro|realisasi\s*ro|%\s*capaian|capaian\s*indikator|normalisasi|nko)\b/i.test(
+                colMetaText,
+              );
+            if (isCapaianOrRo && calculatedVal > 110) {
+              calculatedVal = 110;
+            }
+
+            updatedCells[col.key] = calculatedVal;
           } else {
             updatedCells[col.key] = 0;
           }
