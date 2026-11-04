@@ -36,6 +36,7 @@ type ColumnSchema = {
   can_edit: boolean;
   allowed_katim_ids?: string[];
   is_collaborative?: boolean;
+  is_cumulative?: boolean;
   is_kendala?: boolean;
   is_rtl?: boolean;
   parent_header?: string | null;
@@ -448,6 +449,71 @@ export function getMonthNumberFromText(text?: string | null): number | null {
   return null;
 }
 
+// Helper deteksi kolom editable kumulatif (cth: G2=40+g1 atau formula =G3+13)
+export function isCumulativeCol(col?: ColumnSchema | null): boolean {
+  if (!col) return false;
+  if ((col as any).is_cumulative) return true;
+  const formula = (col.formula || "").trim();
+  const letter = (col.col_letter || "").trim().toUpperCase();
+  if (!formula || !letter) return false;
+  // Format formula cth: =G3+13, =G2+11, =H3+13, =G+13, =G+
+  const regex = new RegExp(`^=?\\s*${letter}\\d*\\s*\\+`, "i");
+  return regex.test(formula);
+}
+
+// Helper kalkulasi kolom kumulatif berjenjang: i = input + (i-1)
+export const recalculateCumulativeRows = (
+  rows: RowData[],
+  columns: ColumnSchema[],
+): RowData[] => {
+  if (!rows || rows.length === 0 || !columns || columns.length === 0) return rows;
+
+  const cumCols = columns.filter((c) => isCumulativeCol(c));
+  if (cumCols.length === 0) return rows;
+
+  const newRows = rows.map((r) => ({
+    ...r,
+    cells: { ...r.cells },
+  }));
+
+  cumCols.forEach((col) => {
+    let runningTotal = 0;
+    for (let i = 0; i < newRows.length; i++) {
+      const inputKey = `${col.key}_input`;
+      const hasInput =
+        newRows[i].cells[inputKey] !== undefined &&
+        newRows[i].cells[inputKey] !== null &&
+        newRows[i].cells[inputKey] !== "";
+
+      let monthlyDelta = 0;
+      if (hasInput) {
+        monthlyDelta = parseFloat(String(newRows[i].cells[inputKey])) || 0;
+      } else {
+        const currentVal =
+          newRows[i].cells[col.key] !== undefined &&
+          newRows[i].cells[col.key] !== null &&
+          newRows[i].cells[col.key] !== ""
+            ? parseFloat(String(newRows[i].cells[col.key])) || 0
+            : 0;
+
+        if (i === 0) {
+          monthlyDelta = currentVal;
+        } else {
+          monthlyDelta =
+            currentVal >= runningTotal && runningTotal > 0
+              ? currentVal - runningTotal
+              : currentVal;
+        }
+      }
+
+      runningTotal += monthlyDelta;
+      newRows[i].cells[col.key] = runningTotal;
+    }
+  });
+
+  return newRows;
+};
+
 // Helper evaluasi dan kalkulasi formula otomatis per baris data
 export const recalculateRowFormulas = (
   cells: Record<string, any>,
@@ -781,7 +847,12 @@ export default function TestLocalTableKatim() {
       if (d.active_tab) {
         setSelectedTabId(d.active_tab.id);
         const cols = d.active_tab.columns_schema || [];
-        const rows = (d.active_tab.rows_data || []).map((r: any) => ({
+        let rows = (d.active_tab.rows_data || []).map((r: any) => ({
+          ...r,
+          cells: r.cells || {},
+        }));
+        rows = recalculateCumulativeRows(rows, cols);
+        rows = rows.map((r: any) => ({
           ...r,
           cells: recalculateRowFormulas(r.cells || {}, cols),
         }));
@@ -993,36 +1064,58 @@ export default function TestLocalTableKatim() {
 
     const targetIdx = rowIdx !== undefined ? rowIdx : rowId;
 
+    const targetCol = effectiveColumnsSchema.find((c) => c.key === colKey);
+    const isCum = targetCol ? isCumulativeCol(targetCol) : false;
+
     // Update state activeTab lokal
     setActiveTab((prev) => {
       if (!prev) return prev;
-      return {
-        ...prev,
-        rows_data: prev.rows_data.map((r, idx) => {
-          const rKey =
-            r.month !== undefined && r.month !== null && r.month !== 0
-              ? r.month
-              : r.row_index !== undefined
-                ? r.row_index
-                : idx;
-          if (
-            rKey === rowId ||
-            (rowIdx !== undefined && (r.row_index === rowIdx || idx === rowIdx))
-          ) {
-            const updatedCells = recalculateRowFormulas(
-              {
-                ...r.cells,
-                [colKey]: parsedVal,
-              },
-              effectiveColumnsSchema,
-            );
+      let newRows = prev.rows_data.map((r, idx) => {
+        const rKey =
+          r.month !== undefined && r.month !== null && r.month !== 0
+            ? r.month
+            : r.row_index !== undefined
+              ? r.row_index
+              : idx;
+        if (
+          rKey === rowId ||
+          (rowIdx !== undefined && (r.row_index === rowIdx || idx === rowIdx))
+        ) {
+          if (isCum) {
             return {
               ...r,
-              cells: updatedCells,
+              cells: {
+                ...r.cells,
+                [`${colKey}_input`]: parsedVal,
+              },
             };
           }
-          return r;
-        }),
+          const updatedCells = recalculateRowFormulas(
+            {
+              ...r.cells,
+              [colKey]: parsedVal,
+            },
+            effectiveColumnsSchema,
+          );
+          return {
+            ...r,
+            cells: updatedCells,
+          };
+        }
+        return r;
+      });
+
+      if (isCum) {
+        newRows = recalculateCumulativeRows(newRows, effectiveColumnsSchema);
+        newRows = newRows.map((r) => ({
+          ...r,
+          cells: recalculateRowFormulas(r.cells, effectiveColumnsSchema),
+        }));
+      }
+
+      return {
+        ...prev,
+        rows_data: newRows,
       };
     });
 
@@ -1079,6 +1172,26 @@ export default function TestLocalTableKatim() {
     if (!activeTab || typeof rawVal !== "string") return;
     const trimmed = rawVal.trim();
     if (!trimmed) return;
+
+    // 0. Kolom editable kumulatif bulanan (cth: G2=40+g1):
+    // Cukup input angka penambahan bulan ini (misal 40 atau +40 atau =+40 atau =G1+40),
+    // sistem otomatis mencatat input dan menjumlahkannya dengan baris bulan sebelumnya: i = input + (i-1)
+    if (isCumulativeCol(col) && rowIdxNum !== undefined) {
+      let delta = 0;
+      let clean = trimmed;
+      if (clean.startsWith("=")) clean = clean.slice(1).trim();
+      if (clean.startsWith("+")) clean = clean.slice(1).trim();
+
+      const colPrevMatch = clean.match(/^[A-Za-z]+\d*\s*\+\s*([\d\.]+)$/);
+      if (colPrevMatch) {
+        delta = parseFloat(colPrevMatch[1]);
+      } else if (!isNaN(Number(clean))) {
+        delta = Number(clean);
+      }
+
+      handleCellChange(rowId, col.key, delta, rowIdxNum);
+      return;
+    }
 
     // 1. Jika mengandung koma desimal Indonesia (cth: 99,71 -> 99.71)
     if (trimmed.includes(",") && !trimmed.includes(".")) {
@@ -3817,63 +3930,97 @@ export default function TestLocalTableKatim() {
                                       className="w-full rounded-lg px-2.5 py-1.5 text-xs border border-slate-200 bg-white text-slate-900 leading-tight focus:ring-1 focus:outline-none focus:border-emerald-600 focus:ring-emerald-600 resize-y font-medium"
                                     />
                                   ) : (
-                                    <input
-                                      type="text"
-                                      inputMode="decimal"
-                                      value={val}
-                                    onChange={(e) =>
-                                      handleCellChange(
-                                        Number(rowKey),
-                                        col.key,
-                                        e.target.value,
-                                        rowIdxNum,
-                                      )
-                                    }
-                                    onBlur={(e) =>
-                                      handleCellBlur(
-                                        Number(rowKey),
-                                        col,
-                                        e.target.value,
-                                        rowIdxNum,
-                                      )
-                                    }
-                                    onWheel={(e) =>
-                                      (e.target as HTMLElement).blur()
-                                    }
-                                    placeholder={getCellPlaceholder(col, rowIdxNum)}
-                                    title={
-                                      col.col_letter === "F" ||
-                                      (col.label || "")
-                                        .toLowerCase()
-                                        .includes("target sampel")
-                                        ? "Target Sampel: Masukkan nilai exact (misal 16)"
-                                        : col.col_letter === "G" &&
-                                            (col.label || "")
-                                              .toLowerCase()
-                                              .includes("target indikator")
-                                          ? "Target Indikator (%): Masukkan nilai exact target (misal 99.71)"
-                                          : ["G", "H", "J", "K", "M", "N"].includes(
-                                                (col.col_letter || "").toUpperCase(),
-                                              ) ||
-                                              (col.label || "")
-                                                .toLowerCase()
-                                                .includes("sarana") ||
-                                              (col.label || "")
-                                                .toLowerCase()
-                                                .includes("renlak")
-                                            ? `Masukkan nilai exact kumulatif (misal 24) atau formula penjumlahan dari bulan sebelumnya (misal =+11 atau =${(col.col_letter || "G").toUpperCase()}${rowIdxNum ? rowIdxNum + 1 : 2}+11)`
-                                            : col.col_letter
-                                              ? `Masukkan nilai exact atau formula penjumlahan (misal =+5 atau =${col.col_letter.toUpperCase()}${rowIdxNum ? rowIdxNum + 1 : 2}+5)`
-                                              : "Masukkan angka"
-                                    }
-                                    className={`w-full rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                      isQuestionRow
-                                        ? "border border-blue-300 bg-white text-blue-950 focus:border-blue-600 focus:ring-blue-600 font-semibold text-right"
-                                        : "border border-slate-200 bg-white text-slate-900 focus:border-emerald-600 focus:ring-emerald-600 font-medium"
-                                    }`}
-                                  />
-                                )}
-                                </td>
+                                    (() => {
+                                      const isCum = isCumulativeCol(col);
+                                      const rawInput = row.cells?.[col.key + "_input"];
+                                      const cellVal = row.cells?.[col.key];
+                                      const prevVal =
+                                        activeTab?.rows_data && rowIdxNum !== undefined && rowIdxNum > 0
+                                          ? Number(activeTab.rows_data[rowIdxNum - 1]?.cells?.[col.key] || 0)
+                                          : 0;
+                                      const displayVal = isCum
+                                        ? (rawInput !== undefined && rawInput !== null && rawInput !== ""
+                                            ? rawInput
+                                            : (rowIdxNum === 0
+                                                ? cellVal
+                                                : (Number(cellVal) >= prevVal && prevVal > 0
+                                                    ? Number(cellVal) - prevVal
+                                                    : cellVal)))
+                                        : val;
+                                      const cumulativeVal = isCum ? (cellVal ?? displayVal) : null;
+
+                                      return (
+                                        <div>
+                                          <input
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={displayVal ?? ""}
+                                            onChange={(e) =>
+                                              handleCellChange(
+                                                Number(rowKey),
+                                                col.key,
+                                                e.target.value,
+                                                rowIdxNum,
+                                              )
+                                            }
+                                            onBlur={(e) =>
+                                              handleCellBlur(
+                                                Number(rowKey),
+                                                col,
+                                                e.target.value,
+                                                rowIdxNum,
+                                              )
+                                            }
+                                            onWheel={(e) =>
+                                              (e.target as HTMLElement).blur()
+                                            }
+                                            placeholder={isCum ? "Input angka bulan ini" : getCellPlaceholder(col, rowIdxNum)}
+                                            title={
+                                              isCum
+                                                ? "Kolom kumulatif: Masukkan angka penambahan bulan ini (otomatis dijumlahkan dengan bulan lalu)"
+                                                : col.col_letter === "F" ||
+                                                  (col.label || "")
+                                                    .toLowerCase()
+                                                    .includes("target sampel")
+                                                ? "Target Sampel: Masukkan nilai exact (misal 16)"
+                                                : col.col_letter === "G" &&
+                                                    (col.label || "")
+                                                      .toLowerCase()
+                                                      .includes("target indikator")
+                                                  ? "Target Indikator (%): Masukkan nilai exact target (misal 99.71)"
+                                                  : ["G", "H", "J", "K", "M", "N"].includes(
+                                                        (col.col_letter || "").toUpperCase(),
+                                                      ) ||
+                                                      (col.label || "")
+                                                        .toLowerCase()
+                                                        .includes("sarana") ||
+                                                      (col.label || "")
+                                                        .toLowerCase()
+                                                        .includes("renlak")
+                                                    ? `Masukkan nilai exact kumulatif (misal 24) atau formula penjumlahan dari bulan sebelumnya (misal =+11 atau =${(col.col_letter || "G").toUpperCase()}${rowIdxNum ? rowIdxNum + 1 : 2}+11)`
+                                                    : col.col_letter
+                                                      ? `Masukkan nilai exact atau formula penjumlahan (misal =+5 atau =${col.col_letter.toUpperCase()}${rowIdxNum ? rowIdxNum + 1 : 2}+5)`
+                                                      : "Masukkan angka"
+                                            }
+                                            className={`w-full rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                              isQuestionRow
+                                                ? "border border-blue-300 bg-white text-blue-950 focus:border-blue-600 focus:ring-blue-600 font-semibold text-right"
+                                                : "border border-slate-200 bg-white text-slate-900 focus:border-emerald-600 focus:ring-emerald-600 font-medium"
+                                            }`}
+                                          />
+                                          {isCum && rowIdxNum !== undefined && rowIdxNum > 0 && (
+                                            <div className="mt-1 flex items-center justify-between px-1 text-[10px] text-slate-500 font-mono">
+                                              <span className="text-[9px] text-slate-400">Kumulatif:</span>
+                                              <span className="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1 py-0.5 rounded text-[10px]" title="Hasil penjumlahan otomatis dari input bulan ini + total bulan sebelumnya">
+                                                ∑ {cumulativeVal}
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })()
+                                  )}
+                                  </td>
                               );
                             }
 
