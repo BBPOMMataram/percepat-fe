@@ -2229,7 +2229,14 @@ export default function TestLocalTableKatim() {
   const effectiveColumnsSchema = useMemo<ColumnSchema[]>(() => {
     if (activeTab?.columns_schema && activeTab.columns_schema.length > 0) {
       return activeTab.columns_schema
-        .filter((c) => !c.hidden && !(c as any).is_hidden)
+        .filter((c) => {
+          if (c.hidden || (c as any).is_hidden) return false;
+          const isKlb = (activeTab?.title || "").toLowerCase().includes("klb") || activeTab?.id === 90;
+          if (isKlb && c.label?.trim().toLowerCase() === "pic") {
+            return false;
+          }
+          return true;
+        })
         .map((c) => ({
         ...c,
         parent_header:
@@ -3174,46 +3181,11 @@ export default function TestLocalTableKatim() {
                     <div />
                   )}
 
-                  {/* Tombol Aksi Tabel Vertikal: Template Excel, Import Excel & Tambah Baris */}
+                  {/* Tombol Aksi Tabel Vertikal: Tambah Baris */}
                   {!isHorizontalMonthTable &&
                     !spreadsheets.find((s) => s.id === selectedSpId)
                       ?.is_readonly && (
                       <div className="flex flex-wrap items-center gap-2 ml-auto">
-                        {/* Tombol Unduh Template Excel */}
-                        <button
-                          type="button"
-                          onClick={handleDownloadExcelTemplate}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 shadow-2xs"
-                          title="Unduh format template Excel sesuai susunan kolom tab ini"
-                        >
-                          <Icon
-                            icon="ri:file-excel-2-fill"
-                            width={14}
-                            className="text-emerald-600"
-                          />
-                          <span>Template Excel</span>
-                        </button>
-
-                        {/* Tombol Import Excel */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setExcelFile(null);
-                            setExcelParsedRows([]);
-                            setExcelError(null);
-                            setShowExcelModal(true);
-                          }}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-800 transition hover:bg-blue-100 shadow-2xs"
-                          title="Import banyak data sekaligus dari file Excel (.xlsx / .csv)"
-                        >
-                          <Icon
-                            icon="solar:upload-track-bold"
-                            width={14}
-                            className="text-blue-700"
-                          />
-                          <span>Import Excel</span>
-                        </button>
-
                         {/* Tombol Tambah Baris */}
                         <button
                           type="button"
@@ -3392,6 +3364,21 @@ export default function TestLocalTableKatim() {
                 </div>
               </div>
             )}
+
+            {/* Keterangan Status Isian Baris (Ringkas) */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-slate-50/70 px-4 py-2 text-[11px] text-slate-600">
+              <div className="flex items-center gap-4 flex-wrap">
+                <span className="font-semibold text-slate-700">Keterangan:</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-rose-200 shrink-0" />
+                  <span className="text-slate-600 font-medium">Belum diisi / belum diperbarui</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Icon icon="solar:check-circle-bold" width={14} className="text-emerald-600 shrink-0" />
+                  <span className="text-slate-600 font-medium">Sudah diisi</span>
+                </div>
+              </div>
+            </div>
 
             <div
               id="main-rhpk-table-container"
@@ -4170,15 +4157,21 @@ export default function TestLocalTableKatim() {
                                   <div className="flex items-center gap-1.5 flex-wrap">
                                     <span>{val !== "" ? String(val) : "-"}</span>
                                     {showStatusBadge && (
-                                      <span
-                                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${
-                                          isRowFilled
-                                            ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                                            : "bg-rose-100 text-rose-700 border border-rose-300"
-                                        }`}
-                                      >
-                                        {isRowFilled ? "✓ Terisi" : "Belum Diisi"}
-                                      </span>
+                                      isRowFilled ? (
+                                        <span
+                                          className="inline-flex items-center text-emerald-600 shrink-0"
+                                          title="Baris ini sudah diisi / terisi"
+                                        >
+                                          <Icon icon="solar:check-circle-bold" width={14} />
+                                        </span>
+                                      ) : (
+                                        <span
+                                          className="inline-flex items-center shrink-0"
+                                          title="Baris ini belum diisi"
+                                        >
+                                          <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-rose-200" />
+                                        </span>
+                                      )
                                     )}
                                   </div>
                                   {showLockedBadge && (

@@ -285,7 +285,14 @@ export default function TestLocalTablePic() {
   const effectiveColumnsSchema = useMemo<ColumnSchema[]>(() => {
     if (!activeTab?.columns_schema || activeTab.columns_schema.length === 0) return [];
     return activeTab.columns_schema
-      .filter((c) => !c.hidden && !(c as any).is_hidden)
+      .filter((c) => {
+        if (c.hidden || (c as any).is_hidden) return false;
+        const isKlb = (activeTab?.title || "").toLowerCase().includes("klb") || activeTab?.id === 90;
+        if (isKlb && c.label?.trim().toLowerCase() === "pic") {
+          return false;
+        }
+        return true;
+      })
       .map((c) => ({
       ...c,
       parent_header:
