@@ -35,6 +35,9 @@ type ColumnSchema = {
   allowed_katim_ids: string[];
   parent_header?: string | null;
   sub_label?: string | null;
+  sub_parent?: string | null;
+  hidden?: boolean;
+  is_hidden?: boolean;
 };
 
 type RowData = {
@@ -278,10 +281,12 @@ export default function TestLocalTablePic() {
     return spreadsheets.find((s) => s.id === selectedSpId) || null;
   }, [spreadsheets, selectedSpId]);
 
-  // Pastikan kolom bertingkat dan sub-label tetap terdeteksi dengan baik
+  // Pastikan kolom bertingkat dan sub-label tetap terdeteksi dengan baik (sembunyikan kolom hidden)
   const effectiveColumnsSchema = useMemo<ColumnSchema[]>(() => {
     if (!activeTab?.columns_schema || activeTab.columns_schema.length === 0) return [];
-    return activeTab.columns_schema.map((c) => ({
+    return activeTab.columns_schema
+      .filter((c) => !c.hidden && !(c as any).is_hidden)
+      .map((c) => ({
       ...c,
       parent_header:
         c.parent_header ||

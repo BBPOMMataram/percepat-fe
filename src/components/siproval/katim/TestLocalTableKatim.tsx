@@ -42,6 +42,8 @@ type ColumnSchema = {
   parent_header?: string | null;
   sub_label?: string | null;
   sub_parent?: string | null;
+  hidden?: boolean;
+  is_hidden?: boolean;
 };
 
 type RowData = {
@@ -2223,10 +2225,12 @@ export default function TestLocalTableKatim() {
 
   // getMonthNumberFromText is defined at module level above
 
-  // Pastikan tabel yang belum memiliki konfigurasi tetap menampilkan seluruh kolom
+  // Pastikan tabel yang belum memiliki konfigurasi tetap menampilkan seluruh kolom (dan menyembunyikan kolom hidden)
   const effectiveColumnsSchema = useMemo<ColumnSchema[]>(() => {
     if (activeTab?.columns_schema && activeTab.columns_schema.length > 0) {
-      return activeTab.columns_schema.map((c) => ({
+      return activeTab.columns_schema
+        .filter((c) => !c.hidden && !(c as any).is_hidden)
+        .map((c) => ({
         ...c,
         parent_header:
           (c as any).parent_header ||
