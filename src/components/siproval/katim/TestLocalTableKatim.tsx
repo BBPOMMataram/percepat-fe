@@ -481,7 +481,8 @@ export const recalculateCumulativeRows = (
   rows: RowData[],
   columns: ColumnSchema[],
 ): RowData[] => {
-  if (!rows || rows.length === 0 || !columns || columns.length === 0) return rows;
+  if (!rows || rows.length === 0 || !columns || columns.length === 0)
+    return rows;
 
   const cumCols = columns.filter((c) => isCumulativeCol(c));
   if (cumCols.length === 0) return rows;
@@ -752,10 +753,15 @@ export default function TestLocalTableKatim() {
     rowIndex: number;
     monthName: string;
     col: ColumnSchema;
-    contributors: Record<string, { user_id: string; author: string; value: number; updated_at?: string }>;
+    contributors: Record<
+      string,
+      { user_id: string; author: string; value: number; updated_at?: string }
+    >;
     myValue: string;
+    canEdit: boolean;
   }
-  const [collabNumModal, setCollabNumModal] = useState<CollabNumModalState | null>(null);
+  const [collabNumModal, setCollabNumModal] =
+    useState<CollabNumModalState | null>(null);
 
   // Modal validasi Kendala & RTL wajib diisi saat simpan perubahan
   const [validationModal, setValidationModal] =
@@ -832,13 +838,18 @@ export default function TestLocalTableKatim() {
       const qIksk = effectiveIkskId ? `&iksk_id=${effectiveIkskId}` : "";
 
       // Ketika beralih IKSK, spId & tId diset null sehingga tidak memakai fallback spreadsheet/tab lama
-      const isSwitchingIksk = (ikskId !== undefined && ikskId !== null && ikskId !== selectedIkskId);
+      const isSwitchingIksk =
+        ikskId !== undefined && ikskId !== null && ikskId !== selectedIkskId;
       const effectiveSpId =
         spId !== undefined
           ? spId
           : isSwitchingIksk
             ? null
-            : (selectedSpId !== null ? selectedSpId : (paramSpreadsheetId ? Number(paramSpreadsheetId) : null));
+            : selectedSpId !== null
+              ? selectedSpId
+              : paramSpreadsheetId
+                ? Number(paramSpreadsheetId)
+                : null;
       const qSp = effectiveSpId ? `&spreadsheet_id=${effectiveSpId}` : "";
 
       const effectiveTabId =
@@ -846,7 +857,11 @@ export default function TestLocalTableKatim() {
           ? tId
           : isSwitchingIksk
             ? null
-            : (selectedTabId !== null ? selectedTabId : (paramTabId ? Number(paramTabId) : null));
+            : selectedTabId !== null
+              ? selectedTabId
+              : paramTabId
+                ? Number(paramTabId)
+                : null;
       const qTab = effectiveTabId ? `&tab_id=${effectiveTabId}` : "";
 
       const res = await api.get(
@@ -1162,8 +1177,10 @@ export default function TestLocalTableKatim() {
           r.is_total ||
           r.row_name === "Total" ||
           r.cells?.col_0 === "Total" ||
-          (typeof r.cells?.col_0 === "string" && r.cells.col_0.toLowerCase() === "total") ||
-          (typeof r.cells?.col_1 === "string" && r.cells.col_1.toLowerCase() === "total"),
+          (typeof r.cells?.col_0 === "string" &&
+            r.cells.col_0.toLowerCase() === "total") ||
+          (typeof r.cells?.col_1 === "string" &&
+            r.cells.col_1.toLowerCase() === "total"),
       );
       if (totalIdx !== -1) {
         const totalRow = {
@@ -1171,12 +1188,21 @@ export default function TestLocalTableKatim() {
           cells: { ...newRows[totalIdx].cells },
         };
         effectiveColumnsSchema.forEach((col) => {
-          if (col.key === "col_0" || (col.key === "col_1" && isNaN(Number(newRows[0]?.cells?.[col.key])))) return;
+          if (
+            col.key === "col_0" ||
+            (col.key === "col_1" && isNaN(Number(newRows[0]?.cells?.[col.key])))
+          )
+            return;
           let sum = 0;
           let hasNum = false;
           for (let r = 0; r < totalIdx; r++) {
             const v = newRows[r]?.cells?.[col.key];
-            if (v !== undefined && v !== null && v !== "" && !isNaN(Number(v))) {
+            if (
+              v !== undefined &&
+              v !== null &&
+              v !== "" &&
+              !isNaN(Number(v))
+            ) {
               sum += Number(v);
               hasNum = true;
             }
@@ -1222,7 +1248,9 @@ export default function TestLocalTableKatim() {
 
     if (rowIdx !== undefined && rowIdx > 0 && isCumulative) {
       const prevExcelRow = rowIdx + 1;
-      return letter ? `Cth: 80 (atau =+13 atau =${letter}${prevExcelRow}+13)` : "Cth: 80";
+      return letter
+        ? `Cth: 80 (atau =+13 atau =${letter}${prevExcelRow}+13)`
+        : "Cth: 80";
     }
 
     if (letter === "F" || l.includes("target sampel")) {
@@ -1280,9 +1308,15 @@ export default function TestLocalTableKatim() {
     // 2. Input diawali '+' (cth: +13 atau + 13) -> penjumlahan langsung dari bulan sebelumnya
     if (/^\+\s*[\d\.]+$/.test(trimmed)) {
       const addend = parseFloat(trimmed.replace("+", "").trim());
-      const prevRIdx = rowIdxNum !== undefined ? rowIdxNum - 1 : (rowId > 1 ? rowId - 2 : -1);
-      const prevRow = prevRIdx >= 0 && activeTab.rows_data ? activeTab.rows_data[prevRIdx] : null;
-      const baseVal = prevRow ? parseFloat(String(prevRow.cells?.[col.key] || 0)) || 0 : 0;
+      const prevRIdx =
+        rowIdxNum !== undefined ? rowIdxNum - 1 : rowId > 1 ? rowId - 2 : -1;
+      const prevRow =
+        prevRIdx >= 0 && activeTab.rows_data
+          ? activeTab.rows_data[prevRIdx]
+          : null;
+      const baseVal = prevRow
+        ? parseFloat(String(prevRow.cells?.[col.key] || 0)) || 0
+        : 0;
       const finalRes = Math.round((baseVal + addend) * 100) / 100;
       handleCellChange(rowId, col.key, finalRes, rowIdxNum);
       return;
@@ -1301,26 +1335,40 @@ export default function TestLocalTableKatim() {
       // Cek formula penjumlahan langsung dari bulan sebelumnya (cth: =+13 atau =-5)
       if (/^[\+\-]\s*[\d\.]+$/.test(expr)) {
         const delta = parseFloat(expr);
-        const prevRIdx = rowIdxNum !== undefined ? rowIdxNum - 1 : (rowId > 1 ? rowId - 2 : -1);
-        const prevRow = prevRIdx >= 0 && activeTab.rows_data ? activeTab.rows_data[prevRIdx] : null;
-        const baseVal = prevRow ? parseFloat(String(prevRow.cells?.[col.key] || 0)) || 0 : 0;
+        const prevRIdx =
+          rowIdxNum !== undefined ? rowIdxNum - 1 : rowId > 1 ? rowId - 2 : -1;
+        const prevRow =
+          prevRIdx >= 0 && activeTab.rows_data
+            ? activeTab.rows_data[prevRIdx]
+            : null;
+        const baseVal = prevRow
+          ? parseFloat(String(prevRow.cells?.[col.key] || 0)) || 0
+          : 0;
         const finalRes = Math.round((baseVal + delta) * 100) / 100;
         handleCellChange(rowId, col.key, finalRes, rowIdxNum);
         return;
       }
 
       // Cek formula tanpa nomor baris (cth: =G+13 atau =F+9) -> mengacu ke kolom tersebut di baris sebelumnya
-      const colOnlyMatch = expr.match(/^([A-Za-z]+)(?:\s*([\+\-\*/])\s*([\d\.]+))?$/);
+      const colOnlyMatch = expr.match(
+        /^([A-Za-z]+)(?:\s*([\+\-\*/])\s*([\d\.]+))?$/,
+      );
       if (colOnlyMatch && !expr.match(/^[A-Za-z]+\d+/)) {
         const [, targetLetter, op, operandStr] = colOnlyMatch;
         const operand = operandStr !== undefined ? parseFloat(operandStr) : 0;
-        const prevRIdx = rowIdxNum !== undefined ? rowIdxNum - 1 : (rowId > 1 ? rowId - 2 : -1);
-        const prevRow = prevRIdx >= 0 && activeTab.rows_data ? activeTab.rows_data[prevRIdx] : null;
+        const prevRIdx =
+          rowIdxNum !== undefined ? rowIdxNum - 1 : rowId > 1 ? rowId - 2 : -1;
+        const prevRow =
+          prevRIdx >= 0 && activeTab.rows_data
+            ? activeTab.rows_data[prevRIdx]
+            : null;
         const targetCol = effectiveColumnsSchema.find(
           (c) => c.col_letter?.toUpperCase() === targetLetter.toUpperCase(),
         );
         if (targetCol) {
-          const baseVal = prevRow ? parseFloat(String(prevRow.cells?.[targetCol.key] || 0)) || 0 : 0;
+          const baseVal = prevRow
+            ? parseFloat(String(prevRow.cells?.[targetCol.key] || 0)) || 0
+            : 0;
           let res = baseVal;
           if (op === "+") res = baseVal + operand;
           else if (op === "-") res = baseVal - operand;
@@ -1349,9 +1397,8 @@ export default function TestLocalTableKatim() {
         );
 
         if (targetRow && targetCol) {
-          const baseVal = parseFloat(
-            String(targetRow.cells?.[targetCol.key] || 0),
-          ) || 0;
+          const baseVal =
+            parseFloat(String(targetRow.cells?.[targetCol.key] || 0)) || 0;
           let res = baseVal;
           if (op === "+") res = baseVal + operand;
           else if (op === "-") res = baseVal - operand;
@@ -1371,7 +1418,12 @@ export default function TestLocalTableKatim() {
         if (sanitized === expr) {
           const res = Function(`"use strict"; return (${expr})`)();
           if (typeof res === "number" && !isNaN(res) && isFinite(res)) {
-            handleCellChange(rowId, col.key, Math.round(res * 100) / 100, rowIdxNum);
+            handleCellChange(
+              rowId,
+              col.key,
+              Math.round(res * 100) / 100,
+              rowIdxNum,
+            );
             return;
           }
         }
@@ -2015,6 +2067,7 @@ export default function TestLocalTableKatim() {
     row: any,
     col: ColumnSchema,
     rowIndex: number,
+    canEdit: boolean = true,
   ) => {
     const rKey =
       row.month !== undefined && row.month !== null && row.month !== 0
@@ -2041,18 +2094,22 @@ export default function TestLocalTableKatim() {
       col,
       contributors: contribs,
       myValue: myExisting,
+      canEdit,
     });
   };
 
   const handleSaveCollabNumModal = async () => {
-    if (!collabNumModal || !activeTab) return;
+    if (!collabNumModal || !activeTab || !collabNumModal.canEdit) return;
     const { col, rowKey, rowIndex, contributors, myValue } = collabNumModal;
-    const myId = user?.id ? String(user.id) : (isPicUser ? "pic" : "katim_me");
+    const myId = user?.id ? String(user.id) : isPicUser ? "pic" : "katim_me";
     const myName =
       user?.name || user?.call_name || (isPicUser ? "PIC Balai" : "Katim");
     const numVal = parseFloat(String(myValue).replace(",", ".")) || 0;
 
-    const updatedContribs: Record<string, { user_id: string; author: string; value: number; updated_at?: string }> = {
+    const updatedContribs: Record<
+      string,
+      { user_id: string; author: string; value: number; updated_at?: string }
+    > = {
       ...contributors,
       [myId]: {
         user_id: myId,
@@ -2113,13 +2170,22 @@ export default function TestLocalTableKatim() {
         },
       );
       if (res.data?.data?.rows_data) {
-        setActiveTab((prev) => (prev ? { ...prev, rows_data: res.data.data.rows_data } : prev));
+        setActiveTab((prev) =>
+          prev ? { ...prev, rows_data: res.data.data.rows_data } : prev,
+        );
       }
       setSuccessMsg(
         `Kontribusi angka untuk ${col.label} (${collabNumModal.monthName}) berhasil disimpan! ${isCum ? "Total kumulatif dihitung otomatis." : `Total: ${totalMonthSum}`}`,
       );
     } catch (err: any) {
       console.error("Gagal simpan kontribusi angka:", err);
+      const errMsg =
+        err.response?.data?.message ||
+        "Gagal menyimpan kontribusi angka. Periode mungkin telah dikunci oleh Administrator/TU.";
+      setErrorMsg(errMsg);
+      if (activeTab?.id) {
+        fetchTableData(activeTab.id, false);
+      }
     }
 
     setCollabNumModal(null);
@@ -2338,28 +2404,30 @@ export default function TestLocalTableKatim() {
       return activeTab.columns_schema
         .filter((c) => {
           if (c.hidden || (c as any).is_hidden) return false;
-          const isKlb = (activeTab?.title || "").toLowerCase().includes("klb") || activeTab?.id === 90;
+          const isKlb =
+            (activeTab?.title || "").toLowerCase().includes("klb") ||
+            activeTab?.id === 90;
           if (isKlb && c.label?.trim().toLowerCase() === "pic") {
             return false;
           }
           return true;
         })
         .map((c) => ({
-        ...c,
-        parent_header:
-          (c as any).parent_header ||
-          (c.label && c.label.includes(" - ")
-            ? c.label.split(" - ")[0].trim()
-            : null),
-        sub_label:
-          (c as any).sub_label ||
-          (c.label && c.label.includes(" - ")
-            ? c.label.split(" - ").slice(1).join(" - ").trim()
-            : c.label),
-        is_collaborative: isCollaborativeCol(c),
-        is_kendala: isKendalaCol(c.label),
-        is_rtl: isRtlCol(c.label),
-      }));
+          ...c,
+          parent_header:
+            (c as any).parent_header ||
+            (c.label && c.label.includes(" - ")
+              ? c.label.split(" - ")[0].trim()
+              : null),
+          sub_label:
+            (c as any).sub_label ||
+            (c.label && c.label.includes(" - ")
+              ? c.label.split(" - ").slice(1).join(" - ").trim()
+              : c.label),
+          is_collaborative: isCollaborativeCol(c),
+          is_kendala: isKendalaCol(c.label),
+          is_rtl: isRtlCol(c.label),
+        }));
     }
     if (activeTab?.rows_data && activeTab.rows_data.length > 0) {
       const firstCells = activeTab.rows_data[0].cells || {};
@@ -2680,7 +2748,7 @@ export default function TestLocalTableKatim() {
   }, [headerGroups, isHorizontalMonthTable, selectedMonthFilter]);
 
   // Deteksi jumlah dan style kolom sticky freeze kiri
-    // Deteksi tab bertema cyan seperti KLB KP (sesuai template Excel asli)
+  // Deteksi tab bertema cyan seperti KLB KP (sesuai template Excel asli)
   const isCyanHeader = useMemo(() => {
     const title = (activeTab?.title || "").toLowerCase();
     return title.includes("klb") || activeTab?.id === 90;
@@ -2693,12 +2761,22 @@ export default function TestLocalTableKatim() {
 
   const getColWidthStyle = (col: ColumnSchema) => {
     const label = (col.label || "").toLowerCase();
-    if (col.col_letter === "A" || label.includes("periode")) return "w-[130px] min-w-[130px]";
-    if (col.col_letter === "B" || label === "upt") return "w-[140px] min-w-[140px]";
-    if (col.col_letter === "C" && label === "pic") return "w-[65px] min-w-[65px]";
-    if (col.col_letter === "D" || label.includes("identitas")) return "w-[300px] min-w-[280px]";
-    if (label.includes("kendala") || label.includes("tindak lanjut")) return "w-[300px] min-w-[280px]";
-    if (label.includes("justifikasi") || label.includes("dukung") || label.includes("verifikasi")) return "w-[180px] min-w-[160px]";
+    if (col.col_letter === "A" || label.includes("periode"))
+      return "w-[130px] min-w-[130px]";
+    if (col.col_letter === "B" || label === "upt")
+      return "w-[140px] min-w-[140px]";
+    if (col.col_letter === "C" && label === "pic")
+      return "w-[65px] min-w-[65px]";
+    if (col.col_letter === "D" || label.includes("identitas"))
+      return "w-[300px] min-w-[280px]";
+    if (label.includes("kendala") || label.includes("tindak lanjut"))
+      return "w-[300px] min-w-[280px]";
+    if (
+      label.includes("justifikasi") ||
+      label.includes("dukung") ||
+      label.includes("verifikasi")
+    )
+      return "w-[180px] min-w-[160px]";
     return "min-w-[110px]";
   };
 
@@ -2771,7 +2849,9 @@ export default function TestLocalTableKatim() {
       activeTab?.id === 135 ||
       activeTab?.id === 136 ||
       activeTab?.id === 160 ||
-      (displayedHeaderGroups && !displayedHeaderGroups[0]?.parent && displayedHeaderGroups[0].cols.length > 1)
+      (displayedHeaderGroups &&
+        !displayedHeaderGroups[0]?.parent &&
+        displayedHeaderGroups[0].cols.length > 1)
     ) {
       return {
         count: 2,
@@ -2788,7 +2868,11 @@ export default function TestLocalTableKatim() {
     }
 
     // Header grup 1 kolom
-    if (displayedHeaderGroups && !displayedHeaderGroups[0]?.parent && displayedHeaderGroups[0].cols.length === 1) {
+    if (
+      displayedHeaderGroups &&
+      !displayedHeaderGroups[0]?.parent &&
+      displayedHeaderGroups[0].cols.length === 1
+    ) {
       return {
         count: 1,
         getClasses: (cIdx: number, isHeader: boolean, bgClass?: string) => {
@@ -2917,9 +3001,17 @@ export default function TestLocalTableKatim() {
                   className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-white px-4 py-2.5 text-xs font-bold text-emerald-800 shadow-xs hover:bg-emerald-50 transition"
                   title="Unduh file Excel dokumen RHPK lengkap dengan format Tanda Tangan Kabalai"
                 >
-                  <Icon icon="solar:file-download-bold" width={16} className="text-emerald-600" />
+                  <Icon
+                    icon="solar:file-download-bold"
+                    width={16}
+                    className="text-emerald-600"
+                  />
                   <span>Unduh Excel (RHPK)</span>
-                  <Icon icon="solar:alt-arrow-down-linear" width={14} className="text-slate-400" />
+                  <Icon
+                    icon="solar:alt-arrow-down-linear"
+                    width={14}
+                    className="text-slate-400"
+                  />
                 </button>
 
                 {showExportDropdown && (
@@ -2933,7 +3025,11 @@ export default function TestLocalTableKatim() {
                       className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-lg flex flex-col gap-0.5 transition"
                     >
                       <div className="font-bold flex items-center gap-1.5">
-                        <Icon icon="solar:lock-keyhole-bold" width={13} className="text-amber-500" />
+                        <Icon
+                          icon="solar:lock-keyhole-bold"
+                          width={13}
+                          className="text-amber-500"
+                        />
                         <span>Bulan Terkunci (Final)</span>
                       </div>
                       <span className="text-[10px] text-slate-500">
@@ -2946,7 +3042,11 @@ export default function TestLocalTableKatim() {
                       className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg flex flex-col gap-0.5 transition"
                     >
                       <div className="font-bold flex items-center gap-1.5">
-                        <Icon icon="solar:calendar-bold" width={13} className="text-blue-500" />
+                        <Icon
+                          icon="solar:calendar-bold"
+                          width={13}
+                          className="text-blue-500"
+                        />
                         <span>Semua Bulan (1 - 12)</span>
                       </div>
                       <span className="text-[10px] text-slate-500">
@@ -3479,14 +3579,33 @@ export default function TestLocalTableKatim() {
             {/* Keterangan Status Isian Baris (Ringkas) */}
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-slate-50/70 px-4 py-2 text-[11px] text-slate-600">
               <div className="flex items-center gap-4 flex-wrap">
-                <span className="font-semibold text-slate-700">Keterangan:</span>
+                <span className="font-semibold text-slate-700">
+                  Keterangan:
+                </span>
                 <div className="flex items-center gap-1.5">
                   <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-rose-200 shrink-0" />
-                  <span className="text-slate-600 font-medium">Belum diisi / belum diperbarui</span>
+                  <span className="text-slate-600 font-medium">
+                    Belum diisi / belum diperbarui
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Icon icon="solar:check-circle-bold" width={14} className="text-emerald-600 shrink-0" />
-                  <span className="text-slate-600 font-medium">Sudah diisi</span>
+                  <Icon
+                    icon="solar:check-circle-bold"
+                    width={14}
+                    className="text-emerald-600 shrink-0"
+                  />
+                  <span className="text-slate-600 font-medium">
+                    Sudah diisi
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <Icon
+                    icon="solar:check-circle-bold"
+                    width={14}
+                    className="text-emerald-600 shrink-0"
+                  />
+                  <span className="text-slate-600 font-medium">Lihat</span>
                 </div>
               </div>
             </div>
@@ -3500,12 +3619,20 @@ export default function TestLocalTableKatim() {
                   {displayedHeaderGroups ? (
                     <>
                       {/* Baris 1: Header Non-Parent (rowSpan 2 atau 3) & Header Grup Utama */}
-                      <tr className={`border-b ${isCyanHeader ? "border-cyan-400 bg-cyan-300" : "border-slate-200"}`}>
+                      <tr
+                        className={`border-b ${isCyanHeader ? "border-cyan-400 bg-cyan-300" : "border-slate-200"}`}
+                      >
                         {displayedHeaderGroups.map((grp, gIdx) => {
                           if (!grp.parent) {
                             return grp.cols.map((col) => {
-                              const globalColIdx = displayedColumnsSchema.findIndex((c) => c.key === col.key);
-                              const stickyStyle = leftStickyConfig.getClasses(globalColIdx, true);
+                              const globalColIdx =
+                                displayedColumnsSchema.findIndex(
+                                  (c) => c.key === col.key,
+                                );
+                              const stickyStyle = leftStickyConfig.getClasses(
+                                globalColIdx,
+                                true,
+                              );
                               const widthCls = getColWidthStyle(col);
 
                               return (
@@ -3519,10 +3646,19 @@ export default function TestLocalTableKatim() {
                                   } ${widthCls} ${stickyStyle}`}
                                 >
                                   <div className="flex items-center justify-between gap-1 mb-1">
-                                    <span className={`font-mono text-[10px] ${isCyanHeader ? "text-cyan-800 font-bold" : "text-slate-400"}`}>
+                                    <span
+                                      className={`font-mono text-[10px] ${isCyanHeader ? "text-cyan-800 font-bold" : "text-slate-400"}`}
+                                    >
                                       [{col.col_letter}]
                                     </span>
-                                    {col.can_edit && (isPicUser || !col.allowed_katim_ids || col.allowed_katim_ids.length === 0 || col.allowed_katim_ids.some((id: string | number) => String(id) === String(user?.id))) ? (
+                                    {col.can_edit &&
+                                    (isPicUser ||
+                                      !col.allowed_katim_ids ||
+                                      col.allowed_katim_ids.length === 0 ||
+                                      col.allowed_katim_ids.some(
+                                        (id: string | number) =>
+                                          String(id) === String(user?.id),
+                                      )) ? (
                                       <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
                                         Editable
                                       </span>
@@ -3531,8 +3667,8 @@ export default function TestLocalTableKatim() {
                                         className="rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-bold text-purple-800 cursor-help"
                                         title={
                                           col.formula
-                                            ? `Rumus: ${col.formula.replace(/([A-Za-z]+)\d+/g, '$1')} (dihitung otomatis per baris)`
-                                            : 'Dihitung otomatis untuk setiap baris bulan'
+                                            ? `Rumus: ${col.formula.replace(/([A-Za-z]+)\d+/g, "$1")} (dihitung otomatis per baris)`
+                                            : "Dihitung otomatis untuk setiap baris bulan"
                                         }
                                       >
                                         Formula
@@ -3541,25 +3677,34 @@ export default function TestLocalTableKatim() {
                                       <Icon
                                         icon="solar:lock-bold"
                                         width={12}
-                                        className={isCyanHeader ? "text-cyan-700" : "text-slate-400"}
+                                        className={
+                                          isCyanHeader
+                                            ? "text-cyan-700"
+                                            : "text-slate-400"
+                                        }
                                       />
                                     )}
                                   </div>
                                   <div className="text-xs font-bold leading-tight">
                                     {col.label}
                                   </div>
-                                  {col.sub_label && col.sub_label !== col.label && (
-                                    <div className={`text-[10px] font-normal mt-0.5 ${isCyanHeader ? "text-cyan-900" : "text-slate-500"}`}>
-                                      {col.sub_label}
-                                    </div>
-                                  )}
+                                  {col.sub_label &&
+                                    col.sub_label !== col.label && (
+                                      <div
+                                        className={`text-[10px] font-normal mt-0.5 ${isCyanHeader ? "text-cyan-900" : "text-slate-500"}`}
+                                      >
+                                        {col.sub_label}
+                                      </div>
+                                    )}
                                 </th>
                               );
                             });
                           }
 
                           const mColor = getMonthColor(grp.parent);
-                          const grpMonthNum = getMonthNumberFromText(grp.parent);
+                          const grpMonthNum = getMonthNumberFromText(
+                            grp.parent,
+                          );
                           const isGrpLocked =
                             !isPicUser &&
                             grpMonthNum !== null &&
@@ -3577,7 +3722,9 @@ export default function TestLocalTableKatim() {
                             >
                               <div className="flex items-center justify-center gap-1.5">
                                 {!isCyanHeader && (
-                                  <span className={`size-2 rounded-full inline-block ${mColor.dot}`} />
+                                  <span
+                                    className={`size-2 rounded-full inline-block ${mColor.dot}`}
+                                  />
                                 )}
                                 <span>{grp.parent}</span>
                                 {isGrpLocked && (
@@ -3594,7 +3741,9 @@ export default function TestLocalTableKatim() {
 
                       {/* Baris 2: Sub-Parent Cara Perhitungan jika ada (Tier 2 untuk IKSK 4 KLB dsb) */}
                       {hasSubParents && (
-                        <tr className={`border-b ${isCyanHeader ? "bg-cyan-100 border-cyan-400" : "bg-slate-100 border-slate-200"}`}>
+                        <tr
+                          className={`border-b ${isCyanHeader ? "bg-cyan-100 border-cyan-400" : "bg-slate-100 border-slate-200"}`}
+                        >
                           {displayedHeaderGroups.map((grp, gIdx) => {
                             if (!grp.parent) return null;
                             const subParentText = grp.cols[0]?.sub_parent || "";
@@ -3616,11 +3765,15 @@ export default function TestLocalTableKatim() {
                       )}
 
                       {/* Baris 3 (atau Baris 2 normal): Sub-Kolom di bawah grup */}
-                      <tr className={`border-b ${isCyanHeader ? "bg-cyan-200 border-cyan-400" : "bg-slate-50 border-slate-200"}`}>
+                      <tr
+                        className={`border-b ${isCyanHeader ? "bg-cyan-200 border-cyan-400" : "bg-slate-50 border-slate-200"}`}
+                      >
                         {displayedHeaderGroups.map((grp) => {
                           if (!grp.parent) return null;
                           const mColor = getMonthColor(grp.parent);
-                          const grpMonthNum = getMonthNumberFromText(grp.parent);
+                          const grpMonthNum = getMonthNumberFromText(
+                            grp.parent,
+                          );
                           const isGrpLocked =
                             !isPicUser &&
                             grpMonthNum !== null &&
@@ -3636,13 +3789,22 @@ export default function TestLocalTableKatim() {
                               isPicUser ||
                               !col.allowed_katim_ids ||
                               col.allowed_katim_ids.length === 0 ||
-                              col.allowed_katim_ids.some((id: string | number) => String(id) === String(user?.id));
+                              col.allowed_katim_ids.some(
+                                (id: string | number) =>
+                                  String(id) === String(user?.id),
+                              );
                             const isEditableForMe =
-                              col.can_edit && isColAllowedForUser && !isColMonthLocked;
+                              col.can_edit &&
+                              isColAllowedForUser &&
+                              !isColMonthLocked;
                             const subTitle =
                               col.sub_label ||
                               (col.label && col.label.includes(" - ")
-                                ? col.label.split(" - ").slice(1).join(" - ").trim()
+                                ? col.label
+                                    .split(" - ")
+                                    .slice(1)
+                                    .join(" - ")
+                                    .trim()
                                 : col.label);
                             const widthCls = getColWidthStyle(col);
 
@@ -3658,7 +3820,9 @@ export default function TestLocalTableKatim() {
                                 }`}
                               >
                                 <div className="flex items-center justify-between gap-1 mb-1">
-                                  <span className={`font-mono text-[10px] ${isCyanHeader ? "text-cyan-800 font-bold" : "text-slate-400"}`}>
+                                  <span
+                                    className={`font-mono text-[10px] ${isCyanHeader ? "text-cyan-800 font-bold" : "text-slate-400"}`}
+                                  >
                                     [{col.col_letter}]
                                   </span>
                                   {isEditableForMe ? (
@@ -3673,18 +3837,25 @@ export default function TestLocalTableKatim() {
                                     <Icon
                                       icon="solar:lock-bold"
                                       width={12}
-                                      className={isCyanHeader ? "text-cyan-700" : "text-slate-400"}
+                                      className={
+                                        isCyanHeader
+                                          ? "text-cyan-700"
+                                          : "text-slate-400"
+                                      }
                                     />
                                   )}
                                 </div>
                                 <div className="text-[11px] leading-tight font-medium">
                                   {subTitle}
                                 </div>
-                                {col.sub_label && col.sub_label !== subTitle && (
-                                  <div className={`text-[10px] font-normal mt-0.5 ${isCyanHeader ? "text-cyan-900" : "text-slate-500"}`}>
-                                    {col.sub_label}
-                                  </div>
-                                )}
+                                {col.sub_label &&
+                                  col.sub_label !== subTitle && (
+                                    <div
+                                      className={`text-[10px] font-normal mt-0.5 ${isCyanHeader ? "text-cyan-900" : "text-slate-500"}`}
+                                    >
+                                      {col.sub_label}
+                                    </div>
+                                  )}
                               </th>
                             );
                           });
@@ -3695,12 +3866,16 @@ export default function TestLocalTableKatim() {
                     <tr>
                       {displayedColumnsSchema.map((col, cIdx) => {
                         const isEditableForMe = col.can_edit;
-                        const stickyStyle = leftStickyConfig.getClasses(cIdx, true);
+                        const stickyStyle = leftStickyConfig.getClasses(
+                          cIdx,
+                          true,
+                        );
                         return (
                           <th
                             key={col.key}
                             className={`py-3 px-3.5 font-bold border-r border-slate-200 last:border-r-0 ${
-                              stickyStyle || (isEditableForMe
+                              stickyStyle ||
+                              (isEditableForMe
                                 ? "bg-emerald-50/60 text-emerald-950 min-w-[130px]"
                                 : "text-slate-700 min-w-[130px]")
                             }`}
@@ -3834,7 +4009,8 @@ export default function TestLocalTableKatim() {
                       const isUpdatedRow = Boolean(row.is_updated);
                       const isDirtyRow = Object.values(dirtyUpdates).some(
                         (up) =>
-                          (up.row_index !== undefined && up.row_index === originalIdx) ||
+                          (up.row_index !== undefined &&
+                            up.row_index === originalIdx) ||
                           (up.month !== undefined && up.month === row.month),
                       );
                       const isRowFilled = isUpdatedRow || isDirtyRow;
@@ -3884,7 +4060,10 @@ export default function TestLocalTableKatim() {
                               isPicUser ||
                               !col.allowed_katim_ids ||
                               col.allowed_katim_ids.length === 0 ||
-                              col.allowed_katim_ids.some((id: string | number) => String(id) === String(user?.id));
+                              col.allowed_katim_ids.some(
+                                (id: string | number) =>
+                                  String(id) === String(user?.id),
+                              );
 
                             const canEditCell =
                               col.can_edit &&
@@ -3908,10 +4087,17 @@ export default function TestLocalTableKatim() {
                                     ? "bg-amber-100"
                                     : "bg-white";
 
-                            const stickyTdClass = leftStickyConfig.getClasses(cIdx, false, stickyBg);
+                            const stickyTdClass = leftStickyConfig.getClasses(
+                              cIdx,
+                              false,
+                              stickyBg,
+                            );
 
                             // Untuk baris section header (cIdx >= leftStickyConfig.count tampil kosong)
-                            if (isSectionRow && cIdx >= Math.max(leftStickyConfig.count, 2)) {
+                            if (
+                              isSectionRow &&
+                              cIdx >= Math.max(leftStickyConfig.count, 2)
+                            ) {
                               return (
                                 <td
                                   key={col.key}
@@ -4039,8 +4225,12 @@ export default function TestLocalTableKatim() {
                               col.allowed_katim_ids.length > 1;
 
                             if (isCollabNumeric) {
-                              const contribs = (row.cells?.[col.key + "_contributors"] || {}) as Record<string, any>;
-                              const contribList = Object.values(contribs) as Array<{
+                              const contribs = (row.cells?.[
+                                col.key + "_contributors"
+                              ] || {}) as Record<string, any>;
+                              const contribList = Object.values(
+                                contribs,
+                              ) as Array<{
                                 author?: string;
                                 value?: number;
                                 updated_at?: string;
@@ -4049,14 +4239,37 @@ export default function TestLocalTableKatim() {
                               const isCum = isCumulativeCol(col);
                               const rawInput = row.cells?.[col.key + "_input"];
                               const monthDelta =
-                                rawInput !== undefined && rawInput !== null && rawInput !== ""
+                                rawInput !== undefined &&
+                                rawInput !== null &&
+                                rawInput !== ""
                                   ? rawInput
                                   : contribList.length > 0
-                                    ? contribList.reduce((acc, c) => acc + (parseFloat(String(c?.value || 0)) || 0), 0)
+                                    ? contribList.reduce(
+                                        (acc, c) =>
+                                          acc +
+                                          (parseFloat(String(c?.value || 0)) ||
+                                            0),
+                                        0,
+                                      )
                                     : rowIdxNum === 0
                                       ? val
-                                      : activeTab?.rows_data && rowIdxNum !== undefined && rowIdxNum > 0 && Number(val) >= Number(activeTab.rows_data[rowIdxNum - 1]?.cells?.[col.key] || 0) && Number(activeTab.rows_data[rowIdxNum - 1]?.cells?.[col.key] || 0) > 0
-                                        ? Number(val) - Number(activeTab.rows_data[rowIdxNum - 1]?.cells?.[col.key] || 0)
+                                      : activeTab?.rows_data &&
+                                          rowIdxNum !== undefined &&
+                                          rowIdxNum > 0 &&
+                                          Number(val) >=
+                                            Number(
+                                              activeTab.rows_data[rowIdxNum - 1]
+                                                ?.cells?.[col.key] || 0,
+                                            ) &&
+                                          Number(
+                                            activeTab.rows_data[rowIdxNum - 1]
+                                              ?.cells?.[col.key] || 0,
+                                          ) > 0
+                                        ? Number(val) -
+                                          Number(
+                                            activeTab.rows_data[rowIdxNum - 1]
+                                              ?.cells?.[col.key] || 0,
+                                          )
                                         : val;
 
                               return (
@@ -4068,41 +4281,73 @@ export default function TestLocalTableKatim() {
                                     <div className="flex items-center justify-between w-full gap-1.5">
                                       <button
                                         type="button"
-                                        onClick={() => handleOpenCollabNumModal(row, col, rowIdxNum)}
+                                        onClick={() =>
+                                          handleOpenCollabNumModal(
+                                            row,
+                                            col,
+                                            rowIdxNum,
+                                            canEditCell,
+                                          )
+                                        }
                                         className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-100 hover:bg-indigo-200 text-indigo-800 border border-indigo-300 transition shadow-2xs cursor-pointer"
                                         title="Klik untuk membuka rincian kontributor & input angka Anda"
                                       >
-                                        <Icon icon="solar:users-group-rounded-bold" width={12} className="text-indigo-600" />
                                         <span>
                                           {contribList.length > 0
                                             ? `${contribList.length} Katim`
                                             : canEditCell
-                                              ? "Isi Angka"
-                                              : "Rincian"}
+                                              ? "Input"
+                                              : "Lihat"}
                                         </span>
                                       </button>
                                       <span className="font-mono font-bold text-xs text-slate-900 pr-1">
-                                        {val !== "" && val !== null ? String(val) : "-"}
+                                        {val !== "" && val !== null
+                                          ? String(val)
+                                          : "-"}
                                       </span>
                                     </div>
-                                    {isCum && rowIdxNum !== undefined && rowIdxNum > 0 && val !== "" && val !== null && (
-                                      <div className="flex items-center justify-between w-full text-[10px] font-mono px-0.5 mt-0.5">
-                                        <span className="text-[9px] text-slate-400">Bln ini:</span>
-                                        <span className="font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1 py-0.2 rounded text-[10px]" title="Total kontribusi seluruh Katim khusus bulan ini">
-                                          +{monthDelta}
-                                        </span>
-                                        <span className="text-[9px] text-slate-400">∑:</span>
-                                        <span className="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1 py-0.2 rounded text-[10px]" title="Total kumulatif s.d. bulan ini">
-                                          {String(val)}
-                                        </span>
-                                      </div>
-                                    )}
+                                    {isCum &&
+                                      rowIdxNum !== undefined &&
+                                      rowIdxNum > 0 &&
+                                      val !== "" &&
+                                      val !== null && (
+                                        <div className="flex items-center justify-between w-full text-[10px] font-mono px-0.5 mt-0.5">
+                                          <span className="text-[9px] text-slate-400">
+                                            Bln ini:
+                                          </span>
+                                          <span
+                                            className="font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1 py-0.2 rounded text-[10px]"
+                                            title="Total kontribusi seluruh Katim khusus bulan ini"
+                                          >
+                                            +{monthDelta}
+                                          </span>
+                                          <span className="text-[9px] text-slate-400">
+                                            ∑:
+                                          </span>
+                                          <span
+                                            className="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1 py-0.2 rounded text-[10px]"
+                                            title="Total kumulatif s.d. bulan ini"
+                                          >
+                                            {String(val)}
+                                          </span>
+                                        </div>
+                                      )}
                                     {contribList.length > 0 && (
                                       <div
                                         className="text-[10px] text-slate-500 font-sans line-clamp-1 text-right max-w-[170px]"
-                                        title={contribList.map((c) => `${c.author || "Katim"}: ${c.value ?? 0}`).join(", ")}
+                                        title={contribList
+                                          .map(
+                                            (c) =>
+                                              `${c.author || "Katim"}: ${c.value ?? 0}`,
+                                          )
+                                          .join(", ")}
                                       >
-                                        {contribList.map((c) => `${(c.author || "Katim").split(" ")[0]}: ${c.value ?? 0}`).join(", ")}
+                                        {contribList
+                                          .map(
+                                            (c) =>
+                                              `${(c.author || "Katim").split(" ")[0]}: ${c.value ?? 0}`,
+                                          )
+                                          .join(", ")}
                                       </div>
                                     )}
                                   </div>
@@ -4121,7 +4366,10 @@ export default function TestLocalTableKatim() {
                                       : "bg-emerald-50/20"
                                   }`}
                                 >
-                                  {(col.col_letter === "D" || (col.label || "").toLowerCase().includes("identitas")) ? (
+                                  {col.col_letter === "D" ||
+                                  (col.label || "")
+                                    .toLowerCase()
+                                    .includes("identitas") ? (
                                     <textarea
                                       rows={3}
                                       value={val}
@@ -4141,28 +4389,42 @@ export default function TestLocalTableKatim() {
                                           rowIdxNum,
                                         )
                                       }
-                                      placeholder={getCellPlaceholder(col, rowIdxNum)}
+                                      placeholder={getCellPlaceholder(
+                                        col,
+                                        rowIdxNum,
+                                      )}
                                       className="w-full rounded-lg px-2.5 py-1.5 text-xs border border-slate-200 bg-white text-slate-900 leading-tight focus:ring-1 focus:outline-none focus:border-emerald-600 focus:ring-emerald-600 resize-y font-medium"
                                     />
                                   ) : (
                                     (() => {
                                       const isCum = isCumulativeCol(col);
-                                      const rawInput = row.cells?.[col.key + "_input"];
+                                      const rawInput =
+                                        row.cells?.[col.key + "_input"];
                                       const cellVal = row.cells?.[col.key];
                                       const prevVal =
-                                        activeTab?.rows_data && rowIdxNum !== undefined && rowIdxNum > 0
-                                          ? Number(activeTab.rows_data[rowIdxNum - 1]?.cells?.[col.key] || 0)
+                                        activeTab?.rows_data &&
+                                        rowIdxNum !== undefined &&
+                                        rowIdxNum > 0
+                                          ? Number(
+                                              activeTab.rows_data[rowIdxNum - 1]
+                                                ?.cells?.[col.key] || 0,
+                                            )
                                           : 0;
                                       const displayVal = isCum
-                                        ? (rawInput !== undefined && rawInput !== null && rawInput !== ""
-                                            ? rawInput
-                                            : (rowIdxNum === 0
-                                                ? cellVal
-                                                : (Number(cellVal) >= prevVal && prevVal > 0
-                                                    ? Number(cellVal) - prevVal
-                                                    : cellVal)))
+                                        ? rawInput !== undefined &&
+                                          rawInput !== null &&
+                                          rawInput !== ""
+                                          ? rawInput
+                                          : rowIdxNum === 0
+                                            ? cellVal
+                                            : Number(cellVal) >= prevVal &&
+                                                prevVal > 0
+                                              ? Number(cellVal) - prevVal
+                                              : cellVal
                                         : val;
-                                      const cumulativeVal = isCum ? (cellVal ?? displayVal) : null;
+                                      const cumulativeVal = isCum
+                                        ? (cellVal ?? displayVal)
+                                        : null;
 
                                       return (
                                         <div>
@@ -4189,33 +4451,51 @@ export default function TestLocalTableKatim() {
                                             onWheel={(e) =>
                                               (e.target as HTMLElement).blur()
                                             }
-                                            placeholder={isCum ? "Input angka bulan ini" : getCellPlaceholder(col, rowIdxNum)}
+                                            placeholder={
+                                              isCum
+                                                ? "Input angka bulan ini"
+                                                : getCellPlaceholder(
+                                                    col,
+                                                    rowIdxNum,
+                                                  )
+                                            }
                                             title={
                                               isCum
                                                 ? "Kolom kumulatif: Masukkan angka penambahan bulan ini (otomatis dijumlahkan dengan bulan lalu)"
                                                 : col.col_letter === "F" ||
-                                                  (col.label || "")
-                                                    .toLowerCase()
-                                                    .includes("target sampel")
-                                                ? "Target Sampel: Masukkan nilai exact (misal 16)"
-                                                : col.col_letter === "G" &&
                                                     (col.label || "")
                                                       .toLowerCase()
-                                                      .includes("target indikator")
-                                                  ? "Target Indikator (%): Masukkan nilai exact target (misal 99.71)"
-                                                  : ["G", "H", "J", "K", "M", "N"].includes(
-                                                        (col.col_letter || "").toUpperCase(),
-                                                      ) ||
+                                                      .includes("target sampel")
+                                                  ? "Target Sampel: Masukkan nilai exact (misal 16)"
+                                                  : col.col_letter === "G" &&
                                                       (col.label || "")
                                                         .toLowerCase()
-                                                        .includes("sarana") ||
-                                                      (col.label || "")
-                                                        .toLowerCase()
-                                                        .includes("renlak")
-                                                    ? `Masukkan nilai exact kumulatif (misal 24) atau formula penjumlahan dari bulan sebelumnya (misal =+11 atau =${(col.col_letter || "G").toUpperCase()}${rowIdxNum ? rowIdxNum + 1 : 2}+11)`
-                                                    : col.col_letter
-                                                      ? `Masukkan nilai exact atau formula penjumlahan (misal =+5 atau =${col.col_letter.toUpperCase()}${rowIdxNum ? rowIdxNum + 1 : 2}+5)`
-                                                      : "Masukkan angka"
+                                                        .includes(
+                                                          "target indikator",
+                                                        )
+                                                    ? "Target Indikator (%): Masukkan nilai exact target (misal 99.71)"
+                                                    : [
+                                                          "G",
+                                                          "H",
+                                                          "J",
+                                                          "K",
+                                                          "M",
+                                                          "N",
+                                                        ].includes(
+                                                          (
+                                                            col.col_letter || ""
+                                                          ).toUpperCase(),
+                                                        ) ||
+                                                        (col.label || "")
+                                                          .toLowerCase()
+                                                          .includes("sarana") ||
+                                                        (col.label || "")
+                                                          .toLowerCase()
+                                                          .includes("renlak")
+                                                      ? `Masukkan nilai exact kumulatif (misal 24) atau formula penjumlahan dari bulan sebelumnya (misal =+11 atau =${(col.col_letter || "G").toUpperCase()}${rowIdxNum ? rowIdxNum + 1 : 2}+11)`
+                                                      : col.col_letter
+                                                        ? `Masukkan nilai exact atau formula penjumlahan (misal =+5 atau =${col.col_letter.toUpperCase()}${rowIdxNum ? rowIdxNum + 1 : 2}+5)`
+                                                        : "Masukkan angka"
                                             }
                                             className={`w-full rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                                               isQuestionRow
@@ -4223,19 +4503,26 @@ export default function TestLocalTableKatim() {
                                                 : "border border-slate-200 bg-white text-slate-900 focus:border-emerald-600 focus:ring-emerald-600 font-medium"
                                             }`}
                                           />
-                                          {isCum && rowIdxNum !== undefined && rowIdxNum > 0 && (
-                                            <div className="mt-1 flex items-center justify-between px-1 text-[10px] text-slate-500 font-mono">
-                                              <span className="text-[9px] text-slate-400">Kumulatif:</span>
-                                              <span className="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1 py-0.5 rounded text-[10px]" title="Hasil penjumlahan otomatis dari input bulan ini + total bulan sebelumnya">
-                                                ∑ {cumulativeVal}
-                                              </span>
-                                            </div>
-                                          )}
+                                          {isCum &&
+                                            rowIdxNum !== undefined &&
+                                            rowIdxNum > 0 && (
+                                              <div className="mt-1 flex items-center justify-between px-1 text-[10px] text-slate-500 font-mono">
+                                                <span className="text-[9px] text-slate-400">
+                                                  Kumulatif:
+                                                </span>
+                                                <span
+                                                  className="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1 py-0.5 rounded text-[10px]"
+                                                  title="Hasil penjumlahan otomatis dari input bulan ini + total bulan sebelumnya"
+                                                >
+                                                  ∑ {cumulativeVal}
+                                                </span>
+                                              </div>
+                                            )}
                                         </div>
                                       );
                                     })()
                                   )}
-                                  </td>
+                                </td>
                               );
                             }
 
@@ -4252,7 +4539,9 @@ export default function TestLocalTableKatim() {
                                   col.key === "col_0"));
 
                             const showStatusBadge =
-                              (isBulanCol || col.key === "col_0" || cIdx === 0) &&
+                              (isBulanCol ||
+                                col.key === "col_0" ||
+                                cIdx === 0) &&
                               !isSectionRow &&
                               !isTotalRow &&
                               !isFormulaRow;
@@ -4280,14 +4569,19 @@ export default function TestLocalTableKatim() {
                               >
                                 <div className="flex items-center justify-between gap-1.5">
                                   <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span>{val !== "" ? String(val) : "-"}</span>
-                                    {showStatusBadge && (
-                                      isRowFilled ? (
+                                    <span>
+                                      {val !== "" ? String(val) : "-"}
+                                    </span>
+                                    {showStatusBadge &&
+                                      (isRowFilled ? (
                                         <span
                                           className="inline-flex items-center text-emerald-600 shrink-0"
                                           title="Baris ini sudah diisi / terisi"
                                         >
-                                          <Icon icon="solar:check-circle-bold" width={14} />
+                                          <Icon
+                                            icon="solar:check-circle-bold"
+                                            width={14}
+                                          />
                                         </span>
                                       ) : (
                                         <span
@@ -4296,8 +4590,7 @@ export default function TestLocalTableKatim() {
                                         >
                                           <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-rose-200" />
                                         </span>
-                                      )
-                                    )}
+                                      ))}
                                   </div>
                                   {showLockedBadge && (
                                     <span className="rounded bg-slate-200 px-1 py-0.2 text-[9px] text-slate-600">
@@ -4668,36 +4961,34 @@ export default function TestLocalTableKatim() {
                               </div>
 
                               {!collabModal.isLocked && (
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setCollabModal({
-                                          ...collabModal,
-                                          editingIndex: nIdx,
-                                          editingText: note.text,
-                                        })
-                                      }
-                                      title="Edit catatan ini"
-                                      className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-emerald-600"
-                                    >
-                                      <Icon icon="solar:pen-bold" width={14} />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleDeleteCollabNote(nIdx)
-                                      }
-                                      title="Hapus catatan ini"
-                                      className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
-                                    >
-                                      <Icon
-                                        icon="solar:trash-bin-trash-bold"
-                                        width={14}
-                                      />
-                                    </button>
-                                  </div>
-                                )}
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setCollabModal({
+                                        ...collabModal,
+                                        editingIndex: nIdx,
+                                        editingText: note.text,
+                                      })
+                                    }
+                                    title="Edit catatan ini"
+                                    className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-emerald-600"
+                                  >
+                                    <Icon icon="solar:pen-bold" width={14} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteCollabNote(nIdx)}
+                                    title="Hapus catatan ini"
+                                    className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                                  >
+                                    <Icon
+                                      icon="solar:trash-bin-trash-bold"
+                                      width={14}
+                                    />
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -5275,9 +5566,17 @@ export default function TestLocalTableKatim() {
                   <Icon icon="solar:users-group-rounded-bold" width={22} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800">
-                    Rincian Kontribusi Angka Katim
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-800">
+                      Rincian Kontribusi Angka Katim
+                    </h3>
+                    {!collabNumModal.canEdit && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 border border-amber-200">
+                        <Icon icon="solar:lock-bold" width={11} />
+                        Terkunci (Mode Lihat)
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[11px] font-semibold text-indigo-700">
                     {collabNumModal.col.label} &bull; {collabNumModal.monthName}
                   </p>
@@ -5295,7 +5594,9 @@ export default function TestLocalTableKatim() {
             {/* Content */}
             <div className="p-6 space-y-4">
               <p className="text-xs text-slate-600 leading-relaxed">
-                Kolom ini dikerjakan secara kolaboratif oleh beberapa Katim. Setiap Katim menginput angka kontribusinya masing-masing, dan sistem secara otomatis mengakumulasikan nilai akhirnya.
+                Kolom ini dikerjakan secara kolaboratif oleh beberapa Katim.
+                Setiap Katim menginput angka kontribusinya masing-masing, dan
+                sistem secara otomatis mengakumulasikan nilai akhirnya.
               </p>
 
               {/* Rincian Kontributor yang Terdaftar */}
@@ -5304,43 +5605,69 @@ export default function TestLocalTableKatim() {
                   Daftar Kontribusi per Katim:
                 </label>
                 <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden bg-slate-50/50 max-h-56 overflow-y-auto">
-                  {collabNumModal.col.allowed_katim_ids && collabNumModal.col.allowed_katim_ids.length > 0 ? (
-                    collabNumModal.col.allowed_katim_ids.map((kId: string | number) => {
-                      const strId = String(kId);
-                      const katimProfile = katims.find((k: any) => String(k.user_id) === strId || String(k.id) === strId);
-                      const contrib = collabNumModal.contributors[strId];
-                      const isMe = user?.id && String(user.id) === strId;
+                  {collabNumModal.col.allowed_katim_ids &&
+                  collabNumModal.col.allowed_katim_ids.length > 0 ? (
+                    collabNumModal.col.allowed_katim_ids.map(
+                      (kId: string | number) => {
+                        const strId = String(kId);
+                        const katimProfile = katims.find(
+                          (k: any) =>
+                            String(k.user_id) === strId ||
+                            String(k.id) === strId,
+                        );
+                        const contrib = collabNumModal.contributors[strId];
+                        const isMe = user?.id && String(user.id) === strId;
 
-                      return (
-                        <div key={strId} className={`p-3 flex items-center justify-between text-xs ${isMe ? "bg-indigo-50/50 font-medium" : ""}`}>
-                          <div className="flex items-center gap-2.5">
-                            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 font-bold text-[11px] shrink-0">
-                              {(katimProfile?.name || contrib?.author || "K").charAt(0)}
-                            </span>
-                            <div>
-                              <div className="font-semibold text-slate-800 flex items-center gap-1.5">
-                                <span>{katimProfile?.name || contrib?.author || `Katim (${strId.substring(0, 8)}...)`}</span>
-                                {isMe && (
-                                  <span className="px-1.5 py-0.2 rounded bg-indigo-200 text-indigo-800 text-[9px] font-bold">
-                                    Anda
+                        return (
+                          <div
+                            key={strId}
+                            className={`p-3 flex items-center justify-between text-xs ${isMe ? "bg-indigo-50/50 font-medium" : ""}`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 font-bold text-[11px] shrink-0">
+                                {(
+                                  katimProfile?.name ||
+                                  contrib?.author ||
+                                  "K"
+                                ).charAt(0)}
+                              </span>
+                              <div>
+                                <div className="font-semibold text-slate-800 flex items-center gap-1.5">
+                                  <span>
+                                    {katimProfile?.name ||
+                                      contrib?.author ||
+                                      `Katim (${strId.substring(0, 8)}...)`}
+                                  </span>
+                                  {isMe && (
+                                    <span className="px-1.5 py-0.2 rounded bg-indigo-200 text-indigo-800 text-[9px] font-bold">
+                                      Anda
+                                    </span>
+                                  )}
+                                </div>
+                                {contrib?.updated_at && (
+                                  <span className="text-[10px] text-slate-400">
+                                    Diperbarui:{" "}
+                                    {new Date(
+                                      contrib.updated_at,
+                                    ).toLocaleString("id-ID", {
+                                      dateStyle: "short",
+                                      timeStyle: "short",
+                                    })}
                                   </span>
                                 )}
                               </div>
-                              {contrib?.updated_at && (
-                                <span className="text-[10px] text-slate-400">
-                                  Diperbarui: {new Date(contrib.updated_at).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}
-                                </span>
-                              )}
+                            </div>
+                            <div className="text-right">
+                              <span className="font-mono font-bold text-sm text-slate-900">
+                                {contrib?.value !== undefined
+                                  ? contrib.value
+                                  : 0}
+                              </span>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <span className="font-mono font-bold text-sm text-slate-900">
-                              {contrib?.value !== undefined ? contrib.value : 0}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })
+                        );
+                      },
+                    )
                   ) : (
                     <div className="p-3 text-xs text-slate-400 text-center">
                       Belum ada penugasan Katim spesifik.
@@ -5349,51 +5676,89 @@ export default function TestLocalTableKatim() {
                 </div>
               </div>
 
-              {/* Input Bagian Saya */}
-              <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 space-y-2">
-                <label className="block text-xs font-bold text-indigo-950">
-                  Input / Ubah Angka Kontribusi Anda ({user?.name || user?.call_name || "Katim"}):
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    step="any"
-                    value={collabNumModal.myValue}
-                    onChange={(e) =>
-                      setCollabNumModal({
-                        ...collabNumModal,
-                        myValue: e.target.value,
-                      })
-                    }
-                    placeholder="Masukkan angka..."
-                    className="flex-1 rounded-lg border border-indigo-300 bg-white px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
+              {/* Input Bagian Saya atau Status Terkunci */}
+              {collabNumModal.canEdit ? (
+                <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 space-y-2">
+                  <label className="block text-xs font-bold text-indigo-950">
+                    Input / Ubah Angka Kontribusi Anda (
+                    {user?.name || user?.call_name || "Katim"}):
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      step="any"
+                      value={collabNumModal.myValue}
+                      onChange={(e) =>
+                        setCollabNumModal({
+                          ...collabNumModal,
+                          myValue: e.target.value,
+                        })
+                      }
+                      placeholder="Masukkan angka..."
+                      className="flex-1 rounded-lg border border-indigo-300 bg-white px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4 space-y-1.5">
+                  <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
+                    <Icon icon="solar:lock-bold" width={14} className="text-amber-700" />
+                    <span>Periode {collabNumModal.monthName} Terkunci (Mode Lihat Saja)</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    Data periode ini telah dikunci oleh Administrator / Tim Kerja TU sehingga Anda hanya dapat melihat rincian kontribusi tanpa mengubah angka.
+                  </p>
+                  {collabNumModal.myValue !== "" && (
+                    <div className="pt-2 mt-2 border-t border-amber-200 flex items-center justify-between text-xs">
+                      <span className="font-semibold text-amber-950">Kontribusi Anda Tercatat:</span>
+                      <span className="font-mono font-bold text-amber-900 bg-white px-2.5 py-0.5 rounded-lg border border-amber-300 shadow-2xs">
+                        {collabNumModal.myValue}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Total Summary */}
               {(() => {
                 const isCum = isCumulativeCol(collabNumModal.col);
                 const myId = user?.id ? String(user.id) : "temp_me";
-                const myVal = parseFloat(String(collabNumModal.myValue).replace(",", ".")) || 0;
+                const myVal =
+                  parseFloat(
+                    String(collabNumModal.myValue).replace(",", "."),
+                  ) || 0;
                 let monthSum = 0;
-                Object.entries(collabNumModal.contributors).forEach(([k, c]: [string, any]) => {
-                  if (k !== myId) monthSum += parseFloat(String(c?.value || 0)) || 0;
-                });
+                Object.entries(collabNumModal.contributors).forEach(
+                  ([k, c]: [string, any]) => {
+                    if (k !== myId)
+                      monthSum += parseFloat(String(c?.value || 0)) || 0;
+                  },
+                );
                 monthSum += myVal;
 
                 const prevCumulative =
                   isCum && activeTab?.rows_data && collabNumModal.rowIndex > 0
-                    ? Number(activeTab.rows_data[collabNumModal.rowIndex - 1]?.cells?.[collabNumModal.col.key] || 0)
+                    ? Number(
+                        activeTab.rows_data[collabNumModal.rowIndex - 1]
+                          ?.cells?.[collabNumModal.col.key] || 0,
+                      )
                     : 0;
-                const finalCumulative = isCum ? (prevCumulative + monthSum) : monthSum;
+                const finalCumulative = isCum
+                  ? prevCumulative + monthSum
+                  : monthSum;
 
                 return (
                   <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs">
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-xs font-bold text-slate-700">Total Kontribusi Bulan Ini ({collabNumModal.monthName})</span>
-                        <p className="text-[10px] text-slate-400">Hasil penjumlahan kontribusi Anda + Katim lainnya pada bulan ini</p>
+                        <span className="text-xs font-bold text-slate-700">
+                          Total Kontribusi Bulan Ini ({collabNumModal.monthName}
+                          )
+                        </span>
+                        <p className="text-[10px] text-slate-400">
+                          Hasil penjumlahan kontribusi Anda + Katim lainnya pada
+                          bulan ini
+                        </p>
                       </div>
                       <span className="text-sm font-bold font-mono text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-lg">
                         +{monthSum}
@@ -5403,9 +5768,12 @@ export default function TestLocalTableKatim() {
                     {isCum && collabNumModal.rowIndex > 0 && (
                       <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
                         <div>
-                          <span className="text-xs font-bold text-emerald-800">Total Kumulatif Akhir s.d. Bulan Ini</span>
+                          <span className="text-xs font-bold text-emerald-800">
+                            Total Kumulatif Akhir s.d. Bulan Ini
+                          </span>
                           <p className="text-[10px] text-slate-400">
-                            Akumulasi bulan lalu ({prevCumulative}) + Bulan ini ({monthSum})
+                            Akumulasi bulan lalu ({prevCumulative}) + Bulan ini
+                            ({monthSum})
                           </p>
                         </div>
                         <span className="text-base font-extrabold font-mono text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-lg">
@@ -5425,16 +5793,18 @@ export default function TestLocalTableKatim() {
                 onClick={() => setCollabNumModal(null)}
                 className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
               >
-                Batal
+                {collabNumModal.canEdit ? "Batal" : "Tutup"}
               </button>
-              <button
-                type="button"
-                onClick={handleSaveCollabNumModal}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-2 text-xs font-bold text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700 transition cursor-pointer"
-              >
-                <Icon icon="solar:diskette-bold" width={16} />
-                <span>Simpan Kontribusi</span>
-              </button>
+              {collabNumModal.canEdit && (
+                <button
+                  type="button"
+                  onClick={handleSaveCollabNumModal}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-2 text-xs font-bold text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700 transition cursor-pointer"
+                >
+                  <Icon icon="solar:diskette-bold" width={16} />
+                  <span>Simpan Kontribusi</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
