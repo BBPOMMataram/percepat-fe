@@ -95,7 +95,7 @@ export function isRtlCol(headerName?: string | null): boolean {
   if (h.includes("rencana tindak lanjut") || /\brtl\b/i.test(h)) return true;
   if (
     h.includes("tindak lanjut") &&
-    !/(%|persen|bobot|jumlah|sampel|surat|sesuai)/i.test(h)
+    !/(%|persen|bobot|jumlah|sampel|surat|sesuai|kualitas|ketepatan|laporan|indikator|formula|perhitungan|capaian)/i.test(h)
   ) {
     return true;
   }
@@ -120,6 +120,7 @@ export type IncompleteValidationModal = {
 };
 
 export function isCollaborativeCol(col: ColumnSchema): boolean {
+  if (col.type === "formula" || col.type === "readonly") return false;
   if (col.is_collaborative) return true;
   const label = (col.label || "").toLowerCase();
   if (isKendalaCol(label) || isRtlCol(label)) return true;
@@ -4229,7 +4230,7 @@ export default function TestLocalTableKatim() {
                             }
 
                             // Render khusus untuk kolom Catatan Kolaboratif (Kendala / Rencana Tindak Lanjut)
-                            if (isCollab) {
+                            if (isCollab && col.type !== "formula" && col.type !== "readonly") {
                               const notes = parseNotes(val);
                               const rowMonthName =
                                 resolveRowMonthName(row, monthColKey) ||
