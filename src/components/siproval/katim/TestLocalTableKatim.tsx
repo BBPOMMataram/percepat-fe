@@ -480,22 +480,35 @@ export const recalculateCumulativeRows = (
     let runningTotal = 0;
     for (let i = 0; i < newRows.length; i++) {
       const inputKey = `${col.key}_input`;
+      const contribKey = `${col.key}_contributors`;
+
+      const contribs = newRows[i].cells[contribKey];
+      const hasContrib =
+        contribs &&
+        typeof contribs === "object" &&
+        Object.keys(contribs).length > 0;
+
       const hasInput =
         newRows[i].cells[inputKey] !== undefined &&
         newRows[i].cells[inputKey] !== null &&
         newRows[i].cells[inputKey] !== "";
 
-      let monthlyDelta = 0;
-      if (hasInput) {
-        monthlyDelta = parseFloat(String(newRows[i].cells[inputKey])) || 0;
-      } else {
-        const currentVal =
-          newRows[i].cells[col.key] !== undefined &&
-          newRows[i].cells[col.key] !== null &&
-          newRows[i].cells[col.key] !== ""
-            ? parseFloat(String(newRows[i].cells[col.key])) || 0
-            : 0;
+      const cellVal = newRows[i].cells[col.key];
+      const isEmpty =
+        cellVal === undefined || cellVal === null || cellVal === "";
 
+      let monthlyDelta = 0;
+      if (hasContrib) {
+        let cSum = 0;
+        Object.values(contribs).forEach((c: any) => {
+          cSum += parseFloat(c?.value || 0) || 0;
+        });
+        monthlyDelta = cSum;
+        newRows[i].cells[inputKey] = cSum;
+      } else if (hasInput) {
+        monthlyDelta = parseFloat(String(newRows[i].cells[inputKey])) || 0;
+      } else if (!isEmpty && !isNaN(Number(cellVal))) {
+        const currentVal = parseFloat(String(cellVal)) || 0;
         if (i === 0) {
           monthlyDelta = currentVal;
         } else {
@@ -504,6 +517,10 @@ export const recalculateCumulativeRows = (
               ? currentVal - runningTotal
               : currentVal;
         }
+        newRows[i].cells[inputKey] = monthlyDelta;
+      } else {
+        // Baris bulan ini belum diisi oleh Katim / kosong
+        continue;
       }
 
       runningTotal += monthlyDelta;
@@ -538,6 +555,8 @@ export const recalculateRowFormulas = (
     max: Math.max,
     abs: Math.abs,
     round: Math.round,
+    if: (cond: any, a: any, b: any) => (cond ? a : b),
+    na: () => 0,
   };
 
   columns.forEach((col) => {
@@ -587,6 +606,8 @@ export const recalculateRowFormulas = (
 
       // 6. Tangani fungsi matematika umum Excel
       expr = expr
+        .replace(/\bif\s*\(/gi, "excelMathEnv.if(")
+        .replace(/\bna\s*\(\s*\)/gi, "excelMathEnv.na()")
         .replace(/\bsum\s*\(/gi, "excelMathEnv.sum(")
         .replace(/\baveragea?\s*\(/gi, "excelMathEnv.average(")
         .replace(/\bmin\s*\(/gi, "excelMathEnv.min(")
@@ -596,10 +617,10 @@ export const recalculateRowFormulas = (
 
       // 7. Evaluasi ekspresi aritmatika aman
       const sanitized = expr.replace(
-        /excelMathEnv\.(sum|average|min|max|abs|round)/g,
+        /excelMathEnv\.(if|na|sum|average|min|max|abs|round)/g,
         "",
       );
-      if (/^[\d\+\-\*/\(\)\,\.\s]+$/.test(sanitized)) {
+      if (/^[\d\+\-\*/\(\)\,\.\s><=!]+$/.test(sanitized)) {
         try {
           const res = Function(
             "excelMathEnv",
@@ -1900,15 +1921,44 @@ export default function TestLocalTableKatim() {
       },
     };
 
-    let totalSum = 0;
+    let totalMonthSum = 0;
     Object.values(updatedContribs).forEach((c: any) => {
-      totalSum += parseFloat(c.value || 0);
+      totalMonthSum += parseFloat(c.value || 0);
     });
 
-    handleCellChange(rowKey, col.key, totalSum, rowIndex);
+    const isCum = isCumulativeCol(col);
+
+    setActiveTab((prev) => {
+      if (!prev) return prev;
+      let newRows = prev.rows_data.map((r, idx) => {
+        if (idx === rowIndex) {
+          return {
+            ...r,
+            is_updated: true,
+            cells: {
+              ...r.cells,
+              [col.key]: totalMonthSum,
+              [`${col.key}_input`]: totalMonthSum,
+              [`${col.key}_contributors`]: updatedContribs,
+            },
+          };
+        }
+        return r;
+      });
+
+      if (isCum) {
+        newRows = recalculateCumulativeRows(newRows, effectiveColumnsSchema);
+      }
+      newRows = newRows.map((r) => ({
+        ...r,
+        cells: recalculateRowFormulas(r.cells, effectiveColumnsSchema),
+      }));
+
+      return { ...prev, rows_data: newRows };
+    });
 
     try {
-      await api.post(
+      const res = await api.post(
         `${baseUrl}/api/test-local-table/tab/${activeTab.id}/update${authQuery}`,
         {
           updates: [
@@ -1921,29 +1971,15 @@ export default function TestLocalTableKatim() {
           ],
         },
       );
+      if (res.data?.data?.rows_data) {
+        setActiveTab((prev) => (prev ? { ...prev, rows_data: res.data.data.rows_data } : prev));
+      }
       setSuccessMsg(
-        `Kontribusi angka untuk ${col.label} (${collabNumModal.monthName}) berhasil disimpan! Total: ${totalSum}`,
+        `Kontribusi angka untuk ${col.label} (${collabNumModal.monthName}) berhasil disimpan! ${isCum ? "Total kumulatif dihitung otomatis." : `Total: ${totalMonthSum}`}`,
       );
     } catch (err: any) {
       console.error("Gagal simpan kontribusi angka:", err);
     }
-
-    setActiveTab((prev) => {
-      if (!prev) return prev;
-      const newRows = [...prev.rows_data];
-      if (newRows[rowIndex]) {
-        newRows[rowIndex] = {
-          ...newRows[rowIndex],
-          is_updated: true,
-          cells: {
-            ...newRows[rowIndex].cells,
-            [col.key]: totalSum,
-            [`${col.key}_contributors`]: updatedContribs,
-          },
-        };
-      }
-      return { ...prev, rows_data: newRows };
-    });
 
     setCollabNumModal(null);
   };
@@ -3846,7 +3882,6 @@ export default function TestLocalTableKatim() {
 
                             // Kolom angka kolaboratif multi-katim (Point 6)
                             const isCollabNumeric =
-                              canEditCell &&
                               col.type !== "formula" &&
                               col.type !== "readonly" &&
                               !isCollab &&
@@ -3861,6 +3896,18 @@ export default function TestLocalTableKatim() {
                                 updated_at?: string;
                                 user_id?: string;
                               }>;
+                              const isCum = isCumulativeCol(col);
+                              const rawInput = row.cells?.[col.key + "_input"];
+                              const monthDelta =
+                                rawInput !== undefined && rawInput !== null && rawInput !== ""
+                                  ? rawInput
+                                  : contribList.length > 0
+                                    ? contribList.reduce((acc, c) => acc + (parseFloat(String(c?.value || 0)) || 0), 0)
+                                    : rowIdxNum === 0
+                                      ? val
+                                      : activeTab?.rows_data && rowIdxNum !== undefined && rowIdxNum > 0 && Number(val) >= Number(activeTab.rows_data[rowIdxNum - 1]?.cells?.[col.key] || 0) && Number(activeTab.rows_data[rowIdxNum - 1]?.cells?.[col.key] || 0) > 0
+                                        ? Number(val) - Number(activeTab.rows_data[rowIdxNum - 1]?.cells?.[col.key] || 0)
+                                        : val;
 
                               return (
                                 <td
@@ -3876,12 +3923,30 @@ export default function TestLocalTableKatim() {
                                         title="Klik untuk membuka rincian kontributor & input angka Anda"
                                       >
                                         <Icon icon="solar:users-group-rounded-bold" width={12} className="text-indigo-600" />
-                                        <span>{contribList.length > 0 ? `${contribList.length} Katim` : "Isi Angka"}</span>
+                                        <span>
+                                          {contribList.length > 0
+                                            ? `${contribList.length} Katim`
+                                            : canEditCell
+                                              ? "Isi Angka"
+                                              : "Rincian"}
+                                        </span>
                                       </button>
                                       <span className="font-mono font-bold text-xs text-slate-900 pr-1">
-                                        {val !== "" ? String(val) : "0"}
+                                        {val !== "" && val !== null ? String(val) : "-"}
                                       </span>
                                     </div>
+                                    {isCum && rowIdxNum !== undefined && rowIdxNum > 0 && val !== "" && val !== null && (
+                                      <div className="flex items-center justify-between w-full text-[10px] font-mono px-0.5 mt-0.5">
+                                        <span className="text-[9px] text-slate-400">Bln ini:</span>
+                                        <span className="font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1 py-0.2 rounded text-[10px]" title="Total kontribusi seluruh Katim khusus bulan ini">
+                                          +{monthDelta}
+                                        </span>
+                                        <span className="text-[9px] text-slate-400">∑:</span>
+                                        <span className="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1 py-0.2 rounded text-[10px]" title="Total kumulatif s.d. bulan ini">
+                                          {String(val)}
+                                        </span>
+                                      </div>
+                                    )}
                                     {contribList.length > 0 && (
                                       <div
                                         className="text-[10px] text-slate-500 font-sans line-clamp-1 text-right max-w-[170px]"
@@ -5149,24 +5214,50 @@ export default function TestLocalTableKatim() {
               </div>
 
               {/* Total Summary */}
-              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs">
-                <div>
-                  <span className="text-xs font-bold text-slate-700">Total Akumulasi Seluruh Katim</span>
-                  <p className="text-[10px] text-slate-400">Nilai total ini yang dihitung ke rumus formula & capaian</p>
-                </div>
-                <span className="text-base font-extrabold font-mono text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-lg">
-                  {(() => {
-                    const myId = user?.id ? String(user.id) : "temp_me";
-                    const myVal = parseFloat(String(collabNumModal.myValue).replace(",", ".")) || 0;
-                    let sum = 0;
-                    Object.entries(collabNumModal.contributors).forEach(([k, c]: [string, any]) => {
-                      if (k !== myId) sum += parseFloat(c.value || 0);
-                    });
-                    sum += myVal;
-                    return sum;
-                  })()}
-                </span>
-              </div>
+              {(() => {
+                const isCum = isCumulativeCol(collabNumModal.col);
+                const myId = user?.id ? String(user.id) : "temp_me";
+                const myVal = parseFloat(String(collabNumModal.myValue).replace(",", ".")) || 0;
+                let monthSum = 0;
+                Object.entries(collabNumModal.contributors).forEach(([k, c]: [string, any]) => {
+                  if (k !== myId) monthSum += parseFloat(String(c?.value || 0)) || 0;
+                });
+                monthSum += myVal;
+
+                const prevCumulative =
+                  isCum && activeTab?.rows_data && collabNumModal.rowIndex > 0
+                    ? Number(activeTab.rows_data[collabNumModal.rowIndex - 1]?.cells?.[collabNumModal.col.key] || 0)
+                    : 0;
+                const finalCumulative = isCum ? (prevCumulative + monthSum) : monthSum;
+
+                return (
+                  <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-slate-700">Total Kontribusi Bulan Ini ({collabNumModal.monthName})</span>
+                        <p className="text-[10px] text-slate-400">Hasil penjumlahan kontribusi Anda + Katim lainnya pada bulan ini</p>
+                      </div>
+                      <span className="text-sm font-bold font-mono text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-lg">
+                        +{monthSum}
+                      </span>
+                    </div>
+
+                    {isCum && collabNumModal.rowIndex > 0 && (
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-bold text-emerald-800">Total Kumulatif Akhir s.d. Bulan Ini</span>
+                          <p className="text-[10px] text-slate-400">
+                            Akumulasi bulan lalu ({prevCumulative}) + Bulan ini ({monthSum})
+                          </p>
+                        </div>
+                        <span className="text-base font-extrabold font-mono text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-lg">
+                          ∑ {finalCumulative}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Footer */}
