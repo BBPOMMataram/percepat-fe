@@ -1843,18 +1843,18 @@ export default function TestLocalTablePic() {
                                 isNum ? "text-right font-mono" : "text-left text-slate-700"
                               } ${
                                 isFormulaRow
-                                  ? "bg-emerald-50/50 text-emerald-950 font-bold"
+                                  ? "bg-slate-200 text-slate-950 font-bold border-b border-slate-300"
                                   : isQuestionRow && col.type === "formula"
-                                  ? "bg-blue-50/20 text-blue-900 font-semibold"
+                                  ? "bg-slate-200 text-slate-900 font-semibold"
                                   : isTotalRow
-                                  ? "bg-emerald-50/60 text-emerald-950 font-bold"
+                                  ? "bg-slate-200 text-slate-950 font-bold border-b border-slate-300"
                                   : col.type === "formula"
-                                  ? "bg-purple-50/20 text-purple-900 font-bold"
+                                  ? "bg-slate-200 text-slate-800 font-semibold"
                                   : col.type === "editable"
                                   ? isQuestionRow
                                     ? "bg-blue-50/30 text-blue-950 font-semibold"
                                     : "bg-white group-hover:bg-blue-50/20 text-slate-900"
-                                  : "bg-slate-50/40 text-slate-600"
+                                  : "bg-slate-200/80 text-slate-600 font-medium"
                               }`}
                             >
                               {val !== "" ? String(val) : <span className="text-slate-300 font-mono">-</span>}

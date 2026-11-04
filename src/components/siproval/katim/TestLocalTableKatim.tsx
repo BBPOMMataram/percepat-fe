@@ -457,10 +457,23 @@ export function isCumulativeCol(col?: ColumnSchema | null): boolean {
   if ((col as any).is_cumulative) return true;
   const formula = (col.formula || "").trim();
   const letter = (col.col_letter || "").trim().toUpperCase();
-  if (!formula || !letter) return false;
-  // Format formula cth: =G3+13, =G2+11, =H3+13, =G+13, =G+
-  const regex = new RegExp(`^=?\\s*${letter}\\d*\\s*\\+`, "i");
-  return regex.test(formula);
+  if (formula && letter) {
+    // Format formula cth: =G3+13, =G2+11, =H3+13, =G+13, =G+, =F8, =G8
+    const regex = new RegExp(`^=?\\s*${letter}\\d*(\\+|$)`, "i");
+    if (regex.test(formula)) return true;
+  }
+  const l = (col.label || "").toLowerCase();
+  if (
+    l.includes("ditindaklanjuti") ||
+    l.includes("diberikan kepada") ||
+    l.includes("sarana yang diperiksa") ||
+    l.includes("sampel yang diuji") ||
+    l.includes("renlak") ||
+    l.includes("tepat waktu")
+  ) {
+    return true;
+  }
+  return false;
 }
 
 // Helper kalkulasi kolom kumulatif berjenjang: i = input + (i-1)
@@ -500,17 +513,21 @@ export const recalculateCumulativeRows = (
         cellVal === undefined || cellVal === null || cellVal === "";
 
       let monthlyDelta = 0;
+      let hasMonthActivity = false;
+
       if (hasContrib) {
         let cSum = 0;
         Object.values(contribs).forEach((c: any) => {
-          cSum += parseFloat(c?.value || 0) || 0;
+          cSum += parseFloat(String(c?.value || 0).replace(",", ".")) || 0;
         });
         monthlyDelta = cSum;
         newRows[i].cells[inputKey] = cSum;
+        hasMonthActivity = true;
       } else if (hasInput) {
-        monthlyDelta = parseFloat(String(newRows[i].cells[inputKey])) || 0;
-      } else if (!isEmpty && !isNaN(Number(cellVal))) {
-        const currentVal = parseFloat(String(cellVal)) || 0;
+        monthlyDelta = parseFloat(String(newRows[i].cells[inputKey]).replace(",", ".")) || 0;
+        hasMonthActivity = true;
+      } else if (!isEmpty && !isNaN(Number(String(cellVal).replace(",", ".")))) {
+        const currentVal = parseFloat(String(cellVal).replace(",", ".")) || 0;
         if (i === 0) {
           monthlyDelta = currentVal;
         } else {
@@ -520,13 +537,16 @@ export const recalculateCumulativeRows = (
               : currentVal;
         }
         newRows[i].cells[inputKey] = monthlyDelta;
-      } else {
-        // Baris bulan ini belum diisi oleh Katim / kosong
-        continue;
+        hasMonthActivity = true;
       }
 
-      runningTotal += monthlyDelta;
-      newRows[i].cells[col.key] = runningTotal;
+      if (hasMonthActivity) {
+        runningTotal += monthlyDelta;
+        newRows[i].cells[col.key] = Math.round(runningTotal * 100) / 100;
+      } else if (runningTotal > 0 && !isEmpty) {
+        // Carry-over nilai bulan sebelumnya jika ada baris aktif
+        newRows[i].cells[col.key] = Math.round(runningTotal * 100) / 100;
+      }
     }
   });
 
@@ -1417,11 +1437,89 @@ export default function TestLocalTableKatim() {
           );
         }
 
-        // Baris 0 diasumsikan header
-        const excelHeaders = rawJson[0].map((h) => String(h || "").trim());
-        const dataRows = rawJson
-          .slice(1)
-          .filter((r) => r.some((c) => String(c).trim() !== ""));
+        // Cari baris header secara dinamis (jangan langsung asumsikan baris 0)
+        let headerRowIdx = 0;
+        for (let r = 0; r < Math.min(15, rawJson.length); r++) {
+          const rowStrings = rawJson[r].map((c) => String(c || "").trim().toLowerCase());
+          const hasMonth = rowStrings.some((s) => s.includes("bulan") || s === "periode");
+          const hasIndicator = rowStrings.some((s) => s.includes("indikator") || s.includes("target") || s.includes("realisasi"));
+          const nextRowHasJan = (r + 1 < rawJson.length) && rawJson[r + 1].some((c) => {
+            const s = String(c || "").trim().toLowerCase();
+            return s === "januari" || s === "jan";
+          });
+          if (nextRowHasJan || (hasMonth && hasIndicator)) {
+            headerRowIdx = r;
+            break;
+          }
+        }
+
+        // Deteksi apakah ada baris Sub-Header di bawah Main Header (misal: Target, Realisasi, Kendala, Rekomendasi)
+        let dataStartRowIdx = headerRowIdx + 1;
+        let subHeaderRowIdx: number | null = null;
+        if (dataStartRowIdx < rawJson.length) {
+          const nextRowVals = rawJson[dataStartRowIdx].map((c) => String(c || "").trim());
+          const hasMonthInNext = nextRowVals.some((v) => getMonthNumberFromText(v) !== null);
+          const hasUnitInNext = nextRowVals.some((v) => v.toLowerCase().includes("balai besar") || v === "14A");
+          if (!hasMonthInNext && !hasUnitInNext) {
+            const subKeywords = ['target', 'realisasi', 'kendala', 'rekomendasi', 'satuan', 'tw i', 'tw ii', 'tw iii', 'tw iv', '% capaian', 'persentase', 'jumlah'];
+            const subCount = nextRowVals.filter((v) => subKeywords.some((sk) => v.toLowerCase().includes(sk))).length;
+            if (subCount >= 2 || (subCount >= 1 && nextRowVals.filter(Boolean).length <= 4)) {
+              subHeaderRowIdx = dataStartRowIdx;
+              dataStartRowIdx++;
+            }
+          }
+        }
+
+        const excelHeaders = rawJson[headerRowIdx].map((h) => String(h || "").trim());
+        const subHeaders = subHeaderRowIdx !== null ? rawJson[subHeaderRowIdx].map((h) => String(h || "").trim()) : [];
+        const combinedHeaders = excelHeaders.map((h, i) => {
+          const sub = subHeaders[i] || "";
+          if (sub && h && sub.toLowerCase() !== h.toLowerCase()) return `${h} - ${sub}`;
+          return sub || h;
+        });
+
+        // Filter baris data: abaikan baris kosong, baris metadata permission ('editable', 'admin', 'formula'),
+        // baris nama Katim/pegawai di luar bulan, dan catatan kaki
+        const isMetadataRow = (rowVals: any[]) => {
+          const nonEmpties = rowVals.map((c) => String(c || "").trim()).filter(Boolean);
+          if (nonEmpties.length === 0) return true;
+
+          const permKeywords = ['editable', 'formula', 'readonly', 'admin', 'permision', 'permission'];
+          const permCount = nonEmpties.filter((val) => permKeywords.includes(val.toLowerCase())).length;
+          if (permCount > 0 && permCount / nonEmpties.length >= 0.3) {
+            return true;
+          }
+
+          const firstVal = (nonEmpties[0] || "").toLowerCase();
+          if (firstVal.startsWith("note:") || firstVal.startsWith("catatan:") || firstVal.startsWith("keterangan:") || firstVal.startsWith("link data:") || firstVal === "dst") {
+            return true;
+          }
+
+          const hasMonth = nonEmpties.some((val) => getMonthNumberFromText(val) !== null);
+          const staffKeywords = ['hilmi', 'basuki', 'sukma', 'rosita', 'apri', 'dian', 'suriyati', 'suriati', 'dion', 'mita', 'winartutik', 'nanang', 'fatimah', 'hardiono', 'wibisono', 'paramita'];
+          const staffCount = nonEmpties.filter((val) => {
+            const vLower = val.toLowerCase();
+            return staffKeywords.some((sk) => vLower.includes(sk));
+          }).length;
+
+          if (!hasMonth && staffCount >= 2) {
+            return true;
+          }
+
+          return false;
+        };
+
+        const rawDataRows = rawJson.slice(dataStartRowIdx);
+        const dataRows: any[][] = [];
+        for (const r of rawDataRows) {
+          if (!r.some((c) => String(c).trim() !== "")) continue;
+          if (isMetadataRow(r)) continue;
+          const rMonth = r.map((c) => getMonthNumberFromText(String(c))).find((m) => m !== null);
+          if (dataRows.length >= 12 && !rMonth && rawJson.length < 35) {
+            continue;
+          }
+          dataRows.push(r);
+        }
 
         // Petakan kolom Excel ke columns_schema tab aktif
         const mappedRows: any[] = [];
@@ -1432,18 +1530,27 @@ export default function TestLocalTableKatim() {
           let rowMonthName = "";
 
           effectiveColumnsSchema.forEach((col, colIdx) => {
-            // Cocokkan berdasarkan kesamaan nama header atau index urutan
+            // Abaikan jika kolom merupakan kolom metadata permission
+            if (/permission|permision|hak\s*akses|role/i.test(col.label || "")) {
+              cells[col.key] = "";
+              return;
+            }
+
+            // Pemetaan nilai kolom:
+            // 1. Secara default, gunakan urutan posisi kolom asli (colIdx) yang 1-ke-1 dengan kolom Excel
             let val = rowVals[colIdx] ?? "";
-            const headerMatchIdx = excelHeaders.findIndex(
-              (eh) =>
-                eh.toLowerCase() === col.label.toLowerCase() ||
-                eh.toLowerCase() === (col.sub_label || "").toLowerCase(),
-            );
-            if (
-              headerMatchIdx !== -1 &&
-              rowVals[headerMatchIdx] !== undefined
-            ) {
-              val = rowVals[headerMatchIdx];
+
+            // 2. Jika ada kecocokan nama header LENGKAP yang spesifik (bukan kata generik seperti Target/Realisasi/Kendala/Rekomendasi):
+            const isGenericWord = (w: string) =>
+              /^(target|realisasi|kendala|rekomendasi|satuan|bulan|periode|no|no\.)$/i.test(w.trim());
+
+            if (col.label && !isGenericWord(col.label)) {
+              const fullMatchIdx = combinedHeaders.findIndex(
+                (ch) => ch.toLowerCase() === col.label.toLowerCase()
+              );
+              if (fullMatchIdx !== -1 && rowVals[fullMatchIdx] !== undefined) {
+                val = rowVals[fullMatchIdx];
+              }
             }
 
             const isNoCol =
@@ -4159,14 +4266,16 @@ export default function TestLocalTableKatim() {
                                     : "text-left text-slate-700"
                                 } ${
                                   isFormulaRow
-                                    ? "bg-emerald-50/50 text-emerald-950 font-bold"
+                                    ? "bg-slate-200 text-slate-900 font-bold border-b border-slate-300"
                                     : isQuestionRow && col.type === "formula"
-                                      ? "bg-blue-50/20 text-blue-900 font-semibold"
+                                      ? "bg-slate-200 text-slate-900 font-semibold"
                                       : isTotalRow
-                                        ? "bg-emerald-50/50 text-emerald-950 font-bold"
+                                        ? "bg-slate-200 text-slate-900 font-bold border-b border-slate-300"
                                         : col.type === "formula"
-                                          ? "bg-purple-50/20 text-purple-900 font-semibold"
-                                          : "text-slate-600"
+                                          ? "bg-slate-200 text-slate-800 font-semibold"
+                                          : isMonthLocked || isColMonthLocked || !col.can_edit
+                                            ? "bg-slate-200/80 text-slate-600 font-medium"
+                                            : "bg-slate-100 text-slate-600"
                                 }`}
                               >
                                 <div className="flex items-center justify-between gap-1.5">
