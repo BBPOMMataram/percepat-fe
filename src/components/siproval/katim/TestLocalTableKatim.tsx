@@ -456,6 +456,11 @@ export function getMonthNumberFromText(text?: string | null): number | null {
 export function isCumulativeCol(col?: ColumnSchema | null): boolean {
   if (!col) return false;
   if (col.type === "formula" || col.type === "readonly") return false;
+  // Jika kolom secara eksplisit bertipe editable biasa ('editable'):
+  // Patuhi status editable biasa dan JANGAN masukkan jadi kumulatif kecuali is_cumulative diset true!
+  if (col.type === "editable") {
+    return Boolean((col as any).is_cumulative);
+  }
   if ((col as any).is_cumulative) return true;
   if (col.type === "editable_cumulative" || col.type === "editable_collab_cumulative") return true;
   const formula = (col.formula || "").trim();
