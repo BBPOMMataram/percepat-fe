@@ -565,6 +565,10 @@ export default function TestLocalTablePic() {
     });
   }, [activeTab?.columns_schema, isHorizontalMonthTable, selectedMonthFilter]);
 
+  const hasSubParents = useMemo(() => {
+    return displayedColumnsSchema.some((c) => Boolean(c.sub_parent));
+  }, [displayedColumnsSchema]);
+
   const displayedHeaderGroups = useMemo(() => {
     if (!headerGroups) return null;
     if (!isHorizontalMonthTable || selectedMonthFilter === "all") {
@@ -1599,7 +1603,7 @@ export default function TestLocalTablePic() {
                             return (
                               <th
                                 key={col.key}
-                                rowSpan={2}
+                                rowSpan={hasSubParents ? 3 : 2}
                                 className={`py-3 px-3.5 font-bold text-left ${stickyStyle}`}
                               >
                                 <div className="flex items-center justify-between gap-1 mb-1">
@@ -1633,12 +1637,38 @@ export default function TestLocalTablePic() {
                         );
                       })}
                     </tr>
+                    {hasSubParents && (
+                      <tr className="border-b border-slate-200 bg-slate-100">
+                        {displayedHeaderGroups.map((grp, gIdx) => {
+                          if (!grp.parent) return null;
+                          const subChunks: { sub_parent: string; count: number }[] = [];
+                          grp.cols.forEach((col) => {
+                            const sp = col.sub_parent || "";
+                            if (subChunks.length > 0 && subChunks[subChunks.length - 1].sub_parent === sp) {
+                              subChunks[subChunks.length - 1].count++;
+                            } else {
+                              subChunks.push({ sub_parent: sp, count: 1 });
+                            }
+                          });
+
+                          return subChunks.map((chunk, cIdx) => (
+                            <th
+                              key={`subgrp-${gIdx}-${cIdx}-${chunk.sub_parent}`}
+                              colSpan={chunk.count}
+                              className="py-2 px-3 font-semibold text-center text-xs border-r border-b border-slate-200 bg-slate-100 text-slate-800 whitespace-pre-line leading-relaxed"
+                            >
+                              {chunk.sub_parent}
+                            </th>
+                          ));
+                        })}
+                      </tr>
+                    )}
                     <tr className="border-b border-slate-200 bg-slate-50">
                       {displayedHeaderGroups.map((grp) => {
                         if (!grp.parent) return null;
                         const mColor = getMonthColor(grp.parent);
                         return grp.cols.map((col) => {
-                          const subTitle = col.sub_label || col.label;
+                          const subTitle = col.sub_label || (col.label && col.label.includes(" - ") ? col.label.split(" - ").slice(1).join(" - ").trim() : col.label);
                           const katimNames = katims
                             .filter((k) => col.allowed_katim_ids?.includes(k.user_id))
                             .map((k) => k.name);
