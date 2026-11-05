@@ -375,7 +375,12 @@ export default function TestLocalTablePic() {
     if (!activeTab?.columns_schema) return null;
     const col = activeTab.columns_schema.find((c) => {
       const l = (c.label || "").toLowerCase().trim();
-      return l === "bulan" || l.includes("bulan") || (c.key === "col_2" && c.col_letter === "C");
+      return (
+        l === "bulan" ||
+        l === "periode" ||
+        l.includes("bulan") ||
+        l.includes("periode")
+      );
     });
     return col ? col.key : null;
   }, [activeTab?.columns_schema]);
@@ -2020,7 +2025,7 @@ export default function TestLocalTablePic() {
                         </span>
                       ) : (
                         <button
-                          key={p}
+                              key={`page-${p}-${pIdx}`}
                           type="button"
                           onClick={() => setCurrentPage(Number(p))}
                           className={`h-8 min-w-[32px] px-2 rounded-lg text-xs font-bold transition shadow-2xs ${

@@ -455,7 +455,9 @@ export function getMonthNumberFromText(text?: string | null): number | null {
 // Helper deteksi kolom editable kumulatif (cth: G2=40+g1 atau formula =G3+13)
 export function isCumulativeCol(col?: ColumnSchema | null): boolean {
   if (!col) return false;
+  if (col.type === "formula" || col.type === "readonly") return false;
   if ((col as any).is_cumulative) return true;
+  if (col.type === "editable_cumulative" || col.type === "editable_collab_cumulative") return true;
   const formula = (col.formula || "").trim();
   const letter = (col.col_letter || "").trim().toUpperCase();
   if (formula && letter) {
@@ -464,7 +466,17 @@ export function isCumulativeCol(col?: ColumnSchema | null): boolean {
     if (regex.test(formula)) return true;
   }
   const l = (col.label || "").toLowerCase();
+  if (l.includes("%") || l.includes("persen")) return false;
   if (
+    l.includes("kumulatif") ||
+    l.includes("sd bulan") ||
+    l.includes("s.d. bulan") ||
+    l.includes("s/d bulan") ||
+    l.includes("s.d") ||
+    l.includes("capaian sd") ||
+    l.includes("realisasi sd") ||
+    l.includes("jumlah sd") ||
+    l.includes("total kumulatif") ||
     l.includes("ditindaklanjuti") ||
     l.includes("diberikan kepada") ||
     l.includes("sarana yang diperiksa") ||
@@ -579,8 +591,16 @@ export const recalculateRowFormulas = (
     max: Math.max,
     abs: Math.abs,
     round: Math.round,
-    if: (cond: any, a: any, b: any) => (cond ? a : b),
-    na: () => 0,
+    if: (cond: any, a: any, b: any) => (Boolean(cond) ? a : b),
+    na: () => 1,
+    iserror: (val: any) =>
+      typeof val !== "number" ||
+      isNaN(val) ||
+      !isFinite(val) ||
+      val === null ||
+      val === undefined,
+    iferror: (val: any, fallback: any) =>
+      typeof val === "number" && !isNaN(val) && isFinite(val) ? val : fallback,
   };
 
   columns.forEach((col) => {
@@ -622,14 +642,13 @@ export const recalculateRowFormulas = (
         expr = expr.replace(regex, String(tokenMap[tok]));
       }
 
-      // 5. Cek pembagian dengan 0 secara aman
-      if (/\/\s*0+(\.0+)?(?!\d)/.test(expr)) {
-        updatedCells[col.key] = 0;
-        return;
-      }
+      // 5. Cek pembagian dengan 0 secara aman: ganti / 0 dengan / 0.000000001 agar ekspresi kondisional tetap berjalan
+      expr = expr.replace(/\/\s*0+(\.0+)?(?!\d)/g, "/ 0.000000001");
 
       // 6. Tangani fungsi matematika umum Excel
       expr = expr
+        .replace(/\biferror\s*\(/gi, "excelMathEnv.iferror(")
+        .replace(/\biserror\s*\(/gi, "excelMathEnv.iserror(")
         .replace(/\bif\s*\(/gi, "excelMathEnv.if(")
         .replace(/\bna\s*\(\s*\)/gi, "excelMathEnv.na()")
         .replace(/\bsum\s*\(/gi, "excelMathEnv.sum(")
@@ -2595,8 +2614,9 @@ export default function TestLocalTableKatim() {
       const l = (c.label || "").toLowerCase().trim();
       return (
         l === "bulan" ||
+        l === "periode" ||
         l.includes("bulan") ||
-        (c.key === "col_2" && c.col_letter === "C")
+        l.includes("periode")
       );
     });
     return col ? col.key : null;
@@ -4204,7 +4224,7 @@ export default function TestLocalTableKatim() {
 
                       return (
                         <tr
-                          key={rowKey}
+                          key={`row-${originalIdx}-${row.month ?? 0}`}
                           id={`local-row-${rowKey}`}
                           className={`transition ${
                             isHighlightedIncomplete
@@ -4944,7 +4964,7 @@ export default function TestLocalTableKatim() {
                             </span>
                           ) : (
                             <button
-                              key={p}
+                              key={`page-${p}-${pIdx}`}
                               type="button"
                               onClick={() => {
                                 setCurrentPage(Number(p));
