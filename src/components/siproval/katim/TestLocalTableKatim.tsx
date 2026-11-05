@@ -3383,13 +3383,17 @@ export default function TestLocalTableKatim() {
 
           {activeTab && (
             <div className="flex items-center gap-3 text-xs">
-              <span className="flex items-center gap-1.5 text-emerald-700">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                Editable (Bisa Diisi)
+              <span className="flex items-center gap-1.5 text-emerald-700 font-bold">
+                <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0" />
+                Dot Hijau: Kolom Hak Akses Anda (Editable)
               </span>
-              <span className="flex items-center gap-1.5 text-slate-500">
-                <span className="h-2 w-2 rounded-full bg-slate-400" />
-                Kolom Terkunci / Formula
+              <span className="flex items-center gap-1.5 text-slate-500 font-medium">
+                <Icon icon="solar:lock-bold" width={12} className="text-slate-400" />
+                Kolom Terkunci / PIC Lain
+              </span>
+              <span className="flex items-center gap-1.5 text-purple-700 font-medium">
+                <span className="rounded bg-purple-100 px-1 py-0.2 text-[9px] font-bold text-purple-800">Formula</span>
+                Otomatis
               </span>
             </div>
           )}
@@ -3673,17 +3677,21 @@ export default function TestLocalTableKatim() {
                   <Icon icon="solar:info-circle-bold" width={13} className="text-[#005baa]" />
                   Keterangan:
                 </span>
-                <div className="flex items-center gap-1.5" title="Baris pada bulan ini belum diisi oleh Katim">
-                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-rose-200 shrink-0" />
-                  <span className="text-slate-600 font-medium">Belum diisi</span>
+                <div className="flex items-center gap-1.5" title="Kolom bertanda dot hijau adalah kolom yang berhak Anda isi">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0" />
+                  <span className="text-emerald-800 font-bold">Dot Hijau: Kolom Hak Akses Anda (Editable)</span>
                 </div>
-                <div className="flex items-center gap-1.5" title="Baris pada bulan ini sudah memiliki data terisi">
+                <div className="flex items-center gap-1.5" title="Baris pada periode ini sudah memiliki data terisi">
                   <Icon
                     icon="solar:check-circle-bold"
                     width={14}
                     className="text-emerald-600 shrink-0"
                   />
                   <span className="text-slate-600 font-medium">Sudah diisi</span>
+                </div>
+                <div className="flex items-center gap-1.5" title="Baris pada periode ini belum memiliki data">
+                  <span className="inline-block h-2 w-2 rounded-full bg-slate-300 ring-2 ring-slate-100 shrink-0" />
+                  <span className="text-slate-500 font-medium">Belum diisi</span>
                 </div>
 
                 {/* Penjelasan tanda ∑ (Akumulasi) vs tanpa ∑ */}
@@ -3742,22 +3750,32 @@ export default function TestLocalTableKatim() {
                                       : "bg-slate-50 text-slate-800 border-slate-200"
                                   } ${widthCls} ${stickyStyle}`}
                                 >
-                                  <div className="flex items-center justify-between gap-1 mb-1">
-                                    <span
-                                      className={`font-mono text-[10px] ${isCyanHeader ? "text-cyan-800 font-bold" : "text-slate-400"}`}
-                                    >
-                                      [{col.col_letter}]
-                                    </span>
-                                    {col.can_edit &&
-                                    (isPicUser ||
-                                      !col.allowed_katim_ids ||
-                                      col.allowed_katim_ids.length === 0 ||
-                                      col.allowed_katim_ids.some(
-                                        (id: string | number) =>
-                                          String(id) === String(user?.id),
-                                      )) ? (
-                                      <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
-                                         <span>Editable</span>
+                                  {(() => {
+                                      const isColAllowedForMe = isPicUser ||
+                                        !col.allowed_katim_ids ||
+                                        col.allowed_katim_ids.length === 0 ||
+                                        col.allowed_katim_ids.some(
+                                          (id: string | number) => String(id) === String(user?.id),
+                                        );
+                                      const isEditableForMe = col.can_edit && isColAllowedForMe;
+                                      return (
+                                        <div className="flex items-center justify-between gap-1 mb-1">
+                                          <div className="flex items-center gap-1.5">
+                                            <span
+                                              className={`font-mono text-[10px] ${isCyanHeader ? "text-cyan-800 font-bold" : "text-slate-400"}`}
+                                            >
+                                              [{col.col_letter}]
+                                            </span>
+                                            {isEditableForMe && (
+                                              <span
+                                                className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0"
+                                                title="Kolom ini berhak Anda isi (Editable)"
+                                              />
+                                            )}
+                                          </div>
+                                          {isEditableForMe ? (
+                                            <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
+                                              <span>Editable</span>
                                          {isCumulativeCol(col) && (
                                            <span
                                              className="rounded bg-emerald-200/90 px-1 font-mono text-[9px] text-emerald-950 font-black"
@@ -3790,6 +3808,8 @@ export default function TestLocalTableKatim() {
                                       />
                                     )}
                                   </div>
+                                      );
+                                    })()}
                                   <div className="text-xs font-bold leading-tight">
                                     {col.label}
                                   </div>
@@ -3825,13 +3845,30 @@ export default function TestLocalTableKatim() {
                                   : `${mColor.header} border-slate-300`
                               }`}
                             >
-                              <div className="flex items-center justify-center gap-1.5">
-                                {!isCyanHeader && (
-                                  <span
-                                    className={`size-2 rounded-full inline-block ${mColor.dot}`}
-                                  />
-                                )}
-                                <span>{grp.parent}</span>
+                              {(() => {
+                                const groupHasEditableForMe = grp.cols.some((c) => {
+                                  const isColAllowed =
+                                    isPicUser ||
+                                    !c.allowed_katim_ids ||
+                                    c.allowed_katim_ids.length === 0 ||
+                                    c.allowed_katim_ids.some(
+                                      (id: string | number) => String(id) === String(user?.id),
+                                    );
+                                  return c.can_edit && isColAllowed;
+                                });
+                                return (
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    {groupHasEditableForMe ? (
+                                      <span
+                                        className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0"
+                                        title="Kelompok kolom ini berhak Anda isi (Editable)"
+                                      />
+                                    ) : !isCyanHeader ? (
+                                      <span
+                                        className={`size-2 rounded-full inline-block ${mColor.dot}`}
+                                      />
+                                    ) : null}
+                                    <span>{grp.parent}</span>
                                 {isGrpLocked && (
                                   <span className="inline-flex items-center gap-0.5 rounded bg-slate-200/90 text-slate-700 px-1.5 py-0.5 text-[9px] font-bold lowercase tracking-normal">
                                     <Icon icon="solar:lock-bold" width={10} />
@@ -3839,6 +3876,8 @@ export default function TestLocalTableKatim() {
                                   </span>
                                 )}
                               </div>
+                                );
+                              })()}
                             </th>
                           );
                         })}
@@ -3925,11 +3964,19 @@ export default function TestLocalTableKatim() {
                                 }`}
                               >
                                 <div className="flex items-center justify-between gap-1 mb-1">
-                                  <span
-                                    className={`font-mono text-[10px] ${isCyanHeader ? "text-cyan-800 font-bold" : "text-slate-400"}`}
-                                  >
-                                    [{col.col_letter}]
-                                  </span>
+                                  <div className="flex items-center gap-1.5">
+                                    <span
+                                      className={`font-mono text-[10px] ${isCyanHeader ? "text-cyan-800 font-bold" : "text-slate-400"}`}
+                                    >
+                                      [{col.col_letter}]
+                                    </span>
+                                    {isEditableForMe && (
+                                      <span
+                                        className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0"
+                                        title="Kolom ini berhak Anda isi (Editable)"
+                                      />
+                                    )}
+                                  </div>
                                   {isEditableForMe ? (
                                     <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
                                          <span>Editable</span>
@@ -3978,7 +4025,13 @@ export default function TestLocalTableKatim() {
                   ) : (
                     <tr>
                       {displayedColumnsSchema.map((col, cIdx) => {
-                        const isEditableForMe = col.can_edit;
+                        const isColAllowedForMe = isPicUser ||
+                          !col.allowed_katim_ids ||
+                          col.allowed_katim_ids.length === 0 ||
+                          col.allowed_katim_ids.some(
+                            (id: string | number) => String(id) === String(user?.id),
+                          );
+                        const isEditableForMe = col.can_edit && isColAllowedForMe;
                         const stickyStyle = leftStickyConfig.getClasses(
                           cIdx,
                           true,
@@ -3994,9 +4047,17 @@ export default function TestLocalTableKatim() {
                             }`}
                           >
                             <div className="flex items-center justify-between gap-1 mb-1">
-                              <span className="font-mono text-[10px] text-slate-400">
-                                [{col.col_letter}]
-                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-mono text-[10px] text-slate-400">
+                                  [{col.col_letter}]
+                                </span>
+                                {isEditableForMe && (
+                                  <span
+                                    className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0"
+                                    title="Kolom ini berhak Anda isi (Editable)"
+                                  />
+                                )}
+                              </div>
                               {isEditableForMe ? (
                                 <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
                                          <span>Editable</span>
@@ -4134,7 +4195,12 @@ export default function TestLocalTableKatim() {
                             up.row_index === originalIdx) ||
                           (up.month !== undefined && up.month === row.month),
                       );
-                      const isRowFilled = isUpdatedRow || isDirtyRow;
+                      const hasActualData = displayedColumnsSchema.some((c) => {
+                        if (c.type === "readonly" || c.key === "col_0" || c.key === monthColKey) return false;
+                        const cellVal = row.cells?.[c.key];
+                        return isCellContentFilled(cellVal);
+                      });
+                      const isRowFilled = hasActualData || isUpdatedRow || isDirtyRow;
 
                       return (
                         <tr
@@ -4150,8 +4216,8 @@ export default function TestLocalTableKatim() {
                                   : isTotalRow
                                     ? "bg-emerald-50/70 font-bold border-t-2 border-emerald-300 text-slate-900 hover:bg-emerald-100/60"
                                     : isRowFilled
-                                      ? "bg-emerald-500/[0.08] hover:bg-emerald-500/[0.14] border-l-4 border-l-emerald-500"
-                                      : "bg-rose-500/[0.07] hover:bg-rose-500/[0.13] border-l-4 border-l-rose-400"
+                                      ? "bg-emerald-500/[0.04] hover:bg-emerald-500/[0.08] border-l-4 border-l-emerald-500"
+                                      : "bg-white hover:bg-slate-50/80 border-l-4 border-l-slate-200"
                           }`}
                         >
                           {displayedColumnsSchema.map((col, cIdx) => {
@@ -4691,7 +4757,7 @@ export default function TestLocalTableKatim() {
                                       (isRowFilled ? (
                                         <span
                                           className="inline-flex items-center text-emerald-600 shrink-0"
-                                          title="Baris ini sudah diisi / terisi"
+                                          title="Baris pada periode ini sudah memiliki data"
                                         >
                                           <Icon
                                             icon="solar:check-circle-bold"
@@ -4701,9 +4767,9 @@ export default function TestLocalTableKatim() {
                                       ) : (
                                         <span
                                           className="inline-flex items-center shrink-0"
-                                          title="Baris ini belum diisi"
+                                          title="Baris pada periode ini belum memiliki isian"
                                         >
-                                          <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-rose-200" />
+                                          <span className="inline-block h-2 w-2 rounded-full bg-slate-300 ring-2 ring-slate-100" />
                                         </span>
                                       ))}
                                   </div>
