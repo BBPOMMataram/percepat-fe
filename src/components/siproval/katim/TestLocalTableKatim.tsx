@@ -1915,7 +1915,7 @@ export default function TestLocalTableKatim() {
     }));
 
     // Hitung ulang kolom kumulatif jika ada
-    updatedRows = recalculateCumulativeRows(updatedRows, effectiveColumnsSchema);
+    updatedRows = recalculateCumulativeRows(updatedRows, effectiveColumnsSchema) as any;
 
     // Hitung ulang rumus formula pada setiap baris
     updatedRows = updatedRows.map((r) => ({
@@ -1947,7 +1947,7 @@ export default function TestLocalTableKatim() {
         err.response?.data?.message || "Gagal menghapus baris dari server."
       );
       // Pulihkan kembali data tabel asli dari server jika terjadi kendala
-      fetchTableData(activeTab.id, false);
+      fetchData();
     } finally {
       setSaving(false);
     }
@@ -2273,7 +2273,7 @@ export default function TestLocalTableKatim() {
         "Gagal menyimpan kontribusi angka. Periode mungkin telah dikunci oleh Administrator/TU.";
       setErrorMsg(errMsg);
       if (activeTab?.id) {
-        fetchTableData(activeTab.id, false);
+        fetchData();
       }
     }
 
@@ -3903,27 +3903,37 @@ export default function TestLocalTableKatim() {
                         })}
                       </tr>
 
-                      {/* Baris 2: Sub-Parent Cara Perhitungan jika ada (Tier 2 untuk IKSK 4 KLB dsb) */}
+                      {/* Baris 2: Sub-Parent Cara Perhitungan jika ada (Tier 2 untuk IKSK 4 KLB, IKSK 1 Detil Pengujian, dsb) */}
                       {hasSubParents && (
                         <tr
                           className={`border-b ${isCyanHeader ? "bg-cyan-100 border-cyan-400" : "bg-slate-100 border-slate-200"}`}
                         >
                           {displayedHeaderGroups.map((grp, gIdx) => {
                             if (!grp.parent) return null;
-                            const subParentText = grp.cols[0]?.sub_parent || "";
-                            return (
+                            // Kelompokkan kolom-kolom berurutan berdasarkan sub_parent yang sama
+                            const subChunks: { sub_parent: string; count: number }[] = [];
+                            grp.cols.forEach((col) => {
+                              const sp = col.sub_parent || "";
+                              if (subChunks.length > 0 && subChunks[subChunks.length - 1].sub_parent === sp) {
+                                subChunks[subChunks.length - 1].count++;
+                              } else {
+                                subChunks.push({ sub_parent: sp, count: 1 });
+                              }
+                            });
+
+                            return subChunks.map((chunk, cIdx) => (
                               <th
-                                key={`subgrp-${gIdx}-${grp.parent}`}
-                                colSpan={grp.cols.length}
-                                className={`py-2.5 px-4 font-semibold text-center text-xs border-r border-b whitespace-pre-line leading-relaxed ${
+                                key={`subgrp-${gIdx}-${cIdx}-${chunk.sub_parent}`}
+                                colSpan={chunk.count}
+                                className={`py-2 px-3 font-semibold text-center text-xs border-r border-b whitespace-pre-line leading-relaxed ${
                                   isCyanHeader
                                     ? "bg-cyan-100 text-cyan-950 border-cyan-400 shadow-inner"
                                     : "bg-slate-100 text-slate-800 border-slate-200"
                                 }`}
                               >
-                                {subParentText}
+                                {chunk.sub_parent}
                               </th>
-                            );
+                            ));
                           })}
                         </tr>
                       )}
@@ -4235,9 +4245,11 @@ export default function TestLocalTableKatim() {
                                   ? "bg-emerald-50/70 font-bold border-y border-emerald-300 text-slate-900 hover:bg-emerald-100/60"
                                   : isTotalRow
                                     ? "bg-emerald-50/70 font-bold border-t-2 border-emerald-300 text-slate-900 hover:bg-emerald-100/60"
-                                    : isRowFilled
-                                      ? "bg-emerald-500/[0.04] hover:bg-emerald-500/[0.08] border-l-4 border-l-emerald-500"
-                                      : "bg-white hover:bg-slate-50/80 border-l-4 border-l-slate-200"
+                                    : (isMonthLocked || !canEditThisRow)
+                                      ? "bg-slate-100/90 text-slate-600 border-l-4 border-l-slate-400"
+                                      : isRowFilled
+                                        ? "bg-emerald-500/[0.04] hover:bg-emerald-500/[0.08] border-l-4 border-l-emerald-500"
+                                        : "bg-white hover:bg-slate-50/80 border-l-4 border-l-slate-200"
                           }`}
                         >
                           {displayedColumnsSchema.map((col, cIdx) => {
@@ -4292,7 +4304,9 @@ export default function TestLocalTableKatim() {
                                   ? "bg-blue-100"
                                   : isHighlightedIncomplete
                                     ? "bg-amber-100"
-                                    : "bg-white";
+                                    : (isMonthLocked || !canEditThisRow)
+                                      ? "bg-slate-200"
+                                      : "bg-white";
 
                             const stickyTdClass = leftStickyConfig.getClasses(
                               cIdx,
@@ -4764,8 +4778,8 @@ export default function TestLocalTableKatim() {
                                         : col.type === "formula"
                                           ? "bg-slate-200 text-slate-800 font-semibold"
                                           : isMonthLocked || isColMonthLocked || !col.can_edit
-                                            ? "bg-slate-200/80 text-slate-600 font-medium"
-                                            : "bg-slate-100 text-slate-600"
+                                            ? "bg-slate-200/90 text-slate-600 font-medium border-slate-300"
+                                            : "bg-slate-200/70 text-slate-600 font-medium border-slate-200"
                                 }`}
                               >
                                 <div className="flex items-center justify-between gap-1.5">

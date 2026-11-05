@@ -857,7 +857,7 @@ export default function TestLocalTablePic() {
       setSuccessMsg(res.data?.message || `Tab "${tTitle}" berhasil dihapus.`);
       setSelectedTabId(null);
       setActiveTab(null);
-      fetchData(selectedYear, selectedSpId);
+      fetchData(selectedYear, selectedSpId ?? undefined);
     } catch (err: any) {
       setErrorMsg(err.response?.data?.message || "Gagal menghapus tab.");
       setLoading(false);
