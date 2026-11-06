@@ -332,6 +332,32 @@ export default function RealisasiRoTable() {
       setUploadingFile(false);
     }
   };
+
+  const [isSyncingIksk21, setIsSyncingIksk21] = useState(false);
+
+  const handleSyncIksk21 = async () => {
+    setIsSyncingIksk21(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+    try {
+      const res = await api.post(`${baseUrl}/api/tu/realisasi-ro/sync-iksk21`, {
+        year: activeYear,
+      });
+      setSuccessMsg(
+        res.data?.message ||
+          "Data Realisasi RO baris 2 BAH.001 berhasil disinkronkan dari IKSK 21 Caput Sertifikasi."
+      );
+      await fetchData(selectedMonth);
+    } catch (err: any) {
+      setErrorMsg(
+        err.response?.data?.message ||
+          "Gagal menyinkronkan data Realisasi RO dari IKSK 21."
+      );
+    } finally {
+      setIsSyncingIksk21(false);
+    }
+  };
+
   const [googleSheetUrl, setGoogleSheetUrl] = useState(
     "https://docs.google.com/spreadsheets/d/1KXN2ukZTcDUZ-9kfc3BbM-qi3VumvcHUSELK91nGqnU/edit#gid=17060817",
   );
@@ -711,6 +737,12 @@ export default function RealisasiRoTable() {
     }
 
     if (isNumericCol) {
+      const isAutoIksk21 =
+        col.key === "realisasi" &&
+        (r.kode_ro === "BAH.001" ||
+          r.no == 2 ||
+          (r.nama_ro && r.nama_ro.toLowerCase().includes("keputusan/sertifikasi")));
+
       return (
         <td
           key={`${mName}_${col.col_index}_${col.key}`}
@@ -718,17 +750,34 @@ export default function RealisasiRoTable() {
             isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
           } align-middle text-center bg-white group-hover:bg-[#f8fafc]`}
         >
-          <input
-            type="text"
-            value={cellVal}
-            onChange={(e) => handleCellChange(cellCoord, e.target.value)}
-            className={`w-full rounded-lg border text-center font-mono text-xs font-bold px-2 py-1 transition focus:outline-none focus:ring-2 focus:ring-[#005baa] ${
-              isEdited
-                ? "bg-amber-50 border-amber-400 text-amber-900 ring-1 ring-amber-400"
-                : "bg-slate-50/60 border-slate-200 text-slate-800 hover:bg-white hover:border-slate-300"
-            }`}
-            title={`Edit ${col.label} (${cellCoord})`}
-          />
+          <div className="flex flex-col items-center gap-1">
+            <input
+              type="text"
+              value={cellVal}
+              onChange={(e) => handleCellChange(cellCoord, e.target.value)}
+              className={`w-full rounded-lg border text-center font-mono text-xs font-bold px-2 py-1 transition focus:outline-none focus:ring-2 focus:ring-[#005baa] ${
+                isEdited
+                  ? "bg-amber-50 border-amber-400 text-amber-900 ring-1 ring-amber-400"
+                  : isAutoIksk21
+                    ? "bg-emerald-50/70 border-emerald-300 text-emerald-950 font-extrabold hover:bg-white"
+                    : "bg-slate-50/60 border-slate-200 text-slate-800 hover:bg-white hover:border-slate-300"
+              }`}
+              title={
+                isAutoIksk21
+                  ? `Realisasi otomatis tersinkron dari IKSK 21 Caput Sertifikasi: ${cellVal}`
+                  : `Edit ${col.label} (${cellCoord})`
+              }
+            />
+            {isAutoIksk21 && (
+              <span
+                className="inline-flex items-center gap-1 rounded bg-emerald-100 text-[#00a651] px-1.5 py-0.5 text-[9px] font-black tracking-tight cursor-help whitespace-nowrap"
+                title="Nilai dihitung otomatis dari akumulasi Tepat Waktu IKSK 21 (Caput Sertifikasi)"
+              >
+                <Icon icon="solar:bolt-bold" width={10} />
+                Otomatis IKSK 21
+              </span>
+            )}
+          </div>
         </td>
       );
     }
@@ -1361,6 +1410,22 @@ export default function RealisasiRoTable() {
               Simpan Perubahan ({pendingCount})
             </button>
           )}
+
+          {/* Tombol Sinkron Otomatis dari IKSK 21 Caput Sertifikasi */}
+          <button
+            type="button"
+            onClick={handleSyncIksk21}
+            disabled={isSyncingIksk21 || loading}
+            title="Sinkronkan akumulasi realisasi baris BAH.001 dari IKSK 21 Caput Sertifikasi"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition shadow-2xs disabled:opacity-60"
+          >
+            <Icon
+              icon={isSyncingIksk21 ? "solar:refresh-circle-linear" : "solar:bolt-bold"}
+              width={16}
+              className={isSyncingIksk21 ? "animate-spin text-[#00a651]" : "text-[#00a651]"}
+            />
+            <span>{isSyncingIksk21 ? "Menyinkronkan..." : "Sinkron IKSK 21"}</span>
+          </button>
 
           {/* Tombol Eksport Laporan Berita Acara */}
           <Link

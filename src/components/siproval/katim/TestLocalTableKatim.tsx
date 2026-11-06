@@ -407,6 +407,7 @@ export function getMonthNumberFromText(text?: string | null): number | null {
     agu: 8,
     ags: 8,
     agst: 8,
+    agust: 8,
     august: 8,
     september: 9,
     sep: 9,
@@ -494,12 +495,27 @@ export function isCumulativeCol(col?: ColumnSchema | null): boolean {
   return false;
 }
 
+// Helper deteksi apakah tabel menggunakan struktur horizontal (bulan ada di kolom)
+export function isHorizontalTable(columns?: ColumnSchema[] | null): boolean {
+  if (!columns || columns.length === 0) return false;
+  const monthColsCount = columns.filter((c) => {
+    const pHeader = c.parent_header || "";
+    const lbl = c.label || "";
+    return (
+      getMonthNumberFromText(pHeader) !== null ||
+      getMonthNumberFromText(lbl) !== null
+    );
+  }).length;
+  return monthColsCount >= 3;
+}
+
 // Helper kalkulasi kolom kumulatif berjenjang: i = input + (i-1)
 export const recalculateCumulativeRows = (
   rows: RowData[],
   columns: ColumnSchema[],
+  isHorizontal: boolean = false,
 ): RowData[] => {
-  if (!rows || rows.length === 0 || !columns || columns.length === 0)
+  if (isHorizontal || isHorizontalTable(columns) || !rows || rows.length === 0 || !columns || columns.length === 0)
     return rows;
 
   const cumCols = columns.filter((c) => isCumulativeCol(c));
@@ -1168,7 +1184,7 @@ export default function TestLocalTableKatim() {
           rKey === rowId ||
           (rowIdx !== undefined && (r.row_index === rowIdx || idx === rowIdx))
         ) {
-          if (isCum) {
+          if (isCum && !isHorizontalMonthTable) {
             return {
               ...r,
               cells: {
@@ -1192,8 +1208,8 @@ export default function TestLocalTableKatim() {
         return r;
       });
 
-      if (isCum) {
-        newRows = recalculateCumulativeRows(newRows, effectiveColumnsSchema);
+      if (isCum && !isHorizontalMonthTable) {
+        newRows = recalculateCumulativeRows(newRows, effectiveColumnsSchema, false);
         newRows = newRows.map((r) => ({
           ...r,
           cells: recalculateRowFormulas(r.cells, effectiveColumnsSchema),
@@ -1308,7 +1324,7 @@ export default function TestLocalTableKatim() {
     // 0. Kolom editable kumulatif bulanan (cth: G2=40+g1):
     // Cukup input angka penambahan bulan ini (misal 40 atau +40 atau =+40 atau =G1+40),
     // sistem otomatis mencatat input dan menjumlahkannya dengan baris bulan sebelumnya: i = input + (i-1)
-    if (isCumulativeCol(col) && rowIdxNum !== undefined) {
+    if (isCumulativeCol(col) && !isHorizontalMonthTable && rowIdxNum !== undefined) {
       let delta = 0;
       let clean = trimmed;
       if (clean.startsWith("=")) clean = clean.slice(1).trim();
@@ -2238,8 +2254,8 @@ export default function TestLocalTableKatim() {
         return r;
       });
 
-      if (isCum) {
-        newRows = recalculateCumulativeRows(newRows, effectiveColumnsSchema);
+      if (isCum && !isHorizontalMonthTable) {
+        newRows = recalculateCumulativeRows(newRows, effectiveColumnsSchema, false);
       }
       newRows = newRows.map((r) => ({
         ...r,
@@ -2851,7 +2867,9 @@ export default function TestLocalTableKatim() {
 
   // Deteksi tabel ber-header 3 tingkat (memiliki sub_parent rumus)
   const hasSubParents = useMemo(() => {
-    return displayedColumnsSchema.some((c) => Boolean(c.sub_parent));
+    return displayedColumnsSchema.some(
+      (c) => Boolean(c.sub_parent) || (c.label && c.label.split(" - ").length >= 3)
+    );
   }, [displayedColumnsSchema]);
 
   const getColWidthStyle = (col: ColumnSchema) => {
@@ -3918,7 +3936,7 @@ export default function TestLocalTableKatim() {
                             // Kelompokkan kolom-kolom berurutan berdasarkan sub_parent yang sama
                             const subChunks: { sub_parent: string; count: number }[] = [];
                             grp.cols.forEach((col) => {
-                              const sp = col.sub_parent || "";
+                              const sp = col.sub_parent || (col.label && col.label.split(" - ").length >= 3 ? col.label.split(" - ")[1].trim() : "");
                               if (subChunks.length > 0 && subChunks[subChunks.length - 1].sub_parent === sp) {
                                 subChunks[subChunks.length - 1].count++;
                               } else {
@@ -3976,15 +3994,9 @@ export default function TestLocalTableKatim() {
                               col.can_edit &&
                               isColAllowedForUser &&
                               !isColMonthLocked;
-                            const subTitle =
-                              col.sub_label ||
-                              (col.label && col.label.includes(" - ")
-                                ? col.label
-                                    .split(" - ")
-                                    .slice(1)
-                                    .join(" - ")
-                                    .trim()
-                                : col.label);
+                            const subTitle = hasSubParents
+                              ? (col.sub_label || (col.label && col.label.split(" - ").length >= 3 ? col.label.split(" - ").slice(2).join(" - ").trim() : (col.label && col.label.includes(" - ") ? col.label.split(" - ").slice(1).join(" - ").trim() : col.label)))
+                              : (col.sub_label || (col.label && col.label.includes(" - ") ? col.label.split(" - ").slice(1).join(" - ").trim() : col.label));
                             const widthCls = getColWidthStyle(col);
 
                             return (
@@ -4043,7 +4055,7 @@ export default function TestLocalTableKatim() {
                                 <div className="text-[11px] leading-tight font-medium">
                                   {subTitle}
                                 </div>
-                                {col.sub_label &&
+                                {!hasSubParents && col.sub_label &&
                                   col.sub_label !== subTitle && (
                                     <div
                                       className={`text-[10px] font-normal mt-0.5 ${isCyanHeader ? "text-cyan-900" : "text-slate-500"}`}
@@ -4186,7 +4198,7 @@ export default function TestLocalTableKatim() {
                         row.row_index !== undefined
                           ? row.row_index
                           : originalIdx;
-                      const isMonthRow = !(
+                      const isMonthRow = !isHorizontalMonthTable && !(
                         (row as any).is_month_row === false ||
                         (row.month !== undefined && row.month === 0)
                       );
@@ -4623,11 +4635,12 @@ export default function TestLocalTableKatim() {
                                     />
                                   ) : (
                                     (() => {
-                                      const isCum = isCumulativeCol(col);
+                                      const isCum = !isHorizontalMonthTable && isCumulativeCol(col);
                                       const rawInput =
                                         row.cells?.[col.key + "_input"];
                                       const cellVal = row.cells?.[col.key];
                                       const prevVal =
+                                        !isHorizontalMonthTable &&
                                         activeTab?.rows_data &&
                                         rowIdxNum !== undefined &&
                                         rowIdxNum > 0
