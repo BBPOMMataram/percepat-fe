@@ -7,6 +7,7 @@ import { RootState } from "@/redux/store";
 import { Icon } from "@iconify/react";
 import api from "@/utils/api";
 import TargetRealisasiTuChart from "@/components/siproval/tu/TargetRealisasiTuChart";
+import SimetrisNkoDashboard from "../dashboard/SimetrisNkoDashboard";
 
 const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8006";
 
@@ -94,6 +95,7 @@ const MONTHS = [
 export default function CatatanMonev() {
   const { user } = useSelector((state: RootState) => state.auth);
   const currentMonthIdx = new Date().getMonth(); // 0-indexed
+  const currentYear = new Date().getFullYear();
   const [selectedMonth, setSelectedMonth] = useState<string>(MONTHS[currentMonthIdx] || "OKTOBER");
   const [spreadsheets, setSpreadsheets] = useState<SpreadsheetItem[]>([]);
   const [stats, setStats] = useState<KabalaiStats | null>(null);
@@ -511,6 +513,9 @@ export default function CatatanMonev() {
             </p>
           </div>
         </div>
+
+        {/* Simetris BPOM Dashboard: NKO, Pagu, Realisasi, Capaian & Kerangka Kerja Logis */}
+        <SimetrisNkoDashboard initialYear={currentYear} initialMonth="September" />
 
         <TargetRealisasiTuChart isKabalaiView={true} />
       </div>

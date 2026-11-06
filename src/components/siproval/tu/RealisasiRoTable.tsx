@@ -73,7 +73,9 @@ type RowItem = {
   target_awal?: string | number;
   target_revisi?: string | number;
   target_efisiensi?: string | number;
-  status: "tercapai" | "belum";
+  status: "tercapai" | "belum" | "na";
+  is_annual_target?: boolean;
+  has_monthly_target?: boolean;
   capaian_val: number | null;
   target_tahunan: TargetTahunanData;
   month_columns: Record<string, CellData>;
@@ -249,7 +251,7 @@ export default function RealisasiRoTable() {
   const [editedCells, setEditedCells] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<
-    "all" | "tercapai" | "belum" | "edited"
+    "all" | "tercapai" | "belum" | "tahunan" | "edited"
   >("all");
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -525,6 +527,7 @@ export default function RealisasiRoTable() {
 
       if (filterStatus === "tercapai") return r.status === "tercapai";
       if (filterStatus === "belum") return r.status === "belum";
+      if (filterStatus === "tahunan") return r.status === "na" || !!r.is_annual_target;
       if (filterStatus === "edited") {
         const hasEditedTarget = isCellEdited(r.target_tahunan?.cell);
         const hasEditedMonth = Object.values(r.month_columns || (r as any).month_data || {}).some((c: any) =>
@@ -540,7 +543,8 @@ export default function RealisasiRoTable() {
   // Statistik
   const totalRO = rows.length;
   const tercapaiCount = rows.filter((r) => r.status === "tercapai").length;
-  const belumTercapaiCount = totalRO - tercapaiCount;
+  const belumTercapaiCount = rows.filter((r) => r.status === "belum").length;
+  const tahunanCount = rows.filter((r) => r.status === "na" || !!r.is_annual_target).length;
   const pendingCount = Object.keys(editedCells).length;
 
   const allMonthsRowMap = useMemo(() => {
@@ -1748,6 +1752,19 @@ export default function RealisasiRoTable() {
             >
               Belum ({belumTercapaiCount})
             </button>
+            {tahunanCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setFilterStatus("tahunan")}
+                className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+                  filterStatus === "tahunan"
+                    ? "bg-slate-600 text-white"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                Tahunan / N/A ({tahunanCount})
+              </button>
+            )}
             {pendingCount > 0 && (
               <button
                 type="button"

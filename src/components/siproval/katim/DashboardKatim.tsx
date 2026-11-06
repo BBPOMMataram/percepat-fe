@@ -8,6 +8,7 @@ import { RootState } from "@/redux/store";
 import { Icon } from "@iconify/react";
 import api from "@/utils/api";
 import TargetRealisasiTuChart from "@/components/siproval/tu/TargetRealisasiTuChart";
+import SimetrisNkoDashboard from "../dashboard/SimetrisNkoDashboard";
 
 const baseUrl =
   process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8006";
@@ -537,6 +538,9 @@ export default function DashboardKatim() {
             </p>
           </div>
         </div>
+
+        {/* Simetris BPOM Dashboard: NKO, Pagu, Realisasi, Capaian & Kerangka Kerja Logis */}
+        <SimetrisNkoDashboard initialYear={currentYear} initialMonth="September" />
 
         <TargetRealisasiTuChart isKabalaiView={true} />
       </div>

@@ -72,6 +72,12 @@ const menus = {
       active: "/siproval/tu/realisasi-ro",
     },
     {
+      name: "Tabel Konversi NKO",
+      icon: "solar:calculator-bold",
+      url: "/siproval/tu/konversi-nko",
+      active: "/siproval/tu/konversi-nko",
+    },
+    {
       name: "Budget Mapping",
       icon: "solar:pie-chart-2-bold",
       url: "/siproval/budget-mapping",

@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { Icon } from "@iconify/react";
 import TargetRealisasiTuChart from "./TargetRealisasiTuChart";
+import SimetrisNkoDashboard from "../dashboard/SimetrisNkoDashboard";
 import api from "@/utils/api";
 
 const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000";
@@ -194,6 +195,9 @@ export default function DashboardTu() {
           </div>
         </div>
       </div>
+
+      {/* Simetris NKO & Kerangka Kerja Logis Section */}
+      <SimetrisNkoDashboard initialYear={currentYear} initialMonth="September" />
 
       {/* Target vs Realisasi Comparison Chart */}
       <TargetRealisasiTuChart />
