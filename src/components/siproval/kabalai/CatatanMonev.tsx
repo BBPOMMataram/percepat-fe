@@ -836,67 +836,6 @@ export default function CatatanMonev() {
         </div>
       )}
 
-      {/* Spreadsheet List Section */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-6 py-4.5 bg-slate-50/50">
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-base font-bold text-slate-800">
-                Daftar Spreadsheet Monitoring
-              </h2>
-              <p className="text-xs text-slate-500">
-                Dokumen Google Spreadsheet yang disinkronisasi ke SIPROVAL untuk evaluasi.
-              </p>
-            </div>
-            <span className="text-xs font-medium text-slate-400">
-              Sinkronisasi Otomatis
-            </span>
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="p-10 text-center">
-            <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-[#005baa] border-r-transparent" />
-            <p className="mt-2 text-xs text-slate-500">Memuat data spreadsheet...</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {spreadsheets.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-col gap-4 px-6 py-4.5 sm:flex-row sm:items-center sm:justify-between transition hover:bg-slate-50"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#005baa]">
-                    <Icon icon="solar:file-spreadsheet-bold" width={22} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-800">{item.name}</h3>
-                    <p className="mt-0.5 text-xs text-slate-400 font-mono">
-                      ID: {item.spreadsheet_id}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                    Aktif
-                  </span>
-
-                  <Link
-                    href={`/siproval/rhpk/2026`}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#005baa]"
-                  >
-                    <span>Evaluasi Laporan</span>
-                    <Icon icon="solar:arrow-right-linear" width={14} />
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* Modal Rincian IKSK - Enhanced with Breakdown Status (Belum Tercapai / Tercapai) */}
       {showIkskModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs">

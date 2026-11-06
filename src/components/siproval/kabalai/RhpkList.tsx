@@ -176,37 +176,85 @@ export default function RhpkList({ year = "2026" }: Props) {
               Tidak ada tab yang sesuai dengan pencarian &quot;{searchQuery}&quot;.
             </div>
           ) : (
-            filteredTabs.map((tab, idx) => (
-              <Link
-                key={tab.id}
-                href={`/siproval/rhpk/${year}/tab/${tab.id}`}
-                className="group flex items-center justify-between gap-4 p-4 transition hover:bg-slate-50"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-xs font-bold text-[#005baa] transition group-hover:bg-[#005baa] group-hover:text-white">
-                    {idx + 1}
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800 group-hover:text-[#005baa]">
-                      {tab.title}
-                    </h4>
-                    <p className="text-xs text-slate-400">
-                      Tab ID: {tab.id}
-                    </p>
-                  </div>
-                </div>
+            filteredTabs.map((tab, idx) => {
+              const isCapaianRapk =
+                tab.title.toLowerCase().includes("capaian rapk") ||
+                tab.id === 58 ||
+                tab.id === 154;
 
-                <div className="flex items-center gap-2">
-                  <span className="hidden sm:inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 group-hover:bg-blue-100 group-hover:text-[#005baa]">
-                    Buka Rekap
-                  </span>
-                  <Icon
-                    icon="solar:arrow-right-linear"
-                    className="h-4 w-4 text-slate-400 transition group-hover:translate-x-1 group-hover:text-[#005baa]"
-                  />
-                </div>
-              </Link>
-            ))
+              return (
+                <Link
+                  key={tab.id}
+                  href={`/siproval/rhpk/${year}/tab/${tab.id}`}
+                  className={`group flex items-center justify-between gap-4 p-4.5 transition ${
+                    isCapaianRapk
+                      ? "bg-amber-50/60 hover:bg-amber-100/50 border-l-4 border-amber-500"
+                      : "hover:bg-slate-50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-bold transition ${
+                        isCapaianRapk
+                          ? "bg-amber-500 text-white shadow-2xs"
+                          : "bg-blue-50 text-[#005baa] group-hover:bg-[#005baa] group-hover:text-white"
+                      }`}
+                    >
+                      {idx + 1}
+                    </div>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4
+                          className={`text-sm font-bold transition ${
+                            isCapaianRapk
+                              ? "text-amber-950 group-hover:text-amber-900"
+                              : "text-slate-800 group-hover:text-[#005baa]"
+                          }`}
+                        >
+                          {tab.title}
+                        </h4>
+                        {isCapaianRapk && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-200/80 border border-amber-300 px-2.5 py-0.5 text-[11px] font-bold text-amber-950 shadow-2xs">
+                            <Icon icon="solar:chat-square-call-bold" width={13} />
+                            Tambahkan Arahan Pimpinan
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {isCapaianRapk
+                          ? "Lembar Evaluasi Capaian RAPK & Kolom Input Arahan Kepala Balai (Yogi Abaso Mataram)"
+                          : `Lembar Kerja RHPK • Tab ID: ${tab.id}`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold shadow-2xs transition ${
+                        isCapaianRapk
+                          ? "bg-[#005baa] text-white hover:bg-[#004887]"
+                          : "bg-slate-100 text-slate-600 group-hover:bg-blue-100 group-hover:text-[#005baa]"
+                      }`}
+                    >
+                      {isCapaianRapk ? (
+                        <>
+                          <Icon icon="solar:pen-new-square-bold" width={14} />
+                          <span>Beri Arahan Pimpinan</span>
+                        </>
+                      ) : (
+                        <span>Buka Rekap</span>
+                      )}
+                    </span>
+                    <Icon
+                      icon="solar:arrow-right-linear"
+                      className={`h-4 w-4 transition group-hover:translate-x-1 ${
+                        isCapaianRapk ? "text-amber-700" : "text-slate-400 group-hover:text-[#005baa]"
+                      }`}
+                    />
+                  </div>
+                </Link>
+              );
+            })
           )}
         </div>
       </div>

@@ -48,14 +48,14 @@ const menus = {
     {
       name: "Monitoring & Evaluasi",
       icon: "solar:chart-2-bold",
-      url: "/siproval/rhpk/2026",
-      active: "/siproval/rhpk",
+      url: "/siproval/monev",
+      active: "/siproval/monev",
     },
     {
-      name: "Tambah Arahan Pimpinan",
-      icon: "solar:chat-square-call-bold",
-      url: "/siproval/rhpk/2026/tab/58",
-      active: "/siproval/rhpk/2026/tab",
+      name: "RHPK (Read-Only)",
+      icon: "solar:folder-with-files-bold",
+      url: "/siproval/katim/entry-data-rhpk",
+      active: "/siproval/katim/entry-data-rhpk",
     },
   ],
   tu: [
@@ -282,6 +282,13 @@ export default function SidebarSiproval({ actor }: Props) {
   const actorMenus = menus[resolvedActor] ?? [];
 
   const isMenuActive = (activePath: string) => {
+    if (activePath === "/siproval/monev") {
+      return (
+        pathname === "/siproval/monev" ||
+        pathname.startsWith("/siproval/monev/") ||
+        pathname.startsWith("/siproval/rhpk")
+      );
+    }
     if (
       activePath === "/siproval/tu" ||
       activePath === "/siproval/budget-mapping"
