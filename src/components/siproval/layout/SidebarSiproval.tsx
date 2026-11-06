@@ -54,8 +54,8 @@ const menus = {
     {
       name: "RHPK (Read-Only)",
       icon: "solar:folder-with-files-bold",
-      url: "/siproval/katim/entry-data-rhpk",
-      active: "/siproval/katim/entry-data-rhpk",
+      url: "/siproval/kabalai/rhpk",
+      active: "/siproval/kabalai/rhpk",
     },
   ],
   tu: [
@@ -282,6 +282,14 @@ export default function SidebarSiproval({ actor }: Props) {
   const actorMenus = menus[resolvedActor] ?? [];
 
   const isMenuActive = (activePath: string) => {
+    if (activePath === "/siproval/kabalai/rhpk") {
+      return (
+        pathname === "/siproval/kabalai/rhpk" ||
+        pathname.startsWith("/siproval/kabalai/rhpk") ||
+        pathname === "/siproval/katim/entry-data-rhpk" ||
+        pathname.startsWith("/siproval/katim/entry-data-rhpk")
+      );
+    }
     if (activePath === "/siproval/monev") {
       return (
         pathname === "/siproval/monev" ||

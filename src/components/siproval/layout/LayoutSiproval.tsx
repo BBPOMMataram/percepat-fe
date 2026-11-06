@@ -162,7 +162,9 @@ export default function LayoutSiproval({
             pathname.startsWith("/siproval/show-monev") ||
             pathname.startsWith("/siproval/catatan") ||
             pathname.startsWith("/siproval/rhpk") ||
-            pathname.startsWith("/siproval/arahan-pimpinan");
+            pathname.startsWith("/siproval/arahan-pimpinan") ||
+            pathname.startsWith("/siproval/kabalai") ||
+            pathname.startsWith("/siproval/katim/entry-data-rhpk");
           if (!isAllowed) {
             router.push("/siproval/monev");
           }

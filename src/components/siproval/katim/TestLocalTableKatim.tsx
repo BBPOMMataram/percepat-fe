@@ -730,13 +730,24 @@ export const recalculateRowFormulas = (
   return updatedCells;
 };
 
-export default function TestLocalTableKatim() {
+interface TestLocalTableKatimProps {
+  isKabalaiReadOnly?: boolean;
+}
+
+export default function TestLocalTableKatim({
+  isKabalaiReadOnly = false,
+}: TestLocalTableKatimProps = {}) {
   const { user } = useSelector((state: RootState) => state.auth);
   const authQuery = user?.id ? `?user_id=${user.id}` : "";
 
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
+  const isKabalai = Boolean(
+    isKabalaiReadOnly ||
+    user?.employee?.group_jabatan_id === 1 ||
+    pathname?.startsWith("/siproval/kabalai")
+  );
   const paramIkskId = searchParams?.get("iksk_id") || searchParams?.get("iksk");
   const paramSpreadsheetId =
     searchParams?.get("spreadsheet_id") || searchParams?.get("spreadsheet");
@@ -849,13 +860,14 @@ export default function TestLocalTableKatim() {
 
     if (
       !isKatimUser &&
+      !isKabalai &&
       isPicUser &&
       pathname === "/siproval/katim/entry-data-rhpk"
     ) {
       const search = window.location.search || "";
       router.replace(`/siproval/admin/entry-data-rhpk${search}`);
     }
-  }, [isPicUser, pathname, router, user]);
+  }, [isPicUser, isKabalai, pathname, router, user]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -909,8 +921,9 @@ export default function TestLocalTableKatim() {
                 : null;
       const qTab = effectiveTabId ? `&tab_id=${effectiveTabId}` : "";
 
+      const qKabalai = isKabalai ? "&is_kabalai=1" : "";
       const res = await api.get(
-        `${baseUrl}/api/test-local-table${authQuery}${qYear}${qIksk}${qSp}${qTab}`,
+        `${baseUrl}/api/test-local-table${authQuery}${qYear}${qIksk}${qSp}${qTab}${qKabalai}`,
       );
       const d = res.data?.data || {};
 
@@ -3019,21 +3032,32 @@ export default function TestLocalTableKatim() {
 
   return (
     <div className="space-y-6">
-      {/* Banner Katim */}
-      <div className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-teal-50 p-6 shadow-sm">
+      {/* Banner Katim / Kabalai */}
+      <div className={`rounded-2xl border p-6 shadow-sm ${
+        isKabalai
+          ? "border-blue-200 bg-gradient-to-r from-blue-50/80 via-white to-slate-50"
+          : "border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-teal-50"
+      }`}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-600 text-white">
-                <Icon icon="solar:pen-new-square-bold" width={20} />
+              <span className={`flex h-8 w-8 items-center justify-center rounded-xl text-white ${
+                isKabalai ? "bg-[#005baa]" : "bg-emerald-600"
+              }`}>
+                <Icon icon={isKabalai ? "solar:folder-with-files-bold" : "solar:pen-new-square-bold"} width={20} />
               </span>
               <h1 className="text-xl font-bold text-slate-900">
-                Entry Data RHPK
+                {isKabalai ? "Dokumen Lembar Kerja RHPK (Read-Only)" : "Entry Data RHPK"}
               </h1>
               <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
                 Tahun {selectedYear}
               </span>
-              {isPicUser && (
+              {isKabalai ? (
+                <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-bold text-[#005baa] flex items-center gap-1 shadow-2xs">
+                  <Icon icon="solar:eye-bold" width={13} />
+                  Mode Baca Kepala Balai
+                </span>
+              ) : isPicUser && (
                 <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-bold text-[#005baa] flex items-center gap-1 shadow-2xs">
                   <Icon icon="solar:shield-check-bold" width={13} />
                   Akses Penuh PIC / Admin
@@ -3041,15 +3065,17 @@ export default function TestLocalTableKatim() {
               )}
             </div>
             <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
-              {isPicUser
+              {isKabalai
+                ? "Akses monitoring eksekutif Kepala Balai untuk meninjau seluruh dokumen lembar kerja IKSK 1 s.d. 28 dan detail capaian bulanan secara transparan dalam mode baca."
+                : isPicUser
                 ? "Pengisian data capaian target dan indikator bulanan. Sebagai PIC/Admin, Anda memiliki akses penuh untuk mengisi angka target dan data realisasi di seluruh file dokumen RHPK."
                 : "Pengisian data capaian target dan indikator kegiatan bulanan Katim secara langsung ke sistem internal BBPOM."}
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Tombol Unggah / Import Excel */}
-            {selectedSpId &&
+            {/* Tombol Unggah / Import Excel (Khusus Katim / PIC) */}
+            {!isKabalai && selectedSpId &&
               (isPicUser ||
                 !spreadsheets.find((s) => s.id === selectedSpId)
                   ?.is_readonly) && (
@@ -3068,7 +3094,16 @@ export default function TestLocalTableKatim() {
                 </button>
               )}
 
-            {spreadsheets.find((s) => s.id === selectedSpId)?.is_readonly &&
+            {isKabalai ? (
+              <div className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50/80 px-4 py-2.5 text-xs font-bold text-[#005baa] shadow-2xs">
+                <Icon
+                  icon="solar:eye-bold"
+                  width={16}
+                  className="text-[#005baa]"
+                />
+                <span>Mode Baca (Kepala Balai)</span>
+              </div>
+            ) : spreadsheets.find((s) => s.id === selectedSpId)?.is_readonly &&
             !isPicUser ? (
               <div className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-800 shadow-2xs">
                 <Icon
@@ -3800,7 +3835,7 @@ export default function TestLocalTableKatim() {
                                         col.allowed_katim_ids.some(
                                           (id: string | number) => String(id) === String(user?.id),
                                         );
-                                      const isEditableForMe = col.can_edit && isColAllowedForMe;
+                                      const isEditableForMe = !isKabalai && col.can_edit && isColAllowedForMe;
                                       return (
                                         <div className="flex items-center justify-between gap-1 mb-1">
                                           <div className="flex items-center gap-1.5">
@@ -4078,7 +4113,7 @@ export default function TestLocalTableKatim() {
                           col.allowed_katim_ids.some(
                             (id: string | number) => String(id) === String(user?.id),
                           );
-                        const isEditableForMe = col.can_edit && isColAllowedForMe;
+                        const isEditableForMe = !isKabalai && col.can_edit && isColAllowedForMe;
                         const stickyStyle = leftStickyConfig.getClasses(
                           cIdx,
                           true,
@@ -4204,7 +4239,7 @@ export default function TestLocalTableKatim() {
                       );
                       const isMonthLocked = isMonthRow && row.is_locked;
                       const isCurrent = isMonthRow && row.is_current;
-                      const canEditThisRow = row.can_edit_row !== false;
+                      const canEditThisRow = !isKabalai && row.can_edit_row !== false;
                       const isSectionRow =
                         (row as any).row_type === "section" ||
                         row.cells?.col_1 === "Survey Tatap Muka" ||
