@@ -746,7 +746,8 @@ export default function TestLocalTableKatim({
   const isKabalai = Boolean(
     isKabalaiReadOnly ||
     user?.employee?.group_jabatan_id === 1 ||
-    pathname?.startsWith("/siproval/kabalai")
+    pathname?.startsWith("/siproval/kabalai") ||
+    pathname?.startsWith("/siproval/rhpk/entry-data")
   );
   const paramIkskId = searchParams?.get("iksk_id") || searchParams?.get("iksk");
   const paramSpreadsheetId =

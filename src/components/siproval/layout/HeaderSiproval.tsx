@@ -88,6 +88,9 @@ export default function HeaderSiproval({
     } else if (pathname.startsWith("/siproval/arahan-pimpinan")) {
       computedTitle = "Arahan Pimpinan";
       computedDesc = computedDesc || "Formulir penambahan arahan dan evaluasi Kepala Balai";
+    } else if (pathname.startsWith("/siproval/rhpk/entry-data") || pathname.startsWith("/siproval/kabalai/rhpk")) {
+      computedTitle = "Dokumen Lembar Kerja RHPK (Read-Only)";
+      computedDesc = computedDesc || "Peninjauan seluruh lembar kerja IKSK 1 s.d. 28 dalam mode baca terlindungi";
     } else if (pathname.startsWith("/siproval/rhpk")) {
       computedTitle = "Rekapitulasi RHPK";
       computedDesc = computedDesc || "Data pemantauan dan evaluasi tab RHPK";

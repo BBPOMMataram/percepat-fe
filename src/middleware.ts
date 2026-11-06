@@ -140,6 +140,8 @@ export async function middleware(req: NextRequest) {
             pathname.startsWith("/siproval/catatan") ||
             pathname.startsWith("/siproval/rhpk") ||
             pathname.startsWith("/siproval/arahan-pimpinan") ||
+            pathname.startsWith("/siproval/kabalai") ||
+            pathname.startsWith("/siproval/katim/entry-data-rhpk") ||
             isRealisasiRoPath;
           if (!allowed) {
             return NextResponse.redirect(new URL("/siproval/catatan", req.url));

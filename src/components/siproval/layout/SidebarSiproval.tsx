@@ -54,8 +54,8 @@ const menus = {
     {
       name: "RHPK (Read-Only)",
       icon: "solar:folder-with-files-bold",
-      url: "/siproval/kabalai/rhpk",
-      active: "/siproval/kabalai/rhpk",
+      url: "/siproval/rhpk/entry-data",
+      active: "/siproval/rhpk/entry-data",
     },
   ],
   tu: [
@@ -244,7 +244,7 @@ export default function SidebarSiproval({ actor }: Props) {
         pathname.startsWith("/siproval/show-monev") ||
         pathname.startsWith("/siproval/catatan") ||
         pathname.startsWith("/siproval/arahan-pimpinan") ||
-        pathname.startsWith("/siproval/rhpk")
+        (pathname.startsWith("/siproval/rhpk") && !pathname.startsWith("/siproval/rhpk/entry-data"))
       ) {
         resolvedActor = "kabalai";
       } else if (
@@ -270,7 +270,8 @@ export default function SidebarSiproval({ actor }: Props) {
         pathname.startsWith("/siproval/show-monev") ||
         pathname.startsWith("/siproval/catatan") ||
         pathname.startsWith("/siproval/arahan-pimpinan") ||
-        pathname.startsWith("/siproval/rhpk")
+        pathname.startsWith("/siproval/rhpk") ||
+        pathname.startsWith("/siproval/kabalai")
       ) {
         resolvedActor = "kabalai";
       } else {
@@ -282,7 +283,7 @@ export default function SidebarSiproval({ actor }: Props) {
   const actorMenus = menus[resolvedActor] ?? [];
 
   const isMenuActive = (activePath: string) => {
-    if (activePath === "/siproval/kabalai/rhpk") {
+    if (activePath === "/siproval/rhpk/entry-data" || activePath === "/siproval/kabalai/rhpk") {
       return (
         pathname === "/siproval/kabalai/rhpk" ||
         pathname.startsWith("/siproval/kabalai/rhpk") ||
