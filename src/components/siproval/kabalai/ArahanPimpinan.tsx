@@ -96,7 +96,7 @@ export default function ArahanPimpinan() {
 
       const message =
         res.data?.message ||
-        `Arahan pimpinan berhasil disimpan ke Google Sheet pada kolom ${targetColumn || "arahan"}${row}!`;
+        `Arahan pimpinan berhasil disimpan ke database RHPK pada baris ${row}!`;
       setSuccessMsg(message);
       setTimeout(() => {
         router.push(backUrl);
@@ -106,7 +106,7 @@ export default function ArahanPimpinan() {
       const e = err as { response?: { data?: { message?: string } } };
       setErrorMsg(
         e.response?.data?.message ||
-          "Gagal menyimpan arahan pimpinan ke Google Sheet. Pastikan server dan sheet aktif."
+          "Gagal menyimpan arahan pimpinan ke database lokal SIPROVAL."
       );
     } finally {
       setSubmitting(false);
@@ -128,7 +128,7 @@ export default function ArahanPimpinan() {
             Form Arahan Kepala Balai (Yogi Abaso Mataram)
           </h1>
           <p className="text-xs text-slate-500">
-            Input instruksi tindak lanjut langsung tersimpan ke kolom Arahan Pimpinan di Google Sheet.
+            Input instruksi tindak lanjut langsung tersimpan ke lembar capaian RHPK di database lokal.
           </p>
         </div>
       </div>
@@ -250,7 +250,7 @@ export default function ArahanPimpinan() {
               width={16}
               className={submitting ? "animate-spin" : ""}
             />
-            {submitting ? "Menyimpan ke Sheet..." : "Simpan Arahan ke Google Sheet"}
+            {submitting ? "Menyimpan ke Database..." : "Simpan Arahan Pimpinan"}
           </button>
         </div>
       </form>

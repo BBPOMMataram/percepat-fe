@@ -54,8 +54,8 @@ const menus = {
     {
       name: "Tambah Arahan Pimpinan",
       icon: "solar:chat-square-call-bold",
-      url: "/siproval/monev",
-      active: "/siproval/monev",
+      url: "/siproval/rhpk/2026/tab/58",
+      active: "/siproval/rhpk/2026/tab",
     },
   ],
   tu: [

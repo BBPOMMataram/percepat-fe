@@ -163,7 +163,7 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
     setModalErrorMsg("");
   };
 
-  // Simpan Arahan Langsung ke Google Sheet
+  // Simpan Arahan Langsung ke Database Lokal RHPK
   const handleSaveArahan = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedIndicator) return;

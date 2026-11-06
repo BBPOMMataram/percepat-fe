@@ -23,7 +23,7 @@ type Props = {
 export default function RhpkList({ year = "2026" }: Props) {
   const { user } = useSelector((state: RootState) => state.auth);
   const [tabs, setTabs] = useState<RhpkTab[]>([]);
-  const [spreadsheetName, setSpreadsheetName] = useState("Google Sheets RHPK");
+  const [spreadsheetName, setSpreadsheetName] = useState("REKAP DATA RHPK 2026 Mataram");
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
