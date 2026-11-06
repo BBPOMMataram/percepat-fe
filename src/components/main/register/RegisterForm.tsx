@@ -16,7 +16,7 @@ import FormRegisterAdditionalMahasiswa from "./FormAdditionalMahasiswa";
 import FormRegisterUserGeneral from "./FormUserGeneral";
 
 export default function RegisterForm() {
-    const [roleId, setRoleId] = useState<number>(3); // 3 = student
+    const [accountType, setAccountType] = useState("student");
     const [captchaToken, setCaptchaToken] = useState("");
     const [captchaKey, setCaptchaKey] = useState(0);
 
@@ -112,14 +112,14 @@ export default function RegisterForm() {
                             Role
                         </label>
                         <select
-                            name="role_id"
-                            value={roleId}
-                            onChange={(e) => setRoleId(parseInt(e.target.value))}
+                            name="account_type"
+                            value={accountType}
+                            onChange={(e) => setAccountType(e.target.value)}
                             required
                             className="ar-input-text-purple"
                         >
-                            <option value={3}>Mahasiswa</option>
-                            <option value={2} disabled>Eksternal (Cooming soon)</option>
+                            <option value="student">Mahasiswa</option>
+                            <option value="external" disabled>Eksternal (Cooming soon)</option>
                         </select>
                     </div>
 
@@ -142,8 +142,8 @@ export default function RegisterForm() {
                     </div>
 
                     {/* FORM MAHASISWA OR EXTERNAL */}
-                    {roleId == 3 && <FormRegisterAdditionalMahasiswa />}
-                    {roleId == 4 && <FormRegisterAdditionalExternal />}
+                    {accountType === "student" && <FormRegisterAdditionalMahasiswa />}
+                    {accountType === "external" && <FormRegisterAdditionalExternal />}
 
                     {/* Captcha Turnstile */}
                     <Turnstile
