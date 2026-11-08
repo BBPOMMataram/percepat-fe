@@ -65,6 +65,10 @@ type RowData = {
   is_updated?: boolean;
   // Baris yang ditambahkan di browser dan belum tersimpan ke server
   is_new_client_row?: boolean;
+  // Rumus asli tiap sel & nomor baris Excel (dari impor file) untuk perhitungan ulang yang benar
+  formulas?: Record<string, string> | null;
+  errors?: Record<string, string> | null;
+  excel_row?: number | null;
   cells: Record<string, any>;
 };
 
@@ -678,6 +682,11 @@ export const formatDisplayCellValue = (val: any, col?: any): string => {
   if (val === null || val === undefined || val === "") return "-";
 
   if (col) {
+    // Kolom berformat persen di Excel menyimpan rasio (1 = 100%, 1.05 = 105%)
+    if ((col as any).percent_scale === "ratio" && !isNaN(Number(val))) {
+      const pct = Math.round(Number(val) * 100 * 100) / 100;
+      return `${pct.toFixed(2)}%`;
+    }
     const lbl = (col.label || "").toLowerCase();
     const sub = ((col as any).sub_label || "").toLowerCase();
     const numFormat = ((col as any).number_format || "").toLowerCase();
@@ -723,10 +732,73 @@ export const formatDisplayCellValue = (val: any, col?: any): string => {
   return String(val);
 };
 
-// Helper evaluasi dan kalkulasi formula otomatis per baris data
+// Helper evaluasi rumus per baris data (PRATINJAU di browser; nilai final dihitung ulang server dengan mesin Excel)
+//
+// Aturan (sama dengan backend RhpkFormulaEngine):
+// - Baris memakai rumus ASLINYA sendiri (row.formulas[key]) yang disimpan saat impor file Excel.
+//   Baris tanpa rumus pada kolom itu (mis. baris "Jumlah Responden" / baris Total) tidak dihitung.
+// - Di browser hanya rumus yang merujuk sel pada BARIS YANG SAMA yang dihitung. Rumus yang merujuk baris lain
+//   (=F2+27, =SUM(C5:C11)) atau sheet lain ('11A. % Iklan Obat'!L2) dibiarkan; server menghitungnya saat simpan.
+// - Baris lama tanpa rumus per baris hanya memakai rumus kolom bila rumus itu tidak memuat nomor baris
+//   (rumus buatan aplikasi, mis. "IF(F>0,(E/F)*100,0)").
+// - Tidak ada pembatasan tambahan (bobot / 110%): nilai sel mengikuti rumus Excel apa adanya.
+type RowFormulaContext = {
+  formulas?: Record<string, string> | null;
+  // Sel yang di Excel bernilai galat (#DIV/0! dsb.; disimpan 0 untuk tampilan)
+  errors?: Record<string, string> | null;
+  excel_row?: number | null;
+};
+
+// Angka dari isi sel: "87,5" -> 87.5, "1.234,5" -> 1234.5, "100%" -> 1 (rasio seperti Excel)
+function cellNumber(raw: any): number | null {
+  if (raw === undefined || raw === null || raw === "") return null;
+  if (typeof raw === "number") return isFinite(raw) ? raw : null;
+  if (typeof raw === "boolean") return raw ? 1 : 0;
+  let s = String(raw).trim().replace(/\s/g, "");
+  const pct = s.endsWith("%");
+  if (pct) s = s.slice(0, -1);
+  if (/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) {
+    s = s.replace(/\./g, "").replace(",", ".");
+  } else {
+    s = s.replace(",", ".");
+  }
+  const n = Number(s);
+  if (s === "" || isNaN(n)) return null;
+  return pct ? n / 100 : n;
+}
+
+const A1_REF_RE = /\$?\b([A-Za-z]{1,3})\$?(\d+)\b/g;
+
+function resolveRowFormula(
+  col: ColumnSchema,
+  row?: RowFormulaContext | null,
+): string | null {
+  const hasRowFormulas =
+    !!row && !!row.formulas && typeof row.formulas === "object";
+  if (hasRowFormulas) {
+    const f = (row!.formulas as Record<string, string>)[col.key];
+    if (!f || typeof f !== "string") return null;
+    if (f.includes("!")) return null; // rujukan sheet lain -> dihitung server
+    const rowNum = Number(row!.excel_row || 0);
+    let sameRow = true;
+    f.replace(A1_REF_RE, (m, _l, n) => {
+      if (!rowNum || Number(n) !== rowNum) sameRow = false;
+      return m;
+    });
+    if (!sameRow || /[A-Za-z]{1,3}\$?\d+\s*:\s*\$?[A-Za-z]{1,3}\$?\d+/.test(f))
+      return null; // rujukan baris lain / rentang -> dihitung server
+    return f.replace(A1_REF_RE, (_m, l) => String(l).toUpperCase());
+  }
+  const tpl = (col.formula || "").trim();
+  if (!tpl || tpl.includes("!")) return null;
+  if (/\$?\b[A-Za-z]{1,3}\$?\d+\b/.test(tpl.replace(/^=/, ""))) return null;
+  return tpl;
+}
+
 export const recalculateRowFormulas = (
   cells: Record<string, any>,
   columns: ColumnSchema[],
+  row?: RowFormulaContext | null,
 ): Record<string, any> => {
   const updatedCells = { ...cells };
 
@@ -746,166 +818,97 @@ export const recalculateRowFormulas = (
     min: Math.min,
     max: Math.max,
     abs: Math.abs,
-    round: Math.round,
+    round: (v: number, d: number = 0) => {
+      const p = Math.pow(10, d || 0);
+      return Math.round(v * p) / p;
+    },
     if: (cond: any, a: any, b: any) => (Boolean(cond) ? a : b),
-    na: () => 1,
+    na: () => NaN,
     iserror: (val: any) =>
-      typeof val !== "number" ||
-      isNaN(val) ||
-      !isFinite(val) ||
-      val === null ||
-      val === undefined,
+      typeof val !== "number" || isNaN(val) || !isFinite(val),
     iferror: (val: any, fallback: any) =>
       typeof val === "number" && !isNaN(val) && isFinite(val) ? val : fallback,
   };
 
   columns.forEach((col) => {
-    if (col.type === "formula" && col.formula) {
-      let expr = col.formula.trim();
-      if (expr.startsWith("=")) {
-        expr = expr.slice(1).trim();
+    if (col.type !== "formula" || (col as any).is_cumulative) return;
+    const source = resolveRowFormula(col, row);
+    if (!source) return;
+
+    let expr = source.trim();
+    if (expr.startsWith("=")) expr = expr.slice(1).trim();
+    expr = expr.replace(/\$/g, "");
+
+    // Excel memakai '=' / '<>' untuk perbandingan dan '&' untuk teks: di luar cakupan pratinjau
+    if (/&|"/.test(expr)) return;
+    expr = expr.replace(/<>/g, "!=").replace(/([^<>!=])=([^=])/g, "$1==$2");
+
+    // 1. Persen: 20% -> (20/100), (A/B)% -> ((A/B)/100)
+    expr = expr.replace(/(\d+(?:\.\d+)?|\))\s*%/g, "$1/100");
+
+    // 2. Token huruf kolom & key kolom -> nilai sel baris ini
+    //    (sel yang di Excel bernilai galat -> NaN, agar ISERROR/IFERROR berperilaku seperti Excel)
+    const tokenMap: Record<string, string> = {};
+    const errs: Record<string, string> = (row && row.errors) || {};
+    columns.forEach((c) => {
+      const letter = (c.col_letter || "").toUpperCase().trim();
+      const n = cellNumber(updatedCells[c.key]);
+      const isErr = Boolean(errs[c.key]) && (n === null || n === 0);
+      const token = isErr ? "NaN" : String(n ?? 0);
+      if (letter) tokenMap[letter] = token;
+      tokenMap[c.key] = token;
+    });
+    const tokens = Object.keys(tokenMap).sort((a, b) => b.length - a.length);
+    for (const tok of tokens) {
+      const regex = new RegExp(`\\b${tok}\\b(?!\\s*\\()`, "gi");
+      expr = expr.replace(regex, `(${tokenMap[tok]})`);
+    }
+
+    // Pembagian dengan nol = galat #DIV/0! seperti Excel (termasuk di dalam kondisi IF)
+    const divZeroRe = /\/\s*\(\s*-?0(\.0+)?\s*\)/g;
+    const hasDivZero = divZeroRe.test(expr);
+    expr = expr.replace(divZeroRe, "/(NaN)");
+    const handlesErrors = /iferror|iserror/i.test(source);
+
+    // 3. Fungsi Excel umum
+    expr = expr
+      .replace(/\biferror\s*\(/gi, "excelMathEnv.iferror(")
+      .replace(/\biserror\s*\(/gi, "excelMathEnv.iserror(")
+      .replace(/\bif\s*\(/gi, "excelMathEnv.if(")
+      .replace(/\bna\s*\(\s*\)/gi, "excelMathEnv.na()")
+      .replace(/\bsum\s*\(/gi, "excelMathEnv.sum(")
+      .replace(/\baveragea?\s*\(/gi, "excelMathEnv.average(")
+      .replace(/\bmin\s*\(/gi, "excelMathEnv.min(")
+      .replace(/\bmax\s*\(/gi, "excelMathEnv.max(")
+      .replace(/\babs\s*\(/gi, "excelMathEnv.abs(")
+      .replace(/\bround\s*\(/gi, "excelMathEnv.round(");
+
+    // 4. Hanya ekspresi aritmetika aman yang dievaluasi
+    const sanitized = expr.replace(
+      /excelMathEnv\.(iferror|iserror|if|na|sum|average|min|max|abs|round)/g,
+      "",
+    );
+    if (!/^[\d\+\-\*/\(\)\,\.\s><=!]+$/.test(sanitized.replace(/NaN/g, "0")))
+      return;
+    if (hasDivZero && !handlesErrors) {
+      updatedCells[col.key] = 0; // #DIV/0! -> 0 (sama dengan server)
+      return;
+    }
+    try {
+      const res = Function(
+        "excelMathEnv",
+        `"use strict"; return (${expr})`,
+      )(excelMathEnv);
+      if (typeof res === "number" && !isNaN(res) && isFinite(res)) {
+        updatedCells[col.key] =
+          res > 0 && res <= 1
+            ? Math.round(res * 10000) / 10000
+            : Math.round(res * 100) / 100;
+      } else if (typeof res === "number") {
+        updatedCells[col.key] = 0; // #DIV/0! -> 0 (sama dengan server)
       }
-
-      // 0. Bersihkan referensi nama sheet (misal '11E. % Iklan PO'!$X2 atau Sheet1!A1) dan tanda absolut $
-      expr = expr.replace(/'[^']+'!\s*/gi, "");
-      expr = expr.replace(/[A-Za-z0-9_\.\s\-]+!\s*/gi, "");
-      expr = expr.replace(/\$/g, "");
-
-      const letUpper = (col.col_letter || "").toUpperCase().trim();
-      const colLabel = (col.label || "").toLowerCase();
-
-      // Normalisasi formula tab 11E (% Iklan PO) secara dinamis jika formula database lama keliru/tertinggal
-      if (
-        letUpper === "H" &&
-        (colLabel.includes("realisasi") || expr.includes("12.5%"))
-      ) {
-        expr = "IF((G/F)<1,(G/F),1)";
-      } else if (letUpper === "I" && colLabel.includes("pemenuhan")) {
-        expr = "H*40";
-      } else if (letUpper === "L" && colLabel.includes("cetak")) {
-        expr = "IF((K/J)<1,(K/J),1)";
-      } else if (letUpper === "O" && colLabel.includes("online")) {
-        expr = "IF((N/M)<1,(N/M),1)";
-      } else if (letUpper === "R" && colLabel.includes("penyiaran")) {
-        expr = "IF((Q/P)<1,(Q/P),1)";
-      } else if (letUpper === "U" && colLabel.includes("luar ruang")) {
-        expr = "IF((T/S)<1,(T/S),1)";
-      } else if (letUpper === "V" && colLabel.includes("proporsi")) {
-        expr = "IF(AVERAGE(L,O,R,U)>1, (AVERAGE(L,O,R,U)/100)*20, AVERAGE(L,O,R,U)*20)";
-      } else if (letUpper === "Y" && colLabel.includes("ketepatan")) {
-        expr = "IF((W>0),MIN((X/W)*40,40),IF((G>0),MIN((X/G)*40,40),40))";
-      } else if (
-        letUpper === "Z" &&
-        (colLabel.includes("% iklan po") || colLabel.includes("iklan po"))
-      ) {
-        expr = "I+V+Y";
-      }
-
-      // 1. Ganti persentase angka misal 20% -> (20/100) atau 70% -> (70/100)
-      expr = expr.replace(/(\d+(?:\.\d+)?)\s*%/g, "($1/100)");
-
-      // 2. Hilangkan nomor baris Excel jika ada, misal G2 -> G, H2 -> H, I11 -> I
-      // Memastikan rumus template baris selalu mengacu pada sel di baris data berjalan ini
-      expr = expr.replace(/([A-Za-z]+)\d+/g, "$1");
-
-      // 3. Buat token map untuk huruf kolom dan key kolom baris saat ini
-      const tokenMap: Record<string, number> = {};
-      columns.forEach((c) => {
-        const letter = (c.col_letter || "").toUpperCase().trim();
-        const rawVal = updatedCells[c.key];
-        const numVal =
-          rawVal !== undefined &&
-          rawVal !== null &&
-          rawVal !== "" &&
-          !isNaN(Number(rawVal))
-            ? Number(rawVal)
-            : 0;
-        if (letter) {
-          tokenMap[letter] = numVal;
-        }
-        tokenMap[c.key] = numVal;
-      });
-
-      // 4. Urutkan token terpanjang lebih dahulu untuk mencegah partial replacement
-      const tokens = Object.keys(tokenMap).sort((a, b) => b.length - a.length);
-      for (const tok of tokens) {
-        const regex = new RegExp(`\\b${tok}\\b`, "gi");
-        expr = expr.replace(regex, String(tokenMap[tok]));
-      }
-
-      // 5. Cek pembagian dengan 0 secara aman: ganti / 0 dengan / 0.000000001 agar ekspresi kondisional tetap berjalan
-      expr = expr.replace(/\/\s*0+(\.0+)?(?!\d)/g, "/ 0.000000001");
-
-      // 6. Tangani fungsi matematika umum Excel
-      expr = expr
-        .replace(/\biferror\s*\(/gi, "excelMathEnv.iferror(")
-        .replace(/\biserror\s*\(/gi, "excelMathEnv.iserror(")
-        .replace(/\bif\s*\(/gi, "excelMathEnv.if(")
-        .replace(/\bna\s*\(\s*\)/gi, "excelMathEnv.na()")
-        .replace(/\bsum\s*\(/gi, "excelMathEnv.sum(")
-        .replace(/\baveragea?\s*\(/gi, "excelMathEnv.average(")
-        .replace(/\bmin\s*\(/gi, "excelMathEnv.min(")
-        .replace(/\bmax\s*\(/gi, "excelMathEnv.max(")
-        .replace(/\babs\s*\(/gi, "excelMathEnv.abs(")
-        .replace(/\bround\s*\(/gi, "excelMathEnv.round(");
-
-      // 7. Evaluasi ekspresi aritmatika aman
-      const sanitized = expr.replace(
-        /excelMathEnv\.(if|na|sum|average|min|max|abs|round)/g,
-        "",
-      );
-      if (/^[\d\+\-\*/\(\)\,\.\s><=!]+$/.test(sanitized)) {
-        try {
-          const res = Function(
-            "excelMathEnv",
-            `"use strict"; return (${expr})`,
-          )(excelMathEnv);
-          if (typeof res === "number" && !isNaN(res) && isFinite(res)) {
-            const colLabelLower = (col.label || "").toLowerCase();
-            const colSubLower = ((col as any).sub_label || "").toLowerCase();
-            const isMediaRealisasiCol =
-              colLabelLower.includes("realisasi media") ||
-              colSubLower.includes("realisasi media");
-            const isPctRatio =
-              isMediaRealisasiCol ||
-              Boolean((col as any).is_percentage) ||
-              (res > 0 && res <= 1 && !colLabelLower.includes("bobot"));
-
-            let calculatedVal = isPctRatio
-              ? Math.round(res * 10000) / 10000
-              : Math.round(res * 100) / 100;
-
-            // 1. Normalisasi Bobot (Bobot X%) sesuai Pedoman SAKIP
-            // Jika kolom memiliki pembobotan (misal Bobot 20%, Bobot 70%, Bobot 10%), nilai maksimal dibatasi sebesar bobotnya
-            const colMetaText = `${col.label || ""} ${col.parent_header || ""} ${col.sub_label || ""}`;
-            const weightMatch = colMetaText.match(
-              /bobot\s*:?\s*(\d+(?:\.\d+)?)\s*%/i,
-            );
-            if (weightMatch) {
-              const maxWeight = parseFloat(weightMatch[1]);
-              if (calculatedVal > maxWeight) {
-                calculatedVal = maxWeight;
-              }
-            }
-
-            // 2. Normalisasi Capaian RO / Indikator (Maksimal 110%) sesuai Pedoman SAKIP (Lampiran II Halaman 27)
-            // "Jika capaian kinerja setiap indikator > 110% maka dinormalisasi menjadi 110%; jika <= 110% maka tidak dilakukan normalisasi"
-            const isCapaianOrRo =
-              /\b(capaian\s*ro|realisasi\s*ro|%\s*capaian|capaian\s*indikator|normalisasi|nko)\b/i.test(
-                colMetaText,
-              );
-            if (isCapaianOrRo && calculatedVal > 110) {
-              calculatedVal = 110;
-            }
-
-            updatedCells[col.key] = calculatedVal;
-          } else {
-            updatedCells[col.key] = 0;
-          }
-        } catch {
-          // Abaikan jika ada kesalahan parsing matematika
-        }
-      }
+    } catch {
+      // Ekspresi tidak dapat dihitung di browser: nilai dibiarkan, server menghitung saat simpan
     }
   });
 
@@ -1246,7 +1249,7 @@ export default function TestLocalTableKatim({
         rows = recalculateCumulativeRows(rows, cols);
         rows = rows.map((r: any) => ({
           ...r,
-          cells: recalculateRowFormulas(r.cells || {}, cols),
+          cells: recalculateRowFormulas(r.cells || {}, cols, r),
         }));
         setActiveTab({ ...d.active_tab, rows_data: rows });
       } else {
@@ -1527,6 +1530,7 @@ export default function TestLocalTableKatim({
               [colKey]: parsedVal,
             },
             effectiveColumnsSchema,
+            r,
           );
           return {
             ...r,
@@ -1544,7 +1548,7 @@ export default function TestLocalTableKatim({
         );
         newRows = newRows.map((r) => ({
           ...r,
-          cells: recalculateRowFormulas(r.cells, effectiveColumnsSchema),
+          cells: recalculateRowFormulas(r.cells, effectiveColumnsSchema, r),
         }));
       }
 
@@ -2389,7 +2393,7 @@ export default function TestLocalTableKatim({
     // Hitung ulang rumus formula pada setiap baris
     updatedRows = updatedRows.map((r) => ({
       ...r,
-      cells: recalculateRowFormulas(r.cells, effectiveColumnsSchema),
+      cells: recalculateRowFormulas(r.cells, effectiveColumnsSchema, r),
     }));
 
     // Update state tabel seketika
@@ -2783,7 +2787,7 @@ export default function TestLocalTableKatim({
       }
       newRows = newRows.map((r) => ({
         ...r,
-        cells: recalculateRowFormulas(r.cells, effectiveColumnsSchema),
+        cells: recalculateRowFormulas(r.cells, effectiveColumnsSchema, r),
       }));
 
       return { ...prev, rows_data: newRows };
@@ -6274,7 +6278,9 @@ export default function TestLocalTableKatim({
                                 </div>
                               </div>
 
-                              {!collabModal.isLocked && (
+                              {/* Katim hanya dapat mengubah/menghapus catatannya sendiri; PIC/Admin semua catatan */}
+                              {!collabModal.isLocked &&
+                                (isCurrentUserAuthor || isPicUser) && (
                                 <div className="flex items-center gap-1 shrink-0">
                                   <button
                                     type="button"
