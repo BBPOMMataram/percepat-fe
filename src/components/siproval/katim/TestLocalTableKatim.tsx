@@ -631,6 +631,35 @@ export const recalculateRowFormulas = (
         expr = expr.slice(1).trim();
       }
 
+      // 0. Bersihkan referensi nama sheet (misal '11E. % Iklan PO'!$X2 atau Sheet1!A1) dan tanda absolut $
+      expr = expr.replace(/'[^']+'!\s*/gi, "");
+      expr = expr.replace(/[A-Za-z0-9_\.\s\-]+!\s*/gi, "");
+      expr = expr.replace(/\$/g, "");
+
+      const letUpper = (col.col_letter || "").toUpperCase().trim();
+      const colLabel = (col.label || "").toLowerCase();
+
+      // Normalisasi formula tab 11E (% Iklan PO) secara dinamis jika formula database lama keliru/tertinggal
+      if (letUpper === "H" && (colLabel.includes("realisasi") || expr.includes("12.5%"))) {
+        expr = "IF((G/F)<1,(G/F),1)";
+      } else if (letUpper === "I" && colLabel.includes("pemenuhan")) {
+        expr = "H*40";
+      } else if (letUpper === "L" && colLabel.includes("cetak")) {
+        expr = "IF((K/J)<1,(K/J),1)";
+      } else if (letUpper === "O" && colLabel.includes("online")) {
+        expr = "IF((N/M)<1,(N/M),1)";
+      } else if (letUpper === "R" && colLabel.includes("penyiaran")) {
+        expr = "IF((Q/P)<1,(Q/P),1)";
+      } else if (letUpper === "U" && colLabel.includes("luar ruang")) {
+        expr = "IF((T/S)<1,(T/S),1)";
+      } else if (letUpper === "V" && colLabel.includes("proporsi")) {
+        expr = "AVERAGE(L,O,R,U)*20";
+      } else if (letUpper === "Y" && colLabel.includes("ketepatan")) {
+        expr = "IF((W>0),MIN((X/W)*40,40),IF((G>0),MIN((X/G)*40,40),40))";
+      } else if (letUpper === "Z" && (colLabel.includes("% iklan po") || colLabel.includes("iklan po"))) {
+        expr = "I+V+Y";
+      }
+
       // 1. Ganti persentase angka misal 20% -> (20/100) atau 70% -> (70/100)
       expr = expr.replace(/(\d+(?:\.\d+)?)\s*%/g, "($1/100)");
 
