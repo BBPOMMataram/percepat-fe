@@ -272,11 +272,14 @@ export default function TestLocalTablePic() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(50);
   const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>("all");
+  const [focusSelectedIksk, setFocusSelectedIksk] = useState<boolean>(true);
+  const [overrideIndicatorParent, setOverrideIndicatorParent] = useState<string | null>(null);
 
   useEffect(() => {
     setCurrentPage(1);
     setTableSearch("");
     setSelectedMonthFilter("all");
+    setOverrideIndicatorParent(null);
   }, [activeTab?.id]);
 
   const activeSpreadsheet = useMemo(() => {
@@ -340,15 +343,27 @@ export default function TestLocalTablePic() {
     const schema = effectiveColumnsSchema;
     if (!schema || schema.length === 0) return false;
 
-    // 1. Jika tabel memiliki kolom 'Bulan', pasti tabel vertikal
-    const hasBulanCol = schema.some(
-      (c) => (c.label || "").trim().toLowerCase() === "bulan"
-    );
+    // 1. Jika tabel memiliki kolom 'Bulan' atau 'Periode', pasti tabel vertikal
+    const hasBulanCol = schema.some((c) => {
+      const l = (c.label || "").trim().toLowerCase();
+      const sub = ((c as any).sub_label || "").trim().toLowerCase();
+      const parent = ((c as any).parent_header || "").trim().toLowerCase();
+      return (
+        l === "bulan" ||
+        l === "periode" ||
+        l.startsWith("bulan") ||
+        l.includes("bulan") ||
+        l.includes("periode") ||
+        sub === "bulan" ||
+        sub.includes("bulan") ||
+        parent.includes("bulan")
+      );
+    });
     if (hasBulanCol) return false;
 
     // 2. Jika baris data terdefinisi untuk 12 bulan (month 1..12), pasti tabel vertikal
     const rows = activeTab?.rows_data || [];
-    if (rows.length === 12 && rows.some((r) => r.month && r.month > 0)) {
+    if (rows.length >= 6 && rows.some((r) => r.month && r.month > 0 && r.month <= 12)) {
       return false;
     }
 
@@ -370,6 +385,67 @@ export default function TestLocalTablePic() {
     });
     return labelMonths.size >= 3;
   }, [activeTab?.columns_schema, activeTab?.rows_data]);
+
+  // Deteksi apakah sheet ini adalah sheet multi-indikator (memiliki lebih dari 2 parent header bertopik non-bulan)
+  const isMultiIndicatorSheet = useMemo(() => {
+    if (!headerGroups) return false;
+    const nonMonthParents = headerGroups.filter(
+      (g) => g.parent && getMonthNumberFromText(g.parent) === null
+    );
+    return nonMonthParents.length >= 3;
+  }, [headerGroups]);
+
+  const matchedIndicatorParent = useMemo(() => {
+    if (!isMultiIndicatorSheet || !headerGroups) return null;
+    if (overrideIndicatorParent) return overrideIndicatorParent;
+
+    const spText = (activeSpreadsheet?.name || "").toLowerCase();
+
+    const topics: { key: string; words: string[] }[] = [
+      { key: "lab", words: ["laboratorium", "lab pengujian", "kemampuan laboratorium"] },
+      { key: "klb", words: ["klb", "keracunan pangan"] },
+      { key: "kie", words: ["kie", "komunikasi", "edukasi"] },
+      { key: "kejahatan", words: ["kejahatan", "penyidikan", "analisis kejahatan"] },
+      { key: "pelayanan", words: ["pelayanan publik"] },
+      { key: "zi", words: ["pembangunan zi", "zona integritas"] },
+      { key: "akip", words: ["akip"] },
+      { key: "anggaran", words: ["kinerja anggaran"] },
+      { key: "risiko", words: ["manajemen risiko"] },
+      { key: "kab_kota", words: ["kabupaten", "kota"] },
+      { key: "faskes", words: ["fasilitas pelayanan kesehatan", "ktd", "eso"] },
+      { key: "fortifikasi", words: ["fortifikasi"] },
+      { key: "amr", words: ["amr", "antimikroba"] },
+    ];
+
+    let matchedTopic: string | null = null;
+    for (const t of topics) {
+      if (t.words.some((w) => spText.includes(w))) {
+        matchedTopic = t.key;
+        break;
+      }
+    }
+
+    const nonMonthParents = headerGroups
+      .map((g) => g.parent)
+      .filter((p): p is string => Boolean(p && getMonthNumberFromText(p) === null));
+
+    if (matchedTopic) {
+      const tObj = topics.find((t) => t.key === matchedTopic);
+      const found = nonMonthParents.find((p) => {
+        const pLower = (p || "").toLowerCase();
+        return tObj?.words.some((w) => pLower.includes(w));
+      });
+      if (found) return found;
+    }
+
+    const words = spText.split(/\s+/).filter((w) => w.length > 3 && !w.startsWith("iksk"));
+    const found = nonMonthParents.find((p) => {
+      const pLower = (p || "").toLowerCase();
+      return words.some((w) => pLower.includes(w));
+    });
+
+    return found || nonMonthParents[0] || null;
+  }, [isMultiIndicatorSheet, headerGroups, activeSpreadsheet, overrideIndicatorParent]);
 
   const monthColKey = useMemo(() => {
     if (!activeTab?.columns_schema) return null;
@@ -551,7 +627,21 @@ export default function TestLocalTablePic() {
   }, [activeTab?.rows_data, selectedMonthFilter, isHorizontalMonthTable, tableSearch, monthColKey]);
 
   const displayedColumnsSchema = useMemo<ColumnSchema[]>(() => {
-    const schema = effectiveColumnsSchema;
+    let schema = effectiveColumnsSchema;
+
+    // Filter fokus IKSK jika dokumen multi-indikator
+    if (isMultiIndicatorSheet && focusSelectedIksk && matchedIndicatorParent) {
+      schema = schema.filter((col) => {
+        const isIdentity =
+          col.key === "col_0" ||
+          col.key === "col_1" ||
+          col.key === "col_2" ||
+          (!col.parent_header && (col.col_letter === "A" || col.col_letter === "B" || col.col_letter === "C"));
+        const belongsToIndicator = col.parent_header === matchedIndicatorParent;
+        return isIdentity || belongsToIndicator;
+      });
+    }
+
     if (!isHorizontalMonthTable || selectedMonthFilter === "all") {
       return schema;
     }
@@ -563,7 +653,14 @@ export default function TestLocalTablePic() {
       const colMonthNum = getMonthNumberFromText(col.parent_header) || getMonthNumberFromText(col.label);
       return isFixedLeft || colMonthNum === targetMonthNum;
     });
-  }, [activeTab?.columns_schema, isHorizontalMonthTable, selectedMonthFilter]);
+  }, [
+    effectiveColumnsSchema,
+    isHorizontalMonthTable,
+    selectedMonthFilter,
+    isMultiIndicatorSheet,
+    focusSelectedIksk,
+    matchedIndicatorParent,
+  ]);
 
   const hasSubParents = useMemo(() => {
     return displayedColumnsSchema.some((c) => Boolean(c.sub_parent));
@@ -571,13 +668,23 @@ export default function TestLocalTablePic() {
 
   const displayedHeaderGroups = useMemo(() => {
     if (!headerGroups) return null;
+    let groups = headerGroups;
+
+    // Filter fokus IKSK jika dokumen multi-indikator
+    if (isMultiIndicatorSheet && focusSelectedIksk && matchedIndicatorParent) {
+      groups = groups.filter((grp) => {
+        if (!grp.parent) return true;
+        return grp.parent === matchedIndicatorParent;
+      });
+    }
+
     if (!isHorizontalMonthTable || selectedMonthFilter === "all") {
-      return headerGroups;
+      return groups;
     }
     const targetMonthNum = getMonthNumberFromText(selectedMonthFilter);
-    if (!targetMonthNum) return headerGroups;
+    if (!targetMonthNum) return groups;
 
-    return headerGroups
+    return groups
       .map((grp) => {
         if (!grp.parent) {
           return grp;
@@ -589,7 +696,14 @@ export default function TestLocalTablePic() {
         return null;
       })
       .filter((grp): grp is NonNullable<typeof grp> => grp !== null);
-  }, [headerGroups, isHorizontalMonthTable, selectedMonthFilter]);
+  }, [
+    headerGroups,
+    isHorizontalMonthTable,
+    selectedMonthFilter,
+    isMultiIndicatorSheet,
+    focusSelectedIksk,
+    matchedIndicatorParent,
+  ]);
 
   const rawRowsCount = activeTab?.rows_data?.length || 0;
   const totalRows = filteredRows.length;
@@ -1578,6 +1692,77 @@ export default function TestLocalTablePic() {
           </div>
         ) : (
           <>
+            {/* Banner Mode Multi-Indikator: Memungkinkan isolasi fokus pada IKSK yang dipilih tanpa terganggu 13 indikator lainnya */}
+            {isMultiIndicatorSheet && (
+              <div className="mx-6 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50/90 to-indigo-50/60 p-3.5 text-xs shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex size-8 items-center justify-center rounded-xl bg-[#005baa] text-white shrink-0 shadow-xs">
+                    <Icon icon="solar:filter-bold-duotone" width={18} />
+                  </div>
+                  <div>
+                    <div className="font-bold text-slate-800 flex items-center gap-2">
+                      <span>Dokumen Gabungan RHPK Balai (13 Indikator Terpadu)</span>
+                      <span className="text-[10px] bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full">
+                        61 Kolom
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-600 mt-1 flex flex-wrap items-center gap-2">
+                      <span>Pilih Fokus Indikator:</span>
+                      <select
+                        value={matchedIndicatorParent || ""}
+                        onChange={(e) => {
+                          setOverrideIndicatorParent(e.target.value);
+                          setFocusSelectedIksk(true);
+                        }}
+                        className="rounded-lg border border-blue-300 bg-white px-2 py-1 text-xs font-semibold text-[#005baa] shadow-2xs focus:border-[#005baa] focus:outline-hidden"
+                      >
+                        {headerGroups
+                          ?.map((g) => g.parent)
+                          .filter((p): p is string => Boolean(p && getMonthNumberFromText(p) === null))
+                          .map((p, pIdx) => (
+                            <option key={pIdx} value={p}>
+                              {p}
+                            </option>
+                          ))}
+                      </select>
+                      {focusSelectedIksk && (
+                        <span className="text-emerald-700 font-medium">
+                          ({displayedColumnsSchema.length} Kolom aktif termasuk Identitas Unit & Bulan)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFocusSelectedIksk(true)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition text-xs shadow-2xs ${
+                      focusSelectedIksk
+                        ? "bg-[#005baa] text-white ring-2 ring-blue-300"
+                        : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
+                    }`}
+                  >
+                    <Icon icon="solar:check-circle-bold" width={14} className={focusSelectedIksk ? "text-white" : "text-slate-400"} />
+                    <span>Fokus 1 Indikator</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFocusSelectedIksk(false)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition text-xs shadow-2xs ${
+                      !focusSelectedIksk
+                        ? "bg-[#005baa] text-white ring-2 ring-blue-300"
+                        : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
+                    }`}
+                  >
+                    <Icon icon="solar:layers-bold" width={14} className={!focusSelectedIksk ? "text-white" : "text-slate-400"} />
+                    <span>Tampilkan Seluruh 13 Indikator ({effectiveColumnsSchema.length} Kolom)</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="w-full overflow-x-auto custom-scrollbar">
             <table className="w-full border-collapse text-left text-xs">
               {/* Sticky Table Header */}
