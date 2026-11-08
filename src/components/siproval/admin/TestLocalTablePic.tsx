@@ -6,6 +6,7 @@ import { Icon } from "@iconify/react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import api from "@/utils/api";
+import { formatDisplayCellValue } from "@/components/siproval/katim/TestLocalTableKatim";
 
 const baseUrl = (
   process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000"
@@ -2124,7 +2125,7 @@ export default function TestLocalTablePic() {
                                   : "bg-slate-200/80 text-slate-600 font-medium"
                               }`}
                             >
-                              {val !== "" ? String(val) : <span className="text-slate-300 font-mono">-</span>}
+                              {val !== "" ? formatDisplayCellValue(val, col) : <span className="text-slate-300 font-mono">-</span>}
                             </td>
                           );
                         })}

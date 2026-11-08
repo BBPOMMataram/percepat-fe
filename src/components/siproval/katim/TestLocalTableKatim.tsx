@@ -588,6 +588,55 @@ export const recalculateCumulativeRows = (
   return newRows;
 };
 
+// Helper format tampilan nilai sel tabel (persentase otomatis untuk Realisasi Media dan kolom rasio/persen)
+export const formatDisplayCellValue = (val: any, col?: any): string => {
+  if (val === null || val === undefined || val === "") return "-";
+
+  if (col) {
+    const lbl = (col.label || "").toLowerCase();
+    const sub = ((col as any).sub_label || "").toLowerCase();
+    const numFormat = ((col as any).number_format || "").toLowerCase();
+
+    // Kolom-kolom realisasi media cetak/online/penyiaran/luar ruang adalah persentase murni
+    const isMediaRealisasi =
+      lbl.includes("realisasi media") || sub.includes("realisasi media");
+
+    const isWeightedScore =
+      lbl.includes("(40%)") ||
+      lbl.includes("(20%)") ||
+      lbl.includes("(10%)") ||
+      lbl.includes("(70%)") ||
+      lbl.includes("pemenuhan target") ||
+      lbl.includes("proporsi media") ||
+      lbl.includes("waktu pelaporan");
+
+    const isExplicitPercentage =
+      !isWeightedScore &&
+      (isMediaRealisasi ||
+        numFormat.includes("%") ||
+        Boolean((col as any).is_percentage));
+
+    if (isExplicitPercentage && !isNaN(Number(val))) {
+      const num = Number(val);
+      // Jika nilai berupa rasio desimal 0 s.d. 1 (misal 1 -> 100%, 0.875 -> 87.5%, 0.9 -> 90%)
+      if (num <= 1 && num > 0) {
+        const pct = Math.round(num * 10000) / 100;
+        return `${pct}%`;
+      }
+      // Jika nilai sudah berupa persentase 0..100 (misal 100 -> 100%, 87.5 -> 87.5%)
+      if (num > 1) {
+        const pct = Math.round(num * 100) / 100;
+        return `${pct}%`;
+      }
+      if (num === 0) {
+        return "0%";
+      }
+    }
+  }
+
+  return String(val);
+};
+
 // Helper evaluasi dan kalkulasi formula otomatis per baris data
 export const recalculateRowFormulas = (
   cells: Record<string, any>,
@@ -653,7 +702,7 @@ export const recalculateRowFormulas = (
       } else if (letUpper === "U" && colLabel.includes("luar ruang")) {
         expr = "IF((T/S)<1,(T/S),1)";
       } else if (letUpper === "V" && colLabel.includes("proporsi")) {
-        expr = "AVERAGE(L,O,R,U)*20";
+        expr = "IF(AVERAGE(L,O,R,U)>1, (AVERAGE(L,O,R,U)/100)*20, AVERAGE(L,O,R,U)*20)";
       } else if (letUpper === "Y" && colLabel.includes("ketepatan")) {
         expr = "IF((W>0),MIN((X/W)*40,40),IF((G>0),MIN((X/G)*40,40),40))";
       } else if (letUpper === "Z" && (colLabel.includes("% iklan po") || colLabel.includes("iklan po"))) {
@@ -4799,7 +4848,7 @@ export default function TestLocalTableKatim({
                                       </button>
                                       <span className="font-mono font-bold text-xs text-slate-900 pr-1">
                                         {val !== "" && val !== null
-                                          ? String(val)
+                                          ? formatDisplayCellValue(val, col)
                                           : "-"}
                                       </span>
                                     </div>
@@ -5062,7 +5111,7 @@ export default function TestLocalTableKatim({
                                 <div className="flex items-center justify-between gap-1.5">
                                   <div className="flex items-center gap-1.5 flex-wrap">
                                     <span>
-                                      {val !== "" ? String(val) : "-"}
+                                      {formatDisplayCellValue(val, col)}
                                     </span>
                                     {showStatusBadge &&
                                       (isRowFilled ? (
