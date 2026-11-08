@@ -63,6 +63,8 @@ type RowData = {
   is_month_row?: boolean;
   is_total?: boolean;
   is_updated?: boolean;
+  // Baris yang ditambahkan di browser dan belum tersimpan ke server
+  is_new_client_row?: boolean;
   cells: Record<string, any>;
 };
 
@@ -1041,6 +1043,30 @@ export default function TestLocalTableKatim({
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(
     null,
   );
+
+  // Jumlah baris versi server (tanpa baris baru yang belum disimpan) untuk deteksi konflik di backend
+  const getBaseRowCount = (rows: RowData[] | undefined) =>
+    (rows || []).filter((r) => !r.is_new_client_row).length;
+
+  // Tampilkan pop-up jika tabel sudah diubah pengguna lain (HTTP 409 TAB_STALE)
+  const handleStaleTabError = (err: any): boolean => {
+    if (err?.response?.status !== 409) return false;
+    setConfirmDialog({
+      tone: "amber",
+      icon: "solar:refresh-circle-bold",
+      title: "Data Tabel Sudah Berubah",
+      message:
+        err.response?.data?.message ||
+        "Data tabel ini telah diubah oleh pengguna lain sejak Anda membukanya.",
+      note: "Perubahan Anda BELUM tersimpan. Muat ulang tabel untuk mengambil data terbaru, lalu ulangi perubahan Anda.",
+      confirmLabel: "Muat Ulang Tabel",
+      cancelLabel: "Tutup",
+      onConfirm: () => {
+        fetchData(selectedYear, selectedIkskId, selectedSpId, selectedTabId);
+      },
+    });
+    return true;
+  };
 
   const closeUploadModal = () => {
     setShowUploadModal(false);
@@ -2266,6 +2292,7 @@ export default function TestLocalTableKatim({
       is_locked: false,
       is_current: true,
       can_edit_row: true,
+      is_new_client_row: true,
       cells: newCells,
     };
 
@@ -2286,15 +2313,23 @@ export default function TestLocalTableKatim({
     const updateColKey = monthColKey || "col_2";
     const updateVal = targetMonthName;
 
-    setDirtyUpdates((prev) => ({
-      ...prev,
-      [`new_0_${updateColKey}`]: {
+    // Baris baru disisipkan di indeks 0 sehingga seluruh baris lain bergeser +1:
+    // geser juga row_index perubahan yang belum disimpan agar tidak menimpa baris yang salah
+    setDirtyUpdates((prev) => {
+      const shifted: typeof prev = {};
+      Object.values(prev).forEach((up) => {
+        const ri = up.row_index !== undefined ? up.row_index + 1 : undefined;
+        const k = ri !== undefined ? `row_${ri}_${up.key}` : `m_${up.month}_${up.key}`;
+        shifted[k] = { ...up, row_index: ri };
+      });
+      shifted[`row_0_${updateColKey}`] = {
         month: targetMonthNum,
         row_index: 0,
         key: updateColKey,
         value: updateVal,
-      },
-    }));
+      };
+      return shifted;
+    });
 
     setCurrentPage(1);
     scrollToTableTop();
@@ -2365,6 +2400,7 @@ export default function TestLocalTableKatim({
         `${baseUrl}/api/test-local-table/tab/${activeTab.id}/update${authQuery}`,
         {
           rows_data: updatedRows,
+          base_row_count: getBaseRowCount(activeTab.rows_data),
         },
       );
       setSuccessMsg(`Baris "${rowLabel}" berhasil dihapus dari tabel.`);
@@ -2549,7 +2585,11 @@ export default function TestLocalTableKatim({
             try {
               const res = await api.post(
                 `${baseUrl}/api/test-local-table/tab/${activeTab.id}/update${authQuery}`,
-                { updates: updatesList, rows_data: activeTab.rows_data },
+                {
+                  updates: updatesList,
+                  rows_data: activeTab.rows_data,
+                  base_row_count: getBaseRowCount(activeTab.rows_data),
+                },
               );
               setDirtyUpdates({});
               if (res.data?.data?.rows_data) {
@@ -2560,6 +2600,7 @@ export default function TestLocalTableKatim({
             } catch (saveErr: any) {
               console.error("Gagal menyimpan data:", saveErr);
               setSaving(false);
+              if (handleStaleTabError(saveErr)) return;
               setErrorMsg(
                 getApiErrorMessage(
                   saveErr,
@@ -2609,7 +2650,11 @@ export default function TestLocalTableKatim({
     try {
       const res = await api.post(
         `${baseUrl}/api/test-local-table/tab/${activeTab.id}/update${authQuery}`,
-        { updates: updatesList, rows_data: activeTab.rows_data },
+        {
+                  updates: updatesList,
+                  rows_data: activeTab.rows_data,
+                  base_row_count: getBaseRowCount(activeTab.rows_data),
+                },
       );
       setSuccessMsg(res.data?.message || "Data berhasil disimpan.");
       setDirtyUpdates({});
@@ -2622,6 +2667,7 @@ export default function TestLocalTableKatim({
         );
       }
     } catch (err: any) {
+      if (handleStaleTabError(err)) return;
       setErrorMsg(
         getApiErrorMessage(
           err,
@@ -5466,6 +5512,10 @@ export default function TestLocalTableKatim({
                               col.type !== "formula" &&
                               col.type !== "readonly" &&
                               !isCollab &&
+                              // kolom teks (link/URL data dukung, bukti, dokumen) bukan angka kolaboratif
+                              !/(link|url|tautan|data\s*dukung|bukti|dokumen|nama|alamat|uraian)/i.test(
+                                col.label || "",
+                              ) &&
                               Array.isArray(col.allowed_katim_ids) &&
                               col.allowed_katim_ids.length > 1;
 
@@ -6291,7 +6341,7 @@ export default function TestLocalTableKatim({
                   />
                   <div className="text-[11px] text-slate-500 italic">
                     Cukup tulis di sini, lalu klik tombol{" "}
-                    <strong>"Simpan"</strong> di bawah untuk langsung menyimpan
+                    <strong>&quot;Simpan&quot;</strong> di bawah untuk langsung menyimpan
                     ke database dan menampilkan ke tabel.
                   </div>
                 </div>
@@ -7144,7 +7194,7 @@ export default function TestLocalTableKatim({
                       Sheet ke Tab Ini
                     </span>
                     <span className="text-[10px] text-slate-500 mt-1 leading-tight">
-                      Hanya perbarui tab "{activeTab?.title || "aktif"}" (misal
+                      Hanya perbarui tab &quot;{activeTab?.title || "aktif"}&quot; (misal
                       KIE Medsos)
                     </span>
                   </button>

@@ -19,6 +19,7 @@ export interface LoginPayload {
 export interface Role {
     id: number;
     level: string; // "superadmin", "admin", dll
+    name?: string | null; // dikirim sebagian backend (cth: Siproval), dipakai pengecekan admin
     description: string | null;
     created_at: string | null;
     updated_at: string | null;
