@@ -1,16 +1,6 @@
-import { Suspense } from "react";
-import GoogleSheetKatim from "@/components/siproval/katim/GoogleSheetKatim";
+import { redirect } from "next/navigation";
 
+// Formulir Google Sheet lama sudah dihentikan; pengisian data melalui Entry Data RHPK (database mandiri).
 export default function GoogleSheetsPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex h-64 items-center justify-center text-xs text-slate-400">
-          Memuat formulir Google Sheet...
-        </div>
-      }
-    >
-      <GoogleSheetKatim />
-    </Suspense>
-  );
+  redirect("/siproval/katim/entry-data-rhpk");
 }

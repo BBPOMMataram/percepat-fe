@@ -128,33 +128,35 @@ export type IncompleteValidationModal = {
   rtlCol?: ColumnSchema;
 };
 
+// Aturan terpadu (SAMA PERSIS dengan ApiLocalRhpkTestController::isCollaborativeColumn di backend)
+const NUMERIC_HEADER_RE =
+  /(jumlah|target|persentase|%|realisasi|skor|nilai|rasio|bobot|anggaran|total|\ba[1-9]\b|\bb[1-9]?\b|\bc[1-9]?\b)/i;
+const NARRATIVE_HEADER_RE = /(catatan|keterangan|deskripsi|uraian|rekomendasi)/i;
+
+// Judul "milik" kolom itu sendiri: sub_label, atau bagian terakhir label multi-indikator ("Nilai AKIP - Rekomendasi" -> "Rekomendasi")
+export function getOwnColumnHeader(col: ColumnSchema): string {
+  const sub = String((col as any).sub_label || "").trim();
+  if (sub) return sub.toLowerCase();
+  const label = String(col.label || "").trim();
+  const parts = label.split(" - ");
+  return (parts.length > 1 ? parts[parts.length - 1] : label).toLowerCase();
+}
+
 export function isCollaborativeCol(col: ColumnSchema): boolean {
   if (col.type === "formula" || col.type === "readonly") return false;
-  if (col.is_collaborative) return true;
+  if (col.is_collaborative === true) return true;
 
-  const sub = ((col as any).sub_label || "").toLowerCase();
+  const sub = String((col as any).sub_label || "").toLowerCase();
   const label = (col.label || "").toLowerCase();
 
-  // 1. Cek apakah kolom ini jelas merupakan Kendala, RTL, atau Rekomendasi
+  // 1. Kendala & RTL selalu kolom catatan kolaboratif
   if (isKendalaCol(sub) || isKendalaCol(label)) return true;
   if (isRtlCol(sub) || isRtlCol(label)) return true;
-  if (/(catatan|keterangan|deskripsi|uraian|rekomendasi)/i.test(sub)) return true;
-  if (
-    /(catatan|keterangan|deskripsi|uraian|rekomendasi)/i.test(label) &&
-    !col.parent_header
-  ) {
-    return true;
-  }
 
-  // 2. Cek apakah sub_label atau label murni adalah kolom numerik
-  const targetForNumeric = sub || label;
-  const isNumericHeader =
-    /(jumlah|target|persentase|%|realisasi|skor|nilai|rasio|bobot|anggaran|total|\ba[1-9]\b|\bb[1-9]?\b|\bc[1-9]?\b)/i.test(
-      targetForNumeric,
-    );
-  if (isNumericHeader) return false;
-
-  return /(catatan|keterangan|deskripsi|uraian|rekomendasi)/i.test(label);
+  // 2. Nilai sub_label diperiksa lebih dulu: "Jumlah rekomendasi ..." = angka, "Rekomendasi" = catatan
+  const own = getOwnColumnHeader(col);
+  if (NUMERIC_HEADER_RE.test(own)) return false;
+  return NARRATIVE_HEADER_RE.test(own);
 }
 
 export function getMonthColor(monthName?: string | null) {

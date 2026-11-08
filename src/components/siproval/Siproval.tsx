@@ -213,9 +213,9 @@ export default function Siproval() {
         id: "pic",
         role: "PIC (Pengelola Sistem)",
         badge: "Admin",
-        url: "/siproval/admin/sinkronisasi-spreadsheet",
+        url: "/siproval/admin/entry-data-rhpk",
         icon: "solar:settings-bold",
-        desc: "Sinkronisasi spreadsheet & permission",
+        desc: "Kelola data RHPK, akses kolom & permission",
       });
     }
 
