@@ -299,19 +299,38 @@ export default function TestLocalTablePic() {
         }
         return true;
       })
-      .map((c) => ({
-      ...c,
-      parent_header:
-        c.parent_header ||
-        (c.label && c.label.includes(" - ")
-          ? c.label.split(" - ")[0].trim()
-          : null),
-      sub_label:
-        c.sub_label ||
-        (c.label && c.label.includes(" - ")
-          ? c.label.split(" - ").slice(1).join(" - ").trim()
-          : c.label),
-    }));
+      .map((c) => {
+        const isIdentityCol =
+          c.key === "col_0" ||
+          c.key === "col_1" ||
+          c.key === "col_2" ||
+          c.col_letter === "A" ||
+          c.col_letter === "B" ||
+          c.col_letter === "C" ||
+          (c.label || "").toLowerCase().startsWith("kode unit") ||
+          (c.label || "").toLowerCase().startsWith("nama unit") ||
+          (c.label || "").toLowerCase().startsWith("bulan");
+
+        const parentHeader = isIdentityCol
+          ? null
+          : (c.parent_header ||
+            (c.label && c.label.includes(" - ")
+              ? c.label.split(" - ")[0].trim()
+              : null));
+
+        const subLabel = isIdentityCol
+          ? c.label
+          : (c.sub_label ||
+            (c.label && c.label.includes(" - ")
+              ? c.label.split(" - ").slice(1).join(" - ").trim()
+              : c.label));
+
+        return {
+          ...c,
+          parent_header: parentHeader,
+          sub_label: subLabel,
+        };
+      });
   }, [activeTab?.columns_schema]);
 
   const headerGroups = useMemo(() => {

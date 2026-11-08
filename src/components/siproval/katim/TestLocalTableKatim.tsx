@@ -129,13 +129,29 @@ export type IncompleteValidationModal = {
 export function isCollaborativeCol(col: ColumnSchema): boolean {
   if (col.type === "formula" || col.type === "readonly") return false;
   if (col.is_collaborative) return true;
+
+  const sub = ((col as any).sub_label || "").toLowerCase();
   const label = (col.label || "").toLowerCase();
-  if (isKendalaCol(label) || isRtlCol(label)) return true;
+
+  // 1. Cek apakah kolom ini jelas merupakan Kendala, RTL, atau Rekomendasi
+  if (isKendalaCol(sub) || isKendalaCol(label)) return true;
+  if (isRtlCol(sub) || isRtlCol(label)) return true;
+  if (/(catatan|keterangan|deskripsi|uraian|rekomendasi)/i.test(sub)) return true;
+  if (
+    /(catatan|keterangan|deskripsi|uraian|rekomendasi)/i.test(label) &&
+    !col.parent_header
+  ) {
+    return true;
+  }
+
+  // 2. Cek apakah sub_label atau label murni adalah kolom numerik
+  const targetForNumeric = sub || label;
   const isNumericHeader =
     /(jumlah|target|persentase|%|realisasi|skor|nilai|rasio|bobot|anggaran|total|\ba[1-9]\b|\bb[1-9]?\b|\bc[1-9]?\b)/i.test(
-      label,
+      targetForNumeric,
     );
   if (isNumericHeader) return false;
+
   return /(catatan|keterangan|deskripsi|uraian|rekomendasi)/i.test(label);
 }
 
@@ -2763,22 +2779,45 @@ export default function TestLocalTableKatim({
           }
           return true;
         })
-        .map((c) => ({
-          ...c,
-          parent_header:
-            (c as any).parent_header ||
-            (c.label && c.label.includes(" - ")
-              ? c.label.split(" - ")[0].trim()
-              : null),
-          sub_label:
-            (c as any).sub_label ||
-            (c.label && c.label.includes(" - ")
-              ? c.label.split(" - ").slice(1).join(" - ").trim()
-              : c.label),
-          is_collaborative: isCollaborativeCol(c),
-          is_kendala: isKendalaCol(c.label),
-          is_rtl: isRtlCol(c.label),
-        }));
+        .map((c) => {
+          const isIdentityCol =
+            c.key === "col_0" ||
+            c.key === "col_1" ||
+            c.key === "col_2" ||
+            c.col_letter === "A" ||
+            c.col_letter === "B" ||
+            c.col_letter === "C" ||
+            (c.label || "").toLowerCase().startsWith("kode unit") ||
+            (c.label || "").toLowerCase().startsWith("nama unit") ||
+            (c.label || "").toLowerCase().startsWith("bulan");
+
+          const parentHeader = isIdentityCol
+            ? null
+            : ((c as any).parent_header ||
+              (c.label && c.label.includes(" - ")
+                ? c.label.split(" - ")[0].trim()
+                : null));
+
+          const subLabel = isIdentityCol
+            ? c.label
+            : ((c as any).sub_label ||
+              (c.label && c.label.includes(" - ")
+                ? c.label.split(" - ").slice(1).join(" - ").trim()
+                : c.label));
+
+          const colWithParent: ColumnSchema = {
+            ...c,
+            parent_header: parentHeader,
+            sub_label: subLabel,
+          };
+
+          return {
+            ...colWithParent,
+            is_collaborative: isCollaborativeCol(colWithParent),
+            is_kendala: isKendalaCol(subLabel) || isKendalaCol(c.label),
+            is_rtl: isRtlCol(subLabel) || isRtlCol(c.label),
+          };
+        });
     }
     if (activeTab?.rows_data && activeTab.rows_data.length > 0) {
       const firstCells = activeTab.rows_data[0].cells || {};
