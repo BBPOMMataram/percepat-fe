@@ -385,6 +385,49 @@ type CollabModalState = {
   editingText: string;
 };
 
+type ConfirmDialogState = {
+  tone: "emerald" | "amber" | "rose";
+  icon: string;
+  title: string;
+  message: string;
+  // Teks peringatan tebal di bawah pesan utama (cth: "Data akan terupdate")
+  note?: string;
+  details?: string[];
+  warnings?: string[];
+  confirmLabel: string;
+  cancelLabel?: string;
+  hideCancel?: boolean;
+  onConfirm: () => void;
+};
+
+const MAX_EXCEL_SIZE_MB = 20;
+
+// Terjemahkan error axios menjadi pesan yang mudah dipahami user
+function getApiErrorMessage(err: any, fallback: string): string {
+  if (!err?.response) {
+    if (err?.code === "ECONNABORTED") {
+      return "Permintaan ke server melebihi batas waktu. Periksa koneksi lalu coba lagi.";
+    }
+    return "Tidak dapat terhubung ke server. Periksa koneksi internet Anda lalu coba lagi.";
+  }
+  const status = err.response.status;
+  const data = err.response.data;
+  if (data?.message && typeof data.message === "string") {
+    // Pesan validasi Laravel (422) kadang menyertakan detail per-field
+    if (data.errors && typeof data.errors === "object" && !Array.isArray(data.errors)) {
+      const first = Object.values(data.errors).flat()[0];
+      if (typeof first === "string") return first;
+    }
+    return data.message;
+  }
+  if (status === 401) return "Sesi Anda telah berakhir. Silakan login kembali.";
+  if (status === 403) return "Anda tidak memiliki hak akses untuk melakukan aksi ini.";
+  if (status === 404) return "Data tidak ditemukan. Muat ulang halaman lalu coba lagi.";
+  if (status === 413) return `Ukuran file terlalu besar untuk diterima server (maks. ${MAX_EXCEL_SIZE_MB} MB).`;
+  if (status >= 500) return `${fallback} (kesalahan server ${status}). Data di sistem tidak berubah.`;
+  return fallback;
+}
+
 export const STANDARD_MONTH_NAMES = [
   "Januari",
   "Februari",
@@ -990,6 +1033,71 @@ export default function TestLocalTableKatim({
   const [uploadMode, setUploadMode] = useState<"tab" | "spreadsheet">("tab");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState<boolean>(false);
+  const [checkingUpload, setCheckingUpload] = useState<boolean>(false);
+  const [uploadError, setUploadError] = useState<string>("");
+  const [uploadInfo, setUploadInfo] = useState<string>("");
+
+  // Pop-up konfirmasi umum ("Apakah Anda yakin?") untuk setiap aksi yang mengubah data
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(
+    null,
+  );
+
+  const closeUploadModal = () => {
+    setShowUploadModal(false);
+    setUploadFile(null);
+    setUploadError("");
+    setUploadInfo("");
+  };
+
+  // Validasi file Excel di sisi browser sebelum dikirim ke server
+  const validateExcelFile = (file: File | null): string | null => {
+    if (!file) return "Silakan pilih file Excel terlebih dahulu.";
+    const ext = (file.name.split(".").pop() || "").toLowerCase();
+    if (!["xlsx", "xls"].includes(ext)) {
+      return `Format file ".${ext}" tidak didukung. Gunakan file Microsoft Excel (.xlsx / .xls).`;
+    }
+    if (file.size === 0) return "File yang dipilih kosong (0 KB).";
+    if (file.size > MAX_EXCEL_SIZE_MB * 1024 * 1024) {
+      return `Ukuran file ${(file.size / 1024 / 1024).toFixed(1)} MB melebihi batas maksimal ${MAX_EXCEL_SIZE_MB} MB.`;
+    }
+    return null;
+  };
+
+  // Jalankan aksi hanya setelah user mengonfirmasi bahwa perubahan yang belum disimpan boleh dibuang
+  const guardUnsavedChanges = (action: () => void, targetLabel: string) => {
+    const pending = Object.keys(dirtyUpdates).length;
+    if (pending === 0) {
+      action();
+      return;
+    }
+    setConfirmDialog({
+      tone: "amber",
+      icon: "solar:danger-triangle-bold",
+      title: "Perubahan Belum Disimpan",
+      message: `Anda memiliki ${pending} perubahan yang belum disimpan. Jika Anda berpindah ke ${targetLabel}, perubahan tersebut akan HILANG.`,
+      note: "Klik \"Batal\" lalu tekan tombol \"Simpan Perubahan\" jika ingin menyimpannya terlebih dahulu.",
+      confirmLabel: "Ya, Buang Perubahan",
+      onConfirm: action,
+    });
+  };
+
+  // Peringatan browser saat menutup / memuat ulang halaman dengan perubahan yang belum disimpan
+  useEffect(() => {
+    if (Object.keys(dirtyUpdates).length === 0) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirtyUpdates]);
+
+  // Notifikasi sukses otomatis hilang setelah beberapa detik
+  useEffect(() => {
+    if (!successMsg) return;
+    const t = setTimeout(() => setSuccessMsg(""), 8000);
+    return () => clearTimeout(t);
+  }, [successMsg]);
 
   // Jika user teridentifikasi sebagai murni PIC/Admin (dan BUKAN Katim) yang mengakses endpoint /siproval/katim/entry-data-rhpk,
   // alihkan secara halus ke endpoint resmi PIC: /siproval/admin/entry-data-rhpk
@@ -1140,11 +1248,32 @@ export default function TestLocalTableKatim({
     }
   }, [user?.id, selectedYear, paramIkskId, paramSpreadsheetId, paramTabId]);
 
-  const handleToggleCurrentMonthLock = async () => {
+  const handleToggleCurrentMonthLock = () => {
+    const monthName = STANDARD_MONTH_NAMES[currentMonth - 1] || `Bulan ${currentMonth}`;
+    const willUnlock = isCurrentMonthLocked;
+    setConfirmDialog({
+      tone: willUnlock ? "emerald" : "amber",
+      icon: willUnlock ? "solar:lock-unlocked-bold" : "solar:lock-bold",
+      title: "Apakah Anda yakin?",
+      message: willUnlock
+        ? `Buka kunci pengisian ${monthName} ${selectedYear} untuk seluruh Katim?`
+        : `Kunci pengisian ${monthName} ${selectedYear} untuk seluruh Katim?`,
+      note: willUnlock
+        ? "Setelah dibuka, Katim dapat mengubah data bulan ini dan data akan terupdate."
+        : "Setelah dikunci, Katim tidak dapat lagi mengubah data bulan ini (termasuk lewat Unggah Excel).",
+      confirmLabel: willUnlock ? "Ya, Buka Kunci" : "Ya, Kunci",
+      onConfirm: () => {
+        executeToggleCurrentMonthLock();
+      },
+    });
+  };
+
+  const executeToggleCurrentMonthLock = async () => {
     setIsTogglingLock(true);
+    setErrorMsg("");
     try {
       const newUnlocked = isCurrentMonthLocked;
-      await api.post(
+      const lockRes = await api.post(
         `${baseUrl}/api/test-local-table/toggle-month-lock${authQuery}`,
         {
           month: currentMonth,
@@ -1157,19 +1286,31 @@ export default function TestLocalTableKatim({
       );
       setIsCurrentMonthLocked(!newUnlocked);
       await fetchData();
+      setSuccessMsg(
+        lockRes.data?.message || "Status kunci bulan berhasil diperbarui.",
+      );
     } catch (err: unknown) {
       console.error("Gagal mengubah status kunci bulan", err);
+      setErrorMsg(
+        getApiErrorMessage(err, "Gagal mengubah status kunci bulan"),
+      );
     } finally {
       setIsTogglingLock(false);
     }
   };
 
-  const handleSelectYear = (year: number) => {
+  const handleSelectYear = (year: number) =>
+    guardUnsavedChanges(() => doSelectYear(year), `Tahun ${year}`);
+
+  const doSelectYear = (year: number) => {
     setSelectedYear(year);
     fetchData(year, selectedIkskId);
   };
 
-  const handleSelectIksk = (ikskId: number) => {
+  const handleSelectIksk = (ikskId: number) =>
+    guardUnsavedChanges(() => doSelectIksk(ikskId), "IKSK lain");
+
+  const doSelectIksk = (ikskId: number) => {
     setSelectedIkskId(ikskId);
     setSelectedSpId(null);
     setSelectedTabId(null);
@@ -1186,7 +1327,10 @@ export default function TestLocalTableKatim({
     fetchData(selectedYear, ikskId, null, null);
   };
 
-  const handleSelectSpreadsheet = (id: number) => {
+  const handleSelectSpreadsheet = (id: number) =>
+    guardUnsavedChanges(() => doSelectSpreadsheet(id), "dokumen lain");
+
+  const doSelectSpreadsheet = (id: number) => {
     setSelectedSpId(id);
     setSelectedTabId(null);
 
@@ -1200,7 +1344,10 @@ export default function TestLocalTableKatim({
     fetchData(selectedYear, selectedIkskId, id, null);
   };
 
-  const handleSelectTab = (tId: number) => {
+  const handleSelectTab = (tId: number) =>
+    guardUnsavedChanges(() => doSelectTab(tId), "tab lain");
+
+  const doSelectTab = (tId: number) => {
     setSelectedTabId(tId);
 
     if (typeof window !== "undefined") {
@@ -2169,10 +2316,21 @@ export default function TestLocalTableKatim({
       targetRow.cells?.col_0 ||
       `Baris ke-${targetIdx + 1}`;
 
-    const confirmed = window.confirm(
-      `Hapus "${rowLabel}" (Baris ke-${targetIdx + 1}) dari tabel ini?\n\nTindakan ini akan langsung menghapus baris dan memperbarui data di database.`,
-    );
-    if (!confirmed) return;
+    setConfirmDialog({
+      tone: "rose",
+      icon: "solar:trash-bin-trash-bold",
+      title: "Apakah Anda yakin?",
+      message: `Hapus "${rowLabel}" (Baris ke-${targetIdx + 1}) dari tabel "${activeTab.title}"?`,
+      note: "Baris akan langsung dihapus dan data di database akan TERUPDATE. Tindakan ini tidak dapat dibatalkan.",
+      confirmLabel: "Ya, Hapus Baris",
+      onConfirm: () => {
+        executeDeleteRow(targetIdx, String(rowLabel));
+      },
+    });
+  };
+
+  const executeDeleteRow = async (targetIdx: number, rowLabel: string) => {
+    if (!activeTab || !activeTab.rows_data) return;
 
     // Filter baris yang dihapus
     const remainingRows = activeTab.rows_data.filter(
@@ -2218,7 +2376,8 @@ export default function TestLocalTableKatim({
     } catch (err: any) {
       console.error("Gagal menghapus baris:", err);
       setErrorMsg(
-        err.response?.data?.message || "Gagal menghapus baris dari server.",
+        getApiErrorMessage(err, "Gagal menghapus baris dari server") +
+          " Tabel dimuat ulang dari server.",
       );
       // Pulihkan kembali data tabel asli dari server jika terjadi kendala
       fetchData();
@@ -2227,8 +2386,55 @@ export default function TestLocalTableKatim({
     }
   };
 
+  // Tombol "Simpan Perubahan": tampilkan pop-up konfirmasi terlebih dahulu
+  const handleSave = () => {
+    if (!activeTab) return;
+    const updatesList = Object.values(dirtyUpdates);
+    if (updatesList.length === 0) {
+      setSuccessMsg("Tidak ada perubahan yang perlu disimpan.");
+      return;
+    }
+
+    const colLabel = (key: string) =>
+      effectiveColumnsSchema.find((c) => c.key === key)?.label || key;
+    const rowLabel = (up: { month?: number; row_index?: number }) => {
+      if (up.month && up.month >= 1 && up.month <= 12) {
+        return STANDARD_MONTH_NAMES[up.month - 1];
+      }
+      if (up.row_index !== undefined) return `Baris ${up.row_index + 1}`;
+      return "-";
+    };
+    const formatVal = (v: any) => {
+      if (v === null || v === undefined || v === "") return "(kosong)";
+      if (typeof v === "object") return "(diperbarui)";
+      const str = String(v);
+      return str.length > 40 ? `${str.slice(0, 40)}…` : str;
+    };
+    const details = updatesList
+      .slice(0, 6)
+      .map(
+        (up) => `${rowLabel(up)} • ${colLabel(up.key)} → ${formatVal(up.value)}`,
+      );
+    if (updatesList.length > 6) {
+      details.push(`…dan ${updatesList.length - 6} perubahan lainnya`);
+    }
+
+    setConfirmDialog({
+      tone: "emerald",
+      icon: "solar:diskette-bold",
+      title: "Apakah Anda yakin?",
+      message: `Anda akan menyimpan ${updatesList.length} perubahan pada tab "${activeTab.title}".`,
+      note: "Data di database akan TERUPDATE sesuai perubahan yang Anda buat.",
+      details,
+      confirmLabel: "Ya, Simpan",
+      onConfirm: () => {
+        executeSave();
+      },
+    });
+  };
+
   // Kirim data ke backend lokal (Simpan Massal)
-  const handleSave = async () => {
+  const executeSave = async () => {
     if (!activeTab) return;
     const updatesList = Object.values(dirtyUpdates);
     if (updatesList.length === 0) {
@@ -2353,6 +2559,14 @@ export default function TestLocalTableKatim({
               }
             } catch (saveErr: any) {
               console.error("Gagal menyimpan data:", saveErr);
+              setSaving(false);
+              setErrorMsg(
+                getApiErrorMessage(
+                  saveErr,
+                  "Gagal menyimpan data. Perubahan Anda belum tersimpan",
+                ),
+              );
+              return;
             } finally {
               setSaving(false);
             }
@@ -2408,7 +2622,12 @@ export default function TestLocalTableKatim({
         );
       }
     } catch (err: any) {
-      setErrorMsg(err.response?.data?.message || "Gagal menyimpan data.");
+      setErrorMsg(
+        getApiErrorMessage(
+          err,
+          "Gagal menyimpan data. Perubahan Anda belum tersimpan, silakan coba lagi",
+        ),
+      );
     } finally {
       setSaving(false);
     }
@@ -2705,10 +2924,142 @@ export default function TestLocalTableKatim({
     }
   };
 
-  // Handler Upload / Import File Excel
+  // Tombol "Simpan" pada modal Unggah Excel:
+  // 1) validasi file, 2) pratinjau perubahan (dry-run) di server, 3) pop-up "Apakah Anda yakin?"
+  const handleRequestUploadExcel = async () => {
+    setUploadError("");
+    setUploadInfo("");
+    const fileErr = validateExcelFile(uploadFile);
+    if (fileErr || !uploadFile) {
+      setUploadError(fileErr || "Silakan pilih file Excel terlebih dahulu.");
+      return;
+    }
+
+    const pending = Object.keys(dirtyUpdates).length;
+    const unsavedWarning =
+      pending > 0
+        ? [
+            `Anda memiliki ${pending} perubahan yang belum disimpan pada tabel. Perubahan tersebut akan digantikan oleh data dari file Excel.`,
+          ]
+        : [];
+
+    if (uploadMode === "tab") {
+      if (!activeTab) {
+        setUploadError("Pilih tab tabel terlebih dahulu sebelum mengunggah.");
+        return;
+      }
+      setCheckingUpload(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", uploadFile);
+        formData.append("dry_run", "1");
+        const res = await api.post(
+          `${baseUrl}/api/test-local-table/tab/${activeTab.id}/import-excel${authQuery}`,
+          formData,
+          { headers: { "Content-Type": "multipart/form-data" } },
+        );
+        const summary = res.data?.data?.summary || {};
+        const updated: string[] = summary.updated_months || [];
+        const added: string[] = summary.added_months || [];
+        const unchanged: string[] = summary.unchanged_months || [];
+        const locked: string[] = summary.locked_months || [];
+        const isUpdateMode = summary.mode === "update";
+
+        if (isUpdateMode && updated.length === 0 && added.length === 0) {
+          setUploadInfo(
+            locked.length > 0
+              ? `Tidak ada data yang dapat diperbarui: ${locked.length} bulan yang berubah sedang DIKUNCI (${locked.join(", ")}). Hubungi PIC/Admin untuk membuka kunci bulan.`
+              : "Data pada file Excel sama persis dengan data di sistem. Tidak ada perubahan yang perlu disimpan.",
+          );
+          return;
+        }
+
+        const details: string[] = [];
+        if (summary.sheet_title) {
+          details.push(`Sheet yang dibaca: "${summary.sheet_title}"`);
+        }
+        if (isUpdateMode) {
+          if (updated.length > 0)
+            details.push(
+              `${updated.length} bulan akan DIPERBARUI: ${updated.join(", ")}`,
+            );
+          if (added.length > 0)
+            details.push(
+              `${added.length} bulan baru akan ditambahkan: ${added.join(", ")}`,
+            );
+          if (unchanged.length > 0)
+            details.push(`${unchanged.length} bulan tidak berubah`);
+          details.push(
+            `Jumlah baris tabel setelah disimpan: ${summary.final_row_count} (sebelumnya ${summary.previous_row_count})`,
+          );
+        } else {
+          details.push(
+            `${summary.final_row_count} baris dari file akan menggantikan ${summary.previous_row_count} baris lama`,
+          );
+        }
+
+        const warnings: string[] = [...(summary.warnings || []), ...unsavedWarning];
+        if (locked.length > 0) {
+          warnings.push(
+            `${locked.length} bulan dilewati karena DIKUNCI: ${locked.join(", ")}`,
+          );
+        }
+
+        setConfirmDialog({
+          tone: "amber",
+          icon: "solar:upload-square-bold",
+          title: "Apakah Anda yakin?",
+          message: `Data pada tab "${activeTab.title}" akan diperbarui menggunakan file "${uploadFile.name}".`,
+          note: "Data yang sudah ada akan TERUPDATE (ditimpa) sesuai isi file Excel — bukan ditambahkan sebagai baris baru. Sel kosong pada file tidak menghapus isian yang sudah ada.",
+          details,
+          warnings,
+          confirmLabel: "Ya, Simpan & Perbarui",
+          onConfirm: () => {
+            handleUploadExcel();
+          },
+        });
+      } catch (err: any) {
+        setUploadError(
+          getApiErrorMessage(err, "Gagal memeriksa isi file Excel"),
+        );
+      } finally {
+        setCheckingUpload(false);
+      }
+      return;
+    }
+
+    // Lingkup Dokumen Penuh
+    const spName =
+      spreadsheets.find((s) => s.id === selectedSpId)?.name ||
+      "dokumen ini";
+    setConfirmDialog({
+      tone: "rose",
+      icon: "solar:folder-with-files-bold",
+      title: "Apakah Anda yakin?",
+      message: `Seluruh sheet pada file "${uploadFile.name}" akan digunakan untuk memperbarui dokumen "${spName}" (Tahun ${selectedYear}).`,
+      note: "Data SELURUH tab pada dokumen akan TERUPDATE sesuai isi file. Tab bulanan diperbarui per bulan, tab daftar/detil akan diganti, dan tab yang tidak ada di file akan dihapus.",
+      details: [
+        "Hak akses Katim dan formula otomatis tetap dipertahankan.",
+        "Untuk Katim, bulan yang sedang dikunci tidak akan diperbarui.",
+      ],
+      warnings: unsavedWarning,
+      confirmLabel: "Ya, Perbarui Dokumen",
+      onConfirm: () => {
+        handleUploadExcel();
+      },
+    });
+  };
+
+  // Handler Upload / Import File Excel (dijalankan setelah user mengonfirmasi)
   const handleUploadExcel = async () => {
-    if (!uploadFile) return;
+    const fileErr = validateExcelFile(uploadFile);
+    if (fileErr || !uploadFile) {
+      setUploadError(fileErr || "Silakan pilih file Excel terlebih dahulu.");
+      return;
+    }
     setUploading(true);
+    setUploadError("");
+    setUploadInfo("");
     setErrorMsg("");
     setSuccessMsg("");
 
@@ -2717,26 +3068,17 @@ export default function TestLocalTableKatim({
 
     try {
       if (uploadMode === "tab" && activeTab) {
-        // Import khusus ke tab ini
+        // Import khusus ke tab ini (UPDATE per bulan, bukan menambah baris)
         const res = await api.post(
           `${baseUrl}/api/test-local-table/tab/${activeTab.id}/import-excel${authQuery}`,
           formData,
           { headers: { "Content-Type": "multipart/form-data" } },
         );
         setSuccessMsg(
-          res.data?.message || "Sheet Excel berhasil diimport ke tab ini!",
+          res.data?.message || "Data tab berhasil diperbarui dari file Excel!",
         );
-        if (res.data?.data) {
-          setActiveTab((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  columns_schema: res.data.data.columns_schema,
-                  rows_data: res.data.data.rows_data,
-                }
-              : prev,
-          );
-        }
+        // Muat ulang tab dari server agar rumus & data kumulatif konsisten
+        await fetchData(selectedYear, selectedIkskId, selectedSpId, activeTab.id);
       } else {
         // Upload/Perbarui seluruh dokumen
         formData.append("year", String(selectedYear));
@@ -2745,17 +3087,24 @@ export default function TestLocalTableKatim({
           formData,
           { headers: { "Content-Type": "multipart/form-data" } },
         );
-        setSuccessMsg(res.data?.message || "File Excel berhasil diunggah!");
+        setSuccessMsg(
+          res.data?.message || "Dokumen Excel berhasil diunggah dan terupdate!",
+        );
         if (user?.id) {
-          fetchData(selectedYear, selectedIkskId, selectedSpId, selectedTabId);
+          await fetchData(
+            selectedYear,
+            selectedIkskId,
+            selectedSpId,
+            selectedTabId,
+          );
         }
       }
-      setShowUploadModal(false);
-      setUploadFile(null);
+      closeUploadModal();
     } catch (err: any) {
-      setErrorMsg(
-        err.response?.data?.message || "Gagal mengunggah file Excel.",
-      );
+      // Modal tetap terbuka agar user dapat melihat pesan error & mencoba lagi
+      const msg = getApiErrorMessage(err, "Gagal mengunggah file Excel");
+      setUploadError(msg);
+      setErrorMsg(msg);
     } finally {
       setUploading(false);
     }
@@ -3637,9 +3986,12 @@ export default function TestLocalTableKatim({
         </div>
       </div>
 
-      {/* Alerts */}
+      {/* Alerts (menempel di atas layar agar tetap terlihat saat tabel di-scroll) */}
       {successMsg && (
-        <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800">
+        <div
+          role="status"
+          className="sticky top-2 z-40 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800 shadow-md"
+        >
           <div className="flex items-center gap-2">
             <Icon
               icon="solar:check-circle-bold"
@@ -3658,7 +4010,10 @@ export default function TestLocalTableKatim({
       )}
 
       {errorMsg && (
-        <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-800">
+        <div
+          role="alert"
+          className="sticky top-2 z-40 flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-800 shadow-md"
+        >
           <div className="flex items-center gap-2">
             <Icon
               icon="solar:danger-triangle-bold"
@@ -6751,11 +7106,8 @@ export default function TestLocalTableKatim({
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  setShowUploadModal(false);
-                  setUploadFile(null);
-                }}
-                disabled={uploading}
+                onClick={closeUploadModal}
+                disabled={uploading || checkingUpload}
                 className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 transition cursor-pointer"
               >
                 <Icon icon="solar:close-circle-bold" width={20} />
@@ -6772,7 +7124,11 @@ export default function TestLocalTableKatim({
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => setUploadMode("tab")}
+                    onClick={() => {
+                      setUploadMode("tab");
+                      setUploadError("");
+                      setUploadInfo("");
+                    }}
                     className={`flex flex-col items-start p-3 rounded-xl border text-left transition cursor-pointer ${
                       uploadMode === "tab"
                         ? "border-emerald-600 bg-emerald-50/50 text-emerald-950 ring-1 ring-emerald-600"
@@ -6795,7 +7151,11 @@ export default function TestLocalTableKatim({
 
                   <button
                     type="button"
-                    onClick={() => setUploadMode("spreadsheet")}
+                    onClick={() => {
+                      setUploadMode("spreadsheet");
+                      setUploadError("");
+                      setUploadInfo("");
+                    }}
                     className={`flex flex-col items-start p-3 rounded-xl border text-left transition cursor-pointer ${
                       uploadMode === "spreadsheet"
                         ? "border-emerald-600 bg-emerald-50/50 text-emerald-950 ring-1 ring-emerald-600"
@@ -6827,11 +7187,21 @@ export default function TestLocalTableKatim({
                   <input
                     type="file"
                     accept=".xlsx,.xls"
-                    disabled={uploading}
+                    disabled={uploading || checkingUpload}
                     onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        setUploadFile(e.target.files[0]);
+                      const picked = e.target.files?.[0] || null;
+                      // reset agar file yang sama dapat dipilih ulang
+                      e.target.value = "";
+                      if (!picked) return;
+                      setUploadInfo("");
+                      const fileErr = validateExcelFile(picked);
+                      if (fileErr) {
+                        setUploadFile(null);
+                        setUploadError(fileErr);
+                        return;
                       }
+                      setUploadError("");
+                      setUploadFile(picked);
                     }}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                   />
@@ -6881,22 +7251,53 @@ export default function TestLocalTableKatim({
                   className="text-blue-600 shrink-0 mt-0.5"
                 />
                 <p className="text-[11px] leading-relaxed">
-                  Data yang diunggah akan otomatis disesuaikan dengan skema
-                  kolom yang ada. Konfigurasi hak akses Katim dan formula
-                  perhitungan otomatis tetap dipertahankan dengan aman.
+                  Unggah Excel bersifat <strong>UPDATE</strong>: data bulan
+                  yang sudah ada akan diperbarui sesuai isi file (bukan
+                  ditambahkan sebagai baris baru). Hanya data BBPOM Mataram yang
+                  diambil. Hak akses Katim dan formula otomatis tetap
+                  dipertahankan.
                 </p>
               </div>
+
+              {uploadError && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800"
+                >
+                  <Icon
+                    icon="solar:danger-circle-bold"
+                    width={16}
+                    className="text-rose-600 shrink-0 mt-0.5"
+                  />
+                  <span className="text-[11px] leading-relaxed">
+                    {uploadError}
+                  </span>
+                </div>
+              )}
+
+              {uploadInfo && (
+                <div
+                  role="status"
+                  className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"
+                >
+                  <Icon
+                    icon="solar:info-circle-bold"
+                    width={16}
+                    className="text-amber-600 shrink-0 mt-0.5"
+                  />
+                  <span className="text-[11px] leading-relaxed">
+                    {uploadInfo}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Footer */}
             <div className="flex items-center justify-end gap-2.5 border-t border-slate-200 bg-slate-50/80 px-6 py-4">
               <button
                 type="button"
-                onClick={() => {
-                  setShowUploadModal(false);
-                  setUploadFile(null);
-                }}
-                disabled={uploading}
+                onClick={closeUploadModal}
+                disabled={uploading || checkingUpload}
                 className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition disabled:opacity-50 cursor-pointer"
               >
                 Batal
@@ -6904,21 +7305,144 @@ export default function TestLocalTableKatim({
 
               <button
                 type="button"
-                disabled={!uploadFile || uploading}
-                onClick={handleUploadExcel}
+                disabled={!uploadFile || uploading || checkingUpload}
+                onClick={handleRequestUploadExcel}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700 transition disabled:opacity-50 cursor-pointer"
               >
-                {uploading ? (
+                {uploading || checkingUpload ? (
                   <>
                     <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent" />
-                    <span>Mengunggah...</span>
+                    <span>
+                      {uploading ? "Menyimpan..." : "Memeriksa file..."}
+                    </span>
                   </>
                 ) : (
                   <>
-                    <Icon icon="solar:cloud-upload-bold" width={16} />
-                    <span>Mulai Unggah</span>
+                    <Icon icon="solar:diskette-bold" width={16} />
+                    <span>Simpan</span>
                   </>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pop-up Konfirmasi Umum ("Apakah Anda yakin?") */}
+      {confirmDialog && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="confirm-dialog-title"
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setConfirmDialog(null);
+          }}
+        >
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 space-y-4">
+              <div className="flex items-start gap-3">
+                <span
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                    confirmDialog.tone === "rose"
+                      ? "bg-rose-100 text-rose-700"
+                      : confirmDialog.tone === "amber"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-emerald-100 text-emerald-700"
+                  }`}
+                >
+                  <Icon icon={confirmDialog.icon} width={22} />
+                </span>
+                <div className="space-y-1">
+                  <h3
+                    id="confirm-dialog-title"
+                    className="text-sm font-bold text-slate-900"
+                  >
+                    {confirmDialog.title}
+                  </h3>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    {confirmDialog.message}
+                  </p>
+                </div>
+              </div>
+
+              {confirmDialog.note && (
+                <div
+                  className={`flex items-start gap-2 rounded-xl border p-3 text-[11px] font-semibold leading-relaxed ${
+                    confirmDialog.tone === "rose"
+                      ? "border-rose-200 bg-rose-50 text-rose-800"
+                      : confirmDialog.tone === "amber"
+                        ? "border-amber-200 bg-amber-50 text-amber-900"
+                        : "border-emerald-200 bg-emerald-50 text-emerald-900"
+                  }`}
+                >
+                  <Icon
+                    icon="solar:danger-triangle-bold"
+                    width={15}
+                    className="shrink-0 mt-0.5"
+                  />
+                  <span>{confirmDialog.note}</span>
+                </div>
+              )}
+
+              {confirmDialog.details && confirmDialog.details.length > 0 && (
+                <ul className="space-y-1 rounded-xl border border-slate-200 bg-slate-50 p-3 text-[11px] text-slate-700 max-h-48 overflow-y-auto">
+                  {confirmDialog.details.map((d, i) => (
+                    <li key={i} className="flex items-start gap-1.5">
+                      <Icon
+                        icon="solar:check-read-linear"
+                        width={13}
+                        className="text-slate-400 shrink-0 mt-0.5"
+                      />
+                      <span>{d}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {confirmDialog.warnings && confirmDialog.warnings.length > 0 && (
+                <ul className="space-y-1 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-[11px] text-amber-900">
+                  {confirmDialog.warnings.map((w, i) => (
+                    <li key={i} className="flex items-start gap-1.5">
+                      <Icon
+                        icon="solar:info-circle-bold"
+                        width={13}
+                        className="text-amber-600 shrink-0 mt-0.5"
+                      />
+                      <span>{w}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 border-t border-slate-200 bg-slate-50 px-6 py-4">
+              {!confirmDialog.hideCancel && (
+                <button
+                  type="button"
+                  autoFocus
+                  onClick={() => setConfirmDialog(null)}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  {confirmDialog.cancelLabel || "Batal"}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  const action = confirmDialog.onConfirm;
+                  setConfirmDialog(null);
+                  action();
+                }}
+                className={`inline-flex items-center gap-1.5 rounded-xl px-5 py-2 text-xs font-bold text-white shadow-xs transition cursor-pointer ${
+                  confirmDialog.tone === "rose"
+                    ? "bg-rose-600 hover:bg-rose-700"
+                    : confirmDialog.tone === "amber"
+                      ? "bg-amber-600 hover:bg-amber-700"
+                      : "bg-emerald-600 hover:bg-emerald-700"
+                }`}
+              >
+                {confirmDialog.confirmLabel}
               </button>
             </div>
           </div>

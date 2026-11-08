@@ -911,6 +911,21 @@ export default function TestLocalTablePic() {
       setErrorMsg("Silakan pilih atau seret setidaknya satu file Excel terlebih dahulu.");
       return;
     }
+    const invalid = uploadFiles.find(
+      (f) => !/\.(xlsx|xls)$/i.test(f.name) || f.size > 20 * 1024 * 1024,
+    );
+    if (invalid) {
+      setErrorMsg(
+        `File "${invalid.name}" tidak valid. Hanya file Excel (.xlsx / .xls) maksimal 20 MB yang didukung.`,
+      );
+      return;
+    }
+    const confirmed = window.confirm(
+      `Apakah Anda yakin ingin mengunggah ${uploadFiles.length} file Excel untuk Tahun ${selectedYear}?\n\n` +
+        "Jika dokumen untuk IKSK yang sama sudah ada, datanya akan TERUPDATE sesuai isi file " +
+        "(tab bulanan diperbarui per bulan, bukan ditambah baris baru).",
+    );
+    if (!confirmed) return;
     setUploading(true);
     setErrorMsg("");
     setSuccessMsg("");
@@ -932,7 +947,12 @@ export default function TestLocalTablePic() {
       setUploadFiles([]);
       fetchData(selectedYear, res.data?.data?.spreadsheet_id);
     } catch (err: any) {
-      setErrorMsg(err.response?.data?.message || "Gagal mengunggah file Excel.");
+      setErrorMsg(
+        err.response?.data?.message ||
+          (err.response
+            ? `Gagal mengunggah file Excel (kesalahan server ${err.response.status}).`
+            : "Tidak dapat terhubung ke server. Periksa koneksi lalu coba lagi."),
+      );
     } finally {
       setUploading(false);
     }
