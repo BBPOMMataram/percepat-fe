@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { Icon } from "@iconify/react";
 import Link from "next/link";
 import api from "@/utils/api";
+import { getNkoPredikat, getSakipCategory } from "@/utils/sakipCategory";
 
 const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000";
 
@@ -194,13 +195,20 @@ export default function KonversiNkoTable() {
     );
   }, [ikus, searchQuery]);
 
-  const getCapaianColor = (val: number | null) => {
-    if (val === null) return "text-slate-400";
-    if (val > 100) return "text-cyan-600 font-bold";
-    if (val >= 100) return "text-emerald-600 font-bold";
-    if (val >= 80) return "text-lime-600 font-bold";
-    if (val >= 60) return "text-amber-600 font-bold";
-    return "text-rose-600 font-bold";
+  // Badge capaian IK sesuai kategori Pedoman SAKIP BPOM (lihat utils/sakipCategory)
+  const renderCapaianBadge = (val: number | null | undefined) => {
+    if (val === null || val === undefined) {
+      return <span className="text-slate-400">-</span>;
+    }
+    const cat = getSakipCategory(val);
+    return (
+      <span
+        title={`${cat.label} (${cat.range})`}
+        className={`inline-flex items-center justify-center min-w-[64px] rounded-md px-2 py-0.5 text-xs font-bold ${cat.className}`}
+      >
+        {val.toFixed(2)}%
+      </span>
+    );
   };
 
   return (
@@ -381,11 +389,9 @@ export default function KonversiNkoTable() {
                   </span>
                   <span
                     className={`rounded-md px-1.5 py-0.5 text-[10px] font-extrabold ${
-                      score > 100
-                        ? "bg-cyan-100 text-cyan-800"
-                        : score >= 80
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "bg-amber-100 text-amber-800"
+                      (sum?.total_active_iku ?? 0) > 0
+                        ? getNkoPredikat(score).className
+                        : "bg-slate-100 text-slate-500"
                     }`}
                   >
                     {predikat}
@@ -556,8 +562,6 @@ export default function KonversiNkoTable() {
                         const mData = ik.months?.[mNum];
                         const target = mData?.target ?? "-";
                         const real = mData?.realisasi ?? "-";
-                        const cap = mData?.capaian !== null && mData?.capaian !== undefined ? `${mData.capaian.toFixed(2)}%` : "-";
-                        const norm = mData?.capaian_dinormalisasi !== null && mData?.capaian_dinormalisasi !== undefined ? `${mData.capaian_dinormalisasi.toFixed(2)}%` : "-";
                         const kat = mData?.kategori_iku || "-";
                         const isActive = mData?.is_active ?? false;
 
@@ -572,16 +576,12 @@ export default function KonversiNkoTable() {
                               {real}
                             </td>
                             {/* % Capaian */}
-                            <td
-                              className={`py-2 px-2 text-center border-r border-slate-100 whitespace-nowrap ${getCapaianColor(
-                                mData?.capaian ?? null
-                              )}`}
-                            >
-                              {cap}
+                            <td className="py-2 px-2 text-center border-r border-slate-100 whitespace-nowrap">
+                              {renderCapaianBadge(mData?.capaian)}
                             </td>
                             {/* Normalisasi (Maks 110%) */}
-                            <td className="py-2 px-2 text-center border-r border-slate-100 whitespace-nowrap font-bold bg-cyan-50/20 text-cyan-800">
-                              {norm}
+                            <td className="py-2 px-2 text-center border-r border-slate-100 whitespace-nowrap">
+                              {renderCapaianBadge(mData?.capaian_dinormalisasi)}
                             </td>
                             {/* Kategori IKU */}
                             <td className="py-2 px-2 text-center border-r border-slate-100 whitespace-nowrap text-[11px] text-slate-600">
