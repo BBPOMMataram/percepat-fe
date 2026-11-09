@@ -272,7 +272,7 @@ const INITIAL_RECORDS: MaintenanceRecord[] = [
   },
 ];
 
-export default function RiwayatPemeriksaanMain() {
+export default function RiwayatPemeliharaanMain() {
   // State Data Log Pemeliharaan
   const [records, setRecords] = useState<MaintenanceRecord[]>(INITIAL_RECORDS);
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
@@ -1828,8 +1828,8 @@ export default function RiwayatPemeriksaanMain() {
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
                     qrHostMode === "lan"
-                      ? "http://192.168.23.52:3000/riwayat-pemeriksaan?token=bpom-genset-mataram-01"
-                      : "http://localhost:3000/riwayat-pemeriksaan?token=bpom-genset-mataram-01"
+                      ? "http://192.168.23.52:3000/riwayat-pemeliharaan?token=bpom-genset-mataram-01"
+                      : "http://localhost:3000/riwayat-pemeliharaan?token=bpom-genset-mataram-01"
                   )}`}
                   alt="QR Code Genset BBPOM"
                   className="h-full w-full object-contain"
@@ -1866,8 +1866,8 @@ export default function RiwayatPemeriksaanMain() {
 
               <p className="mt-2 text-[10px] font-mono text-slate-600 bg-white border border-slate-200 py-1 px-2 rounded-lg truncate">
                 {qrHostMode === "lan"
-                  ? "http://192.168.23.52:3000/riwayat-pemeriksaan"
-                  : "http://localhost:3000/riwayat-pemeriksaan"}
+                  ? "http://192.168.23.52:3000/riwayat-pemeliharaan"
+                  : "http://localhost:3000/riwayat-pemeliharaan"}
               </p>
               <p className="mt-1 text-[10px] text-slate-400">
                 Arahkan kamera HP ke QR di atas untuk membuka dashboard riwayat genset seketika

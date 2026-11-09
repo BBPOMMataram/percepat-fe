@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import RiwayatPemeriksaanMain from "@/components/riwayat-pemeriksaan/RiwayatPemeriksaanMain";
+import RiwayatPemeliharaanMain from "@/components/riwayat-pemeliharaan/RiwayatPemeliharaanMain";
 
 export const metadata: Metadata = {
   title: "Riwayat Pemeliharaan Aset | BBPOM di Mataram",
@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     "Modul digital pencatatan dan monitoring riwayat pemeliharaan serta pemeriksaan aset fisik/BMN (Genset, AC, dll) BBPOM di Mataram.",
 };
 
-export default function RiwayatPemeriksaanPage() {
-  return <RiwayatPemeriksaanMain />;
+export default function RiwayatPemeliharaanPage() {
+  return <RiwayatPemeliharaanMain />;
 }
 
