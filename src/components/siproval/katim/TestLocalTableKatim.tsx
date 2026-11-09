@@ -946,6 +946,8 @@ export default function TestLocalTableKatim({
     pathname?.startsWith("/siproval/kabalai") ||
     pathname?.startsWith("/siproval/rhpk/entry-data"),
   );
+  // Lembar RHPK lihat-saja untuk Tata Usaha (/siproval/tu/rhpk)
+  const isTuView = Boolean(pathname?.startsWith("/siproval/tu/rhpk"));
   const paramIkskId = searchParams?.get("iksk_id") || searchParams?.get("iksk");
   const paramSpreadsheetId =
     searchParams?.get("spreadsheet_id") || searchParams?.get("spreadsheet");
@@ -3932,7 +3934,7 @@ export default function TestLocalTableKatim({
               {isKabalai ? (
                 <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-bold text-[#005baa] flex items-center gap-1 shadow-2xs">
                   <Icon icon="solar:eye-bold" width={13} />
-                  Mode Baca Kepala Balai
+                  {isTuView ? "Mode Baca Tata Usaha" : "Mode Baca Kepala Balai"}
                 </span>
               ) : (
                 isPicUser && (
@@ -3945,7 +3947,9 @@ export default function TestLocalTableKatim({
             </div>
             <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
               {isKabalai
-                ? "Akses monitoring eksekutif Kepala Balai untuk meninjau seluruh dokumen lembar kerja IKSK 1 s.d. 28 dan detail capaian bulanan secara transparan dalam mode baca."
+                ? isTuView
+                  ? "Tinjau seluruh dokumen lembar kerja IKSK dan detail capaian bulanan dalam mode baca. Perubahan data dilakukan oleh Katim/PIC."
+                  : "Akses monitoring eksekutif Kepala Balai untuk meninjau seluruh dokumen lembar kerja IKSK 1 s.d. 28 dan detail capaian bulanan secara transparan dalam mode baca."
                 : isPicUser
                   ? "Pengisian data capaian target dan indikator bulanan. Sebagai PIC/Admin, Anda memiliki akses penuh untuk mengisi angka target dan data realisasi di seluruh file dokumen RHPK."
                   : "Pengisian data capaian target dan indikator kegiatan bulanan Katim secara langsung ke sistem internal BBPOM."}

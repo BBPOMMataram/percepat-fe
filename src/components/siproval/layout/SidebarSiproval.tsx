@@ -72,6 +72,12 @@ const menus = {
       active: "/siproval/tu/realisasi-ro",
     },
     {
+      name: "Lembar RHPK (Lihat)",
+      icon: "solar:document-text-bold",
+      url: "/siproval/tu/rhpk",
+      active: "/siproval/tu/rhpk",
+    },
+    {
       name: "Tabel Konversi NKO",
       icon: "solar:calculator-bold",
       url: "/siproval/tu/konversi-nko",
