@@ -485,7 +485,7 @@ export default function BudgetMappingTable() {
               width={16}
               className={saving ? "animate-spin" : ""}
             />
-            {saving ? "Menyimpan ke Sheets..." : "Simpan Semua Alokasi"}
+            {saving ? "Menyimpan..." : "Simpan Semua Alokasi"}
           </button>
         </div>
       </div>

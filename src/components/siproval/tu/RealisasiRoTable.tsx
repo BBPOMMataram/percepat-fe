@@ -46,6 +46,13 @@ type MonthColumnHeader = {
   key: string;
 };
 
+type SourceTabInfo = {
+  iksk: string;
+  tab_id: number;
+  tab_title: string;
+  cell_ref: string;
+};
+
 type CellData = {
   col_letter: string;
   cell: string;
@@ -54,6 +61,9 @@ type CellData = {
   key?: string;
   is_editable: boolean;
   is_formula?: boolean;
+  is_synced_rhpk?: boolean;
+  is_synced_iksk21?: boolean;
+  source_tab?: SourceTabInfo;
 };
 
 type TargetTahunanData = CellData & {
@@ -80,6 +90,7 @@ type RowItem = {
   target_tahunan: TargetTahunanData;
   month_columns: Record<string, CellData>;
   month_data?: Record<string, CellData>;
+  source_tab?: SourceTabInfo;
 };
 
 type RoYearItem = {
@@ -347,22 +358,18 @@ export default function RealisasiRoTable() {
       });
       setSuccessMsg(
         res.data?.message ||
-          "Data Realisasi RO baris 2 BAH.001 berhasil disinkronkan dari IKSK 21 Caput Sertifikasi."
+          "Seluruh 9 indikator Realisasi RO (IMPORTRANGE) berhasil disinkronkan langsung dari database RHPK lokal."
       );
       await fetchData(selectedMonth);
     } catch (err: any) {
       setErrorMsg(
         err.response?.data?.message ||
-          "Gagal menyinkronkan data Realisasi RO dari IKSK 21."
+          "Gagal menyinkronkan data Realisasi RO dari database RHPK lokal."
       );
     } finally {
       setIsSyncingIksk21(false);
     }
   };
-
-  const [googleSheetUrl, setGoogleSheetUrl] = useState(
-    "https://docs.google.com/spreadsheets/d/1KXN2ukZTcDUZ-9kfc3BbM-qi3VumvcHUSELK91nGqnU/edit#gid=17060817",
-  );
 
   const fetchData = async (month: string, targetYear: number = activeYear) => {
     setLoading(true);
@@ -385,9 +392,6 @@ export default function RealisasiRoTable() {
         }
         if (d.file_info) {
           setFileInfo(d.file_info);
-        }
-        if (d.google_sheet_url) {
-          setGoogleSheetUrl(d.google_sheet_url);
         }
         if (d.googleSheetError) {
           setApiNotice(d.googleSheetError);
@@ -741,11 +745,19 @@ export default function RealisasiRoTable() {
     }
 
     if (isNumericCol) {
-      const isAutoIksk21 =
+      const sourceTab = cellData?.source_tab || r.source_tab;
+      const isAutoSyncedRhpk =
         col.key === "realisasi" &&
-        (r.kode_ro === "BAH.001" ||
-          r.no == 2 ||
-          (r.nama_ro && r.nama_ro.toLowerCase().includes("keputusan/sertifikasi")));
+        (!!sourceTab ||
+          cellData?.is_synced_rhpk ||
+          cellData?.is_synced_iksk21 ||
+          r.kode_ro === "BAH.001");
+      const badgeLabel = sourceTab?.iksk
+        ? `Otomatis ${sourceTab.iksk}`
+        : "Otomatis IKSK 21";
+      const badgeTooltip = sourceTab
+        ? `Realisasi ditarik otomatis dari database lokal (${sourceTab.iksk} - ${sourceTab.cell_ref})`
+        : "Nilai dihitung otomatis dari akumulasi Tepat Waktu IKSK 21 (Caput Sertifikasi)";
 
       return (
         <td
@@ -762,23 +774,23 @@ export default function RealisasiRoTable() {
               className={`w-full rounded-lg border text-center font-mono text-xs font-bold px-2 py-1 transition focus:outline-none focus:ring-2 focus:ring-[#005baa] ${
                 isEdited
                   ? "bg-amber-50 border-amber-400 text-amber-900 ring-1 ring-amber-400"
-                  : isAutoIksk21
+                  : isAutoSyncedRhpk
                     ? "bg-emerald-50/70 border-emerald-300 text-emerald-950 font-extrabold hover:bg-white"
                     : "bg-slate-50/60 border-slate-200 text-slate-800 hover:bg-white hover:border-slate-300"
               }`}
               title={
-                isAutoIksk21
-                  ? `Realisasi otomatis tersinkron dari IKSK 21 Caput Sertifikasi: ${cellVal}`
+                isAutoSyncedRhpk
+                  ? `${badgeTooltip}: ${cellVal}`
                   : `Edit ${col.label} (${cellCoord})`
               }
             />
-            {isAutoIksk21 && (
+            {isAutoSyncedRhpk && (
               <span
                 className="inline-flex items-center gap-1 rounded bg-emerald-100 text-[#00a651] px-1.5 py-0.5 text-[9px] font-black tracking-tight cursor-help whitespace-nowrap"
-                title="Nilai dihitung otomatis dari akumulasi Tepat Waktu IKSK 21 (Caput Sertifikasi)"
+                title={badgeTooltip}
               >
                 <Icon icon="solar:bolt-bold" width={10} />
-                Otomatis IKSK 21
+                {badgeLabel}
               </span>
             )}
           </div>
@@ -1041,9 +1053,9 @@ export default function RealisasiRoTable() {
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                   Sumber Data
                 </p>
-                <p className="mt-2 text-base font-bold text-slate-900">Spreadsheet / Excel</p>
+                <p className="mt-2 text-base font-bold text-slate-900">Database Lokal</p>
                 <p className="mt-1 text-xs text-slate-500 truncate max-w-44">
-                  Dokumen Realisasi RO
+                  Tersinkron Otomatis RHPK
                 </p>
               </div>
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
@@ -1415,12 +1427,12 @@ export default function RealisasiRoTable() {
             </button>
           )}
 
-          {/* Tombol Sinkron Otomatis dari IKSK 21 Caput Sertifikasi */}
+          {/* Tombol Sinkron Otomatis 9 RO dari Database RHPK Lokal */}
           <button
             type="button"
             onClick={handleSyncIksk21}
             disabled={isSyncingIksk21 || loading}
-            title="Sinkronkan akumulasi realisasi baris BAH.001 dari IKSK 21 Caput Sertifikasi"
+            title="Sinkronkan seluruh 9 baris Realisasi RO (IMPORTRANGE) langsung dari tabel RHPK di database lokal"
             className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition shadow-2xs disabled:opacity-60"
           >
             <Icon
@@ -1428,7 +1440,7 @@ export default function RealisasiRoTable() {
               width={16}
               className={isSyncingIksk21 ? "animate-spin text-[#00a651]" : "text-[#00a651]"}
             />
-            <span>{isSyncingIksk21 ? "Menyinkronkan..." : "Sinkron IKSK 21"}</span>
+            <span>{isSyncingIksk21 ? "Menyinkronkan..." : "Sinkron 9 RO (RHPK)"}</span>
           </button>
 
           {/* Tombol Eksport Laporan Berita Acara */}

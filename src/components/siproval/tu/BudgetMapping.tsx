@@ -122,10 +122,6 @@ export default function BudgetMapping() {
     setShowAddModal(true);
   };
 
-  const [copiedEmail, setCopiedEmail] = useState(false);
-  const serviceAccountEmail = "siproval-sheets@siproval.iam.gserviceaccount.com";
-  const SERVICE_ACCOUNT_EMAIL = serviceAccountEmail;
-
   async function fetchYears() {
     try {
       setLoading(true);

@@ -822,6 +822,11 @@ export const recalculateRowFormulas = (
       const p = Math.pow(10, d || 0);
       return Math.round(v * p) / p;
     },
+    roundup: (v: number, d: number = 0) => {
+      const p = Math.pow(10, d || 0);
+      const scaled = Math.round(v * p * 1e6) / 1e6;
+      return (v >= 0 ? Math.ceil(scaled) : Math.floor(scaled)) / p;
+    },
     if: (cond: any, a: any, b: any) => (Boolean(cond) ? a : b),
     na: () => NaN,
     iserror: (val: any) =>
@@ -881,11 +886,12 @@ export const recalculateRowFormulas = (
       .replace(/\bmin\s*\(/gi, "excelMathEnv.min(")
       .replace(/\bmax\s*\(/gi, "excelMathEnv.max(")
       .replace(/\babs\s*\(/gi, "excelMathEnv.abs(")
+      .replace(/\broundup\s*\(/gi, "excelMathEnv.roundup(")
       .replace(/\bround\s*\(/gi, "excelMathEnv.round(");
 
     // 4. Hanya ekspresi aritmetika aman yang dievaluasi
     const sanitized = expr.replace(
-      /excelMathEnv\.(iferror|iserror|if|na|sum|average|min|max|abs|round)/g,
+      /excelMathEnv\.(iferror|iserror|if|na|sum|average|min|max|abs|roundup|round)/g,
       "",
     );
     if (!/^[\d\+\-\*/\(\)\,\.\s><=!]+$/.test(sanitized.replace(/NaN/g, "0")))
@@ -900,8 +906,14 @@ export const recalculateRowFormulas = (
         `"use strict"; return (${expr})`,
       )(excelMathEnv);
       if (typeof res === "number" && !isNaN(res) && isFinite(res)) {
-        updatedCells[col.key] =
-          res > 0 && res <= 1
+        const colLbl = `${col.label || ""} ${(col as any).sub_label || ""}`.toLowerCase();
+        const isIksk16RoundUp =
+          res > 0 &&
+          (colLbl.includes("sarprod fortif") ||
+            colLbl.includes("pangan fortifikasi"));
+        updatedCells[col.key] = isIksk16RoundUp
+          ? Math.ceil(Math.round(res * 10 * 1e6) / 1e6) / 10
+          : res > 0 && res <= 1
             ? Math.round(res * 10000) / 10000
             : Math.round(res * 100) / 100;
       } else if (typeof res === "number") {
