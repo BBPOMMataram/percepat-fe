@@ -311,19 +311,39 @@ export default function TestLocalTablePic() {
           (c.label || "").toLowerCase().startsWith("nama unit") ||
           (c.label || "").toLowerCase().startsWith("bulan");
 
+        // Ekstrak parentHeader dan subLabel jika ada " - " di luar kurung (misal: "Grup - Sub")
+        // Cegah pemotongan palsu pada rentang waktu di dalam kurung seperti "(Jan - Feb)"
+        let parsedParent: string | null = null;
+        let parsedSub: string = c.label || "";
+
+        if (!isIdentityCol && c.label) {
+          let depth = 0;
+          let splitPos = -1;
+          for (let i = 0; i < c.label.length - 2; i++) {
+            if (c.label[i] === "(") depth++;
+            else if (c.label[i] === ")") depth--;
+            else if (depth === 0 && c.label.substr(i, 3) === " - ") {
+              splitPos = i;
+              break;
+            }
+          }
+          if (splitPos !== -1) {
+            const p = c.label.substring(0, splitPos).trim();
+            const s = c.label.substring(splitPos + 3).trim();
+            if (p && s) {
+              parsedParent = p;
+              parsedSub = s;
+            }
+          }
+        }
+
         const parentHeader = isIdentityCol
           ? null
-          : (c.parent_header ||
-            (c.label && c.label.includes(" - ")
-              ? c.label.split(" - ")[0].trim()
-              : null));
+          : (c.parent_header || parsedParent);
 
         const subLabel = isIdentityCol
           ? c.label
-          : (c.sub_label ||
-            (c.label && c.label.includes(" - ")
-              ? c.label.split(" - ").slice(1).join(" - ").trim()
-              : c.label));
+          : (c.sub_label || parsedSub);
 
         return {
           ...c,
@@ -406,14 +426,22 @@ export default function TestLocalTablePic() {
     return labelMonths.size >= 3;
   }, [activeTab?.columns_schema, activeTab?.rows_data]);
 
-  // Deteksi apakah sheet ini adalah sheet multi-indikator (memiliki lebih dari 2 parent header bertopik non-bulan)
+  // Deteksi apakah sheet ini adalah sheet multi-indikator (HANYA berlaku untuk Dokumen Gabungan RHPK Balai)
   const isMultiIndicatorSheet = useMemo(() => {
-    if (!headerGroups) return false;
+    const spName = (activeSpreadsheet?.name || "").toLowerCase();
+    const isCombinedDoc =
+      spName.includes("capaian indikator balai") ||
+      spName.includes("gabungan") ||
+      spName.includes("13 indikator") ||
+      Boolean((activeSpreadsheet as any)?.is_balai_rekap);
+
+    if (!isCombinedDoc || !headerGroups) return false;
+
     const nonMonthParents = headerGroups.filter(
       (g) => g.parent && getMonthNumberFromText(g.parent) === null
     );
     return nonMonthParents.length >= 3;
-  }, [headerGroups]);
+  }, [headerGroups, activeSpreadsheet]);
 
   const matchedIndicatorParent = useMemo(() => {
     if (!isMultiIndicatorSheet || !headerGroups) return null;
@@ -693,7 +721,17 @@ export default function TestLocalTablePic() {
     // Filter fokus IKSK jika dokumen multi-indikator
     if (isMultiIndicatorSheet && focusSelectedIksk && matchedIndicatorParent) {
       groups = groups.filter((grp) => {
-        if (!grp.parent) return true;
+        if (!grp.parent) {
+          return grp.cols.some(
+            (c) =>
+              c.key === "col_0" ||
+              c.key === "col_1" ||
+              c.key === "col_2" ||
+              c.col_letter === "A" ||
+              c.col_letter === "B" ||
+              c.col_letter === "C"
+          );
+        }
         return grp.parent === matchedIndicatorParent;
       });
     }
