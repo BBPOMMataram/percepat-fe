@@ -11,7 +11,7 @@ import TargetRealisasiTuChart from "@/components/siproval/tu/TargetRealisasiTuCh
 import SimetrisNkoDashboard from "../dashboard/SimetrisNkoDashboard";
 
 const baseUrl =
-  process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8006";
+  process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000";
 
 const MONTHS = [
   "JANUARI",

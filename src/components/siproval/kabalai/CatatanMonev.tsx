@@ -9,7 +9,7 @@ import api from "@/utils/api";
 import TargetRealisasiTuChart from "@/components/siproval/tu/TargetRealisasiTuChart";
 import SimetrisNkoDashboard from "../dashboard/SimetrisNkoDashboard";
 
-const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8006";
+const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000";
 
 export interface IndicatorItem {
   row_number: number;
@@ -164,26 +164,6 @@ export default function CatatanMonev() {
           } catch {
             // dashboard fallback
           }
-        }
-
-        // Fallback generator from iksks if still empty
-        if (resolvedIndicators.length === 0 && fetchedIksks.length > 0) {
-          resolvedIndicators = fetchedIksks.map((ik, idx) => {
-            const isTercapai = idx % 3 !== 1;
-            return {
-              row_number: idx + 11,
-              iksk_id: ik.id,
-              no_indikator: ik.id,
-              label: ik.name,
-              sasaran: "Meningkatnya efektivitas pengawasan obat dan makanan di wilayah kerja BBPOM Mataram",
-              target_tahunan: "100%",
-              target_bulan: "100",
-              realisasi_bulan: isTercapai ? "100" : "85",
-              capaian: isTercapai ? 100 : 85,
-              status: isTercapai ? "tercapai" : "belum",
-              arahan: "",
-            };
-          });
         }
 
         setIndicators(resolvedIndicators);

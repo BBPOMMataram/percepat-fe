@@ -23,7 +23,7 @@ export default function DashboardTu() {
   const userName = user?.name || user?.call_name || "Bagian Tata Usaha (TU)";
 
   const [metrics, setMetrics] = useState<TuMetricsSummary>({
-    totalRo: 23,
+    totalRo: 0,
     totalPagu: 0,
     totalRealisasi: 0,
     persenRealisasi: 0,
@@ -42,8 +42,8 @@ export default function DashboardTu() {
           const real = Number(s.total_realisasi_budget) || 0;
           const persen = pagu > 0 ? (real / pagu) * 100 : 0;
 
-          // Hitung total RO dari Realisasi RO jika ada
-          const totalRo = d.total_ro || 23;
+          // Hitung total RO dari ringkasan Realisasi RO
+          const totalRo = Number(s.total_ro || d.total_ro) || 0;
 
           setMetrics({
             totalRo,
@@ -135,7 +135,7 @@ export default function DashboardTu() {
                   ? "..."
                   : metrics.totalPagu > 0
                   ? formatRupiah(metrics.totalPagu)
-                  : "Rp 27,33 M"}
+                  : "-"}
               </p>
               <span className="mt-1 inline-block text-xs text-slate-500 font-medium">
                 Alokasi Pagu DIPA {currentYear}
@@ -159,7 +159,7 @@ export default function DashboardTu() {
                   ? "..."
                   : metrics.totalRealisasi > 0
                   ? formatRupiah(metrics.totalRealisasi)
-                  : "Rp 12,13 M"}
+                  : "-"}
               </p>
               <span className="mt-1 inline-block text-xs text-slate-500 font-medium">
                 Serapan Anggaran Berjalan
@@ -183,7 +183,7 @@ export default function DashboardTu() {
                   ? "..."
                   : metrics.persenRealisasi > 0
                   ? `${metrics.persenRealisasi}%`
-                  : "44,38%"}
+                  : "-"}
               </p>
               <span className="mt-1 inline-block text-xs text-emerald-600 font-semibold">
                 ● Tingkat Efisiensi Anggaran

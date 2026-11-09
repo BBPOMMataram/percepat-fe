@@ -5,7 +5,8 @@ import { Icon } from "@iconify/react";
 import Link from "next/link";
 import api from "@/utils/api";
 
-const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000";
+const baseUrl =
+  process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000";
 
 const MONTH_OPTIONS = [
   "Januari",
@@ -84,7 +85,9 @@ export default function SimetrisNkoDashboard({
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get(`${baseUrl}/api/tu/nko/dashboard?year=${year}&month=${encodeURIComponent(month)}`);
+      const res = await api.get(
+        `${baseUrl}/api/tu/nko/dashboard?year=${year}&month=${encodeURIComponent(month)}`,
+      );
       if (res.data?.data) {
         setData(res.data.data);
       }
@@ -92,13 +95,18 @@ export default function SimetrisNkoDashboard({
       console.error("Gagal mengambil data dashboard NKO:", err);
       // Fallback coba endpoint alias jika /tu/nko/dashboard dicegat permission
       try {
-        const altRes = await api.get(`${baseUrl}/api/nko/dashboard?year=${year}&month=${encodeURIComponent(month)}`);
+        const altRes = await api.get(
+          `${baseUrl}/api/nko/dashboard?year=${year}&month=${encodeURIComponent(month)}`,
+        );
         if (altRes.data?.data) {
           setData(altRes.data.data);
           return;
         }
       } catch (_) {}
-      setError(err?.response?.data?.message || "Gagal memuat data Kerangka Kerja Logis & NKO.");
+      setError(
+        err?.response?.data?.message ||
+          "Gagal memuat data Kerangka Kerja Logis & NKO.",
+      );
     } finally {
       setLoading(false);
     }
@@ -116,7 +124,7 @@ export default function SimetrisNkoDashboard({
       (r) =>
         r.indikator.toLowerCase().includes(q) ||
         r.sasaran.toLowerCase().includes(q) ||
-        String(r.no).includes(q)
+        String(r.no).includes(q),
     );
   }, [data, searchFilter]);
 
@@ -175,7 +183,10 @@ export default function SimetrisNkoDashboard({
           <div>
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">
-                <Icon icon="solar:calendar-date-bold" className="text-slate-500" />
+                <Icon
+                  icon="solar:calendar-date-bold"
+                  className="text-slate-500"
+                />
                 {selectedYear}
               </span>
               <span className="rounded-md bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
@@ -183,7 +194,8 @@ export default function SimetrisNkoDashboard({
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Dashboard Nilai Kinerja Organisasi (NKO) & Kerangka Kerja Logis SIMETRIS BPOM
+              Dashboard Nilai Kinerja Organisasi (NKO) & Kerangka Kerja Logis
+              SIMETRIS BPOM
             </p>
           </div>
         </div>
@@ -204,7 +216,10 @@ export default function SimetrisNkoDashboard({
             disabled={loading}
             className="inline-flex items-center gap-1.5 rounded-xl bg-cyan-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-cyan-700 disabled:opacity-50"
           >
-            <Icon icon="solar:refresh-circle-bold" className={`text-base ${loading ? "animate-spin" : ""}`} />
+            <Icon
+              icon="solar:refresh-circle-bold"
+              className={`text-base ${loading ? "animate-spin" : ""}`}
+            />
             Perbarui
           </button>
         </div>
@@ -215,15 +230,19 @@ export default function SimetrisNkoDashboard({
         {/* Card NKO */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#00bcd4] to-[#0097a7] p-5 text-white shadow-sm">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-white/90">NKO</h4>
+            <h4 className="text-sm font-bold uppercase tracking-wider text-white/90">
+              NKO
+            </h4>
             <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-bold text-white backdrop-blur-sm">
-              {data?.cards.nko.predikat || "Istimewa"}
+              {data?.cards.nko.predikat || "-"}
             </span>
           </div>
-          <p className="text-xs text-white/80 mt-1">Data Tahun {selectedYear}</p>
+          <p className="text-xs text-white/80 mt-1">
+            Data Tahun {selectedYear}
+          </p>
           <div className="mt-4 flex items-baseline gap-2">
             <span className="text-3xl font-extrabold tracking-tight">
-              {loading ? "..." : data?.cards.nko.score_formatted || "101.28%"}
+              {loading ? "..." : data?.cards.nko.score_formatted || "-"}
             </span>
           </div>
           <div className="mt-2 text-[11px] text-white/80 flex items-center gap-1">
@@ -235,52 +254,64 @@ export default function SimetrisNkoDashboard({
         {/* Card Pagu */}
         <div className="relative overflow-hidden rounded-2xl bg-white p-5 border border-slate-100 shadow-sm">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-slate-700">Pagu</h4>
+            <h4 className="text-sm font-bold uppercase tracking-wider text-slate-700">
+              Pagu
+            </h4>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
               <Icon icon="solar:wallet-money-bold" className="text-lg" />
             </div>
           </div>
-          <p className="text-xs text-slate-400 mt-1">Data Tahun {selectedYear}</p>
+          <p className="text-xs text-slate-400 mt-1">{data?.cards.pagu.sub || `Data Tahun ${selectedYear}`}</p>
           <div className="mt-4">
             <span className="text-2xl font-extrabold tracking-tight text-slate-800">
-              {loading ? "..." : data?.cards.pagu.value_formatted || "Rp 159.124.921.000"}
+              {loading ? "..." : data?.cards.pagu.value_formatted || "-"}
             </span>
           </div>
-          <div className="mt-2 text-[11px] text-slate-400">Pagu Alokasi DIPA Mataram</div>
+          <div className="mt-2 text-[11px] text-slate-400">
+            Pagu Alokasi DIPA Mataram
+          </div>
         </div>
 
         {/* Card Realisasi Anggaran */}
         <div className="relative overflow-hidden rounded-2xl bg-white p-5 border border-slate-100 shadow-sm">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-slate-700">Realisasi Anggaran</h4>
+            <h4 className="text-sm font-bold uppercase tracking-wider text-slate-700">
+              Realisasi Anggaran
+            </h4>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
               <Icon icon="solar:card-recive-bold" className="text-lg" />
             </div>
           </div>
-          <p className="text-xs text-slate-400 mt-1">Data Tahun {selectedYear}</p>
+          <p className="text-xs text-slate-400 mt-1">{data?.cards.realisasi_anggaran.sub || `Data Tahun ${selectedYear}`}</p>
           <div className="mt-4">
             <span className="text-2xl font-extrabold tracking-tight text-slate-800">
-              {loading ? "..." : data?.cards.realisasi_anggaran.value_formatted || "Rp 75.582.856.775"}
+              {loading ? "..." : data?.cards.realisasi_anggaran.value_formatted || "-"}
             </span>
           </div>
-          <div className="mt-2 text-[11px] text-slate-400">Realisasi Belanja s.d. Bulan Ini</div>
+          <div className="mt-2 text-[11px] text-slate-400">
+            Realisasi Belanja s.d. Bulan Ini
+          </div>
         </div>
 
         {/* Card Capaian Anggaran */}
         <div className="relative overflow-hidden rounded-2xl bg-white p-5 border border-slate-100 shadow-sm">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-slate-700">Capaian</h4>
+            <h4 className="text-sm font-bold uppercase tracking-wider text-slate-700">
+              Capaian
+            </h4>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
               <Icon icon="solar:pie-chart-2-bold" className="text-lg" />
             </div>
           </div>
-          <p className="text-xs text-slate-400 mt-1">Data Tahun {selectedYear}</p>
+          <p className="text-xs text-slate-400 mt-1">{data?.cards.capaian_anggaran.sub || `Data Tahun ${selectedYear}`}</p>
           <div className="mt-4">
             <span className="text-2xl font-extrabold tracking-tight text-slate-800">
-              {loading ? "..." : data?.cards.capaian_anggaran.value_formatted || "47.50%"}
+              {loading ? "..." : data?.cards.capaian_anggaran.value_formatted || "-"}
             </span>
           </div>
-          <div className="mt-2 text-[11px] text-slate-400">Persentase Serapan Anggaran</div>
+          <div className="mt-2 text-[11px] text-slate-400">
+            Persentase Serapan Anggaran
+          </div>
         </div>
       </div>
 
@@ -289,9 +320,12 @@ export default function SimetrisNkoDashboard({
         <div className="border-b border-slate-100 p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h3 className="text-lg font-bold text-slate-800">Kerangka Kerja Logis</h3>
+              <h3 className="text-lg font-bold text-slate-800">
+                Kerangka Kerja Logis
+              </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Evaluasi capaian 28 Indikator Kinerja Sasaran Kegiatan (IKSK) berdasarkan Pedoman SAKIP BPOM
+                Evaluasi capaian 28 Indikator Kinerja Sasaran Kegiatan (IKSK)
+                berdasarkan Pedoman SAKIP BPOM
               </p>
             </div>
 
@@ -343,15 +377,29 @@ export default function SimetrisNkoDashboard({
           <table className="w-full border-collapse text-left text-xs">
             <thead>
               <tr className="bg-[#1a2b49] text-white font-bold tracking-wider">
-                <th className="w-12 py-3.5 px-3 text-center border-r border-white/10">NO</th>
-                <th className="min-w-[240px] max-w-[320px] py-3.5 px-4 border-r border-white/10">SASARAN</th>
-                <th className="min-w-[300px] py-3.5 px-4 border-r border-white/10">INDIKATOR</th>
-                <th className="w-24 py-3.5 px-3 text-center border-r border-white/10">TARGET</th>
-                <th className="w-24 py-3.5 px-3 text-center border-r border-white/10">REALISASI</th>
-                <th className="w-28 py-3.5 px-3 text-center border-r border-white/10">CAPAIAN</th>
+                <th className="w-12 py-3.5 px-3 text-center border-r border-white/10">
+                  NO
+                </th>
+                <th className="min-w-[240px] max-w-[320px] py-3.5 px-4 border-r border-white/10">
+                  SASARAN
+                </th>
+                <th className="min-w-[300px] py-3.5 px-4 border-r border-white/10">
+                  INDIKATOR
+                </th>
+                <th className="w-24 py-3.5 px-3 text-center border-r border-white/10">
+                  TARGET
+                </th>
+                <th className="w-24 py-3.5 px-3 text-center border-r border-white/10">
+                  REALISASI
+                </th>
+                <th className="w-28 py-3.5 px-3 text-center border-r border-white/10">
+                  CAPAIAN
+                </th>
                 <th className="w-32 py-3.5 px-3 text-center">
                   CAPAIAN DINORMALISASI
-                  <span className="block text-[10px] text-cyan-300 font-normal">A (Maks 110%)</span>
+                  <span className="block text-[10px] text-cyan-300 font-normal">
+                    A (Maks 110%)
+                  </span>
                 </th>
               </tr>
             </thead>
@@ -359,7 +407,10 @@ export default function SimetrisNkoDashboard({
               {loading ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400">
-                    <Icon icon="solar:refresh-circle-bold" className="mx-auto mb-2 text-2xl animate-spin text-cyan-600" />
+                    <Icon
+                      icon="solar:refresh-circle-bold"
+                      className="mx-auto mb-2 text-2xl animate-spin text-cyan-600"
+                    />
                     Memuat data Kerangka Kerja Logis bulan {selectedMonth}...
                   </td>
                 </tr>
@@ -413,20 +464,27 @@ export default function SimetrisNkoDashboard({
         {/* Footer info SAKIP */}
         <div className="border-t border-slate-100 bg-slate-50/50 p-4 text-xs text-slate-500 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
-            <Icon icon="solar:info-circle-bold" className="text-cyan-600 text-base flex-shrink-0" />
+            <Icon
+              icon="solar:info-circle-bold"
+              className="text-cyan-600 text-base flex-shrink-0"
+            />
             <span>
-              Perhitungan NKO mengacu pada SK Ka BPOM No. 676 Tahun 2025. Indikator target tahunan yang belum jatuh tempo (N/A) dikecualikan dari pembagi rata-rata.
+              Perhitungan NKO mengacu pada SK Ka BPOM No. 676 Tahun 2025.
+              Indikator target tahunan yang belum jatuh tempo (N/A) dikecualikan
+              dari pembagi rata-rata.
             </span>
           </div>
           <div className="flex items-center gap-4 text-[11px] font-semibold">
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded bg-[#00bcd4]" /> &gt; 100% (Istimewa)
+              <span className="h-2.5 w-2.5 rounded bg-[#00bcd4]" /> &gt; 100%
+              (Istimewa)
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded bg-[#4caf50]" /> 100% (Baik)
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded bg-[#f44336]" /> &lt; 80% (Perlu Perbaikan)
+              <span className="h-2.5 w-2.5 rounded bg-[#f44336]" /> &lt; 80%
+              (Perlu Perbaikan)
             </span>
           </div>
         </div>
@@ -434,4 +492,3 @@ export default function SimetrisNkoDashboard({
     </div>
   );
 }
-

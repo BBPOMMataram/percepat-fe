@@ -65,8 +65,8 @@ export default function KonversiNkoTable() {
 
   // Modal edit anggaran
   const [showAnggaranModal, setShowAnggaranModal] = useState<boolean>(false);
-  const [editPagu, setEditPagu] = useState<string>("159124921000");
-  const [editRealisasi, setEditRealisasi] = useState<string>("75582856775");
+  const [editPagu, setEditPagu] = useState<string>("0");
+  const [editRealisasi, setEditRealisasi] = useState<string>("0");
   const [savingAnggaran, setSavingAnggaran] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);

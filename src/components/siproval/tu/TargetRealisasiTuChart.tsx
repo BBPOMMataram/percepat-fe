@@ -152,9 +152,24 @@ export default function TargetRealisasiTuChart({ isKabalaiView = false }: Target
   }, [periodMode, metricMode, liveData]);
 
   // Aggregate stats based on active data
+  // Catatan: Untuk mode 'budget', data per bulan/triwulan di Mapping Anggaran bersifat kumulatif (s.d. bulan berjalan),
+  // sehingga total Pagu & Realisasi diambil dari periode aktif terakhir yang memiliki data (> 0), bukan dijumlahkan berulang.
   const stats = useMemo(() => {
-    const totalTarget = activeChartData.reduce((acc, curr) => acc + (Number(curr.target) || 0), 0);
-    const totalRealisasi = activeChartData.reduce((acc, curr) => acc + (Number(curr.realisasi) || 0), 0);
+    let totalTarget = 0;
+    let totalRealisasi = 0;
+
+    if (metricMode === "budget") {
+      const nonZeroItems = activeChartData.filter(
+        (item) => (Number(item.target) || 0) > 0 || (Number(item.realisasi) || 0) > 0
+      );
+      const latestItem = nonZeroItems[nonZeroItems.length - 1];
+      totalTarget = latestItem ? Number(latestItem.target) || 0 : 0;
+      totalRealisasi = latestItem ? Number(latestItem.realisasi) || 0 : 0;
+    } else {
+      totalTarget = activeChartData.reduce((acc, curr) => acc + (Number(curr.target) || 0), 0);
+      totalRealisasi = activeChartData.reduce((acc, curr) => acc + (Number(curr.realisasi) || 0), 0);
+    }
+
     const avgCapaian = totalTarget > 0 ? (totalRealisasi / totalTarget) * 100 : 0;
     const deltaPercent = avgCapaian - 100;
 
