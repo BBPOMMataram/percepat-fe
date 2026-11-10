@@ -573,6 +573,82 @@ export function getMonthNumberFromText(text?: string | null): number | null {
   return null;
 }
 
+// Helper untuk mendeteksi apakah suatu baris merupakan baris summary/total
+export function isSummaryOrTotalRow(r?: RowData | null): boolean {
+  if (!r?.cells) return false;
+  const keys = ["col_0", "col_1", "col_2", "col_3", "col_4"];
+  for (const k of keys) {
+    const val = r.cells[k];
+    if (typeof val === "string") {
+      const lower = val.toLowerCase().trim();
+      if (
+        lower === "total" ||
+        lower === "jumlah" ||
+        lower.startsWith("total ") ||
+        lower.startsWith("jumlah ") ||
+        lower === "rata-rata" ||
+        lower === "rata - rata" ||
+        lower === "average" ||
+        lower.startsWith("rata-rata") ||
+        lower.startsWith("rata - rata")
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// Ekstrak nomor bulan (1..12) dari sebuah baris data secara eksplisit (tanpa forward-fill)
+export function getRowExplicitMonth(
+  r?: RowData | null,
+  monthColKey?: string | null,
+): number | null {
+  if (!r) return null;
+
+  // 1. Cek dari kolom bulan jika header terdeteksi
+  if (monthColKey && r.cells?.[monthColKey] !== undefined) {
+    const n = getMonthNumberFromText(String(r.cells[monthColKey]));
+    if (n !== null) return n;
+  }
+
+  // 2. Cek kolom col_0 (standar utama kolom Periode/Tanggal/Bulan di RHPK vertikal)
+  if (r.cells?.col_0 !== undefined) {
+    const val0 = String(r.cells.col_0).trim();
+    if (val0) {
+      const n = getMonthNumberFromText(val0);
+      if (n !== null) return n;
+    }
+  }
+
+  // 3. Cek month_name bawaan dari database/metadata
+  if (r.month_name) {
+    const n = getMonthNumberFromText(r.month_name);
+    if (n !== null) return n;
+  }
+
+  // 4. Cek r.month jika bernilai 1..12
+  if (typeof r.month === "number" && r.month >= 1 && r.month <= 12) {
+    return r.month;
+  }
+
+  // 5. Cek kolom col_1, col_2, col_3 HANYA jika teks pendek (<= 30 karakter)
+  // dan BUKAN teks sampel/produk (menghindari salah deteksi expired date 'ED 16 Januari' sebagai bulan baris)
+  for (const k of ["col_1", "col_2", "col_3"]) {
+    if (r.cells?.[k] !== undefined) {
+      const val = String(r.cells[k]).trim();
+      if (val && val.length <= 30) {
+        if (!/\b(ed|exp|kadaluarsa|expired|sampel|klb|mbg)\b/i.test(val)) {
+          const n = getMonthNumberFromText(val);
+          if (n !== null) return n;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 // Helper deteksi kolom editable kumulatif (cth: G2=40+g1 atau formula =G3+13)
 export function isCumulativeCol(col?: ColumnSchema | null): boolean {
   if (!col) return false;
@@ -2228,7 +2304,7 @@ export default function TestLocalTableKatim({
         if (selectedMonthFilter !== "all" && !isHorizontalMonthTable) {
           const targetNum = getMonthNumberFromText(selectedMonthFilter);
           const preserved = existingRows.filter(
-            (r) => getRowMonthNumber(r) !== targetNum,
+            (r, idx) => getRowMonthNumber(r, idx) !== targetNum,
           );
           finalRows = [...excelParsedRows, ...preserved];
         } else {
@@ -3507,46 +3583,61 @@ export default function TestLocalTableKatim({
       return (
         l === "bulan" ||
         l === "periode" ||
+        l === "tanggal" ||
+        l === "waktu" ||
         l.includes("bulan") ||
-        l.includes("periode")
+        l.includes("periode") ||
+        l.includes("tanggal") ||
+        l.includes("waktu")
       );
     });
     return col ? col.key : null;
   }, [activeTab?.columns_schema]);
 
-  // Ekstrak nomor bulan (1..12) dari sebuah baris data secara akurat dan presisi
-  const getRowMonthNumber = (r: RowData): number | null => {
+  // Mapping setiap baris ke nomor bulannya (1..12) dengan Forward-Fill (propagasi ke bawah)
+  // sesuai aturan RHPK: baris tanpa tanggal/bulan eksplisit mewarisi bulan dari baris di atasnya
+  // hingga ditemukan baris dengan bulan baru (next_month).
+  const rowMonthMap = useMemo(() => {
+    const rawRows = activeTab?.rows_data || [];
+    const objMap = new WeakMap<RowData, number>();
+    const idxMap = new Map<number, number>();
+
+    // Pada tabel horizontal (bulan ada di header kolom), baris tidak terikat pada satu bulan
+    if (isHorizontalMonthTable) {
+      return { objMap, idxMap };
+    }
+
+    let currentMonth: number | null = null;
+
+    rawRows.forEach((r, idx) => {
+      if (!r) return;
+
+      const explicit = getRowExplicitMonth(r, monthColKey);
+      if (explicit !== null) {
+        // Ditemukan bulan baru atau baris awal (next_month)
+        currentMonth = explicit;
+      }
+
+      // Selama dalam rentang suatu bulan dan bukan baris total/summary akhir
+      if (currentMonth !== null && !isSummaryOrTotalRow(r)) {
+        objMap.set(r, currentMonth);
+        idxMap.set(idx, currentMonth);
+      }
+    });
+
+    return { objMap, idxMap };
+  }, [activeTab?.rows_data, isHorizontalMonthTable, monthColKey]);
+
+  // Ekstrak nomor bulan (1..12) dari sebuah baris data dengan prioritas hasil forward-fill
+  const getRowMonthNumber = (r: RowData, idx?: number): number | null => {
     if (!r) return null;
-    // 1. Cek dari kolom bulan jika terdeteksi
-    if (monthColKey && r.cells?.[monthColKey] !== undefined) {
-      const n = getMonthNumberFromText(String(r.cells[monthColKey]));
-      if (n !== null) return n;
+    if (rowMonthMap.objMap.has(r)) {
+      return rowMonthMap.objMap.get(r)!;
     }
-    // 2. Cek kolom col_0 (seringkali PERIODE/Bulan/Tanggal)
-    if (r.cells?.col_0 !== undefined) {
-      const n = getMonthNumberFromText(String(r.cells.col_0));
-      if (n !== null) return n;
+    if (idx !== undefined && rowMonthMap.idxMap.has(idx)) {
+      return rowMonthMap.idxMap.get(idx)!;
     }
-    // 3. Cek kolom col_2 (seringkali kolom Bulan pada tabel multi-baris)
-    if (r.cells?.col_2 !== undefined) {
-      const n = getMonthNumberFromText(String(r.cells.col_2));
-      if (n !== null) return n;
-    }
-    // 4. Cek month_name
-    if (r.month_name) {
-      const n = getMonthNumberFromText(r.month_name);
-      if (n !== null) return n;
-    }
-    // 5. Cek r.month jika bernilai 1..12 dan bukan 0
-    if (typeof r.month === "number" && r.month >= 1 && r.month <= 12) {
-      return r.month;
-    }
-    // 6. Cek kolom col_1
-    if (r.cells?.col_1 !== undefined) {
-      const n = getMonthNumberFromText(String(r.cells.col_1));
-      if (n !== null) return n;
-    }
-    return null;
+    return getRowExplicitMonth(r, monthColKey);
   };
 
   // Ekstrak daftar bulan yang ada di tab saat ini beserta jumlah barisnya
@@ -3589,8 +3680,8 @@ export default function TestLocalTableKatim({
     // Default: tabel vertikal (bulan berada di baris)
     const monthCounts: Record<number, number> = {};
 
-    activeTab?.rows_data?.forEach((r) => {
-      const mNum = getRowMonthNumber(r);
+    activeTab?.rows_data?.forEach((r, idx) => {
+      const mNum = getRowMonthNumber(r, idx);
       if (mNum !== null) {
         monthCounts[mNum] = (monthCounts[mNum] || 0) + 1;
       }
@@ -3629,6 +3720,7 @@ export default function TestLocalTableKatim({
     monthColKey,
     isHorizontalMonthTable,
     effectiveColumnsSchema,
+    rowMonthMap,
   ]);
 
   // Filter baris berdasarkan Bulan dan Pencarian
@@ -3640,8 +3732,8 @@ export default function TestLocalTableKatim({
     if (selectedMonthFilter !== "all" && !isHorizontalMonthTable) {
       const targetMonthNum = getMonthNumberFromText(selectedMonthFilter);
       if (targetMonthNum !== null) {
-        rows = rows.filter((r) => {
-          return getRowMonthNumber(r) === targetMonthNum;
+        rows = rows.filter((r, idx) => {
+          return getRowMonthNumber(r, idx) === targetMonthNum;
         });
       }
     }
