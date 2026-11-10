@@ -334,7 +334,7 @@ export default function SidebarSiproval({ actor }: Props) {
       )}
 
       <nav
-        className={`fixed inset-y-0 left-0 z-50 flex h-screen w-72 flex-col bg-[#014083] p-6 text-white transition-transform duration-300 ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-screen w-64 xl:w-72 flex-col bg-[#014083] p-4 sm:p-5 xl:p-6 text-white transition-transform duration-300 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >

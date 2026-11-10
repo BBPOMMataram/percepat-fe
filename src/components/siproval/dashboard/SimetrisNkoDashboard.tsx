@@ -196,40 +196,39 @@ export default function SimetrisNkoDashboard({
   };
 
   return (
-    <div className="w-full space-y-6">
-      {/* Top Bar ala SIMETRIS */}
-      <div className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm border border-slate-100 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-600 font-bold">
-            <Icon icon="solar:chart-2-bold" className="text-2xl" />
+    <div className="w-full space-y-4 sm:space-y-5">
+            {/* Top Bar ala SIMETRIS */}
+      <div className="flex flex-col gap-2.5 rounded-xl bg-white py-2.5 px-4 sm:px-5 shadow-2xs border border-slate-200/80 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-600 font-bold shrink-0">
+            <Icon icon="solar:chart-2-bold" className="text-lg" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">
+              <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.2 text-[11px] font-bold text-slate-700">
                 <Icon
                   icon="solar:calendar-date-bold"
-                  className="text-slate-500"
+                  className="text-cyan-600 text-[10px]"
                 />
-                {selectedYear}
+                Tahun {selectedYear}
               </span>
-              <span className="rounded-md bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
-                Balai Besar Pengawas Obat dan Makanan di Mataram
-              </span>
+              <h2 className="text-xs sm:text-sm font-bold text-slate-800">
+                Indikator Kinerja Sasaran Kegiatan (IKSK) &amp; NKO
+              </h2>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Dashboard Nilai Kinerja Organisasi (NKO) & Kerangka Kerja Logis
-              SIMETRIS BPOM
+            <p className="text-[11px] text-slate-400">
+              Basis Data Realisasi Live &bull; Evaluasi Capaian Berdasarkan SIMETRIS BPOM
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {showFullTableLink && (
             <Link
               href="/siproval/tu/konversi-nko"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3.5 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
             >
-              <Icon icon="solar:table-split-bold" className="text-base" />
+              <Icon icon="solar:table-split-bold" className="text-sm" />
               Tabel 12 Bulan (Konversi NKO)
             </Link>
           )}
@@ -237,11 +236,11 @@ export default function SimetrisNkoDashboard({
             type="button"
             onClick={() => fetchData(selectedYear, activeMonth)}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-cyan-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-cyan-700 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs transition hover:bg-cyan-700 disabled:opacity-50 cursor-pointer"
           >
             <Icon
               icon="solar:refresh-circle-bold"
-              className={`text-base ${loading ? "animate-spin" : ""}`}
+              className={`text-sm ${loading ? "animate-spin" : ""}`}
             />
             Perbarui
           </button>
@@ -249,106 +248,106 @@ export default function SimetrisNkoDashboard({
       </div>
 
       {/* 4 Metric Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Card NKO: warna mengikuti tabel Predikat NKO (Pedoman SAKIP BPOM) */}
         <div
           title={nkoPredikat ? `${nkoPredikat.label} (${nkoPredikat.range})` : undefined}
-          className={`relative overflow-hidden rounded-2xl p-5 shadow-sm ${
+          className={`relative overflow-hidden rounded-xl p-3.5 sm:p-4 shadow-2xs ${
             nkoPredikat ? nkoPredikat.className : "bg-slate-500 text-white"
           }`}
         >
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-bold uppercase tracking-wider opacity-90">
+          <div className="flex items-center justify-between gap-1.5">
+            <h4 className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider opacity-90 truncate">
               NKO
             </h4>
-            <span className="rounded-full bg-white/25 px-2.5 py-0.5 text-[11px] font-bold backdrop-blur-sm">
+            <span className="rounded-full bg-white/25 px-2 py-0.2 text-[10px] font-bold backdrop-blur-sm shrink-0">
               {nkoPredikat?.label || data?.cards?.nko?.predikat || "-"}
             </span>
           </div>
-          <p className="text-xs opacity-80 mt-1">
+          <p className="text-[10px] sm:text-[11px] opacity-80 mt-0.5 truncate">
             {data?.selected_month ? `${data.selected_month} ${selectedYear}` : `Data Tahun ${selectedYear}`}
           </p>
-          <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold tracking-tight">
+          <div className="mt-2 sm:mt-2.5 flex items-baseline gap-1.5">
+            <span className="text-2xl sm:text-3xl font-black tracking-tight leading-none">
               {loading ? "..." : data?.cards?.nko?.score_formatted || "-"}
             </span>
           </div>
-          <div className="mt-2 text-[11px] opacity-80 flex items-center gap-1">
-            <Icon icon="solar:shield-check-bold" />
-            Rata-rata capaian dinormalisasi (maks. 110%)
+          <div className="mt-2 text-[10px] opacity-80 flex items-center gap-1 truncate">
+            <Icon icon="solar:shield-check-bold" width={12} className="shrink-0" />
+            <span className="truncate">Capaian dinormalisasi (maks. 110%)</span>
           </div>
         </div>
 
         {/* Card Pagu */}
-        <div className="relative overflow-hidden rounded-2xl bg-white p-5 border border-slate-100 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-slate-700">
+        <div className="relative overflow-hidden rounded-xl bg-white p-3.5 sm:p-4 border border-slate-200/80 shadow-2xs">
+          <div className="flex items-center justify-between gap-1.5">
+            <h4 className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-700 truncate">
               Pagu
             </h4>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-              <Icon icon="solar:wallet-money-bold" className="text-lg" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 shrink-0">
+              <Icon icon="solar:wallet-money-bold" width={16} />
             </div>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
             {data?.cards?.pagu?.sub || `Data Tahun ${selectedYear}`}
           </p>
-          <div className="mt-4">
-            <span className="text-2xl font-extrabold tracking-tight text-slate-800">
+          <div className="mt-2 sm:mt-2.5">
+            <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-800 leading-none">
               {loading ? "..." : data?.cards?.pagu?.value_formatted || "-"}
             </span>
           </div>
-          <div className="mt-2 text-[11px] text-slate-400">
+          <div className="mt-2 text-[10px] text-slate-400 truncate">
             Pagu Alokasi DIPA Mataram
           </div>
         </div>
 
         {/* Card Realisasi Anggaran */}
-        <div className="relative overflow-hidden rounded-2xl bg-white p-5 border border-slate-100 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-slate-700">
+        <div className="relative overflow-hidden rounded-xl bg-white p-3.5 sm:p-4 border border-slate-200/80 shadow-2xs">
+          <div className="flex items-center justify-between gap-1.5">
+            <h4 className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-700 truncate">
               Realisasi Anggaran
             </h4>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-              <Icon icon="solar:card-recive-bold" className="text-lg" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 shrink-0">
+              <Icon icon="solar:card-recive-bold" width={16} />
             </div>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
             {data?.cards?.realisasi_anggaran?.sub ||
               `Data Tahun ${selectedYear}`}
           </p>
-          <div className="mt-4">
-            <span className="text-2xl font-extrabold tracking-tight text-slate-800">
+          <div className="mt-2 sm:mt-2.5">
+            <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-800 leading-none">
               {loading
                 ? "..."
                 : data?.cards?.realisasi_anggaran?.value_formatted || "-"}
             </span>
           </div>
-          <div className="mt-2 text-[11px] text-slate-400">
-            Realisasi Belanja s.d. Bulan Ini
+          <div className="mt-2 text-[10px] text-slate-400 truncate">
+            Realisasi Anggaran Belanja
           </div>
         </div>
 
-        {/* Card Capaian Anggaran */}
-        <div className="relative overflow-hidden rounded-2xl bg-white p-5 border border-slate-100 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-slate-700">
-              Capaian
+        {/* Card Capaian */}
+        <div className="relative overflow-hidden rounded-xl bg-white p-3.5 sm:p-4 border border-slate-200/80 shadow-2xs">
+          <div className="flex items-center justify-between gap-1.5">
+            <h4 className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-700 truncate">
+              Capaian Realisasi
             </h4>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
-              <Icon icon="solar:pie-chart-2-bold" className="text-lg" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-50 text-cyan-600 shrink-0">
+              <Icon icon="solar:pie-chart-2-bold" width={16} />
             </div>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            {data?.cards?.capaian_anggaran?.sub || `Data Tahun ${selectedYear}`}
+          <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
+            Rasio Realisasi thd Pagu
           </p>
-          <div className="mt-4">
-            <span className="text-2xl font-extrabold tracking-tight text-slate-800">
+          <div className="mt-2 sm:mt-2.5">
+            <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-800 leading-none">
               {loading
                 ? "..."
-                : data?.cards?.capaian_anggaran?.value_formatted || "-"}
+                : data?.cards?.capaian_anggaran?.score_formatted || "-"}
             </span>
           </div>
-          <div className="mt-2 text-[11px] text-slate-400">
+          <div className="mt-2 text-[10px] text-slate-400 truncate">
             Persentase Serapan Anggaran
           </div>
         </div>

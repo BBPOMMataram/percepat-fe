@@ -122,13 +122,13 @@ export default function HeaderSiproval({
   }
 
   return (
-    <header className="sticky top-0 z-30 flex min-h-20 items-center justify-between gap-4 border-b border-slate-200 bg-white px-6 py-4 shadow-sm lg:px-8">
+    <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-4 border-b border-slate-200 bg-white/95 backdrop-blur-sm px-4 sm:px-6 lg:px-7 py-3 shadow-xs">
       {/* Judul halaman */}
       <div className="min-w-0">
-        <h2 className="truncate text-xl font-bold text-slate-800">{computedTitle}</h2>
+        <h2 className="truncate text-lg sm:text-xl font-bold text-slate-800">{computedTitle}</h2>
 
         {computedDesc && (
-          <p className="mt-0.5 text-sm text-slate-500">{computedDesc}</p>
+          <p className="mt-0.5 text-xs sm:text-sm text-slate-500 truncate">{computedDesc}</p>
         )}
       </div>
 
