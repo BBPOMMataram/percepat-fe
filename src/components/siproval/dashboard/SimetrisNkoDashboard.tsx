@@ -302,7 +302,8 @@ export default function SimetrisNkoDashboard({
             </div>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            {data?.cards?.realisasi_anggaran?.sub || `Data Tahun ${selectedYear}`}
+            {data?.cards?.realisasi_anggaran?.sub ||
+              `Data Tahun ${selectedYear}`}
           </p>
           <div className="mt-4">
             <span className="text-2xl font-extrabold tracking-tight text-slate-800">
@@ -419,10 +420,10 @@ export default function SimetrisNkoDashboard({
                 <th className="w-12 py-3.5 px-3 text-center border-r border-white/10">
                   NO
                 </th>
-                <th className="min-w-[240px] max-w-[320px] py-3.5 px-4 border-r border-white/10">
+                <th className="min-w-60 max-w-[320px] py-3.5 px-4 border-r border-white/10">
                   SASARAN
                 </th>
-                <th className="min-w-[300px] py-3.5 px-4 border-r border-white/10">
+                <th className="min-w-75 py-3.5 px-4 border-r border-white/10">
                   INDIKATOR
                 </th>
                 <th className="w-24 py-3.5 px-3 text-center border-r border-white/10">
