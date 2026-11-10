@@ -4139,7 +4139,7 @@ export default function TestLocalTableKatim({
                 <span>Mode Baca (Kepala Balai)</span>
               </div>
             ) : spreadsheets.find((s) => s.id === selectedSpId)?.is_readonly &&
-              !isPicUser ? (
+              !isPicEffective ? (
               <div className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-800 shadow-2xs">
                 <Icon
                   icon="solar:eye-bold"
@@ -4373,7 +4373,8 @@ export default function TestLocalTableKatim({
                   ))}
                 </select>
                 {spreadsheets.find((s) => s.id === selectedSpId)
-                  ?.is_readonly && (
+                  ?.is_readonly &&
+                  !isPicEffective && (
                   <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 flex items-center gap-1">
                     <Icon icon="solar:lock-bold" width={11} />
                     Read-Only (Rekap Balai)
@@ -5572,7 +5573,10 @@ export default function TestLocalTableKatim({
                               );
 
                             const canEditCell =
-                              col.can_edit &&
+                              (col.can_edit ||
+                                (isPicEffective &&
+                                  col.type !== "formula" &&
+                                  !isMonthLocked)) &&
                               isUserAllowedForCol &&
                               !isMonthLocked &&
                               !isColMonthLocked &&
