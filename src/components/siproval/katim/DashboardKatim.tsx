@@ -232,8 +232,13 @@ export default function DashboardKatim() {
           </div>
         </div>
 
-        {/* Simetris BPOM Dashboard: NKO, Pagu, Realisasi, Capaian & Kerangka Kerja Logis */}
-        <SimetrisNkoDashboard initialYear={currentYear} initialMonth="September" />
+        {/* Simetris BPOM Dashboard: NKO, Pagu, Realisasi, Capaian & Kerangka Kerja Logis (dikendalikan oleh filter bulan di atas card) */}
+        <SimetrisNkoDashboard
+          initialYear={currentYear}
+          selectedMonth={selectedMonth}
+          onMonthChange={setSelectedMonth}
+          hideMonthSelector={true}
+        />
 
         <TargetRealisasiTuChart isKabalaiView={true} />
       </div>

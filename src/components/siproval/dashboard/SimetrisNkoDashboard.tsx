@@ -70,6 +70,9 @@ interface SimetrisNkoData {
 interface SimetrisNkoDashboardProps {
   initialYear?: number;
   initialMonth?: string;
+  selectedMonth?: string;
+  onMonthChange?: (month: string) => void;
+  hideMonthSelector?: boolean;
   compact?: boolean;
   showFullTableLink?: boolean;
 }
@@ -77,11 +80,23 @@ interface SimetrisNkoDashboardProps {
 export default function SimetrisNkoDashboard({
   initialYear = 2026,
   initialMonth = "September",
+  selectedMonth: propSelectedMonth,
+  onMonthChange,
+  hideMonthSelector = false,
   compact = false,
   showFullTableLink = true,
 }: SimetrisNkoDashboardProps) {
   const [selectedYear, setSelectedYear] = useState<number>(initialYear);
-  const [selectedMonth, setSelectedMonth] = useState<string>(initialMonth);
+  const [internalMonth, setInternalMonth] = useState<string>(initialMonth);
+
+  // Normalisasi nama bulan (dukung huruf besar "OKTOBER" maupun title case "Oktober")
+  const activeMonth = useMemo(() => {
+    const raw = propSelectedMonth || internalMonth;
+    if (!raw) return "Oktober";
+    const found = MONTH_OPTIONS.find((m) => m.toLowerCase() === raw.toLowerCase());
+    return found || (raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase());
+  }, [propSelectedMonth, internalMonth]);
+
   const [data, setData] = useState<SimetrisNkoData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -119,8 +134,8 @@ export default function SimetrisNkoDashboard({
   };
 
   useEffect(() => {
-    fetchData(selectedYear, selectedMonth);
-  }, [selectedYear, selectedMonth]);
+    fetchData(selectedYear, activeMonth);
+  }, [selectedYear, activeMonth]);
 
   // Predikat & warna card NKO dihitung dari skor (tabel Predikat NKO, Pedoman SAKIP BPOM)
   const nkoPredikat = useMemo(() => {
@@ -218,7 +233,7 @@ export default function SimetrisNkoDashboard({
           )}
           <button
             type="button"
-            onClick={() => fetchData(selectedYear, selectedMonth)}
+            onClick={() => fetchData(selectedYear, activeMonth)}
             disabled={loading}
             className="inline-flex items-center gap-1.5 rounded-xl bg-cyan-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-cyan-700 disabled:opacity-50"
           >
@@ -341,29 +356,39 @@ export default function SimetrisNkoDashboard({
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              {/* Filter Bulan Dropdown */}
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-semibold text-slate-600 whitespace-nowrap">
-                  Pilih Bulan:
-                </label>
-                <div className="relative min-w-[160px]">
-                  <select
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-3 pr-8 text-xs font-bold text-slate-700 focus:border-cyan-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
-                  >
-                    {MONTH_OPTIONS.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                  <Icon
-                    icon="solar:alt-arrow-down-bold"
-                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"
-                  />
+              {/* Filter Bulan: hanya tampil jika TIDAK dikendalikan dari filter utama dashboard di atas */}
+              {!hideMonthSelector && !propSelectedMonth ? (
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-semibold text-slate-600 whitespace-nowrap">
+                    Pilih Bulan:
+                  </label>
+                  <div className="relative min-w-[160px]">
+                    <select
+                      value={activeMonth}
+                      onChange={(e) => {
+                        setInternalMonth(e.target.value);
+                        onMonthChange?.(e.target.value);
+                      }}
+                      className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-3 pr-8 text-xs font-bold text-slate-700 focus:border-cyan-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+                    >
+                      {MONTH_OPTIONS.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                    <Icon
+                      icon="solar:alt-arrow-down-bold"
+                      className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"
+                    />
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-200 bg-cyan-50/80 px-3 py-1.5 text-xs font-bold text-cyan-800">
+                  <Icon icon="solar:calendar-bold" className="text-cyan-600" />
+                  <span>Periode: Bulan {activeMonth} {selectedYear}</span>
+                </span>
+              )}
 
               {/* Search bar */}
               <div className="relative min-w-[200px]">
