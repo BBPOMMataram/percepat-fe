@@ -453,8 +453,54 @@ export const STANDARD_MONTH_NAMES = [
 
 export function getMonthNumberFromText(text?: string | null): number | null {
   if (!text) return null;
-  let t = text.trim().toLowerCase();
-  t = t.replace(/^(s[\.\/]?d[\.\s]+|sampai\s+dengan\s+)/i, "").trim();
+  let t = String(text).trim().toLowerCase();
+  if (!t) return null;
+  t = t.replace(/^(s[\.\/]?d[\.\s]+|sampai\s+dengan\s+|periode\s*:?\s*)/i, "").trim();
+
+  // 1. Check Excel serial date numbers (e.g. 44000 to 48000 is years 2020-2031)
+  const numVal = Number(t);
+  if (!isNaN(numVal) && numVal >= 44000 && numVal <= 48000) {
+    try {
+      const date = new Date((numVal - 25569) * 86400 * 1000);
+      if (!isNaN(date.getTime())) {
+        return date.getUTCMonth() + 1;
+      }
+    } catch {}
+  }
+
+  // 2. Check ISO or standard date formats (YYYY-MM-DD or DD-MM-YYYY or DD/MM/YYYY)
+  const isoMatch = t.match(/\b\d{4}[-\/](\d{1,2})[-\/]\d{1,2}\b/);
+  if (isoMatch) {
+    const m = parseInt(isoMatch[1], 10);
+    if (m >= 1 && m <= 12) return m;
+  }
+  const dmyMatch = t.match(/\b\d{1,2}[-\/](\d{1,2})[-\/]\d{4}\b/);
+  if (dmyMatch) {
+    const m = parseInt(dmyMatch[1], 10);
+    if (m >= 1 && m <= 12) return m;
+  }
+
+  // 3. Check Indonesian / English month names in text (matching word boundaries)
+  const monthMap: [RegExp, number][] = [
+    [/\b(januari|january|jan)\b/i, 1],
+    [/\b(februari|february|pebruari|feb)\b/i, 2],
+    [/\b(maret|march|mar)\b/i, 3],
+    [/\b(april|apr)\b/i, 4],
+    [/\b(mei|may)\b/i, 5],
+    [/\b(juni|june|jun)\b/i, 6],
+    [/\b(juli|july|jul)\b/i, 7],
+    [/\b(agustus|august|agust|agst|ags|agu)\b/i, 8],
+    [/\b(september|sept|sep)\b/i, 9],
+    [/\b(oktober|october|okt|oct)\b/i, 10],
+    [/\b(november|nopember|nov)\b/i, 11],
+    [/\b(desember|december|des|dec)\b/i, 12],
+  ];
+
+  for (const [regex, num] of monthMap) {
+    if (regex.test(t)) {
+      return num;
+    }
+  }
 
   const map: Record<string, number> = {
     januari: 1,
@@ -3476,19 +3522,29 @@ export default function TestLocalTableKatim({
       const n = getMonthNumberFromText(String(r.cells[monthColKey]));
       if (n !== null) return n;
     }
-    // 2. Cek kolom col_2 (seringkali kolom Bulan pada tabel multi-baris)
+    // 2. Cek kolom col_0 (seringkali PERIODE/Bulan/Tanggal)
+    if (r.cells?.col_0 !== undefined) {
+      const n = getMonthNumberFromText(String(r.cells.col_0));
+      if (n !== null) return n;
+    }
+    // 3. Cek kolom col_2 (seringkali kolom Bulan pada tabel multi-baris)
     if (r.cells?.col_2 !== undefined) {
       const n = getMonthNumberFromText(String(r.cells.col_2));
       if (n !== null) return n;
     }
-    // 3. Cek month_name
+    // 4. Cek month_name
     if (r.month_name) {
       const n = getMonthNumberFromText(r.month_name);
       if (n !== null) return n;
     }
-    // 4. Cek r.month jika bernilai 1..12 dan bukan 0
+    // 5. Cek r.month jika bernilai 1..12 dan bukan 0
     if (typeof r.month === "number" && r.month >= 1 && r.month <= 12) {
       return r.month;
+    }
+    // 6. Cek kolom col_1
+    if (r.cells?.col_1 !== undefined) {
+      const n = getMonthNumberFromText(String(r.cells.col_1));
+      if (n !== null) return n;
     }
     return null;
   };
@@ -3583,26 +3639,11 @@ export default function TestLocalTableKatim({
     // Filter per Bulan (hanya jika tabel vertikal, karena pada tabel horizontal baris merupakan komoditi/item)
     if (selectedMonthFilter !== "all" && !isHorizontalMonthTable) {
       const targetMonthNum = getMonthNumberFromText(selectedMonthFilter);
-      const filterLower = selectedMonthFilter.toLowerCase().trim();
-      rows = rows.filter((r) => {
-        const rMonthNum = getRowMonthNumber(r);
-        if (targetMonthNum !== null && rMonthNum !== null) {
-          return rMonthNum === targetMonthNum;
-        }
-        let m = "";
-        if (monthColKey && r.cells?.[monthColKey]) {
-          m = String(r.cells[monthColKey]).trim().toLowerCase();
-        } else if (r.month_name) {
-          m = String(r.month_name).trim().toLowerCase();
-        } else if (r.cells?.col_2) {
-          m = String(r.cells.col_2).trim().toLowerCase();
-        }
-        return (
-          m === filterLower ||
-          (filterLower === "februari" && m === "pebruari") ||
-          (filterLower === "november" && m === "nopember")
-        );
-      });
+      if (targetMonthNum !== null) {
+        rows = rows.filter((r) => {
+          return getRowMonthNumber(r) === targetMonthNum;
+        });
+      }
     }
 
     // Filter per Pencarian: Mencari di SEMUA kolom, terutama kolom Topik dan Judul Topik

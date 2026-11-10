@@ -156,9 +156,55 @@ export function getMonthColor(monthName?: string | null) {
 
 export const getMonthNumberFromText = (text?: string | null): number | null => {
   if (!text) return null;
-  let t = text.trim().toLowerCase();
-  // Bersihkan prefix awalan seperti "sd ", "s.d. ", "sampai dengan "
-  t = t.replace(/^(s[\.\/]?d[\.\s]+|sampai\s+dengan\s+)/i, "").trim();
+  let t = String(text).trim().toLowerCase();
+  if (!t) return null;
+  // Bersihkan prefix awalan seperti "sd ", "s.d. ", "sampai dengan ", "periode "
+  t = t.replace(/^(s[\.\/]?d[\.\s]+|sampai\s+dengan\s+|periode\s*:?\s*)/i, "").trim();
+
+  // 1. Check Excel serial date numbers (e.g. 44000 to 48000 is years 2020-2031)
+  const numVal = Number(t);
+  if (!isNaN(numVal) && numVal >= 44000 && numVal <= 48000) {
+    try {
+      const date = new Date((numVal - 25569) * 86400 * 1000);
+      if (!isNaN(date.getTime())) {
+        return date.getUTCMonth() + 1;
+      }
+    } catch {}
+  }
+
+  // 2. Check ISO or standard date formats (YYYY-MM-DD or DD-MM-YYYY or DD/MM/YYYY)
+  const isoMatch = t.match(/\b\d{4}[-\/](\d{1,2})[-\/]\d{1,2}\b/);
+  if (isoMatch) {
+    const m = parseInt(isoMatch[1], 10);
+    if (m >= 1 && m <= 12) return m;
+  }
+  const dmyMatch = t.match(/\b\d{1,2}[-\/](\d{1,2})[-\/]\d{4}\b/);
+  if (dmyMatch) {
+    const m = parseInt(dmyMatch[1], 10);
+    if (m >= 1 && m <= 12) return m;
+  }
+
+  // 3. Check Indonesian / English month names in text (matching word boundaries)
+  const monthMap: [RegExp, number][] = [
+    [/\b(januari|january|jan)\b/i, 1],
+    [/\b(februari|february|pebruari|feb)\b/i, 2],
+    [/\b(maret|march|mar)\b/i, 3],
+    [/\b(april|apr)\b/i, 4],
+    [/\b(mei|may)\b/i, 5],
+    [/\b(juni|june|jun)\b/i, 6],
+    [/\b(juli|july|jul)\b/i, 7],
+    [/\b(agustus|august|agust|agst|ags|agu)\b/i, 8],
+    [/\b(september|sept|sep)\b/i, 9],
+    [/\b(oktober|october|okt|oct)\b/i, 10],
+    [/\b(november|nopember|nov)\b/i, 11],
+    [/\b(desember|december|des|dec)\b/i, 12],
+  ];
+
+  for (const [regex, num] of monthMap) {
+    if (regex.test(t)) {
+      return num;
+    }
+  }
 
   const map: Record<string, number> = {
     januari: 1, jan: 1, january: 1,
@@ -512,20 +558,34 @@ export default function TestLocalTablePic() {
   // Ekstrak nomor bulan (1..12) dari sebuah baris data secara akurat dan presisi
   const getRowMonthNumber = (r: RowData): number | null => {
     if (!r) return null;
+    // 1. Cek dari kolom bulan jika terdeteksi
     if (monthColKey && r.cells?.[monthColKey] !== undefined) {
       const n = getMonthNumberFromText(String(r.cells[monthColKey]));
       if (n !== null) return n;
     }
+    // 2. Cek kolom col_0 (seringkali PERIODE/Bulan/Tanggal)
+    if (r.cells?.col_0 !== undefined) {
+      const n = getMonthNumberFromText(String(r.cells.col_0));
+      if (n !== null) return n;
+    }
+    // 3. Cek kolom col_2 (seringkali kolom Bulan pada tabel multi-baris)
     if (r.cells?.col_2 !== undefined) {
       const n = getMonthNumberFromText(String(r.cells.col_2));
       if (n !== null) return n;
     }
+    // 4. Cek month_name
     if (r.month_name) {
       const n = getMonthNumberFromText(r.month_name);
       if (n !== null) return n;
     }
+    // 5. Cek r.month jika bernilai 1..12 dan bukan 0
     if (typeof r.month === "number" && r.month >= 1 && r.month <= 12) {
       return r.month;
+    }
+    // 6. Cek kolom col_1
+    if (r.cells?.col_1 !== undefined) {
+      const n = getMonthNumberFromText(String(r.cells.col_1));
+      if (n !== null) return n;
     }
     return null;
   };
@@ -568,15 +628,7 @@ export default function TestLocalTablePic() {
     const monthCounts: Record<number, number> = {};
 
     activeTab?.rows_data?.forEach((r) => {
-      let mNum: number | null = null;
-      if (monthColKey && r.cells?.[monthColKey] !== undefined && String(r.cells[monthColKey]).trim() !== "") {
-        mNum = getMonthNumberFromText(String(r.cells[monthColKey]));
-      } else if (r.cells?.col_2 !== undefined && String(r.cells.col_2).trim() !== "") {
-        mNum = getMonthNumberFromText(String(r.cells.col_2));
-      } else {
-        mNum = getRowMonthNumber(r);
-      }
-
+      const mNum = getRowMonthNumber(r);
       if (mNum !== null) {
         monthCounts[mNum] = (monthCounts[mNum] || 0) + 1;
       }
@@ -617,33 +669,6 @@ export default function TestLocalTablePic() {
       const targetMonthNum = getMonthNumberFromText(selectedMonthFilter);
       if (targetMonthNum !== null) {
         rows = rows.filter((r) => {
-          // 1. Cek kolom Bulan spesifik (col_2 / monthColKey / label 'Bulan')
-          const cellBulan = monthColKey && r.cells?.[monthColKey] !== undefined
-            ? r.cells[monthColKey]
-            : r.cells?.col_2 !== undefined
-            ? r.cells.col_2
-            : null;
-
-          if (cellBulan !== null && cellBulan !== undefined && String(cellBulan).trim() !== "") {
-            const mNum = getMonthNumberFromText(String(cellBulan));
-            if (mNum !== null) {
-              return mNum === targetMonthNum;
-            }
-          }
-
-          // 2. Cek field month_name jika ada
-          if (r.month_name && String(r.month_name).trim() !== "") {
-            const mNum = getMonthNumberFromText(r.month_name);
-            if (mNum !== null) {
-              return mNum === targetMonthNum;
-            }
-          }
-
-          // 3. Fallback: nomor bulan dari row.month jika 1..12
-          if (typeof r.month === "number" && r.month >= 1 && r.month <= 12) {
-            return r.month === targetMonthNum;
-          }
-
           return getRowMonthNumber(r) === targetMonthNum;
         });
       }
