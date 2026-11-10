@@ -4,12 +4,6 @@ import { useEffect, useState, useMemo } from "react";
 import { Icon } from "@iconify/react";
 import Link from "next/link";
 import api from "@/utils/api";
-import {
-  SAKIP_CATEGORIES,
-  getNkoPredikat,
-  getSakipCategory,
-  parseSakipNumber,
-} from "@/utils/sakipCategory";
 
 const baseUrl =
   process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000";
@@ -93,8 +87,10 @@ export default function SimetrisNkoDashboard({
   const activeMonth = useMemo(() => {
     const raw = propSelectedMonth || internalMonth;
     if (!raw) return "Oktober";
-    const found = MONTH_OPTIONS.find((m) => m.toLowerCase() === raw.toLowerCase());
-    return found || (raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase());
+    const found = MONTH_OPTIONS.find(
+      (m) => m.toLowerCase() === raw.toLowerCase(),
+    );
+    return found || raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
   }, [propSelectedMonth, internalMonth]);
 
   const [data, setData] = useState<SimetrisNkoData | null>(null);
@@ -137,15 +133,6 @@ export default function SimetrisNkoDashboard({
     fetchData(selectedYear, activeMonth);
   }, [selectedYear, activeMonth]);
 
-  // Predikat & warna card NKO dihitung dari skor (tabel Predikat NKO, Pedoman SAKIP BPOM)
-  const nkoPredikat = useMemo(() => {
-    const nko = data?.cards?.nko;
-    if (!nko || !nko.score_formatted || nko.score_formatted === "-") return null;
-    const v =
-      typeof nko.score === "number" ? nko.score : parseSakipNumber(nko.score_formatted);
-    return v === null ? null : getNkoPredikat(v);
-  }, [data]);
-
   const filteredRows = useMemo(() => {
     if (!data?.kerangka_kerja_logis) return [];
     if (!searchFilter.trim()) return data.kerangka_kerja_logis;
@@ -158,36 +145,45 @@ export default function SimetrisNkoDashboard({
     );
   }, [data, searchFilter]);
 
-  // Warna & kategori capaian IK mengikuti Pedoman SAKIP BPOM:
-  // >110% Tidak Dapat Disimpulkan (abu-abu) | 100% < x <= 110% Sangat Baik (biru) |
-  // 90% < x <= 100% Baik (hijau) | 60% <= x <= 90% Cukup (kuning) | <60% Kurang (merah)
-  // Kategori IK dari capaian sebelum normalisasi (>110% = Tidak Dapat Disimpulkan)
-  const renderKategori = (valStr: string) => {
-    const n = valStr && valStr !== "-" ? parseSakipNumber(valStr) : null;
-    if (n === null) return <span className="text-slate-400 font-medium">-</span>;
-    const cat = getSakipCategory(n);
-    return (
-      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-        <span className={`h-3 w-3 shrink-0 rounded-full border border-slate-300 ${cat.className}`} />
-        {cat.label}
-      </span>
-    );
-  };
-
-  const getCapaianBadge = (valStr: string, _isNorm = false) => {
+  const getCapaianBadge = (valStr: string, isNorm = false) => {
     if (!valStr || valStr === "-") {
       return <span className="text-slate-400 font-medium">-</span>;
     }
-    const cleanNum = parseSakipNumber(valStr);
-    if (cleanNum === null) {
+    const cleanNum = parseFloat(valStr.replace("%", ""));
+    if (isNaN(cleanNum)) {
       return <span className="text-slate-400 font-medium">{valStr}</span>;
     }
-    const cat = getSakipCategory(cleanNum);
+
+    if (cleanNum > 100) {
+      return (
+        <span className="inline-flex items-center justify-center min-w-[70px] px-2.5 py-1 text-xs font-bold rounded-md bg-[#00bcd4] text-white shadow-sm">
+          {valStr}
+        </span>
+      );
+    }
+    if (cleanNum >= 100) {
+      return (
+        <span className="inline-flex items-center justify-center min-w-[70px] px-2.5 py-1 text-xs font-bold rounded-md bg-[#4caf50] text-white shadow-sm">
+          {valStr}
+        </span>
+      );
+    }
+    if (cleanNum >= 80) {
+      return (
+        <span className="inline-flex items-center justify-center min-w-[70px] px-2.5 py-1 text-xs font-bold rounded-md bg-[#8bc34a] text-white shadow-sm">
+          {valStr}
+        </span>
+      );
+    }
+    if (cleanNum >= 60) {
+      return (
+        <span className="inline-flex items-center justify-center min-w-[70px] px-2.5 py-1 text-xs font-bold rounded-md bg-[#ff9800] text-white shadow-sm">
+          {valStr}
+        </span>
+      );
+    }
     return (
-      <span
-        title={`${cat.label} (${cat.range})`}
-        className={`inline-flex items-center justify-center min-w-[70px] px-2.5 py-1 text-xs font-bold rounded-md shadow-sm ${cat.className}`}
-      >
+      <span className="inline-flex items-center justify-center min-w-[70px] px-2.5 py-1 text-xs font-bold rounded-md bg-[#f44336] text-white shadow-sm">
         {valStr}
       </span>
     );
@@ -248,32 +244,27 @@ export default function SimetrisNkoDashboard({
 
       {/* 4 Metric Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Card NKO: warna mengikuti tabel Predikat NKO (Pedoman SAKIP BPOM) */}
-        <div
-          title={nkoPredikat ? `${nkoPredikat.label} (${nkoPredikat.range})` : undefined}
-          className={`relative overflow-hidden rounded-2xl p-5 shadow-sm ${
-            nkoPredikat ? nkoPredikat.className : "bg-slate-500 text-white"
-          }`}
-        >
+        {/* Card NKO */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#00bcd4] to-[#0097a7] p-5 text-white shadow-sm">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-bold uppercase tracking-wider opacity-90">
+            <h4 className="text-sm font-bold uppercase tracking-wider text-white/90">
               NKO
             </h4>
-            <span className="rounded-full bg-white/25 px-2.5 py-0.5 text-[11px] font-bold backdrop-blur-sm">
-              {nkoPredikat?.label || data?.cards.nko.predikat || "-"}
+            <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-bold text-white backdrop-blur-sm">
+              {data?.cards.nko.predikat || "-"}
             </span>
           </div>
-          <p className="text-xs opacity-80 mt-1">
-            {data?.selected_month ? `${data.selected_month} ${selectedYear}` : `Data Tahun ${selectedYear}`}
+          <p className="text-xs text-white/80 mt-1">
+            Data Tahun {selectedYear}
           </p>
           <div className="mt-4 flex items-baseline gap-2">
             <span className="text-3xl font-extrabold tracking-tight">
               {loading ? "..." : data?.cards.nko.score_formatted || "-"}
             </span>
           </div>
-          <div className="mt-2 text-[11px] opacity-80 flex items-center gap-1">
+          <div className="mt-2 text-[11px] text-white/80 flex items-center gap-1">
             <Icon icon="solar:shield-check-bold" />
-            Rata-rata capaian dinormalisasi (maks. 110%)
+            Normalisasi $\le$ 110% SAKIP Ka BPOM
           </div>
         </div>
 
@@ -287,7 +278,9 @@ export default function SimetrisNkoDashboard({
               <Icon icon="solar:wallet-money-bold" className="text-lg" />
             </div>
           </div>
-          <p className="text-xs text-slate-400 mt-1">{data?.cards.pagu.sub || `Data Tahun ${selectedYear}`}</p>
+          <p className="text-xs text-slate-400 mt-1">
+            {data?.cards.pagu.sub || `Data Tahun ${selectedYear}`}
+          </p>
           <div className="mt-4">
             <span className="text-2xl font-extrabold tracking-tight text-slate-800">
               {loading ? "..." : data?.cards.pagu.value_formatted || "-"}
@@ -308,10 +301,14 @@ export default function SimetrisNkoDashboard({
               <Icon icon="solar:card-recive-bold" className="text-lg" />
             </div>
           </div>
-          <p className="text-xs text-slate-400 mt-1">{data?.cards.realisasi_anggaran.sub || `Data Tahun ${selectedYear}`}</p>
+          <p className="text-xs text-slate-400 mt-1">
+            {data?.cards.realisasi_anggaran.sub || `Data Tahun ${selectedYear}`}
+          </p>
           <div className="mt-4">
             <span className="text-2xl font-extrabold tracking-tight text-slate-800">
-              {loading ? "..." : data?.cards.realisasi_anggaran.value_formatted || "-"}
+              {loading
+                ? "..."
+                : data?.cards.realisasi_anggaran.value_formatted || "-"}
             </span>
           </div>
           <div className="mt-2 text-[11px] text-slate-400">
@@ -329,10 +326,14 @@ export default function SimetrisNkoDashboard({
               <Icon icon="solar:pie-chart-2-bold" className="text-lg" />
             </div>
           </div>
-          <p className="text-xs text-slate-400 mt-1">{data?.cards.capaian_anggaran.sub || `Data Tahun ${selectedYear}`}</p>
+          <p className="text-xs text-slate-400 mt-1">
+            {data?.cards.capaian_anggaran.sub || `Data Tahun ${selectedYear}`}
+          </p>
           <div className="mt-4">
             <span className="text-2xl font-extrabold tracking-tight text-slate-800">
-              {loading ? "..." : data?.cards.capaian_anggaran.value_formatted || "-"}
+              {loading
+                ? "..."
+                : data?.cards.capaian_anggaran.value_formatted || "-"}
             </span>
           </div>
           <div className="mt-2 text-[11px] text-slate-400">
@@ -386,7 +387,9 @@ export default function SimetrisNkoDashboard({
               ) : (
                 <span className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-200 bg-cyan-50/80 px-3 py-1.5 text-xs font-bold text-cyan-800">
                   <Icon icon="solar:calendar-bold" className="text-cyan-600" />
-                  <span>Periode: Bulan {activeMonth} {selectedYear}</span>
+                  <span>
+                    Periode: Bulan {activeMonth} {selectedYear}
+                  </span>
                 </span>
               )}
 
@@ -437,18 +440,12 @@ export default function SimetrisNkoDashboard({
                     A (Maks 110%)
                   </span>
                 </th>
-                <th className="w-36 py-3.5 px-3 text-center border-l border-white/10">
-                  KATEGORI
-                  <span className="block text-[10px] text-cyan-300 font-normal">
-                    Indikator Kinerja
-                  </span>
-                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                  <td colSpan={7} className="py-12 text-center text-slate-400">
                     <Icon
                       icon="solar:refresh-circle-bold"
                       className="mx-auto mb-2 text-2xl animate-spin text-cyan-600"
@@ -458,7 +455,7 @@ export default function SimetrisNkoDashboard({
                 </tr>
               ) : filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400">
+                  <td colSpan={7} className="py-8 text-center text-slate-400">
                     Tidak ada indikator yang sesuai pencarian.
                   </td>
                 </tr>
@@ -493,11 +490,8 @@ export default function SimetrisNkoDashboard({
                     <td className="py-3 px-3 text-center border-r border-slate-100 whitespace-nowrap">
                       {getCapaianBadge(r.capaian, false)}
                     </td>
-                    <td className="py-3 px-3 text-center whitespace-nowrap border-r border-slate-100">
-                      {getCapaianBadge(r.capaian_dinormalisasi, true)}
-                    </td>
                     <td className="py-3 px-3 text-center whitespace-nowrap">
-                      {renderKategori(r.capaian)}
+                      {getCapaianBadge(r.capaian_dinormalisasi, true)}
                     </td>
                   </tr>
                 ))
@@ -519,16 +513,18 @@ export default function SimetrisNkoDashboard({
               dari pembagi rata-rata.
             </span>
           </div>
-          {/* Legenda kategori capaian IK (Pedoman SAKIP BPOM) */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] font-semibold">
-            {SAKIP_CATEGORIES.map((cat) => (
-              <span key={cat.label} className="inline-flex items-center gap-1.5">
-                <span
-                  className={`h-2.5 w-2.5 rounded-full border border-slate-300 ${cat.className}`}
-                />
-                {cat.label} ({cat.range})
-              </span>
-            ))}
+          <div className="flex items-center gap-4 text-[11px] font-semibold">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded bg-[#00bcd4]" /> &gt; 100%
+              (Istimewa)
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded bg-[#4caf50]" /> 100% (Baik)
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded bg-[#f44336]" /> &lt; 80%
+              (Perlu Perbaikan)
+            </span>
           </div>
         </div>
       </div>
