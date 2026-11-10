@@ -251,7 +251,7 @@ export default function SimetrisNkoDashboard({
               NKO
             </h4>
             <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-bold text-white backdrop-blur-sm">
-              {data?.cards.nko.predikat || "-"}
+              {data?.cards?.nko?.predikat || "-"}
             </span>
           </div>
           <p className="text-xs text-white/80 mt-1">
@@ -259,12 +259,12 @@ export default function SimetrisNkoDashboard({
           </p>
           <div className="mt-4 flex items-baseline gap-2">
             <span className="text-3xl font-extrabold tracking-tight">
-              {loading ? "..." : data?.cards.nko.score_formatted || "-"}
+              {loading ? "..." : data?.cards?.nko?.score_formatted || "-"}
             </span>
           </div>
           <div className="mt-2 text-[11px] text-white/80 flex items-center gap-1">
             <Icon icon="solar:shield-check-bold" />
-            Normalisasi $\le$ 110% SAKIP Ka BPOM
+            Normalisasi ≤ 110% SAKIP Ka BPOM
           </div>
         </div>
 
@@ -279,11 +279,11 @@ export default function SimetrisNkoDashboard({
             </div>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            {data?.cards.pagu.sub || `Data Tahun ${selectedYear}`}
+            {data?.cards?.pagu?.sub || `Data Tahun ${selectedYear}`}
           </p>
           <div className="mt-4">
             <span className="text-2xl font-extrabold tracking-tight text-slate-800">
-              {loading ? "..." : data?.cards.pagu.value_formatted || "-"}
+              {loading ? "..." : data?.cards?.pagu?.value_formatted || "-"}
             </span>
           </div>
           <div className="mt-2 text-[11px] text-slate-400">
@@ -302,13 +302,13 @@ export default function SimetrisNkoDashboard({
             </div>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            {data?.cards.realisasi_anggaran.sub || `Data Tahun ${selectedYear}`}
+            {data?.cards?.realisasi_anggaran?.sub || `Data Tahun ${selectedYear}`}
           </p>
           <div className="mt-4">
             <span className="text-2xl font-extrabold tracking-tight text-slate-800">
               {loading
                 ? "..."
-                : data?.cards.realisasi_anggaran.value_formatted || "-"}
+                : data?.cards?.realisasi_anggaran?.value_formatted || "-"}
             </span>
           </div>
           <div className="mt-2 text-[11px] text-slate-400">
@@ -327,13 +327,13 @@ export default function SimetrisNkoDashboard({
             </div>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            {data?.cards.capaian_anggaran.sub || `Data Tahun ${selectedYear}`}
+            {data?.cards?.capaian_anggaran?.sub || `Data Tahun ${selectedYear}`}
           </p>
           <div className="mt-4">
             <span className="text-2xl font-extrabold tracking-tight text-slate-800">
               {loading
                 ? "..."
-                : data?.cards.capaian_anggaran.value_formatted || "-"}
+                : data?.cards?.capaian_anggaran?.value_formatted || "-"}
             </span>
           </div>
           <div className="mt-2 text-[11px] text-slate-400">

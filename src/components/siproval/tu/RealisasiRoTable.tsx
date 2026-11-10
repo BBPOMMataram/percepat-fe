@@ -457,13 +457,13 @@ export default function RealisasiRoTable() {
           Object.values(r.month_columns || (r as any).month_data || {}).some((c: any) => c?.cell === cell),
       );
 
-      const isTargetTahunan = matchedRow?.target_tahunan.cell === cell;
+      const isTargetTahunan = matchedRow?.target_tahunan?.cell === cell;
 
       return {
         cell,
         value,
         previous_value: isTargetTahunan
-          ? matchedRow?.target_tahunan.value
+          ? matchedRow?.target_tahunan?.value
           : undefined,
         kode_ro: matchedRow?.kode_ro,
       };

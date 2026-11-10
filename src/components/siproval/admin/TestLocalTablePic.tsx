@@ -481,7 +481,7 @@ export default function TestLocalTablePic() {
       const tObj = topics.find((t) => t.key === matchedTopic);
       const found = nonMonthParents.find((p) => {
         const pLower = (p || "").toLowerCase();
-        return tObj?.words.some((w) => pLower.includes(w));
+        return tObj?.words?.some((w) => pLower.includes(w));
       });
       if (found) return found;
     }
