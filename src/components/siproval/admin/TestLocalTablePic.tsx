@@ -505,20 +505,17 @@ export default function TestLocalTablePic() {
     const schema = effectiveColumnsSchema;
     if (!schema || schema.length === 0) return false;
 
-    // 1. Jika tabel memiliki kolom 'Bulan' atau 'Periode', pasti tabel vertikal
+    // 1. Jika tabel memiliki kolom mandiri 'Bulan' atau 'Periode', pasti tabel vertikal
     const hasBulanCol = schema.some((c) => {
       const l = (c.label || "").trim().toLowerCase();
       const sub = ((c as any).sub_label || "").trim().toLowerCase();
-      const parent = ((c as any).parent_header || "").trim().toLowerCase();
       return (
         l === "bulan" ||
         l === "periode" ||
-        l.startsWith("bulan") ||
-        l.includes("bulan") ||
-        l.includes("periode") ||
+        l === "bulan pelaksanaan" ||
+        l.startsWith("bulan ") ||
         sub === "bulan" ||
-        sub.includes("bulan") ||
-        parent.includes("bulan")
+        sub === "periode"
       );
     });
     if (hasBulanCol) return false;
@@ -529,12 +526,16 @@ export default function TestLocalTablePic() {
       return false;
     }
 
-    // 3. Periksa parent_header (misal: JANUARI, FEBRUARI)
+    // 3. Periksa parent_header atau sub_parent (misal: JANUARI, FEBRUARI)
     const parentMonths = new Set<number>();
     schema.forEach((col) => {
       if (col.parent_header) {
         const pm = getMonthNumberFromText(col.parent_header);
         if (pm !== null) parentMonths.add(pm);
+      }
+      if ((col as any).sub_parent) {
+        const sm = getMonthNumberFromText((col as any).sub_parent);
+        if (sm !== null) parentMonths.add(sm);
       }
     });
     if (parentMonths.size >= 3) return true;
@@ -546,7 +547,7 @@ export default function TestLocalTablePic() {
       if (lm !== null) labelMonths.add(lm);
     });
     return labelMonths.size >= 3;
-  }, [activeTab?.columns_schema, activeTab?.rows_data]);
+  }, [activeTab?.columns_schema, activeTab?.rows_data, effectiveColumnsSchema]);
 
   // Deteksi apakah sheet ini adalah sheet multi-indikator (HANYA berlaku untuk Dokumen Gabungan RHPK Balai)
   const isMultiIndicatorSheet = useMemo(() => {
@@ -683,7 +684,7 @@ export default function TestLocalTablePic() {
   };
 
   const availableMonths = useMemo(() => {
-    const rawCount = activeTab?.rows_data?.length || 0;
+    const rawCount = (activeTab?.rows_data || []).filter((r) => !(r as any).is_hidden && !(r as any).hidden).length;
     if (rawCount === 0) return [];
 
     const standardOrder = [
@@ -707,8 +708,9 @@ export default function TestLocalTablePic() {
         const targetNum = getMonthNumberFromText(name);
         const hasMonthCol = activeTab.columns_schema.some((c) => {
           const pNum = getMonthNumberFromText(c.parent_header);
+          const sNum = getMonthNumberFromText((c as any).sub_parent);
           const lNum = getMonthNumberFromText(c.label);
-          return pNum === targetNum || lNum === targetNum;
+          return pNum === targetNum || sNum === targetNum || lNum === targetNum;
         });
         if (hasMonthCol) {
           result.push({ name, count: rawCount });
@@ -755,7 +757,7 @@ export default function TestLocalTablePic() {
 
   const filteredRows = useMemo(() => {
     if (!activeTab?.rows_data) return [];
-    let rows = activeTab.rows_data;
+    let rows = activeTab.rows_data.filter((r) => !(r as any).is_hidden && !(r as any).hidden);
 
     if (selectedMonthFilter !== "all" && !isHorizontalMonthTable) {
       const targetMonthNum = getMonthNumberFromText(selectedMonthFilter);
@@ -814,8 +816,18 @@ export default function TestLocalTablePic() {
     if (!targetMonthNum) return schema;
 
     return schema.filter((col) => {
-      const isFixedLeft = col.key === "col_0" || col.key === "col_1" || (!col.parent_header && getMonthNumberFromText(col.label) === null);
-      const colMonthNum = getMonthNumberFromText(col.parent_header) || getMonthNumberFromText(col.label);
+      const isFixedLeft =
+        col.key === "col_0" ||
+        col.key === "col_1" ||
+        col.key === "col_2" ||
+        col.key === "col_3" ||
+        col.key === "col_4" ||
+        col.key === "col_5" ||
+        (!col.parent_header && getMonthNumberFromText(col.label) === null);
+      const colMonthNum =
+        getMonthNumberFromText(col.parent_header) ||
+        getMonthNumberFromText((col as any).sub_parent) ||
+        getMonthNumberFromText(col.label);
       return isFixedLeft || colMonthNum === targetMonthNum;
     });
   }, [
@@ -867,6 +879,17 @@ export default function TestLocalTablePic() {
         const grpMonthNum = getMonthNumberFromText(grp.parent);
         if (grpMonthNum === targetMonthNum) {
           return grp;
+        }
+        // Jika parent berupa grup payung (misal: "Realisasi s.d bulan", "Target Bulanan..."), filter kolom di dalamnya
+        const matchingCols = grp.cols.filter((col) => {
+          const colMonth =
+            getMonthNumberFromText(col.parent_header) ||
+            getMonthNumberFromText((col as any).sub_parent) ||
+            getMonthNumberFromText(col.label);
+          return colMonth === targetMonthNum;
+        });
+        if (matchingCols.length > 0) {
+          return { ...grp, cols: matchingCols };
         }
         return null;
       })
@@ -2021,13 +2044,17 @@ export default function TestLocalTablePic() {
                       <tr className="border-b border-slate-200 bg-slate-100">
                         {displayedHeaderGroups.map((grp, gIdx) => {
                           if (!grp.parent) return null;
-                          const subChunks: { sub_parent: string; count: number }[] = [];
+                          const subChunks: { sub_parent: string; count: number; isLeaf: boolean }[] = [];
                           grp.cols.forEach((col) => {
                             const sp = col.sub_parent || "";
+                            const isColLeaf = !col.sub_label || col.sub_label === col.sub_parent;
                             if (subChunks.length > 0 && subChunks[subChunks.length - 1].sub_parent === sp) {
                               subChunks[subChunks.length - 1].count++;
+                              if (!isColLeaf) {
+                                subChunks[subChunks.length - 1].isLeaf = false;
+                              }
                             } else {
-                              subChunks.push({ sub_parent: sp, count: 1 });
+                              subChunks.push({ sub_parent: sp, count: 1, isLeaf: isColLeaf });
                             }
                           });
 
@@ -2035,6 +2062,7 @@ export default function TestLocalTablePic() {
                             <th
                               key={`subgrp-${gIdx}-${cIdx}-${chunk.sub_parent}`}
                               colSpan={chunk.count}
+                              rowSpan={chunk.isLeaf ? 2 : 1}
                               className="py-2 px-3 font-semibold text-center text-xs border-r border-b border-slate-200 bg-slate-100 text-slate-800 whitespace-pre-line leading-relaxed"
                             >
                               {chunk.sub_parent}
@@ -2048,6 +2076,9 @@ export default function TestLocalTablePic() {
                         if (!grp.parent) return null;
                         const mColor = getMonthColor(grp.parent);
                         return grp.cols.map((col) => {
+                          if (hasSubParents && (!col.sub_label || col.sub_label === col.sub_parent)) {
+                            return null;
+                          }
                           const subTitle = col.sub_label || (col.label && col.label.includes(" - ") ? col.label.split(" - ").slice(1).join(" - ").trim() : col.label);
                           const katimNames = katims
                             .filter((k) => col.allowed_katim_ids?.includes(k.user_id))

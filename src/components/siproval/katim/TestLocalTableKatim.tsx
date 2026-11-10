@@ -3434,20 +3434,17 @@ export default function TestLocalTableKatim({
     if (!effectiveColumnsSchema || effectiveColumnsSchema.length === 0)
       return false;
 
-    // 1. Jika tabel memiliki kolom 'Bulan' atau 'Periode', pasti tabel vertikal
+    // 1. Jika tabel memiliki kolom mandiri 'Bulan' atau 'Periode', pasti tabel vertikal
     const hasBulanCol = effectiveColumnsSchema.some((c) => {
       const l = (c.label || "").trim().toLowerCase();
       const sub = ((c as any).sub_label || "").trim().toLowerCase();
-      const parent = ((c as any).parent_header || "").trim().toLowerCase();
       return (
         l === "bulan" ||
         l === "periode" ||
-        l.startsWith("bulan") ||
-        l.includes("bulan") ||
-        l.includes("periode") ||
+        l === "bulan pelaksanaan" ||
+        l.startsWith("bulan ") ||
         sub === "bulan" ||
-        sub.includes("bulan") ||
-        parent.includes("bulan")
+        sub === "periode"
       );
     });
     if (hasBulanCol) return false;
@@ -3461,12 +3458,16 @@ export default function TestLocalTableKatim({
       return false;
     }
 
-    // 3. Periksa parent_header (misal: JANUARI, FEBRUARI)
+    // 3. Periksa parent_header atau sub_parent (misal: JANUARI, FEBRUARI)
     const parentMonths = new Set<number>();
     effectiveColumnsSchema.forEach((col) => {
       if (col.parent_header) {
         const pm = getMonthNumberFromText(col.parent_header);
         if (pm !== null) parentMonths.add(pm);
+      }
+      if ((col as any).sub_parent) {
+        const sm = getMonthNumberFromText((col as any).sub_parent);
+        if (sm !== null) parentMonths.add(sm);
       }
     });
     if (parentMonths.size >= 3) return true;
@@ -3642,7 +3643,7 @@ export default function TestLocalTableKatim({
 
   // Ekstrak daftar bulan yang ada di tab saat ini beserta jumlah barisnya
   const availableMonths = useMemo(() => {
-    const rawCount = activeTab?.rows_data?.length || 0;
+    const rawCount = (activeTab?.rows_data || []).filter((r) => !(r as any).is_hidden && !(r as any).hidden).length;
     if (rawCount === 0) return [];
 
     const standardOrder = [
@@ -3667,8 +3668,9 @@ export default function TestLocalTableKatim({
         const targetNum = getMonthNumberFromText(name);
         const hasMonthCol = effectiveColumnsSchema.some((c) => {
           const pNum = getMonthNumberFromText(c.parent_header);
+          const sNum = getMonthNumberFromText((c as any).sub_parent);
           const lNum = getMonthNumberFromText(c.label);
-          return pNum === targetNum || lNum === targetNum;
+          return pNum === targetNum || sNum === targetNum || lNum === targetNum;
         });
         if (hasMonthCol) {
           result.push({ name, count: rawCount });
@@ -3726,7 +3728,7 @@ export default function TestLocalTableKatim({
   // Filter baris berdasarkan Bulan dan Pencarian
   const filteredRows = useMemo(() => {
     if (!activeTab?.rows_data) return [];
-    let rows = activeTab.rows_data;
+    let rows = activeTab.rows_data.filter((r) => !(r as any).is_hidden && !(r as any).hidden);
 
     // Filter per Bulan (hanya jika tabel vertikal, karena pada tabel horizontal baris merupakan komoditi/item)
     if (selectedMonthFilter !== "all" && !isHorizontalMonthTable) {
@@ -3802,9 +3804,14 @@ export default function TestLocalTableKatim({
       const isFixedLeft =
         col.key === "col_0" ||
         col.key === "col_1" ||
+        col.key === "col_2" ||
+        col.key === "col_3" ||
+        col.key === "col_4" ||
+        col.key === "col_5" ||
         (!col.parent_header && getMonthNumberFromText(col.label) === null);
       const colMonthNum =
         getMonthNumberFromText(col.parent_header) ||
+        getMonthNumberFromText((col as any).sub_parent) ||
         getMonthNumberFromText(col.label);
       return isFixedLeft || colMonthNum === targetMonthNum;
     });
@@ -3856,6 +3863,17 @@ export default function TestLocalTableKatim({
         const grpMonthNum = getMonthNumberFromText(grp.parent);
         if (grpMonthNum === targetMonthNum) {
           return grp;
+        }
+        // Jika parent berupa grup payung (misal: "Realisasi s.d bulan", "Target Bulanan..."), filter kolom di dalamnya
+        const matchingCols = grp.cols.filter((col) => {
+          const colMonth =
+            getMonthNumberFromText(col.parent_header) ||
+            getMonthNumberFromText((col as any).sub_parent) ||
+            getMonthNumberFromText(col.label);
+          return colMonth === targetMonthNum;
+        });
+        if (matchingCols.length > 0) {
+          return { ...grp, cols: matchingCols };
         }
         return null;
       })
@@ -5136,6 +5154,7 @@ export default function TestLocalTableKatim({
                             const subChunks: {
                               sub_parent: string;
                               count: number;
+                              isLeaf: boolean;
                             }[] = [];
                             grp.cols.forEach((col) => {
                               const sp =
@@ -5143,14 +5162,18 @@ export default function TestLocalTableKatim({
                                 (col.label && col.label.split(" - ").length >= 3
                                   ? col.label.split(" - ")[1].trim()
                                   : "");
+                              const isColLeaf = !col.sub_label || col.sub_label === col.sub_parent;
                               if (
                                 subChunks.length > 0 &&
                                 subChunks[subChunks.length - 1].sub_parent ===
                                   sp
                               ) {
                                 subChunks[subChunks.length - 1].count++;
+                                if (!isColLeaf) {
+                                  subChunks[subChunks.length - 1].isLeaf = false;
+                                }
                               } else {
-                                subChunks.push({ sub_parent: sp, count: 1 });
+                                subChunks.push({ sub_parent: sp, count: 1, isLeaf: isColLeaf });
                               }
                             });
 
@@ -5158,6 +5181,7 @@ export default function TestLocalTableKatim({
                               <th
                                 key={`subgrp-${gIdx}-${cIdx}-${chunk.sub_parent}`}
                                 colSpan={chunk.count}
+                                rowSpan={chunk.isLeaf ? 2 : 1}
                                 className={`py-2 px-3 font-semibold text-center text-xs border-r border-b whitespace-pre-line leading-relaxed ${
                                   isCyanHeader
                                     ? "bg-cyan-100 text-cyan-950 border-cyan-400 shadow-inner"
@@ -5186,6 +5210,9 @@ export default function TestLocalTableKatim({
                             grpMonthNum !== null &&
                             Boolean(monthLocksMap[grpMonthNum]);
                           return grp.cols.map((col) => {
+                            if (hasSubParents && (!col.sub_label || col.sub_label === col.sub_parent)) {
+                              return null;
+                            }
                             const colMonthNum =
                               grpMonthNum || getMonthNumberFromText(col.label);
                             const isColMonthLocked =
