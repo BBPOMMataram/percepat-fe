@@ -450,7 +450,7 @@ export default function SimetrisNkoDashboard({
                       icon="solar:refresh-circle-bold"
                       className="mx-auto mb-2 text-2xl animate-spin text-cyan-600"
                     />
-                    Memuat data Kerangka Kerja Logis bulan {selectedMonth}...
+                    Memuat data Kerangka Kerja Logis bulan {activeMonth}...
                   </td>
                 </tr>
               ) : filteredRows.length === 0 ? (
