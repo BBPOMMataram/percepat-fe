@@ -344,7 +344,9 @@ export default function SimetrisNkoDashboard({
             <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-800 leading-none">
               {loading
                 ? "..."
-                : data?.cards?.capaian_anggaran?.score_formatted || "-"}
+                : data?.cards?.capaian_anggaran?.value_formatted ||
+                  data?.cards?.capaian_anggaran?.score_formatted ||
+                  "-"}
             </span>
           </div>
           <div className="mt-2 text-[10px] text-slate-400 truncate">
