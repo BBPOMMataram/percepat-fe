@@ -696,43 +696,24 @@ export default function RiwayatPemeliharaanMain() {
       const res = await axios.post(`${SIMPEL_BMN_URL}/api/maintenance/check-in`, payload);
       if (res.data?.success && res.data.active_session) {
         setActiveSession(mapActiveSession(res.data.active_session));
-        loadAssetData();
+        await loadAssetData();
+        setIsCheckInModalOpen(false);
+        showToast(
+          `⚡ Kegiatan dimulai! Status aset kini '${getActivityDynamicStatus(checkInActivityType)}'.`
+        );
       } else {
-        setActiveSession({
-          id: Date.now(),
-          date: checkInTimeCaptured.dateStr,
-          startTime: checkInTimeCaptured.timeStr,
-          startTimeDisplay: checkInTimeCaptured.displayStr,
-          startTimestamp: checkInTimeCaptured.timestamp || Date.now(),
-          activityType: checkInActivityType,
-          activityDetails: checkInDetails.trim() || activityLabel,
-          executorName: currentUser?.name || authUser?.name || "Petugas",
-          executorRole: currentUser?.role || "Petugas",
-          executorNip: currentUser?.nip || null,
-          initialPhotoUrl: checkInPhotoUrl || undefined,
-        });
+        showToast(
+          `⚠️ ${res.data?.message || "Gagal menyimpan check-in ke database SIMPEL BMN."}`
+        );
       }
-    } catch (err) {
-      console.warn("Gagal simpan check-in ke backend simpel-bmn:", err);
-      setActiveSession({
-        id: Date.now(),
-        date: checkInTimeCaptured.dateStr,
-        startTime: checkInTimeCaptured.timeStr,
-        startTimeDisplay: checkInTimeCaptured.displayStr,
-        startTimestamp: checkInTimeCaptured.timestamp || Date.now(),
-        activityType: checkInActivityType,
-        activityDetails: checkInDetails.trim() || activityLabel,
-        executorName: currentUser?.name || authUser?.name || "Petugas",
-        executorRole: currentUser?.role || "Petugas",
-        executorNip: currentUser?.nip || null,
-        initialPhotoUrl: checkInPhotoUrl || undefined,
-      });
+    } catch (err: any) {
+      console.error("Gagal simpan check-in ke backend simpel-bmn:", err);
+      const errMsg =
+        err?.response?.data?.message ||
+        "Gagal menyimpan check-in ke server SIMPEL BMN. Periksa koneksi atau ukuran foto.";
+      showToast(`⚠️ ${errMsg}`);
     } finally {
       setIsSubmitting(false);
-      setIsCheckInModalOpen(false);
-      showToast(
-        `⚡ Kegiatan dimulai! Status aset kini '${getActivityDynamicStatus(checkInActivityType)}'.`
-      );
     }
   };
 
@@ -781,34 +762,23 @@ export default function RiwayatPemeliharaanMain() {
       });
 
       if (res.data?.success) {
-        loadAssetData();
+        setActiveSession(null);
+        setIsCheckOutModalOpen(false);
+        await loadAssetData();
+        showToast("✓ Kegiatan pemeliharaan berhasil diselesaikan dan dicatat ke riwayat!");
+      } else {
+        showToast(
+          `⚠️ ${res.data?.message || "Gagal menyimpan check-out ke database SIMPEL BMN."}`
+        );
       }
-    } catch (err) {
-      console.warn("Gagal checkout ke backend simpel-bmn:", err);
-      const completedRecord: MaintenanceRecord = {
-        id: activeSession.id,
-        date: activeSession.date,
-        startTime: activeSession.startTime,
-        endTime: checkOutTimeCaptured.timeStr,
-        durationMinutes: checkOutTimeCaptured.duration,
-        activityType: activeSession.activityType,
-        activityDetails: activeSession.activityDetails,
-        executorName: activeSession.executorName,
-        executorRole: activeSession.executorRole,
-        executorNip: activeSession.executorNip,
-        verifierName: picInfo?.name || "PIC BMN",
-        isVerified: false,
-        statusAfter: checkOutStatusAfter,
-        notes: checkOutNotes.trim() || undefined,
-        initialPhotoUrl: activeSession.initialPhotoUrl,
-        finalPhotoUrl: checkOutPhotoUrl || undefined,
-      };
-      setRecords((prev) => [completedRecord, ...prev]);
+    } catch (err: any) {
+      console.error("Gagal checkout ke backend simpel-bmn:", err);
+      const errMsg =
+        err?.response?.data?.message ||
+        "Gagal menyelesaikan kegiatan di server SIMPEL BMN.";
+      showToast(`⚠️ ${errMsg}`);
     } finally {
-      setActiveSession(null);
       setIsSubmitting(false);
-      setIsCheckOutModalOpen(false);
-      showToast("✓ Kegiatan pemeliharaan berhasil diselesaikan dan dicatat ke riwayat!");
     }
   };
 
@@ -842,35 +812,23 @@ export default function RiwayatPemeliharaanMain() {
       : picInfo?.name || "PIC BMN";
 
     try {
-      await axios.post(`${SIMPEL_BMN_URL}/api/maintenance/verify/${id}`, {
+      const res = await axios.post(`${SIMPEL_BMN_URL}/api/maintenance/verify/${id}`, {
         verifier_name: picDisplayName,
         verifier_id: authUser?.id || picInfo?.id,
       });
-      loadAssetData();
-    } catch (err) {
-      console.warn("Gagal verifikasi log ke backend simpel-bmn:", err);
+      if (res.data?.success) {
+        await loadAssetData();
+        showToast(
+          `✓ Catatan pemeliharaan disetujui & diverifikasi resmi oleh PIC (${picDisplayName})!`
+        );
+      }
+    } catch (err: any) {
+      console.error("Gagal verifikasi log ke backend simpel-bmn:", err);
+      const errMsg =
+        err?.response?.data?.message || "Gagal memverifikasi catatan pemeliharaan di server.";
+      showToast(`⚠️ ${errMsg}`);
     } finally {
-      const now = new Date();
-      const dateStr = `${String(now.getDate()).padStart(2, "0")}-${String(now.getMonth() + 1).padStart(2, "0")}-${now.getFullYear()}`;
-      const timeStr = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-      const stamp = `${dateStr}, ${timeStr} WITA`;
-
-      setRecords((prev) =>
-        prev.map((rec) =>
-          rec.id === id
-            ? {
-                ...rec,
-                isVerified: true,
-                verifierName: picDisplayName,
-                verifiedAt: stamp,
-              }
-            : rec
-        )
-      );
       setVerifyingLogId(null);
-      showToast(
-        `✓ Catatan pemeliharaan disetujui & diverifikasi resmi oleh PIC (${picDisplayName})!`
-      );
     }
   };
 
