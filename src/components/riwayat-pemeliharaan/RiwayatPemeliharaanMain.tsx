@@ -14,8 +14,10 @@ import type {
   AuthUser,
   PicInfo,
   AssetMetadata,
+  MasterBarangItem,
   MaintenanceOfficer,
   AccessDeniedInfo,
+  PhotoGalleryPreview,
 } from "./types";
 import {
   DEFAULT_QR_TOKEN,
@@ -26,7 +28,7 @@ import {
   mapActiveSession,
   getActivityDynamicStatus,
   getActivityBadge,
-  compressAndReadPhotoFile,
+  compressAndReadMultiplePhotos,
 } from "./helpers";
 
 import HeaderBar from "./components/HeaderBar";
@@ -60,34 +62,46 @@ export default function RiwayatPemeliharaanMain() {
   const [records, setRecords] = useState<MaintenanceRecord[]>([]);
   const [assetInfo, setAssetInfo] = useState<AssetMetadata>(() => {
     if (typeof window !== "undefined") {
-      const tokenFromUrl = new URLSearchParams(window.location.search).get("token");
+      const tokenFromUrl = new URLSearchParams(window.location.search).get(
+        "token"
+      );
       if (tokenFromUrl) {
         return { ...EMPTY_ASSET_INFO, qr_token: tokenFromUrl };
       }
     }
     return EMPTY_ASSET_INFO;
   });
-  const [assetStatus, setAssetStatus] = useState<"loading" | "found" | "not_found">("loading");
+  const [assetStatus, setAssetStatus] = useState<
+    "loading" | "found" | "not_found"
+  >("loading");
   const [availableAssets, setAvailableAssets] = useState<AssetMetadata[]>([]);
+  const [masterBarangs, setMasterBarangs] = useState<MasterBarangItem[]>([]);
+  const [loadingMasterBarangs, setLoadingMasterBarangs] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [verifyingLogId, setVerifyingLogId] = useState<number | null>(null);
+  const [deletingLogId, setDeletingLogId] = useState<number | null>(null);
 
   // State Manajemen Aset & Petugas Berwenang (Dikelola oleh PIC)
   const [officers, setOfficers] = useState<MaintenanceOfficer[]>([]);
   const [isManagePicModalOpen, setIsManagePicModalOpen] = useState(false);
-  const [managePicInitialTab, setManagePicInitialTab] = useState<"assets" | "officers">("officers");
+  const [managePicInitialTab, setManagePicInitialTab] = useState<
+    "assets" | "officers"
+  >("officers");
   const [authEmployees, setAuthEmployees] = useState<any[]>([]);
   const [loadingEmployees, setLoadingEmployees] = useState(false);
 
-  const [accessDeniedModal, setAccessDeniedModal] = useState<AccessDeniedInfo | null>(null);
+  const [accessDeniedModal, setAccessDeniedModal] =
+    useState<AccessDeniedInfo | null>(null);
 
-  // Pencarian & Filter Tabel
+  // Pencarian & Filter Kombinasi Tabel (Bulan, Tahun, Jenis Kegiatan)
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedMonth] = useState("all");
+  const [selectedMonth, setSelectedMonth] = useState("all");
+  const [selectedYear, setSelectedYear] = useState("all");
+  const [selectedActivityType, setSelectedActivityType] = useState("all");
 
   // Navigasi ke Halaman Login Resmi SSO BPOM Percepat (/login)
   const redirectToLogin = useCallback(() => {
-    router.push("/login?redirectUrl=/riwayat-pemeliharaan");
+    router.push("/login?redirectUrl=/simpel-bmn/pemeliharaan-rutin");
   }, [router]);
 
   // Status Otoritas User dari Backend simpel-bmn (Penghubung Data Auth dengan Simpel BMN)
@@ -142,48 +156,127 @@ export default function RiwayatPemeliharaanMain() {
     };
   }, [authUser, userAuthority.isPic]);
 
-  // URL Tanda Tangan PIC & Pelaksana Murni dari Database Auth-BPOM
+  // URL Tanda Tangan PIC dari Database Auth-BPOM
   const picSignatureUrl = useMemo(() => {
-    return getSignatureUrl(picInfo?.signature_path);
-  }, [picInfo?.signature_path]);
-
-  const executorSignatureUrl = useMemo(() => {
-    if (records.length === 0) return null;
-    const firstExec = records[0];
-    if (
-      currentUser &&
-      (currentUser.name === firstExec.executorName ||
-        currentUser.rawName === firstExec.executorName)
-    ) {
-      return currentUser.signatureUrl || null;
+    if (picInfo?.signature_path) {
+      return getSignatureUrl(picInfo.signature_path);
     }
-    const matched = authEmployees.find(
-      (e) =>
-        e.name === firstExec.executorName ||
-        formatPersonName(
-          e.name,
-          e.employee?.gelar_depan,
-          e.employee?.gelar_belakang
-        ) === firstExec.executorName
-    );
-    if (matched?.signature_path) {
-      return getSignatureUrl(matched.signature_path);
+    if (currentUser?.isPic && currentUser.signatureUrl) {
+      return currentUser.signatureUrl;
     }
     return null;
-  }, [records, currentUser, authEmployees]);
+  }, [picInfo?.signature_path, currentUser]);
+
+  // Resolusi URL Tanda Tangan Pelaksana untuk setiap baris log (dari DB Auth)
+  const resolveExecutorSignature = useCallback(
+    (item: MaintenanceRecord): string | null => {
+      if (item.executorSignatureUrl) {
+        return item.executorSignatureUrl;
+      }
+      if (
+        currentUser &&
+        currentUser.signatureUrl &&
+        ((item.userId && String(item.userId) === String(currentUser.id)) ||
+          currentUser.name.toLowerCase() === item.executorName.toLowerCase() ||
+          (currentUser.rawName &&
+            currentUser.rawName.toLowerCase() ===
+              item.executorName.toLowerCase()))
+      ) {
+        return currentUser.signatureUrl;
+      }
+      const matched = authEmployees.find(
+        (e) =>
+          (item.userId && String(e.id) === String(item.userId)) ||
+          (e.name || "").toLowerCase() === item.executorName.toLowerCase() ||
+          formatPersonName(
+            e.name,
+            e.employee?.gelar_depan,
+            e.employee?.gelar_belakang
+          ).toLowerCase() === item.executorName.toLowerCase()
+      );
+      if (matched?.signature_path) {
+        return getSignatureUrl(matched.signature_path);
+      }
+      return null;
+    },
+    [currentUser, authEmployees]
+  );
 
   // State Sesi Kegiatan Aktif (Langkah 1 Check-in -> Langkah 2 Check-out)
-  const [activeSession, setActiveSession] = useState<ActiveMaintenanceSession | null>(null);
+  const [activeSession, setActiveSession] =
+    useState<ActiveMaintenanceSession | null>(null);
   const [runningMinutes, setRunningMinutes] = useState(0);
+
+  // Cek apakah user yang sedang login adalah petugas pemilik sesi aktif (atau PIC)
+  // User lain yang berkunjung HANYA melihat titik indikator status di Hero Card, tanpa kotak Check-out!
+  const canManageActiveSession = useMemo(() => {
+    if (!activeSession || !currentUser) return false;
+    if (currentUser.isPic) return true;
+
+    if (
+      activeSession.userId &&
+      currentUser.id &&
+      String(activeSession.userId) === String(currentUser.id)
+    ) {
+      return true;
+    }
+
+    if (
+      activeSession.executorNip &&
+      activeSession.executorNip !== "-" &&
+      currentUser.nip &&
+      activeSession.executorNip.replace(/\s+/g, "") ===
+        currentUser.nip.replace(/\s+/g, "")
+    ) {
+      return true;
+    }
+
+    const sessExec = (activeSession.executorName || "").trim().toLowerCase();
+    const currName = (currentUser.name || "").trim().toLowerCase();
+    const currRaw = (currentUser.rawName || "").trim().toLowerCase();
+    return sessExec !== "" && (sessExec === currName || sessExec === currRaw);
+  }, [activeSession, currentUser]);
+
+  // Cek apakah petugas berhak menghapus baris catatan yang belum disetujui PIC
+  const canDeleteRecord = useCallback(
+    (item: MaintenanceRecord): boolean => {
+      if (item.isVerified || !currentUser || currentUser.isPic) return false;
+
+      if (
+        item.userId &&
+        currentUser.id &&
+        String(item.userId) === String(currentUser.id)
+      ) {
+        return true;
+      }
+
+      if (
+        item.executorNip &&
+        item.executorNip !== "-" &&
+        currentUser.nip &&
+        item.executorNip.replace(/\s+/g, "") ===
+          currentUser.nip.replace(/\s+/g, "")
+      ) {
+        return true;
+      }
+
+      const recExec = (item.executorName || "").trim().toLowerCase();
+      const currName = (currentUser.name || "").trim().toLowerCase();
+      const currRaw = (currentUser.rawName || "").trim().toLowerCase();
+      return recExec !== "" && (recExec === currName || recExec === currRaw);
+    },
+    [currentUser]
+  );
 
   // State Modals
   const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
   const [isCheckOutModalOpen, setIsCheckOutModalOpen] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
-  const [previewPhoto, setPreviewPhoto] = useState<{ url: string; caption: string } | null>(null);
+  const [previewPhoto, setPreviewPhoto] =
+    useState<PhotoGalleryPreview | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Form Check-in
+  // Form Check-in (Mendukung Multi-Foto)
   const [checkInTimeCaptured, setCheckInTimeCaptured] = useState<{
     dateStr: string;
     timeStr: string;
@@ -199,9 +292,9 @@ export default function RiwayatPemeliharaanMain() {
     useState<MaintenanceRecord["activityType"]>("warming_up");
   const [checkInCustomType, setCheckInCustomType] = useState("");
   const [checkInDetails, setCheckInDetails] = useState("");
-  const [checkInPhotoUrl, setCheckInPhotoUrl] = useState<string>("");
+  const [checkInPhotos, setCheckInPhotos] = useState<string[]>([]);
 
-  // Form Check-out
+  // Form Check-out (Mendukung Multi-Foto)
   const [checkOutTimeCaptured, setCheckOutTimeCaptured] = useState<{
     timeStr: string;
     displayStr: string;
@@ -214,7 +307,7 @@ export default function RiwayatPemeliharaanMain() {
   const [checkOutStatusAfter, setCheckOutStatusAfter] =
     useState<MaintenanceRecord["statusAfter"]>("standby");
   const [checkOutNotes, setCheckOutNotes] = useState("");
-  const [checkOutPhotoUrl, setCheckOutPhotoUrl] = useState<string>("");
+  const [checkOutPhotos, setCheckOutPhotos] = useState<string[]>([]);
 
   // Mode Cetak: "table" untuk Lembar Kendali Resmi (hanya tabel), "sticker" untuk Stiker QR fisik
   const [printMode, setPrintMode] = useState<"table" | "sticker">("table");
@@ -241,11 +334,20 @@ export default function RiwayatPemeliharaanMain() {
     }, 100);
   };
 
-  const handlePhotoFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    setter: (url: string) => void
-  ) => {
-    compressAndReadPhotoFile(e, setter, showToast);
+  const handleAddCheckInPhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
+    compressAndReadMultiplePhotos(e, setCheckInPhotos, showToast);
+  };
+
+  const handleRemoveCheckInPhoto = (idx: number) => {
+    setCheckInPhotos((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleAddCheckOutPhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
+    compressAndReadMultiplePhotos(e, setCheckOutPhotos, showToast);
+  };
+
+  const handleRemoveCheckOutPhoto = (idx: number) => {
+    setCheckOutPhotos((prev) => prev.filter((_, i) => i !== idx));
   };
 
   // Ambil sesi user SSO Auth BPOM saat pertama kali render
@@ -256,7 +358,9 @@ export default function RiwayatPemeliharaanMain() {
   // Muat daftar semua aset dari database simpel-bmn
   const fetchAssetsList = useCallback(async () => {
     try {
-      const res = await axios.get(`${SIMPEL_BMN_URL}/api/maintenance/assets-list`);
+      const res = await axios.get(
+        `${SIMPEL_BMN_URL}/api/maintenance/assets-list`
+      );
       if (res.data?.success && Array.isArray(res.data.assets)) {
         setAvailableAssets(res.data.assets);
         return res.data.assets as AssetMetadata[];
@@ -271,18 +375,39 @@ export default function RiwayatPemeliharaanMain() {
     fetchAssetsList();
   }, [fetchAssetsList]);
 
+  // Muat daftar Master Barang dari tabel barangs di simpel-bmn
+  const fetchMasterBarangs = useCallback(async () => {
+    setLoadingMasterBarangs(true);
+    try {
+      const res = await axios.get(
+        `${SIMPEL_BMN_URL}/api/maintenance/master-barangs`
+      );
+      if (res.data?.success && Array.isArray(res.data.barangs)) {
+        setMasterBarangs(res.data.barangs);
+      }
+    } catch (err) {
+      console.warn("Gagal memuat master barangs dari simpel-bmn:", err);
+    } finally {
+      setLoadingMasterBarangs(false);
+    }
+  }, [SIMPEL_BMN_URL]);
+
   // Muat data aset, log, dan petugas resmi langsung dari backend simpel-bmn
   const loadAssetData = useCallback(
     async (overrideToken?: string) => {
-      const targetToken = overrideToken || assetInfo.qr_token || DEFAULT_QR_TOKEN;
+      const targetToken =
+        overrideToken || assetInfo.qr_token || DEFAULT_QR_TOKEN;
       try {
         const res = await axios.get(
-          `${SIMPEL_BMN_URL}/api/maintenance/asset/${encodeURIComponent(targetToken)}`
+          `${SIMPEL_BMN_URL}/api/maintenance/asset/${encodeURIComponent(
+            targetToken
+          )}`
         );
         if (res.data?.success && res.data.asset) {
           const a = res.data.asset;
           setAssetInfo({
             id: a.id,
+            barang_id: a.barang_id ?? null,
             asset_code: a.asset_code || "",
             name: a.name || "",
             category: a.category || "",
@@ -332,7 +457,11 @@ export default function RiwayatPemeliharaanMain() {
   // Cek kewenangan akun SSO Auth BPOM ke backend simpel-bmn
   useEffect(() => {
     if (!authUser) {
-      setUserAuthority({ isPic: false, isAuthorizedOfficer: false, checked: true });
+      setUserAuthority({
+        isPic: false,
+        isAuthorizedOfficer: false,
+        checked: true,
+      });
       return;
     }
 
@@ -352,22 +481,26 @@ export default function RiwayatPemeliharaanMain() {
 
     const checkAuthStatus = async () => {
       try {
-        const res = await axios.post(`${SIMPEL_BMN_URL}/api/maintenance/check-authority`, {
-          email: authUser.email,
-          auth_user_id: authUser.id,
-          name: authUser.name,
-          nip: authUser.employee?.nip || authUser.nik,
-          role: authUser.role?.name || authUser.role?.level || "",
-          jabatan: authUser.employee?.jabatan || "",
-          sites: Array.isArray(authUser.sites) ? authUser.sites : [],
-          qr_token: assetInfo.qr_token,
-        });
+        const res = await axios.post(
+          `${SIMPEL_BMN_URL}/api/maintenance/check-authority`,
+          {
+            email: authUser.email,
+            auth_user_id: authUser.id,
+            name: authUser.name,
+            nip: authUser.employee?.nip || authUser.nik,
+            role: authUser.role?.name || authUser.role?.level || "",
+            jabatan: authUser.employee?.jabatan || "",
+            sites: Array.isArray(authUser.sites) ? authUser.sites : [],
+            qr_token: assetInfo.qr_token,
+          }
+        );
 
         if (res.data?.success) {
           const resolvedIsPic = isPicFromAuthSites || !!res.data.is_pic;
           setUserAuthority({
             isPic: resolvedIsPic,
-            isAuthorizedOfficer: resolvedIsPic || !!res.data.is_authorized_officer,
+            isAuthorizedOfficer:
+              resolvedIsPic || !!res.data.is_authorized_officer,
             checked: true,
           });
           if (res.data.pic) {
@@ -387,25 +520,35 @@ export default function RiwayatPemeliharaanMain() {
     checkAuthStatus();
   }, [authUser, SIMPEL_BMN_URL, assetInfo.qr_token]);
 
-  // Muat daftar pegawai dari SSO Auth BPOM jika PIC membuka modal kelola
+  // Muat daftar pegawai dari SSO Auth BPOM & Master Barang jika PIC membuka modal kelola
   useEffect(() => {
-    if (userAuthority.isPic && isManagePicModalOpen && authEmployees.length === 0) {
-      const fetchAuthUsers = async () => {
-        setLoadingEmployees(true);
-        try {
-          const res = await axios.get(`${AUTH_URL}/api/get-all-users`);
-          if (Array.isArray(res.data)) {
-            setAuthEmployees(res.data);
+    if (userAuthority.isPic && isManagePicModalOpen) {
+      fetchMasterBarangs();
+
+      if (authEmployees.length === 0) {
+        const fetchAuthUsers = async () => {
+          setLoadingEmployees(true);
+          try {
+            const res = await axios.get(`${AUTH_URL}/api/get-all-users`);
+            if (Array.isArray(res.data)) {
+              setAuthEmployees(res.data);
+            }
+          } catch (err) {
+            console.warn("Gagal load all users dari Auth BPOM:", err);
+          } finally {
+            setLoadingEmployees(false);
           }
-        } catch (err) {
-          console.warn("Gagal load all users dari Auth BPOM:", err);
-        } finally {
-          setLoadingEmployees(false);
-        }
-      };
-      fetchAuthUsers();
+        };
+        fetchAuthUsers();
+      }
     }
-  }, [userAuthority.isPic, isManagePicModalOpen, AUTH_URL, authEmployees.length]);
+  }, [
+    userAuthority.isPic,
+    isManagePicModalOpen,
+    AUTH_URL,
+    authEmployees.length,
+    fetchMasterBarangs,
+  ]);
 
   // Timer counter untuk sesi aktif (update durasi berjalan)
   useEffect(() => {
@@ -424,7 +567,9 @@ export default function RiwayatPemeliharaanMain() {
   }, [activeSession]);
 
   // Handler Buka Modal PIC (Tab Aset atau Tab Petugas)
-  const handleOpenManagePicModal = (defaultTab: "assets" | "officers" = "officers") => {
+  const handleOpenManagePicModal = (
+    defaultTab: "assets" | "officers" = "officers"
+  ) => {
     setManagePicInitialTab(defaultTab);
     setIsManagePicModalOpen(true);
   };
@@ -437,49 +582,30 @@ export default function RiwayatPemeliharaanMain() {
     await loadAssetData(qrToken);
   };
 
-  // Handler PIC: Tambah Aset Pemeliharaan Baru
-  const handleCreateAsset = async (payload: {
-    asset_code: string;
-    name: string;
-    category: string;
-    description?: string;
-  }): Promise<boolean> => {
+  // Handler PIC: Tambah Aset Pemeliharaan dari Dropdown Master Barang
+  const handleCreateAssetFromMaster = async (
+    barang: MasterBarangItem
+  ): Promise<boolean> => {
     try {
-      const res = await axios.post(`${SIMPEL_BMN_URL}/api/maintenance/assets`, payload);
+      const res = await axios.post(`${SIMPEL_BMN_URL}/api/maintenance/assets`, {
+        barang_id: barang.id,
+        asset_code: barang.asset_code,
+        name: barang.display_name,
+        category: barang.category,
+      });
       if (res.data?.success && res.data.asset) {
         const createdAsset = res.data.asset as AssetMetadata;
         await fetchAssetsList();
+        await fetchMasterBarangs();
         await loadAssetData(createdAsset.qr_token);
-        showToast(`✓ Aset "${createdAsset.name}" berhasil ditambahkan!`);
+        showToast(
+          `✓ Aset "${createdAsset.name}" berhasil ditambahkan dari Master Barang!`
+        );
         return true;
       }
     } catch (err: any) {
-      const errMsg = err?.response?.data?.message || "Gagal menambahkan aset baru.";
-      showToast(`⚠️ ${errMsg}`);
-    }
-    return false;
-  };
-
-  // Handler PIC: Update Data Aset Pemeliharaan
-  const handleUpdateAsset = async (
-    id: number,
-    payload: {
-      asset_code: string;
-      name: string;
-      category: string;
-      description?: string;
-    }
-  ): Promise<boolean> => {
-    try {
-      const res = await axios.put(`${SIMPEL_BMN_URL}/api/maintenance/assets/${id}`, payload);
-      if (res.data?.success && res.data.asset) {
-        await fetchAssetsList();
-        await loadAssetData(res.data.asset.qr_token);
-        showToast(`✓ Data aset "${res.data.asset.name}" berhasil diperbarui!`);
-        return true;
-      }
-    } catch (err: any) {
-      const errMsg = err?.response?.data?.message || "Gagal memperbarui data aset.";
+      const errMsg =
+        err?.response?.data?.message || "Gagal menambahkan aset dari master.";
       showToast(`⚠️ ${errMsg}`);
     }
     return false;
@@ -495,9 +621,12 @@ export default function RiwayatPemeliharaanMain() {
       return;
     }
     try {
-      const res = await axios.delete(`${SIMPEL_BMN_URL}/api/maintenance/assets/${id}`);
+      const res = await axios.delete(
+        `${SIMPEL_BMN_URL}/api/maintenance/assets/${id}`
+      );
       if (res.data?.success) {
         const remaining = await fetchAssetsList();
+        await fetchMasterBarangs();
         showToast(`Aset "${name}" berhasil dihapus.`);
         if (remaining.length > 0) {
           await loadAssetData(remaining[0].qr_token);
@@ -528,30 +657,39 @@ export default function RiwayatPemeliharaanMain() {
       return false;
     }
     try {
-      const res = await axios.post(`${SIMPEL_BMN_URL}/api/maintenance/officers`, {
-        maintenance_asset_id: payload.maintenance_asset_id,
-        nip: payload.nip || "-",
-        name: payload.name,
-        email: payload.email,
-        auth_user_id: payload.auth_user_id,
-        added_by_name: `${currentUser.name} (PIC)`,
-      });
+      const res = await axios.post(
+        `${SIMPEL_BMN_URL}/api/maintenance/officers`,
+        {
+          maintenance_asset_id: payload.maintenance_asset_id,
+          nip: payload.nip || "-",
+          name: payload.name,
+          email: payload.email,
+          auth_user_id: payload.auth_user_id,
+          added_by_name: `${currentUser.name} (PIC)`,
+        }
+      );
 
       if (res.data?.success && res.data?.officer) {
         setOfficers((prev) => [...prev, res.data.officer]);
-        showToast(`✓ Petugas ${payload.name} berhasil ditambahkan ke daftar berwenang.`);
+        showToast(
+          `✓ Petugas ${payload.name} berhasil ditambahkan ke daftar berwenang.`
+        );
         return true;
       }
     } catch (err: any) {
       const errMsg =
-        err?.response?.data?.message || "Gagal menambahkan petugas ke database.";
+        err?.response?.data?.message ||
+        "Gagal menambahkan petugas ke database.";
       showToast(`⚠️ ${errMsg}`);
     }
     return false;
   };
 
   // Handler PIC: Cabut Hak Akses Petugas
-  const handleDeleteOfficer = async (officerId: number, officerName: string) => {
+  const handleDeleteOfficer = async (
+    officerId: number,
+    officerName: string
+  ) => {
     if (
       !confirm(
         `Apakah Anda yakin ingin mencabut kewenangan pemeliharaan dari ${officerName}?`
@@ -599,7 +737,8 @@ export default function RiwayatPemeliharaanMain() {
       officers.some((off) => {
         if (!off.is_active) return false;
         const matchesAsset =
-          off.maintenance_asset_id === assetInfo.id || !off.maintenance_asset_id;
+          off.maintenance_asset_id === assetInfo.id ||
+          !off.maintenance_asset_id;
         if (!matchesAsset) return false;
 
         if (
@@ -659,14 +798,18 @@ export default function RiwayatPemeliharaanMain() {
     setCheckInActivityType("warming_up");
     setCheckInCustomType("");
     setCheckInDetails("");
-    setCheckInPhotoUrl("");
+    setCheckInPhotos([]);
     setIsCheckInModalOpen(true);
   };
 
   // Handler Logout SSO BPOM
   const handleLogout = async () => {
     await dispatch(logout());
-    setUserAuthority({ isPic: false, isAuthorizedOfficer: false, checked: false });
+    setUserAuthority({
+      isPic: false,
+      isAuthorizedOfficer: false,
+      checked: false,
+    });
     showToast("Berhasil keluar dari akun SSO BPOM.");
   };
 
@@ -684,7 +827,8 @@ export default function RiwayatPemeliharaanMain() {
       qr_token: assetInfo.qr_token,
       activity_type: checkInActivityType,
       activity_details: checkInDetails.trim() || activityLabel,
-      initial_photo_url: checkInPhotoUrl || undefined,
+      initial_photos: checkInPhotos.length > 0 ? checkInPhotos : undefined,
+      initial_photo_url: checkInPhotos[0] || undefined,
       user_id: authUser?.id,
       executor_name: currentUser?.name || authUser?.name || "Petugas",
       executor_role: currentUser?.role || "Petugas",
@@ -692,17 +836,25 @@ export default function RiwayatPemeliharaanMain() {
     };
 
     try {
-      const res = await axios.post(`${SIMPEL_BMN_URL}/api/maintenance/check-in`, payload);
+      const res = await axios.post(
+        `${SIMPEL_BMN_URL}/api/maintenance/check-in`,
+        payload
+      );
       if (res.data?.success && res.data.active_session) {
         setActiveSession(mapActiveSession(res.data.active_session));
         await loadAssetData();
         setIsCheckInModalOpen(false);
         showToast(
-          `⚡ Kegiatan dimulai! Status aset kini '${getActivityDynamicStatus(checkInActivityType)}'.`
+          `⚡ Kegiatan dimulai! Status aset kini '${getActivityDynamicStatus(
+            checkInActivityType
+          )}'.`
         );
       } else {
         showToast(
-          `⚠️ ${res.data?.message || "Gagal menyimpan check-in ke database SIMPEL BMN."}`
+          `⚠️ ${
+            res.data?.message ||
+            "Gagal menyimpan check-in ke database SIMPEL BMN."
+          }`
         );
       }
     } catch (err: any) {
@@ -742,7 +894,7 @@ export default function RiwayatPemeliharaanMain() {
     });
     setCheckOutStatusAfter("standby");
     setCheckOutNotes("");
-    setCheckOutPhotoUrl("");
+    setCheckOutPhotos([]);
     setIsCheckOutModalOpen(true);
   };
 
@@ -753,21 +905,31 @@ export default function RiwayatPemeliharaanMain() {
     setIsSubmitting(true);
 
     try {
-      const res = await axios.post(`${SIMPEL_BMN_URL}/api/maintenance/check-out`, {
-        log_id: activeSession.id,
-        status_after: checkOutStatusAfter,
-        notes: checkOutNotes.trim() || undefined,
-        final_photo_url: checkOutPhotoUrl || undefined,
-      });
+      const res = await axios.post(
+        `${SIMPEL_BMN_URL}/api/maintenance/check-out`,
+        {
+          log_id: activeSession.id,
+          status_after: checkOutStatusAfter,
+          notes: checkOutNotes.trim() || undefined,
+          final_photos:
+            checkOutPhotos.length > 0 ? checkOutPhotos : undefined,
+          final_photo_url: checkOutPhotos[0] || undefined,
+        }
+      );
 
       if (res.data?.success) {
         setActiveSession(null);
         setIsCheckOutModalOpen(false);
         await loadAssetData();
-        showToast("✓ Kegiatan pemeliharaan berhasil diselesaikan dan dicatat ke riwayat!");
+        showToast(
+          "✓ Kegiatan pemeliharaan berhasil diselesaikan dan dicatat ke riwayat!"
+        );
       } else {
         showToast(
-          `⚠️ ${res.data?.message || "Gagal menyimpan check-out ke database SIMPEL BMN."}`
+          `⚠️ ${
+            res.data?.message ||
+            "Gagal menyimpan check-out ke database SIMPEL BMN."
+          }`
         );
       }
     } catch (err: any) {
@@ -790,9 +952,12 @@ export default function RiwayatPemeliharaanMain() {
       )
     ) {
       try {
-        await axios.post(`${SIMPEL_BMN_URL}/api/maintenance/cancel-active-session`, {
-          log_id: activeSession.id,
-        });
+        await axios.post(
+          `${SIMPEL_BMN_URL}/api/maintenance/cancel-active-session`,
+          {
+            log_id: activeSession.id,
+          }
+        );
         loadAssetData();
       } catch (err) {
         console.warn("Gagal batalkan sesi di backend:", err);
@@ -811,10 +976,13 @@ export default function RiwayatPemeliharaanMain() {
       : picInfo?.name || "PIC BMN";
 
     try {
-      const res = await axios.post(`${SIMPEL_BMN_URL}/api/maintenance/verify/${id}`, {
-        verifier_name: picDisplayName,
-        verifier_id: authUser?.id || picInfo?.id,
-      });
+      const res = await axios.post(
+        `${SIMPEL_BMN_URL}/api/maintenance/verify/${id}`,
+        {
+          verifier_name: picDisplayName,
+          verifier_id: authUser?.id || picInfo?.id,
+        }
+      );
       if (res.data?.success) {
         await loadAssetData();
         showToast(
@@ -824,29 +992,93 @@ export default function RiwayatPemeliharaanMain() {
     } catch (err: any) {
       console.error("Gagal verifikasi log ke backend simpel-bmn:", err);
       const errMsg =
-        err?.response?.data?.message || "Gagal memverifikasi catatan pemeliharaan di server.";
+        err?.response?.data?.message ||
+        "Gagal memverifikasi catatan pemeliharaan di server.";
       showToast(`⚠️ ${errMsg}`);
     } finally {
       setVerifyingLogId(null);
     }
   };
 
-  // Filter Data Riwayat
+  // Hapus Catatan Pemeliharaan oleh Petugas (sebelum disetujui PIC)
+  const handleDeleteLog = async (id: number) => {
+    if (
+      !confirm(
+        "Apakah Anda yakin ingin menghapus catatan pemeliharaan ini? Data yang sudah dihapus tidak dapat dikembalikan."
+      )
+    ) {
+      return;
+    }
+
+    setDeletingLogId(id);
+    try {
+      const res = await axios.delete(
+        `${SIMPEL_BMN_URL}/api/maintenance/logs/${id}`
+      );
+      if (res.data?.success) {
+        await loadAssetData();
+        showToast("✓ Catatan riwayat pemeliharaan berhasil dihapus.");
+      }
+    } catch (err: any) {
+      const errMsg =
+        err?.response?.data?.message ||
+        "Gagal menghapus catatan pemeliharaan.";
+      showToast(`⚠️ ${errMsg}`);
+    } finally {
+      setDeletingLogId(null);
+    }
+  };
+
+  // Daftar Tahun yang Tersedia untuk Filter
+  const availableYears = useMemo(() => {
+    const currentYr = String(new Date().getFullYear());
+    const yearSet = new Set<string>([currentYr]);
+    records.forEach((r) => {
+      if (r.date && r.date.length >= 4) {
+        yearSet.add(r.date.slice(0, 4));
+      }
+    });
+    return Array.from(yearSet).sort((a, b) => b.localeCompare(a));
+  }, [records]);
+
+  const handleResetFilters = () => {
+    setSearchQuery("");
+    setSelectedMonth("all");
+    setSelectedYear("all");
+    setSelectedActivityType("all");
+  };
+
+  // Filter Kombinasi Data Riwayat (Pencarian + Bulan + Tahun + Jenis Kegiatan)
   const filteredRecords = useMemo(() => {
     return records.filter((r) => {
       const typeLabel = getActivityBadge(r.activityType).label.toLowerCase();
+      const q = searchQuery.toLowerCase().trim();
       const matchSearch =
-        typeLabel.includes(searchQuery.toLowerCase()) ||
-        r.executorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (r.activityDetails || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (r.notes || "").toLowerCase().includes(searchQuery.toLowerCase());
+        !q ||
+        typeLabel.includes(q) ||
+        r.executorName.toLowerCase().includes(q) ||
+        (r.activityDetails || "").toLowerCase().includes(q) ||
+        (r.notes || "").toLowerCase().includes(q);
 
-      const matchMonth =
-        selectedMonth === "all" || r.date.startsWith(`2026-${selectedMonth}`);
+      const parts = (r.date || "").split("-");
+      const recYear = parts[0] || "";
+      const recMonth = parts[1] || "";
 
-      return matchSearch && matchMonth;
+      const matchYear = selectedYear === "all" || recYear === selectedYear;
+      const matchMonth = selectedMonth === "all" || recMonth === selectedMonth;
+      const matchType =
+        selectedActivityType === "all" ||
+        r.activityType === selectedActivityType;
+
+      return matchSearch && matchYear && matchMonth && matchType;
     });
-  }, [records, searchQuery, selectedMonth]);
+  }, [
+    records,
+    searchQuery,
+    selectedMonth,
+    selectedYear,
+    selectedActivityType,
+  ]);
 
   const latestRecord = records[0];
 
@@ -894,8 +1126,8 @@ export default function RiwayatPemeliharaanMain() {
 
         {assetStatus === "found" && (
           <>
-            {/* 3. Banner Kegiatan Berlangsung (Jika Ada) */}
-            {activeSession && (
+            {/* 3. Banner Check-out Kegiatan Berlangsung (HANYA muncul untuk Petugas yang Check-in atau PIC) */}
+            {activeSession && canManageActiveSession && (
               <ActiveSessionBanner
                 activeSession={activeSession}
                 runningMinutes={runningMinutes}
@@ -904,25 +1136,36 @@ export default function RiwayatPemeliharaanMain() {
               />
             )}
 
-            {/* 4 & 5. Pencarian & Tabel Log Riwayat Pemeliharaan */}
+            {/* 4 & 5. Filter Kombinasi, Tabel Log Riwayat & Pagination */}
             <MaintenanceLogTable
               assetName={assetInfo.name}
               records={records}
               filteredRecords={filteredRecords}
               searchQuery={searchQuery}
               onChangeSearch={setSearchQuery}
+              selectedMonth={selectedMonth}
+              onChangeMonth={setSelectedMonth}
+              selectedYear={selectedYear}
+              onChangeYear={setSelectedYear}
+              availableYears={availableYears}
+              selectedActivityType={selectedActivityType}
+              onChangeActivityType={setSelectedActivityType}
+              onResetFilters={handleResetFilters}
               currentUser={currentUser}
+              picSignatureUrl={picSignatureUrl}
+              resolveExecutorSignature={resolveExecutorSignature}
+              canDeleteRecord={canDeleteRecord}
               verifyingLogId={verifyingLogId}
+              deletingLogId={deletingLogId}
               onVerifyLog={handleVerify}
+              onDeleteLog={handleDeleteLog}
               onPreviewPhoto={setPreviewPhoto}
-              onRedirectLogin={redirectToLogin}
-              onShowToast={showToast}
             />
           </>
         )}
       </main>
 
-      {/* 6. Modal Khusus PIC: Kelola Aset BMN & Kelola Petugas (2 Tab) */}
+      {/* 6. Modal Khusus PIC: Kelola Aset BMN (Master Barang) & Kelola Petugas (2 Tab) */}
       {currentUser?.isPic && (
         <ManagePicModal
           isOpen={isManagePicModalOpen}
@@ -930,12 +1173,13 @@ export default function RiwayatPemeliharaanMain() {
           onClose={() => setIsManagePicModalOpen(false)}
           availableAssets={availableAssets}
           activeAssetToken={assetInfo.qr_token}
+          masterBarangs={masterBarangs}
+          loadingMasterBarangs={loadingMasterBarangs}
           officers={officers}
           authEmployees={authEmployees}
           loadingEmployees={loadingEmployees}
           onSelectActiveAsset={handleSelectAssetToken}
-          onCreateAsset={handleCreateAsset}
-          onUpdateAsset={handleUpdateAsset}
+          onCreateAssetFromMaster={handleCreateAssetFromMaster}
           onDeleteAsset={handleDeleteAsset}
           onAddOfficer={handleAddOfficer}
           onDeleteOfficer={handleDeleteOfficer}
@@ -967,9 +1211,9 @@ export default function RiwayatPemeliharaanMain() {
         onChangeCustomType={setCheckInCustomType}
         checkInDetails={checkInDetails}
         onChangeDetails={setCheckInDetails}
-        checkInPhotoUrl={checkInPhotoUrl}
-        onChangePhotoUrl={setCheckInPhotoUrl}
-        onPhotoFileChange={handlePhotoFileChange}
+        checkInPhotos={checkInPhotos}
+        onAddPhotos={handleAddCheckInPhotos}
+        onRemovePhoto={handleRemoveCheckInPhoto}
         isSubmitting={isSubmitting}
         onSubmit={handleSubmitCheckIn}
       />
@@ -984,9 +1228,9 @@ export default function RiwayatPemeliharaanMain() {
         onChangeStatusAfter={setCheckOutStatusAfter}
         checkOutNotes={checkOutNotes}
         onChangeNotes={setCheckOutNotes}
-        checkOutPhotoUrl={checkOutPhotoUrl}
-        onChangePhotoUrl={setCheckOutPhotoUrl}
-        onPhotoFileChange={handlePhotoFileChange}
+        checkOutPhotos={checkOutPhotos}
+        onAddPhotos={handleAddCheckOutPhotos}
+        onRemovePhoto={handleRemoveCheckOutPhoto}
         isSubmitting={isSubmitting}
         onSubmit={handleSubmitCheckOut}
       />
@@ -999,19 +1243,19 @@ export default function RiwayatPemeliharaanMain() {
         onPrintSticker={handlePrintSticker}
       />
 
-      {/* 11. Modal Preview Foto Bukti */}
+      {/* 11. Modal Preview Galeri Foto Bukti */}
       <PhotoPreviewModal
         previewPhoto={previewPhoto}
         onClose={() => setPreviewPhoto(null)}
       />
 
-      {/* 12. Tampilan Khusus Cetak (Lembar Kendali Resmi & Stiker QR) */}
+      {/* 12. Tampilan Khusus Cetak (Lembar Kendali Resmi dengan header.png & TTD PIC Kanan) */}
       <PrintSheetView
         printMode={printMode}
         assetInfo={assetInfo}
         picInfo={picInfo}
         filteredRecords={filteredRecords}
-        executorSignatureUrl={executorSignatureUrl}
+        resolveExecutorSignature={resolveExecutorSignature}
         picSignatureUrl={picSignatureUrl}
       />
     </div>

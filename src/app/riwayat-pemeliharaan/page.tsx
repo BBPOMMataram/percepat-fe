@@ -1,13 +1,17 @@
-import { Metadata } from "next";
-import RiwayatPemeliharaanMain from "@/components/riwayat-pemeliharaan/RiwayatPemeliharaanMain";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Riwayat Pemeliharaan Aset | BBPOM di Mataram",
-  description:
-    "Modul digital pencatatan dan monitoring riwayat pemeliharaan serta pemeriksaan aset fisik/BMN (Genset, AC, dll) BBPOM di Mataram.",
-};
+export default async function RiwayatPemeliharaanRedirectPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const resolvedParams = searchParams ? await searchParams : {};
+  const token =
+    typeof resolvedParams?.token === "string" ? resolvedParams.token : "";
 
-export default function RiwayatPemeliharaanPage() {
-  return <RiwayatPemeliharaanMain />;
+  if (token) {
+    redirect(`/simpel-bmn/pemeliharaan-rutin?token=${encodeURIComponent(token)}`);
+  }
+
+  redirect("/simpel-bmn/pemeliharaan-rutin");
 }
-

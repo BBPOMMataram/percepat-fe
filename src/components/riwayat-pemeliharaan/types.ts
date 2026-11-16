@@ -14,16 +14,21 @@ export interface MaintenanceRecord {
     | "repair"
     | "other";
   activityDetails?: string;
+  userId?: string | number | null;
   executorName: string;
   executorRole?: string;
   executorNip?: string | null;
+  executorSignatureUrl?: string | null;
   verifierName: string;
+  verifierSignatureUrl?: string | null;
   isVerified: boolean;
   verifiedAt?: string;
   statusAfter: "standby" | "trouble" | "need_followup";
   notes?: string;
   initialPhotoUrl?: string;
   finalPhotoUrl?: string;
+  initialPhotos: string[];
+  finalPhotos: string[];
 }
 
 // Sesi Kegiatan yang Sedang Berjalan (Active Check-in)
@@ -35,10 +40,12 @@ export interface ActiveMaintenanceSession {
   startTimestamp: number;
   activityType: MaintenanceRecord["activityType"];
   activityDetails: string;
+  userId?: string | number | null;
   executorName: string;
   executorRole: string;
   executorNip?: string | null;
   initialPhotoUrl?: string;
+  initialPhotos: string[];
 }
 
 // User Profile SSO BPOM Murni dari Database
@@ -69,6 +76,7 @@ export interface PicInfo {
 // Metadata Profil Aset Fisik
 export interface AssetMetadata {
   id: number;
+  barang_id?: number | null;
   asset_code: string;
   name: string;
   category: string;
@@ -78,6 +86,21 @@ export interface AssetMetadata {
   fuel_level_percent?: number;
   last_warmed_up_at?: string;
   last_serviced_at?: string;
+}
+
+// Item Master Barang dari tabel barangs di SIMPEL BMN
+export interface MasterBarangItem {
+  id: number;
+  kode: string;
+  nup: number | string;
+  nama: string;
+  merk?: string;
+  tipe?: string;
+  kondisi?: string;
+  lokasi?: string;
+  asset_code: string;
+  display_name: string;
+  category: string;
 }
 
 // Data Petugas yang Diberi Kewenangan oleh PIC
@@ -102,3 +125,8 @@ export interface AccessDeniedInfo {
   userNip: string;
 }
 
+export interface PhotoGalleryPreview {
+  urls: string[];
+  initialIndex: number;
+  caption: string;
+}

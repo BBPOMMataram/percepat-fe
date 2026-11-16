@@ -23,7 +23,7 @@ export default function QrStickerModal({
   const baseOrigin =
     typeof window !== "undefined" ? window.location.origin : "https://bbpommataram.id";
 
-  const qrTargetUrl = `${baseOrigin}/riwayat-pemeliharaan?token=${encodeURIComponent(tokenParam)}`;
+  const qrTargetUrl = `${baseOrigin}/simpel-bmn/pemeliharaan-rutin?token=${encodeURIComponent(tokenParam)}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 no-print print:hidden">
@@ -78,4 +78,3 @@ export default function QrStickerModal({
     </div>
   );
 }
-

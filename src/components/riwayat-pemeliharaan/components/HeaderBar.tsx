@@ -33,9 +33,9 @@ export default function HeaderBar({
         {/* Sisi Kiri: Tombol Back & Judul Halaman */}
         <div className="flex items-center gap-2.5 min-w-0">
           <Link
-            href="/"
+            href="/simpel-bmn"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 active:scale-95"
-            title="Kembali ke Beranda"
+            title="Kembali ke Beranda SIMPEL BMN"
           >
             <Icon icon="solar:arrow-left-linear" width={18} />
           </Link>
