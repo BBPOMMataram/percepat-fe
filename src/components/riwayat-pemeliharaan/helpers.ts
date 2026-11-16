@@ -174,6 +174,8 @@ export const getActivityDynamicStatus = (
   switch (type) {
     case "warming_up":
       return "Sedang Dipanaskan (Warming-up)";
+    case "module_check":
+      return "Dalam Pemeriksaan (Pengecekan Modul)";
     case "emergency_run":
       return "Sedang Beroperasi (Darurat - PLN Padam)";
     case "routine_service":
@@ -196,6 +198,11 @@ export const getActivityBadge = (type: MaintenanceRecord["activityType"]) => {
       return {
         label: "Pemanasan Rutin",
         color: "text-amber-800 bg-amber-50 border-amber-200",
+      };
+    case "module_check":
+      return {
+        label: "Pengecekan Modul",
+        color: "text-cyan-800 bg-cyan-50 border-cyan-200",
       };
     case "emergency_run":
       return {

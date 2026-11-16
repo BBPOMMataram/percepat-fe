@@ -140,27 +140,27 @@ export default function CheckOutModal({
             </select>
           </div>
 
-          {/* Catatan & Hasil Pemeriksaan Akhir */}
+          {/* Catatan & Hasil Pemeriksaan Akhir (Opsional) */}
           <div>
             <label className="block font-semibold text-slate-700 mb-1">
               Catatan / Hasil Pemeriksaan Akhir{" "}
-              <span className="text-rose-500">*</span>
+              <span className="text-[10px] font-normal text-slate-400">(Opsional)</span>
             </label>
             <textarea
-              rows={3}
-              required
-              placeholder="Contoh: Pemanasan 15 menit berjalan normal, suara mesin halus, voltase stabil, level solar cukup..."
+              rows={2}
+              placeholder="Tuliskan catatan atau hasil pemeriksaan akhir (opsional)..."
               value={checkOutNotes}
               onChange={(e) => onChangeNotes(e.target.value)}
               className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-[#005baa] focus:outline-none"
             />
           </div>
 
-          {/* Upload Multi-Foto Bukti Sesudah (Akhir) */}
+          {/* Upload Multi-Foto Bukti Sesudah (Wajib) */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block font-semibold text-slate-700">
-                Foto Bukti Sesudah (Bisa Upload Beberapa Foto)
+                Foto Bukti Sesudah (Bisa Upload Beberapa Foto){" "}
+                <span className="text-rose-500">*</span>
               </label>
               {checkOutPhotos.length > 0 && (
                 <span className="text-[10px] font-bold text-emerald-700">

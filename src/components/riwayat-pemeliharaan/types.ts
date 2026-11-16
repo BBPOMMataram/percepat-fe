@@ -7,6 +7,7 @@ export interface MaintenanceRecord {
   durationMinutes: number;
   activityType:
     | "warming_up"
+    | "module_check"
     | "emergency_run"
     | "routine_service"
     | "fuel_refill"

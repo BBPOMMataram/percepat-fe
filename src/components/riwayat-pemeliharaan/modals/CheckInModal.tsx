@@ -130,6 +130,9 @@ export default function CheckInModal({
               <option value="warming_up">
                 🟡 Pemanasan Rutin (Warming-up / Pemeriksaan Rutin)
               </option>
+              <option value="module_check">
+                🔷 Pengecekan Modul (Panel Kontrol / Modul Instrumen)
+              </option>
               <option value="routine_service">
                 🟢 Pemeliharaan / Servis Berkala (Oli, Filter, Aki, Air)
               </option>
@@ -161,27 +164,27 @@ export default function CheckInModal({
             </div>
           )}
 
-          {/* Detail / Uraian Kegiatan */}
+          {/* Detail / Uraian Kegiatan (Opsional) */}
           <div>
             <label className="block font-semibold text-slate-700 mb-1">
               Detail / Uraian Kegiatan Yang Akan Dilakukan{" "}
-              <span className="text-rose-500">*</span>
+              <span className="text-[10px] font-normal text-slate-400">(Opsional)</span>
             </label>
             <textarea
-              rows={3}
-              required
-              placeholder="Tuliskan detail pemeriksaan atau pekerjaan yang akan dilakukan..."
+              rows={2}
+              placeholder="Tuliskan detail pemeriksaan atau pekerjaan yang akan dilakukan (opsional)..."
               value={checkInDetails}
               onChange={(e) => onChangeDetails(e.target.value)}
               className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-[#005baa] focus:outline-none"
             />
           </div>
 
-          {/* Upload Multi-Foto Bukti Sebelum (Awal) */}
+          {/* Upload Multi-Foto Bukti Sebelum (Wajib) */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block font-semibold text-slate-700">
-                Foto Bukti Sebelum (Bisa Upload Beberapa Foto)
+                Foto Bukti Sebelum (Bisa Upload Beberapa Foto){" "}
+                <span className="text-rose-500">*</span>
               </label>
               {checkInPhotos.length > 0 && (
                 <span className="text-[10px] font-bold text-[#005baa]">

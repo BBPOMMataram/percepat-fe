@@ -816,6 +816,10 @@ export default function RiwayatPemeliharaanMain() {
   // Submit Langkah 1: Check-in (Mulai Kegiatan)
   const handleSubmitCheckIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (checkInPhotos.length === 0) {
+      showToast("⚠️ Harap lampirkan minimal 1 foto bukti sebelum memulai kegiatan.");
+      return;
+    }
     setIsSubmitting(true);
 
     const activityLabel =
@@ -902,6 +906,10 @@ export default function RiwayatPemeliharaanMain() {
   const handleSubmitCheckOut = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeSession) return;
+    if (checkOutPhotos.length === 0) {
+      showToast("⚠️ Harap lampirkan minimal 1 foto bukti sesudah kegiatan.");
+      return;
+    }
     setIsSubmitting(true);
 
     try {

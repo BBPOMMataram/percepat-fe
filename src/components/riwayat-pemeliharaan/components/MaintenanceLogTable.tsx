@@ -31,6 +31,7 @@ const ACTIVITY_TYPE_OPTIONS: {
 }[] = [
   { value: "all", label: "Semua Jenis Kegiatan" },
   { value: "warming_up", label: "Pemanasan Rutin" },
+  { value: "module_check", label: "Pengecekan Modul" },
   { value: "routine_service", label: "Servis Berkala" },
   { value: "fuel_refill", label: "Pengisian Solar / BBM" },
   { value: "emergency_run", label: "Darurat (PLN Padam)" },
