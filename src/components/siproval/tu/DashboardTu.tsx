@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
@@ -11,16 +11,6 @@ import IkskMonitoringSection, {
   IKSK_MONTHS,
   IkskFilter,
 } from "../dashboard/IkskMonitoringSection";
-import api from "@/utils/api";
-
-const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000";
-
-interface TuMetricsSummary {
-  totalRo: number;
-  totalPagu: number;
-  totalRealisasi: number;
-  persenRealisasi: number;
-}
 
 export default function DashboardTu() {
   const currentYear = new Date().getFullYear();
@@ -37,55 +27,6 @@ export default function DashboardTu() {
     (c: { total: number; tercapai: number; belum: number }) => setCounts(c),
     []
   );
-
-  const [metrics, setMetrics] = useState<TuMetricsSummary | null>(null);
-  const [loadingMetrics, setLoadingMetrics] = useState<boolean>(true);
-  const [metricsError, setMetricsError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchMetrics = async () => {
-      try {
-        setLoadingMetrics(true);
-        setMetricsError(null);
-        const res = await api.get(`${baseUrl}/api/tu/dashboard-chart/${currentYear}`);
-        const d = res.data?.data;
-        if (!d) {
-          setMetrics(null);
-          return;
-        }
-        const s = d.summary || {};
-        const pagu = Number(s.total_pagu) || 0;
-        const real = Number(s.total_realisasi_budget) || 0;
-        setMetrics({
-          totalRo: Number(s.total_ro || d.total_ro) || 0,
-          totalPagu: pagu,
-          totalRealisasi: real,
-          persenRealisasi: pagu > 0 ? Number(((real / pagu) * 100).toFixed(2)) : 0,
-        });
-      } catch (err) {
-        console.warn("Gagal memuat metrik ringkasan TU:", err);
-        setMetrics(null);
-        setMetricsError("Ringkasan anggaran TU gagal dimuat dari server.");
-      } finally {
-        setLoadingMetrics(false);
-      }
-    };
-
-    fetchMetrics();
-  }, [currentYear]);
-
-  const formatRupiah = (num: number): string => {
-    if (num >= 1000000000) {
-      return `Rp ${(num / 1000000000).toFixed(2).replace(".", ",")} M`;
-    }
-    if (num >= 1000000) {
-      return `Rp ${(num / 1000000).toFixed(0).replace(".", ",")} Jt`;
-    }
-    return `Rp ${num.toLocaleString("id-ID")}`;
-  };
-
-  const show = (fn: (m: TuMetricsSummary) => string) =>
-    loadingMetrics ? "..." : metrics ? fn(metrics) : "-";
 
   return (
     <div className="space-y-8">
@@ -173,91 +114,6 @@ export default function DashboardTu() {
                   Ringkasan anggaran tahun berjalan, NKO &amp; Kerangka Kerja Logis, serta grafik
                   target vs realisasi Volume RO dan serapan Pagu Anggaran {currentYear}.
                 </p>
-              </div>
-            </div>
-
-            {metricsError && (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-800">
-                {metricsError}
-              </div>
-            )}
-
-            {/* 4 kartu ringkasan anggaran TU (dari Mapping Anggaran & Realisasi RO di database) */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="flex flex-col justify-between rounded-2xl border border-blue-200/80 bg-gradient-to-br from-blue-50/90 via-white to-blue-100/50 p-5 shadow-2xs">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-[#005baa]">
-                      Total Rincian Output (RO)
-                    </p>
-                    <p className="mt-2 text-3xl font-extrabold text-[#005baa]">
-                      {show((m) => `${m.totalRo} RO`)}
-                    </p>
-                    <span className="mt-1 inline-block text-xs text-slate-500 font-medium">
-                      Realisasi RO {currentYear}
-                    </span>
-                  </div>
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-[#005baa]">
-                    <Icon icon="solar:document-medicine-bold" width={24} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col justify-between rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/90 via-white to-emerald-100/50 p-5 shadow-2xs">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-[#00a651]">
-                      Total Pagu Anggaran
-                    </p>
-                    <p className="mt-2 text-2xl font-extrabold text-[#00a651]">
-                      {show((m) => (m.totalPagu > 0 ? formatRupiah(m.totalPagu) : "-"))}
-                    </p>
-                    <span className="mt-1 inline-block text-xs text-slate-500 font-medium">
-                      Alokasi Pagu DIPA {currentYear}
-                    </span>
-                  </div>
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-[#00a651]">
-                    <Icon icon="solar:wallet-money-bold" width={24} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col justify-between rounded-2xl border border-teal-200/80 bg-gradient-to-br from-teal-50/90 via-white to-cyan-100/50 p-5 shadow-2xs">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-[#0d9488]">
-                      Realisasi Belanja
-                    </p>
-                    <p className="mt-2 text-2xl font-extrabold text-teal-800">
-                      {show((m) => (m.totalRealisasi > 0 ? formatRupiah(m.totalRealisasi) : "-"))}
-                    </p>
-                    <span className="mt-1 inline-block text-xs text-slate-500 font-medium">
-                      Serapan Anggaran Berjalan
-                    </span>
-                  </div>
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-teal-100 text-[#0d9488]">
-                    <Icon icon="solar:card-recive-bold" width={24} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col justify-between rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50/80 via-white to-blue-50/50 p-5 shadow-2xs">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-amber-700">
-                      Rasio Serapan Belanja
-                    </p>
-                    <p className="mt-2 text-3xl font-extrabold text-[#005baa]">
-                      {show((m) => (m.totalPagu > 0 ? `${m.persenRealisasi}%` : "-"))}
-                    </p>
-                    <span className="mt-1 inline-block text-xs text-slate-500 font-medium">
-                      Realisasi Belanja / Pagu
-                    </span>
-                  </div>
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-[#005baa]">
-                    <Icon icon="solar:chart-2-bold" width={24} />
-                  </div>
-                </div>
               </div>
             </div>
 

@@ -24,9 +24,9 @@ export default function SiprovalLayout({
       <div className="min-h-screen bg-slate-50">
         <SidebarSiproval />
 
-        <div className="min-h-screen min-w-0 lg:ml-72 flex flex-col">
+        <div className="min-h-screen min-w-0 lg:ml-64 xl:ml-72 flex flex-col">
           <HeaderSiproval />
-          <main className="flex-1 p-6 lg:p-8">{children}</main>
+          <main className="flex-1 p-3.5 sm:p-5 lg:p-6 min-w-0">{children}</main>
         </div>
       </div>
     </LayoutSiproval>

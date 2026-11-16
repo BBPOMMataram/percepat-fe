@@ -135,71 +135,73 @@ export default function DashboardKatim() {
     metrics?.indicators_by_month?.[selectedMonthIdx] || [];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-5 lg:space-y-6">
       {/* Welcome Banner with BBPOM Blue & Green Gradient */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#003d73] via-[#005baa] to-[#00a651] p-6 text-white shadow-lg lg:p-8">
-        <div className="relative z-10 max-w-2xl">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
-              <Icon
-                icon="solar:shield-check-bold"
-                width={15}
-                className="text-emerald-300"
-              />
-              Ketua Tim Kerja (Katim)
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium backdrop-blur-sm">
-              <Icon
-                icon="solar:database-bold"
-                width={14}
-                className="text-blue-200"
-              />
-              Data Riil Rekapitulasi RHPK &amp; TU 2026
-            </span>
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#003d73] via-[#005baa] to-[#00a651] p-4 sm:p-5 lg:p-6 text-white shadow-md">
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="max-w-xl">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-semibold backdrop-blur-sm">
+                <Icon
+                  icon="solar:shield-check-bold"
+                  width={14}
+                  className="text-emerald-300"
+                />
+                Ketua Tim Kerja (Katim)
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-medium backdrop-blur-sm">
+                <Icon
+                  icon="solar:database-bold"
+                  width={13}
+                  className="text-blue-200"
+                />
+                Data Riil Rekapitulasi RHPK &amp; TU 2026
+              </span>
+            </div>
+
+            <h1 className="mt-2 text-xl font-bold lg:text-2xl text-white tracking-tight">
+              Selamat Datang, {userName}
+            </h1>
+            <p className="mt-1 text-xs sm:text-[13px] text-blue-100/90 leading-relaxed">
+              Pantau rekapitulasi capaian indikator kinerja (IKSK), grafik
+              realisasi target RO &amp; anggaran TU, serta koordinasikan pengisian
+              dan tindak lanjut arahan secara terintegrasi.
+            </p>
           </div>
 
-          <h1 className="mt-3 text-2xl font-bold lg:text-3xl text-white">
-            Selamat Datang, {userName}
-          </h1>
-          <p className="mt-2 text-sm text-blue-100 lg:text-base leading-relaxed">
-            Pantau rekapitulasi capaian indikator kinerja (IKSK), grafik
-            realisasi target RO &amp; anggaran TU, serta koordinasikan pengisian
-            dan tindak lanjut arahan secara terintegrasi.
-          </p>
-
-          <div className="mt-5 flex flex-wrap gap-3">
+          <div className="flex flex-wrap lg:flex-col xl:flex-row items-stretch sm:items-center lg:items-end xl:items-center gap-2 sm:gap-2.5 shrink-0">
             <Link
               href="/siproval/katim/entry-data-rhpk"
-              className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-[#005baa] shadow-sm transition hover:bg-blue-50"
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-xs font-bold text-[#005baa] shadow-sm transition hover:bg-blue-50 active:scale-95"
             >
-              <Icon icon="solar:pen-new-square-bold" width={16} />
+              <Icon icon="solar:pen-new-square-bold" width={15} />
               <span>Entry Data RHPK</span>
             </Link>
             <button
               type="button"
               onClick={() => scrollToTable("belum")}
-              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs font-bold text-slate-900 shadow-sm transition hover:bg-amber-400"
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-2 text-xs font-bold text-slate-900 shadow-sm transition hover:bg-amber-400 active:scale-95"
             >
-              <Icon icon="solar:danger-triangle-bold" width={16} />
-              <span>Rincian IKSK Belum Tercapai ({currentPerluEvaluasi})</span>
+              <Icon icon="solar:danger-triangle-bold" width={15} />
+              <span>IKSK Belum Tercapai ({currentPerluEvaluasi})</span>
             </button>
             <Link
               href="/siproval/katim/arahan-pimpinan"
-              className="inline-flex items-center gap-2 rounded-xl bg-white/15 px-4 py-2.5 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-white/25"
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-white/15 px-3.5 py-2 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-white/25 active:scale-95"
             >
               <Icon
                 icon="solar:chat-round-line-bold"
-                width={16}
+                width={15}
                 className="text-emerald-300"
               />
-              <span>Lihat Arahan Pimpinan</span>
+              <span>Arahan Pimpinan</span>
             </Link>
           </div>
         </div>
 
         {/* Decorative background visual */}
-        <div className="pointer-events-none absolute -bottom-12 -right-12 opacity-15">
-          <Icon icon="solar:widget-5-bold" width={340} height={340} />
+        <div className="pointer-events-none absolute -bottom-10 -right-10 opacity-10">
+          <Icon icon="solar:widget-5-bold" width={260} height={260} />
         </div>
       </div>
 

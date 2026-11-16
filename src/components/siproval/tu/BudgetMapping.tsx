@@ -195,12 +195,6 @@ export default function BudgetMapping() {
     }
   }, [user?.id]);
 
-  function handleCopyEmail() {
-    navigator.clipboard.writeText(serviceAccountEmail);
-    setCopiedEmail(true);
-    setTimeout(() => setCopiedEmail(false), 2000);
-  }
-
   async function handleStoreSpreadsheet(e: React.FormEvent) {
     e.preventDefault();
     setSubmitError("");

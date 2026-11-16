@@ -156,9 +156,55 @@ export function getMonthColor(monthName?: string | null) {
 
 export const getMonthNumberFromText = (text?: string | null): number | null => {
   if (!text) return null;
-  let t = text.trim().toLowerCase();
-  // Bersihkan prefix awalan seperti "sd ", "s.d. ", "sampai dengan "
-  t = t.replace(/^(s[\.\/]?d[\.\s]+|sampai\s+dengan\s+)/i, "").trim();
+  let t = String(text).trim().toLowerCase();
+  if (!t) return null;
+  // Bersihkan prefix awalan seperti "sd ", "s.d. ", "sampai dengan ", "periode "
+  t = t.replace(/^(s[\.\/]?d[\.\s]+|sampai\s+dengan\s+|periode\s*:?\s*)/i, "").trim();
+
+  // 1. Check Excel serial date numbers (e.g. 44000 to 48000 is years 2020-2031)
+  const numVal = Number(t);
+  if (!isNaN(numVal) && numVal >= 44000 && numVal <= 48000) {
+    try {
+      const date = new Date((numVal - 25569) * 86400 * 1000);
+      if (!isNaN(date.getTime())) {
+        return date.getUTCMonth() + 1;
+      }
+    } catch {}
+  }
+
+  // 2. Check ISO or standard date formats (YYYY-MM-DD or DD-MM-YYYY or DD/MM/YYYY)
+  const isoMatch = t.match(/\b\d{4}[-\/](\d{1,2})[-\/]\d{1,2}\b/);
+  if (isoMatch) {
+    const m = parseInt(isoMatch[1], 10);
+    if (m >= 1 && m <= 12) return m;
+  }
+  const dmyMatch = t.match(/\b\d{1,2}[-\/](\d{1,2})[-\/]\d{4}\b/);
+  if (dmyMatch) {
+    const m = parseInt(dmyMatch[1], 10);
+    if (m >= 1 && m <= 12) return m;
+  }
+
+  // 3. Check Indonesian / English month names in text (matching word boundaries)
+  const monthMap: [RegExp, number][] = [
+    [/\b(januari|january|jan)\b/i, 1],
+    [/\b(februari|february|pebruari|feb)\b/i, 2],
+    [/\b(maret|march|mar)\b/i, 3],
+    [/\b(april|apr)\b/i, 4],
+    [/\b(mei|may)\b/i, 5],
+    [/\b(juni|june|jun)\b/i, 6],
+    [/\b(juli|july|jul)\b/i, 7],
+    [/\b(agustus|august|agust|agst|ags|agu)\b/i, 8],
+    [/\b(september|sept|sep)\b/i, 9],
+    [/\b(oktober|october|okt|oct)\b/i, 10],
+    [/\b(november|nopember|nov)\b/i, 11],
+    [/\b(desember|december|des|dec)\b/i, 12],
+  ];
+
+  for (const [regex, num] of monthMap) {
+    if (regex.test(t)) {
+      return num;
+    }
+  }
 
   const map: Record<string, number> = {
     januari: 1, jan: 1, january: 1,
@@ -201,6 +247,82 @@ export const getMonthNumberFromText = (text?: string | null): number | null => {
 
   return null;
 };
+
+// Helper untuk mendeteksi apakah suatu baris merupakan baris summary/total
+export function isSummaryOrTotalRow(r?: RowData | null): boolean {
+  if (!r?.cells) return false;
+  const keys = ["col_0", "col_1", "col_2", "col_3", "col_4"];
+  for (const k of keys) {
+    const val = r.cells[k];
+    if (typeof val === "string") {
+      const lower = val.toLowerCase().trim();
+      if (
+        lower === "total" ||
+        lower === "jumlah" ||
+        lower.startsWith("total ") ||
+        lower.startsWith("jumlah ") ||
+        lower === "rata-rata" ||
+        lower === "rata - rata" ||
+        lower === "average" ||
+        lower.startsWith("rata-rata") ||
+        lower.startsWith("rata - rata")
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// Ekstrak nomor bulan (1..12) dari sebuah baris data secara eksplisit (tanpa forward-fill)
+export function getRowExplicitMonth(
+  r?: RowData | null,
+  monthColKey?: string | null,
+): number | null {
+  if (!r) return null;
+
+  // 1. Cek dari kolom bulan jika header terdeteksi
+  if (monthColKey && r.cells?.[monthColKey] !== undefined) {
+    const n = getMonthNumberFromText(String(r.cells[monthColKey]));
+    if (n !== null) return n;
+  }
+
+  // 2. Cek kolom col_0 (standar utama kolom Periode/Tanggal/Bulan di RHPK vertikal)
+  if (r.cells?.col_0 !== undefined) {
+    const val0 = String(r.cells.col_0).trim();
+    if (val0) {
+      const n = getMonthNumberFromText(val0);
+      if (n !== null) return n;
+    }
+  }
+
+  // 3. Cek month_name bawaan dari database/metadata
+  if (r.month_name) {
+    const n = getMonthNumberFromText(r.month_name);
+    if (n !== null) return n;
+  }
+
+  // 4. Cek r.month jika bernilai 1..12
+  if (typeof r.month === "number" && r.month >= 1 && r.month <= 12) {
+    return r.month;
+  }
+
+  // 5. Cek kolom col_1, col_2, col_3 HANYA jika teks pendek (<= 30 karakter)
+  // dan BUKAN teks sampel/produk (menghindari salah deteksi expired date 'ED 16 Januari' sebagai bulan baris)
+  for (const k of ["col_1", "col_2", "col_3"]) {
+    if (r.cells?.[k] !== undefined) {
+      const val = String(r.cells[k]).trim();
+      if (val && val.length <= 30) {
+        if (!/\b(ed|exp|kadaluarsa|expired|sampel|klb|mbg)\b/i.test(val)) {
+          const n = getMonthNumberFromText(val);
+          if (n !== null) return n;
+        }
+      }
+    }
+  }
+
+  return null;
+}
 
 type ActiveTabDetail = {
   id: number;
@@ -383,20 +505,17 @@ export default function TestLocalTablePic() {
     const schema = effectiveColumnsSchema;
     if (!schema || schema.length === 0) return false;
 
-    // 1. Jika tabel memiliki kolom 'Bulan' atau 'Periode', pasti tabel vertikal
+    // 1. Jika tabel memiliki kolom mandiri 'Bulan' atau 'Periode', pasti tabel vertikal
     const hasBulanCol = schema.some((c) => {
       const l = (c.label || "").trim().toLowerCase();
       const sub = ((c as any).sub_label || "").trim().toLowerCase();
-      const parent = ((c as any).parent_header || "").trim().toLowerCase();
       return (
         l === "bulan" ||
         l === "periode" ||
-        l.startsWith("bulan") ||
-        l.includes("bulan") ||
-        l.includes("periode") ||
+        l === "bulan pelaksanaan" ||
+        l.startsWith("bulan ") ||
         sub === "bulan" ||
-        sub.includes("bulan") ||
-        parent.includes("bulan")
+        sub === "periode"
       );
     });
     if (hasBulanCol) return false;
@@ -407,12 +526,16 @@ export default function TestLocalTablePic() {
       return false;
     }
 
-    // 3. Periksa parent_header (misal: JANUARI, FEBRUARI)
+    // 3. Periksa parent_header atau sub_parent (misal: JANUARI, FEBRUARI)
     const parentMonths = new Set<number>();
     schema.forEach((col) => {
       if (col.parent_header) {
         const pm = getMonthNumberFromText(col.parent_header);
         if (pm !== null) parentMonths.add(pm);
+      }
+      if ((col as any).sub_parent) {
+        const sm = getMonthNumberFromText((col as any).sub_parent);
+        if (sm !== null) parentMonths.add(sm);
       }
     });
     if (parentMonths.size >= 3) return true;
@@ -424,7 +547,7 @@ export default function TestLocalTablePic() {
       if (lm !== null) labelMonths.add(lm);
     });
     return labelMonths.size >= 3;
-  }, [activeTab?.columns_schema, activeTab?.rows_data]);
+  }, [activeTab?.columns_schema, activeTab?.rows_data, effectiveColumnsSchema]);
 
   // Deteksi apakah sheet ini adalah sheet multi-indikator (HANYA berlaku untuk Dokumen Gabungan RHPK Balai)
   const isMultiIndicatorSheet = useMemo(() => {
@@ -495,6 +618,7 @@ export default function TestLocalTablePic() {
     return found || nonMonthParents[0] || null;
   }, [isMultiIndicatorSheet, headerGroups, activeSpreadsheet, overrideIndicatorParent]);
 
+  // Deteksi kolom bulan jika ada
   const monthColKey = useMemo(() => {
     if (!activeTab?.columns_schema) return null;
     const col = activeTab.columns_schema.find((c) => {
@@ -502,36 +626,65 @@ export default function TestLocalTablePic() {
       return (
         l === "bulan" ||
         l === "periode" ||
+        l === "tanggal" ||
+        l === "waktu" ||
         l.includes("bulan") ||
-        l.includes("periode")
+        l.includes("periode") ||
+        l.includes("tanggal") ||
+        l.includes("waktu")
       );
     });
     return col ? col.key : null;
   }, [activeTab?.columns_schema]);
 
-  // Ekstrak nomor bulan (1..12) dari sebuah baris data secara akurat dan presisi
-  const getRowMonthNumber = (r: RowData): number | null => {
+  // Mapping setiap baris ke nomor bulannya (1..12) dengan Forward-Fill (propagasi ke bawah)
+  // sesuai aturan RHPK: baris tanpa tanggal/bulan eksplisit mewarisi bulan dari baris di atasnya
+  // hingga ditemukan baris dengan bulan baru (next_month).
+  const rowMonthMap = useMemo(() => {
+    const rawRows = activeTab?.rows_data || [];
+    const objMap = new WeakMap<RowData, number>();
+    const idxMap = new Map<number, number>();
+
+    // Pada tabel horizontal (bulan ada di header kolom), baris tidak terikat pada satu bulan
+    if (isHorizontalMonthTable) {
+      return { objMap, idxMap };
+    }
+
+    let currentMonth: number | null = null;
+
+    rawRows.forEach((r, idx) => {
+      if (!r) return;
+
+      const explicit = getRowExplicitMonth(r, monthColKey);
+      if (explicit !== null) {
+        // Ditemukan bulan baru atau baris awal (next_month)
+        currentMonth = explicit;
+      }
+
+      // Selama dalam rentang suatu bulan dan bukan baris total/summary akhir
+      if (currentMonth !== null && !isSummaryOrTotalRow(r)) {
+        objMap.set(r, currentMonth);
+        idxMap.set(idx, currentMonth);
+      }
+    });
+
+    return { objMap, idxMap };
+  }, [activeTab?.rows_data, isHorizontalMonthTable, monthColKey]);
+
+  // Ekstrak nomor bulan (1..12) dari sebuah baris data dengan prioritas hasil forward-fill
+  const getRowMonthNumber = (r: RowData, idx?: number): number | null => {
     if (!r) return null;
-    if (monthColKey && r.cells?.[monthColKey] !== undefined) {
-      const n = getMonthNumberFromText(String(r.cells[monthColKey]));
-      if (n !== null) return n;
+    if (rowMonthMap.objMap.has(r)) {
+      return rowMonthMap.objMap.get(r)!;
     }
-    if (r.cells?.col_2 !== undefined) {
-      const n = getMonthNumberFromText(String(r.cells.col_2));
-      if (n !== null) return n;
+    if (idx !== undefined && rowMonthMap.idxMap.has(idx)) {
+      return rowMonthMap.idxMap.get(idx)!;
     }
-    if (r.month_name) {
-      const n = getMonthNumberFromText(r.month_name);
-      if (n !== null) return n;
-    }
-    if (typeof r.month === "number" && r.month >= 1 && r.month <= 12) {
-      return r.month;
-    }
-    return null;
+    return getRowExplicitMonth(r, monthColKey);
   };
 
   const availableMonths = useMemo(() => {
-    const rawCount = activeTab?.rows_data?.length || 0;
+    const rawCount = (activeTab?.rows_data || []).filter((r) => !(r as any).is_hidden && !(r as any).hidden).length;
     if (rawCount === 0) return [];
 
     const standardOrder = [
@@ -555,8 +708,9 @@ export default function TestLocalTablePic() {
         const targetNum = getMonthNumberFromText(name);
         const hasMonthCol = activeTab.columns_schema.some((c) => {
           const pNum = getMonthNumberFromText(c.parent_header);
+          const sNum = getMonthNumberFromText((c as any).sub_parent);
           const lNum = getMonthNumberFromText(c.label);
-          return pNum === targetNum || lNum === targetNum;
+          return pNum === targetNum || sNum === targetNum || lNum === targetNum;
         });
         if (hasMonthCol) {
           result.push({ name, count: rawCount });
@@ -567,16 +721,8 @@ export default function TestLocalTablePic() {
 
     const monthCounts: Record<number, number> = {};
 
-    activeTab?.rows_data?.forEach((r) => {
-      let mNum: number | null = null;
-      if (monthColKey && r.cells?.[monthColKey] !== undefined && String(r.cells[monthColKey]).trim() !== "") {
-        mNum = getMonthNumberFromText(String(r.cells[monthColKey]));
-      } else if (r.cells?.col_2 !== undefined && String(r.cells.col_2).trim() !== "") {
-        mNum = getMonthNumberFromText(String(r.cells.col_2));
-      } else {
-        mNum = getRowMonthNumber(r);
-      }
-
+    activeTab?.rows_data?.forEach((r, idx) => {
+      const mNum = getRowMonthNumber(r, idx);
       if (mNum !== null) {
         monthCounts[mNum] = (monthCounts[mNum] || 0) + 1;
       }
@@ -607,44 +753,17 @@ export default function TestLocalTablePic() {
     }
 
     return result;
-  }, [activeTab?.rows_data, activeTab?.columns_schema, monthColKey, isHorizontalMonthTable]);
+  }, [activeTab?.rows_data, activeTab?.columns_schema, monthColKey, isHorizontalMonthTable, rowMonthMap]);
 
   const filteredRows = useMemo(() => {
     if (!activeTab?.rows_data) return [];
-    let rows = activeTab.rows_data;
+    let rows = activeTab.rows_data.filter((r) => !(r as any).is_hidden && !(r as any).hidden);
 
     if (selectedMonthFilter !== "all" && !isHorizontalMonthTable) {
       const targetMonthNum = getMonthNumberFromText(selectedMonthFilter);
       if (targetMonthNum !== null) {
-        rows = rows.filter((r) => {
-          // 1. Cek kolom Bulan spesifik (col_2 / monthColKey / label 'Bulan')
-          const cellBulan = monthColKey && r.cells?.[monthColKey] !== undefined
-            ? r.cells[monthColKey]
-            : r.cells?.col_2 !== undefined
-            ? r.cells.col_2
-            : null;
-
-          if (cellBulan !== null && cellBulan !== undefined && String(cellBulan).trim() !== "") {
-            const mNum = getMonthNumberFromText(String(cellBulan));
-            if (mNum !== null) {
-              return mNum === targetMonthNum;
-            }
-          }
-
-          // 2. Cek field month_name jika ada
-          if (r.month_name && String(r.month_name).trim() !== "") {
-            const mNum = getMonthNumberFromText(r.month_name);
-            if (mNum !== null) {
-              return mNum === targetMonthNum;
-            }
-          }
-
-          // 3. Fallback: nomor bulan dari row.month jika 1..12
-          if (typeof r.month === "number" && r.month >= 1 && r.month <= 12) {
-            return r.month === targetMonthNum;
-          }
-
-          return getRowMonthNumber(r) === targetMonthNum;
+        rows = rows.filter((r, idx) => {
+          return getRowMonthNumber(r, idx) === targetMonthNum;
         });
       }
     }
@@ -697,8 +816,18 @@ export default function TestLocalTablePic() {
     if (!targetMonthNum) return schema;
 
     return schema.filter((col) => {
-      const isFixedLeft = col.key === "col_0" || col.key === "col_1" || (!col.parent_header && getMonthNumberFromText(col.label) === null);
-      const colMonthNum = getMonthNumberFromText(col.parent_header) || getMonthNumberFromText(col.label);
+      const isFixedLeft =
+        col.key === "col_0" ||
+        col.key === "col_1" ||
+        col.key === "col_2" ||
+        col.key === "col_3" ||
+        col.key === "col_4" ||
+        col.key === "col_5" ||
+        (!col.parent_header && getMonthNumberFromText(col.label) === null);
+      const colMonthNum =
+        getMonthNumberFromText(col.parent_header) ||
+        getMonthNumberFromText((col as any).sub_parent) ||
+        getMonthNumberFromText(col.label);
       return isFixedLeft || colMonthNum === targetMonthNum;
     });
   }, [
@@ -750,6 +879,17 @@ export default function TestLocalTablePic() {
         const grpMonthNum = getMonthNumberFromText(grp.parent);
         if (grpMonthNum === targetMonthNum) {
           return grp;
+        }
+        // Jika parent berupa grup payung (misal: "Realisasi s.d bulan", "Target Bulanan..."), filter kolom di dalamnya
+        const matchingCols = grp.cols.filter((col) => {
+          const colMonth =
+            getMonthNumberFromText(col.parent_header) ||
+            getMonthNumberFromText((col as any).sub_parent) ||
+            getMonthNumberFromText(col.label);
+          return colMonth === targetMonthNum;
+        });
+        if (matchingCols.length > 0) {
+          return { ...grp, cols: matchingCols };
         }
         return null;
       })
@@ -1904,13 +2044,17 @@ export default function TestLocalTablePic() {
                       <tr className="border-b border-slate-200 bg-slate-100">
                         {displayedHeaderGroups.map((grp, gIdx) => {
                           if (!grp.parent) return null;
-                          const subChunks: { sub_parent: string; count: number }[] = [];
+                          const subChunks: { sub_parent: string; count: number; isLeaf: boolean }[] = [];
                           grp.cols.forEach((col) => {
                             const sp = col.sub_parent || "";
+                            const isColLeaf = !col.sub_label || col.sub_label === col.sub_parent;
                             if (subChunks.length > 0 && subChunks[subChunks.length - 1].sub_parent === sp) {
                               subChunks[subChunks.length - 1].count++;
+                              if (!isColLeaf) {
+                                subChunks[subChunks.length - 1].isLeaf = false;
+                              }
                             } else {
-                              subChunks.push({ sub_parent: sp, count: 1 });
+                              subChunks.push({ sub_parent: sp, count: 1, isLeaf: isColLeaf });
                             }
                           });
 
@@ -1918,6 +2062,7 @@ export default function TestLocalTablePic() {
                             <th
                               key={`subgrp-${gIdx}-${cIdx}-${chunk.sub_parent}`}
                               colSpan={chunk.count}
+                              rowSpan={chunk.isLeaf ? 2 : 1}
                               className="py-2 px-3 font-semibold text-center text-xs border-r border-b border-slate-200 bg-slate-100 text-slate-800 whitespace-pre-line leading-relaxed"
                             >
                               {chunk.sub_parent}
@@ -1931,6 +2076,9 @@ export default function TestLocalTablePic() {
                         if (!grp.parent) return null;
                         const mColor = getMonthColor(grp.parent);
                         return grp.cols.map((col) => {
+                          if (hasSubParents && (!col.sub_label || col.sub_label === col.sub_parent)) {
+                            return null;
+                          }
                           const subTitle = col.sub_label || (col.label && col.label.includes(" - ") ? col.label.split(" - ").slice(1).join(" - ").trim() : col.label);
                           const katimNames = katims
                             .filter((k) => col.allowed_katim_ids?.includes(k.user_id))

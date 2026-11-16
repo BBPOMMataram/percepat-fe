@@ -192,19 +192,18 @@ export default function IkskMonitoringSection({
         </div>
       )}
 
-      {/* Month Filter Selector */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2 text-xs text-slate-700">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-[#005baa]">
-            <Icon icon="solar:calendar-bold" width={18} />
+            {/* Month Filter Selector */}
+      <div className="flex flex-col gap-2.5 rounded-xl border border-slate-200/80 bg-white py-2.5 px-4 sm:px-5 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2.5 text-xs text-slate-700">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-[#005baa]">
+            <Icon icon="solar:calendar-bold" width={16} />
           </div>
           <div>
-            <span className="font-bold text-slate-900 block">
-              Periode Evaluasi Capaian:
+            <span className="font-bold text-slate-900 inline sm:block">
+              Periode Evaluasi Capaian:{" "}
             </span>
-            <span className="text-[11px] text-slate-500">
-              Menampilkan capaian 30 indikator IKSK dan arahan Kepala Balai pada
-              bulan terpilih
+            <span className="text-[11px] text-slate-500 hidden sm:inline">
+              Menampilkan capaian 30 indikator IKSK dan arahan Kepala Balai pada bulan terpilih
             </span>
           </div>
         </div>
@@ -213,7 +212,7 @@ export default function IkskMonitoringSection({
           <select
             value={selectedMonth}
             onChange={(e) => onMonthChange(e.target.value)}
-            className="rounded-xl border border-blue-200 bg-blue-50/50 px-4 py-2 text-xs font-bold text-[#005baa] transition focus:border-[#005baa] focus:bg-white focus:outline-none"
+            className="rounded-lg border border-blue-200 bg-blue-50/60 px-3 py-1.5 text-xs font-bold text-[#005baa] transition focus:border-[#005baa] focus:bg-white focus:outline-none cursor-pointer"
           >
             {MONTHS.map((m) => (
               <option key={m} value={m}>
@@ -224,41 +223,40 @@ export default function IkskMonitoringSection({
         </div>
       </div>
 
-      {/* 4 Stats Cards (Same as Kabalai cards) */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* 4 Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Card 1: Total IKSK */}
         <div
           onClick={() => scrollToTable("all")}
-          className="group relative flex flex-col justify-between rounded-2xl border border-blue-200/80 bg-gradient-to-br from-blue-50/90 via-white to-blue-100/50 p-5 shadow-2xs transition hover:shadow-md hover:border-[#005baa]/60 cursor-pointer"
+          className="group relative flex flex-col justify-between rounded-xl border border-blue-200/80 bg-gradient-to-br from-blue-50/90 via-white to-blue-100/50 p-3.5 sm:p-4 shadow-2xs transition hover:shadow-md hover:border-[#005baa]/60 cursor-pointer"
           title="Klik untuk melihat rincian seluruh IKSK"
         >
-          <div className="flex items-start justify-between">
-            <div>
+          <div className="flex items-start justify-between gap-1.5">
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-[#005baa]">
+                <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#005baa] truncate">
                   Total IKSK
                 </p>
                 <span className="inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-[#005baa]">
                   Aktif
                 </span>
               </div>
-              <p className="mt-2 text-3xl font-bold text-slate-900 group-hover:text-[#005baa] transition">
+              <p className="mt-1 sm:mt-1.5 text-2xl sm:text-3xl font-black text-slate-900 group-hover:text-[#005baa] transition leading-none">
                 {loading ? "..." : (stats?.total_iksk ?? "-")}
               </p>
-              <span className="mt-1 inline-block text-xs text-slate-500">
-                {indicators.length} indikator di rekap &bull;{" "}
-                {stats?.total_iksk_connected ?? "-"} IKSK punya dokumen RHPK
+              <span className="mt-1 inline-block text-[10px] sm:text-[11px] text-slate-500 truncate">
+                {indicators.length} indikator &bull; {stats?.total_iksk_connected ?? "-"} punya RHPK
               </span>
             </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-500/10 text-[#005baa] transition group-hover:bg-[#005baa] group-hover:text-white">
-              <Icon icon="solar:target-bold" width={24} />
+            <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-[#005baa] transition group-hover:bg-[#005baa] group-hover:text-white">
+              <Icon icon="solar:target-bold" width={20} />
             </div>
           </div>
 
-          <div className="mt-3 flex items-center justify-between border-t border-blue-100/60 pt-2.5 text-[11px] text-[#005baa] font-medium">
-            <span>Rincian Seluruh IKSK</span>
+          <div className="mt-2.5 flex items-center justify-between border-t border-blue-100/60 pt-2 text-[10px] sm:text-[11px] text-[#005baa] font-medium">
+            <span>Rincian IKSK</span>
             <span className="inline-flex items-center gap-1 group-hover:translate-x-0.5 transition font-semibold">
-              Lihat tabel <Icon icon="solar:arrow-right-linear" width={12} />
+              Lihat <Icon icon="solar:arrow-right-linear" width={11} />
             </span>
           </div>
         </div>
@@ -266,36 +264,36 @@ export default function IkskMonitoringSection({
         {/* Card 2: Target Terpenuhi */}
         <div
           onClick={() => scrollToTable("tercapai")}
-          className="group relative flex flex-col justify-between rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/90 via-white to-emerald-100/50 p-5 shadow-2xs transition hover:shadow-md hover:border-[#00a651]/60 cursor-pointer"
+          className="group relative flex flex-col justify-between rounded-xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/90 via-white to-emerald-100/50 p-3.5 sm:p-4 shadow-2xs transition hover:shadow-md hover:border-[#00a651]/60 cursor-pointer"
           title="Klik untuk melihat daftar IKSK yang telah memenuhi target"
         >
-          <div className="flex items-start justify-between">
-            <div>
+          <div className="flex items-start justify-between gap-1.5">
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-[#00a651]">
-                  Target Terpenuhi ({selectedMonth})
+                <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#00a651] truncate">
+                  Terpenuhi ({selectedMonth})
                 </p>
                 <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
                   ≥ 100%
                 </span>
               </div>
-              <p className="mt-2 text-3xl font-bold text-[#00a651] group-hover:scale-105 transition transform origin-left">
+              <p className="mt-1 sm:mt-1.5 text-2xl sm:text-3xl font-black text-[#00a651] group-hover:scale-105 transition transform origin-left leading-none">
                 {loading ? "..." : currentTercapai}
               </p>
-              <span className="mt-1 inline-block text-xs text-slate-500">
-                dari {indicators.length} indikator pada rekap
+              <span className="mt-1 inline-block text-[10px] sm:text-[11px] text-slate-500 truncate">
+                dari {indicators.length} indikator rekap
               </span>
             </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10 text-[#00a651] transition group-hover:bg-[#00a651] group-hover:text-white">
-              <Icon icon="solar:check-circle-bold" width={24} />
+            <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-[#00a651] transition group-hover:bg-[#00a651] group-hover:text-white">
+              <Icon icon="solar:check-circle-bold" width={20} />
             </div>
           </div>
 
-          <div className="mt-3 flex items-center justify-between border-t border-emerald-100/60 pt-2.5 text-[11px] text-emerald-700 font-medium">
-            <span>Lihat IKSK Sukses</span>
+          <div className="mt-2.5 flex items-center justify-between border-t border-emerald-100/60 pt-2 text-[10px] sm:text-[11px] text-emerald-700 font-medium">
+            <span>IKSK Sukses</span>
             <span className="inline-flex items-center gap-1 group-hover:translate-x-0.5 transition font-semibold">
               {currentTercapai} Tercapai{" "}
-              <Icon icon="solar:arrow-right-linear" width={12} />
+              <Icon icon="solar:arrow-right-linear" width={11} />
             </span>
           </div>
         </div>
@@ -303,72 +301,72 @@ export default function IkskMonitoringSection({
         {/* Card 3: Perlu Evaluasi */}
         <div
           onClick={() => scrollToTable("belum")}
-          className="group relative flex flex-col justify-between rounded-2xl border-2 border-amber-300 bg-gradient-to-br from-amber-50/90 via-white to-rose-50/50 p-5 shadow-sm transition hover:shadow-lg hover:border-amber-500 cursor-pointer ring-2 ring-amber-100"
+          className="group relative flex flex-col justify-between rounded-xl border-2 border-amber-300 bg-gradient-to-br from-amber-50/90 via-white to-rose-50/50 p-3.5 sm:p-4 shadow-xs transition hover:shadow-md hover:border-amber-500 cursor-pointer ring-2 ring-amber-100/80"
           title="Klik untuk melihat rincian IKSK yang belum mencapai target"
         >
-          <div className="flex items-start justify-between">
-            <div>
+          <div className="flex items-start justify-between gap-1.5">
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
+                <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-800 truncate">
                   Perlu Evaluasi ({selectedMonth})
                 </p>
-                <span className="inline-flex items-center rounded-full bg-amber-200/80 px-2 py-0.5 text-[9px] font-extrabold text-amber-900 animate-pulse">
-                  Perhatian Pimpinan
+                <span className="inline-flex items-center rounded-full bg-amber-200/80 px-1.5 py-0.5 text-[8px] sm:text-[9px] font-extrabold text-amber-900 animate-pulse">
+                  Perhatian
                 </span>
               </div>
-              <p className="mt-2 text-3xl font-extrabold text-amber-800 group-hover:scale-105 transition transform origin-left">
+              <p className="mt-1 sm:mt-1.5 text-2xl sm:text-3xl font-black text-amber-800 group-hover:scale-105 transition transform origin-left leading-none">
                 {loading ? "..." : currentPerluEvaluasi}
               </p>
-              <span className="mt-1 inline-block text-xs font-medium text-amber-900/80">
-                Belum mencapai target bulanan
+              <span className="mt-1 inline-block text-[10px] sm:text-[11px] font-medium text-amber-900/80 truncate">
+                Belum mencapai target
               </span>
             </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-800 transition group-hover:bg-amber-600 group-hover:text-white shadow-xs">
-              <Icon icon="solar:danger-triangle-bold" width={24} />
+            <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-800 transition group-hover:bg-amber-600 group-hover:text-white shadow-xs">
+              <Icon icon="solar:danger-triangle-bold" width={20} />
             </div>
           </div>
 
-          <div className="mt-3 flex items-center justify-between border-t border-amber-200/80 pt-2.5 text-[11px] text-amber-900 font-bold">
+          <div className="mt-2.5 flex items-center justify-between border-t border-amber-200/80 pt-2 text-[10px] sm:text-[11px] text-amber-900 font-bold">
             <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-amber-500 inline-block"></span>
-              Lihat Rincian IKSK
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 inline-block"></span>
+              Rincian IKSK
             </span>
             <span className="inline-flex items-center gap-1 group-hover:translate-x-0.5 transition underline decoration-amber-400">
-              {currentPerluEvaluasi} Belum Tercapai{" "}
-              <Icon icon="solar:arrow-right-linear" width={12} />
+              {currentPerluEvaluasi} Belum{" "}
+              <Icon icon="solar:arrow-right-linear" width={11} />
             </span>
           </div>
         </div>
 
         {/* Card 4: Total Arahan Pimpinan */}
-        <div className="flex flex-col justify-between rounded-2xl border border-blue-200/80 bg-gradient-to-br from-blue-50/80 via-white to-amber-50/50 p-5 shadow-2xs transition hover:shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-[#005baa]">
+        <div className="flex flex-col justify-between rounded-xl border border-blue-200/80 bg-gradient-to-br from-blue-50/80 via-white to-amber-50/50 p-3.5 sm:p-4 shadow-2xs transition hover:shadow-sm">
+          <div className="flex items-start justify-between gap-1.5">
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#005baa] truncate">
                 Total Arahan Pimpinan
               </p>
-              <p className="mt-2 text-3xl font-bold text-[#005baa]">
+              <p className="mt-1 sm:mt-1.5 text-2xl sm:text-3xl font-black text-[#005baa] leading-none">
                 {loading
                   ? "..."
                   : (stats?.total_arahan ?? "-")}
               </p>
-              <span className="mt-1 inline-block text-xs text-slate-500">
-                Arahan tercatat di RHPK {currentYear}
+              <span className="mt-1 inline-block text-[10px] sm:text-[11px] text-slate-500 truncate">
+                Tercatat di RHPK {currentYear}
               </span>
             </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-500/10 text-[#005baa]">
-              <Icon icon="solar:chat-round-check-bold" width={24} />
+            <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-[#005baa]">
+              <Icon icon="solar:chat-round-check-bold" width={20} />
             </div>
           </div>
 
-          <div className="mt-3 flex items-center justify-between border-t border-blue-100/60 pt-2.5 text-[11px] text-[#005baa] font-medium">
+          <div className="mt-2.5 flex items-center justify-between border-t border-blue-100/60 pt-2 text-[10px] sm:text-[11px] text-[#005baa] font-medium">
             <span>Riwayat Arahan</span>
             {arahanHref ? (
               <Link
                 href={arahanHref}
                 className="inline-flex items-center gap-1 hover:underline font-semibold"
               >
-                Lihat Semua <Icon icon="solar:arrow-right-linear" width={12} />
+                Lihat Semua <Icon icon="solar:arrow-right-linear" width={11} />
               </Link>
             ) : (
               <span className="text-slate-500">Bulan {selectedMonth}: {indicators.filter((i) => i.arahan).length}</span>
