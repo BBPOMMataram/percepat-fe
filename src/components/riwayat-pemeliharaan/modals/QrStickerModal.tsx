@@ -8,8 +8,6 @@ interface QrStickerModalProps {
   isOpen: boolean;
   onClose: () => void;
   assetInfo: AssetMetadata;
-  qrHostMode: "lan" | "localhost";
-  onChangeHostMode: (mode: "lan" | "localhost") => void;
   onPrintSticker: () => void;
 }
 
@@ -17,21 +15,13 @@ export default function QrStickerModal({
   isOpen,
   onClose,
   assetInfo,
-  qrHostMode,
-  onChangeHostMode,
   onPrintSticker,
 }: QrStickerModalProps) {
   if (!isOpen) return null;
 
   const tokenParam = assetInfo.qr_token || "bpom-genset-mataram-01";
   const baseOrigin =
-    typeof window !== "undefined" &&
-    !window.location.origin.includes("localhost") &&
-    !window.location.origin.includes("192.168.")
-      ? window.location.origin
-      : qrHostMode === "lan"
-        ? "http://192.168.23.52:3000"
-        : "http://localhost:3000";
+    typeof window !== "undefined" ? window.location.origin : "https://bbpommataram.id";
 
   const qrTargetUrl = `${baseOrigin}/riwayat-pemeliharaan?token=${encodeURIComponent(tokenParam)}`;
 
@@ -60,34 +50,7 @@ export default function QrStickerModal({
             />
           </div>
 
-          <div className="mt-3 flex items-center justify-center gap-1 text-[10px]">
-            <button
-              type="button"
-              onClick={() => onChangeHostMode("lan")}
-              className={`px-2 py-0.5 rounded-md font-semibold transition ${
-                qrHostMode === "lan"
-                  ? "bg-[#005baa] text-white"
-                  : "bg-slate-200 text-slate-600 hover:bg-slate-300"
-              }`}
-              title="Gunakan IP Wi-Fi agar bisa discan langsung menggunakan kamera HP"
-            >
-              Wi-Fi HP (192.168.23.52)
-            </button>
-            <button
-              type="button"
-              onClick={() => onChangeHostMode("localhost")}
-              className={`px-2 py-0.5 rounded-md font-semibold transition ${
-                qrHostMode === "localhost"
-                  ? "bg-[#005baa] text-white"
-                  : "bg-slate-200 text-slate-600 hover:bg-slate-300"
-              }`}
-              title="Gunakan localhost"
-            >
-              Localhost
-            </button>
-          </div>
-
-          <p className="mt-2 text-[10px] font-mono text-slate-600 bg-white border border-slate-200 py-1 px-2 rounded-lg truncate">
+          <p className="mt-3 text-[10px] font-mono text-slate-600 bg-white border border-slate-200 py-1 px-2 rounded-lg truncate">
             {qrTargetUrl}
           </p>
           <p className="mt-1 text-[10px] text-slate-400">

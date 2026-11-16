@@ -165,10 +165,6 @@ export default function AssetHeroCard({
             )}
           </span>
         </div>
-        <div className="flex items-center gap-1.5 font-semibold text-emerald-300 shrink-0 self-start sm:self-auto">
-          <Icon icon="solar:check-circle-bold" width={14} />
-          <span>Kepatuhan Mingguan: Normal</span>
-        </div>
       </div>
     </div>
   );

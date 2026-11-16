@@ -5,7 +5,6 @@ import { formatDateDisplay, getActivityBadge } from "../helpers";
 
 interface PrintSheetViewProps {
   printMode: "table" | "sticker";
-  qrHostMode: "lan" | "localhost";
   assetInfo: AssetMetadata;
   picInfo: PicInfo | null;
   filteredRecords: MaintenanceRecord[];
@@ -15,17 +14,16 @@ interface PrintSheetViewProps {
 
 export default function PrintSheetView({
   printMode,
-  qrHostMode,
   assetInfo,
   picInfo,
   filteredRecords,
   executorSignatureUrl,
   picSignatureUrl,
 }: PrintSheetViewProps) {
-  const qrTargetUrl =
-    qrHostMode === "lan"
-      ? `http://192.168.23.52:3000/riwayat-pemeliharaan?token=${assetInfo.qr_token}`
-      : `http://localhost:3000/riwayat-pemeliharaan?token=${assetInfo.qr_token}`;
+  const tokenParam = assetInfo.qr_token || "bpom-genset-mataram-01";
+  const baseOrigin =
+    typeof window !== "undefined" ? window.location.origin : "https://bbpommataram.id";
+  const qrTargetUrl = `${baseOrigin}/riwayat-pemeliharaan?token=${encodeURIComponent(tokenParam)}`;
 
   return (
     <>

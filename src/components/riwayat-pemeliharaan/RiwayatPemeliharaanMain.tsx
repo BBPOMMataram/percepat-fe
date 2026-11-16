@@ -182,7 +182,6 @@ export default function RiwayatPemeliharaanMain() {
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState<{ url: string; caption: string } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [qrHostMode, setQrHostMode] = useState<"lan" | "localhost">("lan");
 
   // Form Check-in
   const [checkInTimeCaptured, setCheckInTimeCaptured] = useState<{
@@ -997,8 +996,6 @@ export default function RiwayatPemeliharaanMain() {
         isOpen={isQrModalOpen}
         onClose={() => setIsQrModalOpen(false)}
         assetInfo={assetInfo}
-        qrHostMode={qrHostMode}
-        onChangeHostMode={setQrHostMode}
         onPrintSticker={handlePrintSticker}
       />
 
@@ -1011,7 +1008,6 @@ export default function RiwayatPemeliharaanMain() {
       {/* 12. Tampilan Khusus Cetak (Lembar Kendali Resmi & Stiker QR) */}
       <PrintSheetView
         printMode={printMode}
-        qrHostMode={qrHostMode}
         assetInfo={assetInfo}
         picInfo={picInfo}
         filteredRecords={filteredRecords}
