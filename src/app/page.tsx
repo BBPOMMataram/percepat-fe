@@ -1,5 +1,5 @@
 import Main from "@/components/Main";
 
-const MainPage = () => <MainPage />
+const MainPage = () => <Main />
 
 export default Main;

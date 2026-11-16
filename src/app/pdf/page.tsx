@@ -49,7 +49,7 @@ export default function PdfToolsPage() {
         </div>
 
         <Link
-          href="/pdf/compress"
+          href="/pdf/compressor"
           className="group relative flex min-h-64 max-w-md flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white p-7 shadow-sm transition duration-200 hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-900/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
         >
           <div className="absolute -right-8 -top-8 h-36 w-36 rounded-full bg-blue-50 transition-transform duration-300 group-hover:scale-125" />

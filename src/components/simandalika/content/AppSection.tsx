@@ -4,6 +4,8 @@ import { AppDispatch } from "@/redux/store";
 import { AppData } from "@/types/app-data";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
+import Link from "next/link";
+import { ArrowRight, FileText } from "lucide-react";
 import AppContainer from "./AppContainer";
 import apiBase from "@/utils/axios";
 
@@ -90,6 +92,50 @@ export default function AppSection() {
                     Belum ada aplikasi yang terdaftar.
                 </p>
             )}
+
+            <section className="mx-auto mt-16 max-w-6xl" aria-labelledby="utilities-heading">
+                <div className="mb-8 text-center">
+                    <span className="mb-3 inline-flex items-center gap-2 rounded-full bg-blue-900/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-blue-900">
+                        <span className="h-1.5 w-1.5 rounded-full bg-blue-900" />
+                        Utilities
+                    </span>
+                    <h2 id="utilities-heading" className="text-3xl font-extrabold tracking-tight text-gray-900 md:text-4xl">
+                        Alat Bantu
+                    </h2>
+                </div>
+
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    <Link
+                        href="/pdf/compressor"
+                        aria-label="Buka Kompres PDF"
+                        className="group flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200/80 bg-white/90 shadow-md transition-all duration-300 hover:-translate-y-1.5 hover:border-blue-900/30 hover:shadow-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2"
+                    >
+                        <div className="h-1.5 w-full bg-gradient-to-r from-blue-900 to-sky-400" />
+                        <div className="flex flex-1 flex-col gap-4 p-6">
+                            <div className="flex items-start gap-4">
+                                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-900 transition-transform duration-300 group-hover:scale-105">
+                                    <FileText size={32} aria-hidden="true" />
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                    <h3 className="text-lg font-extrabold leading-tight tracking-tight text-gray-900 transition-colors group-hover:text-blue-900">
+                                        Kompres PDF
+                                    </h3>
+                                    <span className="mt-1.5 inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-900">
+                                        PDF
+                                    </span>
+                                </div>
+                            </div>
+                            <p className="text-sm leading-relaxed text-gray-600">
+                                Kurangi ukuran file PDF agar lebih mudah disimpan dan dibagikan.
+                            </p>
+                            <span className="mt-auto flex items-center justify-end gap-1.5 border-t border-gray-100 pt-4 text-xs font-bold uppercase tracking-wide text-blue-900">
+                                Buka alat
+                                <ArrowRight size={15} className="transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true" />
+                            </span>
+                        </div>
+                    </Link>
+                </div>
+            </section>
         </div>
     )
 }
