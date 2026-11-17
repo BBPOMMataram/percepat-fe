@@ -91,7 +91,12 @@ export default function AssetHeroCard({
           {activeSession ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/20 px-2.5 py-1 text-[11px] sm:text-xs font-bold text-amber-200 border border-amber-300/40 backdrop-blur-xs">
               <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping" />
-              Kondisi: {getActivityDynamicStatus(activeSession.activityType)}
+              <span>
+                Kondisi: {getActivityDynamicStatus(activeSession.activityType)}
+                {activeSession.executorName
+                  ? ` (${activeSession.executorName})`
+                  : ""}
+              </span>
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/20 px-2.5 py-1 text-[11px] sm:text-xs font-bold text-emerald-200 border border-emerald-300/30 backdrop-blur-xs">

@@ -38,6 +38,7 @@ export default function NavBarSiapMelayani() {
                                     <li><Link href={'/simpel-bmn/pemeliharaan'} onClick={() => setPermintaanOpen(false)}>Semua Pemeliharaan</Link></li>
                                     <li><Link href={'/simpel-bmn/pemeliharaan-anda'} onClick={() => setPermintaanOpen(false)}>Pemeliharaan Anda</Link></li>
                                     <li><Link href={'/simpel-bmn/disposisi'} onClick={() => setPermintaanOpen(false)}>Disposisi</Link></li>
+                                    <li><Link href={'/simpel-bmn/pemeliharaan-rutin'} onClick={() => setPermintaanOpen(false)}>Pemeliharaan Rutin Aset</Link></li>
                                 </ul>
                             )}
                         </li>
@@ -61,6 +62,7 @@ export default function NavBarSiapMelayani() {
                                 <li><Link href={'/simpel-bmn/pemeliharaan'} onClick={() => setPermintaanOpen(false)}>Semua Pemeliharaan</Link></li>
                                 <li><Link href={'/simpel-bmn/pemeliharaan-anda'} onClick={() => setPermintaanOpen(false)}>Pemeliharaan Anda</Link></li>
                                 <li><Link href={'/simpel-bmn/disposisi'} onClick={() => setPermintaanOpen(false)}>Disposisi</Link></li>
+                                <li><Link href={'/simpel-bmn/pemeliharaan-rutin'} onClick={() => setPermintaanOpen(false)}>Pemeliharaan Rutin Aset</Link></li>
                             </ul>
                         )}
                     </li>

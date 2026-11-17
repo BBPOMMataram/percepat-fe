@@ -195,15 +195,7 @@ export default function RealisasiRoTable() {
   );
   const [showYearList, setShowYearList] = useState<boolean>(!yearParam);
 
-  const [roYears, setRoYears] = useState<RoYearItem[]>([
-    {
-      year: 2026,
-      spreadsheet_name: "REKAP DATA RHPK 2026 Mataram (Tab Realisasi RO)",
-      original_filename: "REKAP_DATA_RHPK_2026_Mataram_Realisasi_RO.xlsx",
-      uploaded_at_formatted: "26 Oktober 2026, 15:30 WITA",
-      is_locked: false,
-    },
-  ]);
+  const [roYears, setRoYears] = useState<RoYearItem[]>([]);
 
   const [fileInfo, setFileInfo] = useState<FileInfo | null>(null);
 
@@ -1162,7 +1154,7 @@ export default function RealisasiRoTable() {
                 </p>
                 <div className="mt-2.5 flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
                   <Icon icon="solar:calendar-date-bold" width={14} className="text-[#005baa]" />
-                  <span>Diunggah: {item.uploaded_at_formatted || "26 Oktober 2026, 15:30 WITA"}</span>
+                  <span>Diunggah: {item.uploaded_at_formatted || "-"}</span>
                 </div>
               </div>
 
@@ -1520,7 +1512,7 @@ export default function RealisasiRoTable() {
             </p>
             <div className="flex items-center gap-1.5 text-xs font-bold text-[#005baa] mt-0.5">
               <Icon icon="solar:calendar-date-bold" width={15} />
-              <span>{fileInfo?.uploaded_at_formatted || "26 Oktober 2026, 15:30 WITA"}</span>
+              <span>{fileInfo?.uploaded_at_formatted || "-"}</span>
             </div>
           </div>
         </div>

@@ -723,10 +723,14 @@ export default function MatriksRekomendasiTu() {
               ⭐ Kategori Laporan (Kuning)
             </span>
             <span className="mt-2 block text-2xl font-black text-amber-950">
-              3 Triwulan
+              {availableTabs.laporan.length > 0
+                ? `${availableTabs.laporan.length} Triwulan`
+                : "4 Triwulan"}
             </span>
             <span className="text-xs text-amber-800 mt-1 block">
-              Kendala TW 1, TW 2, TW 3 (Header #ffc000 Resmi LAPKIN)
+              {availableTabs.laporan.length > 0
+                ? `${availableTabs.laporan.map((t) => t.title || t.sheet_name).join(", ")} (Header #ffc000 Resmi LAPKIN)`
+                : "Kendala TW 1 s.d. TW 4 (Header #ffc000 Resmi LAPKIN)"}
             </span>
           </div>
 
@@ -735,10 +739,12 @@ export default function MatriksRekomendasiTu() {
               📑 Tab Hasil Tarikan
             </span>
             <span className="mt-2 block text-2xl font-black text-[#005baa]">
-              8 Tab Tarikan
+              {availableTabs.tarikan.length} Tab Tarikan
             </span>
             <span className="text-xs text-slate-500 mt-1 block">
-              HTL TW 1-2, RTL TW 4 2025, Rencana Aksi RO TW 1-3, dsb.
+              {availableTabs.tarikan.length > 0
+                ? `${availableTabs.tarikan.slice(0, 4).map((t) => t.title || t.sheet_name).join(", ")}${availableTabs.tarikan.length > 4 ? ", dsb." : ""}`
+                : "Menunggu sinkronisasi tab spreadsheet"}
             </span>
           </div>
         </div>
@@ -1018,32 +1024,30 @@ export default function MatriksRekomendasiTu() {
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5">
-              {[
-                { name: "HTL TW 1 2026", short: "HTL TW 1" },
-                { name: "HTL TW 2 2026", short: "HTL TW 2" },
-                { name: "RTL TW 4 2025", short: "RTL TW 4 2025" },
-                { name: "Rencana Aksi RO TW 1", short: "Aksi RO TW 1" },
-                { name: "Rencana Aksi RO TW 2", short: "Aksi RO TW 2" },
-                { name: "Rencana Aksi RO TW 3", short: "Aksi RO TW 3" },
-                { name: "TW 1 2026", short: "Tarikan TW 1" },
-                { name: "LAPKIN TW 3 2025", short: "LAPKIN TW 3" },
-              ].map((tab) => {
-                const active = activeType === "tarikan" && selectedTarikanSheet === tab.name;
-                return (
-                  <button
-                    key={tab.name}
-                    type="button"
-                    onClick={() => handleSelectTarikanTab(tab.name)}
-                    className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
-                      active
-                        ? "bg-[#005baa] text-white shadow-xs ring-2 ring-[#005baa]/20"
-                        : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
-                    }`}
-                  >
-                    {tab.name}
-                  </button>
-                );
-              })}
+              {availableTabs.tarikan.length === 0 ? (
+                <span className="text-xs italic text-slate-400">
+                  Belum ada tab tarikan pada tahun {selectedYear}.
+                </span>
+              ) : (
+                availableTabs.tarikan.map((tab) => {
+                  const tabName = tab.sheet_name || tab.title;
+                  const active = activeType === "tarikan" && selectedTarikanSheet === tabName;
+                  return (
+                    <button
+                      key={tab.id || tabName}
+                      type="button"
+                      onClick={() => handleSelectTarikanTab(tabName)}
+                      className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+                        active
+                          ? "bg-[#005baa] text-white shadow-xs ring-2 ring-[#005baa]/20"
+                          : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
+                      }`}
+                    >
+                      {tab.title || tabName}
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

@@ -17,12 +17,9 @@ interface CheckOutModalProps {
   onChangeStatusAfter: (s: MaintenanceRecord["statusAfter"]) => void;
   checkOutNotes: string;
   onChangeNotes: (v: string) => void;
-  checkOutPhotoUrl: string;
-  onChangePhotoUrl: (v: string) => void;
-  onPhotoFileChange: (
-    e: React.ChangeEvent<HTMLInputElement>,
-    setter: (url: string) => void
-  ) => void;
+  checkOutPhotos: string[];
+  onAddPhotos: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRemovePhoto: (index: number) => void;
   isSubmitting: boolean;
   onSubmit: (e: React.FormEvent) => void;
 }
@@ -36,9 +33,9 @@ export default function CheckOutModal({
   onChangeStatusAfter,
   checkOutNotes,
   onChangeNotes,
-  checkOutPhotoUrl,
-  onChangePhotoUrl,
-  onPhotoFileChange,
+  checkOutPhotos,
+  onAddPhotos,
+  onRemovePhoto,
   isSubmitting,
   onSubmit,
 }: CheckOutModalProps) {
@@ -54,7 +51,7 @@ export default function CheckOutModal({
               Langkah 2: Check-out (Selesaikan Kegiatan)
             </span>
             <h3 className="text-sm sm:text-base font-bold text-slate-900 mt-0.5">
-              Selesaikan & Simpan Riwayat
+              Selesaikan & Catat Hasil Pemeliharaan
             </h3>
           </div>
           <button
@@ -70,60 +67,56 @@ export default function CheckOutModal({
           onSubmit={onSubmit}
           className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs"
         >
-          {/* Ringkasan Kegiatan */}
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-1.5">
+          {/* Ringkasan Waktu Mulai -> Selesai & Durasi */}
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                JENIS KEGIATAN:
+              <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
+                RINGKASAN WAKTU & DURASI OTOMATIS
               </span>
-              <span className="font-bold text-slate-900">
+              <span className="rounded-md bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                Durasi: {checkOutTimeCaptured.duration} Menit
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-emerald-200/60 font-mono text-[11px]">
+              <div>
+                <span className="text-slate-500 block text-[10px] font-sans">
+                  Mulai (Check-in):
+                </span>
+                <strong className="text-slate-800">{activeSession.startTime} WITA</strong>
+              </div>
+              <div>
+                <span className="text-slate-500 block text-[10px] font-sans">
+                  Selesai (Check-out):
+                </span>
+                <strong className="text-emerald-700">
+                  {checkOutTimeCaptured.timeStr} WITA
+                </strong>
+              </div>
+            </div>
+          </div>
+
+          {/* Info Kegiatan yang Sedang Diselesaikan */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase">
+                KEGIATAN YANG DILAKUKAN:
+              </span>
+              <span className="text-[10px] font-semibold text-[#005baa]">
                 {getActivityBadge(activeSession.activityType).label}
               </span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] text-slate-500">Pelaksana:</span>
-              <span className="font-semibold text-slate-800">
-                {activeSession.executorName}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] text-slate-500">Waktu Mulai:</span>
-              <span className="font-mono font-semibold text-slate-800">
-                {activeSession.startTime} WITA
-              </span>
-            </div>
+            <p className="text-slate-800 font-medium">
+              {activeSession.activityDetails}
+            </p>
+            <p className="text-[10px] text-slate-500 mt-1">
+              Pelaksana: <strong>{activeSession.executorName}</strong>
+            </p>
           </div>
 
-          {/* Waktu Selesai & Durasi Terhitung Otomatis */}
-          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-2.5 sm:p-3">
-              <span className="block text-[9px] sm:text-[10px] font-bold text-emerald-800 uppercase tracking-wider mb-0.5">
-                WAKTU SELESAI
-              </span>
-              <span className="text-xs sm:text-sm font-bold text-emerald-950 font-mono">
-                {checkOutTimeCaptured.timeStr} WITA
-              </span>
-              <span className="block text-[10px] text-emerald-700 mt-0.5">
-                Tercatat otomatis
-              </span>
-            </div>
-            <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-2.5 sm:p-3">
-              <span className="block text-[9px] sm:text-[10px] font-bold text-blue-800 uppercase tracking-wider mb-0.5">
-                DURASI TOTAL
-              </span>
-              <span className="text-xs sm:text-sm font-bold text-blue-950 font-mono">
-                {checkOutTimeCaptured.duration} Menit
-              </span>
-              <span className="block text-[10px] text-blue-700 mt-0.5">
-                Dihitung otomatis
-              </span>
-            </div>
-          </div>
-
-          {/* Kondisi Aset Akhir */}
+          {/* Status Kesiapan Akhir */}
           <div>
             <label className="block font-semibold text-slate-700 mb-1">
-              Kondisi Aset Akhir Setelah Kegiatan{" "}
+              Status Kondisi Aset Setelah Kegiatan{" "}
               <span className="text-rose-500">*</span>
             </label>
             <select
@@ -147,76 +140,130 @@ export default function CheckOutModal({
             </select>
           </div>
 
-          {/* Catatan & Hasil Pemeriksaan Akhir */}
+          {/* Catatan & Hasil Pemeriksaan Akhir (Opsional) */}
           <div>
             <label className="block font-semibold text-slate-700 mb-1">
               Catatan / Hasil Pemeriksaan Akhir{" "}
-              <span className="text-rose-500">*</span>
+              <span className="text-[10px] font-normal text-slate-400">(Opsional)</span>
             </label>
             <textarea
-              rows={3}
-              required
-              placeholder="Contoh: Pemanasan 15 menit berjalan normal, suara mesin halus, voltase stabil, level solar cukup..."
+              rows={2}
+              placeholder="Tuliskan catatan atau hasil pemeriksaan akhir (opsional)..."
               value={checkOutNotes}
               onChange={(e) => onChangeNotes(e.target.value)}
               className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-[#005baa] focus:outline-none"
             />
           </div>
 
-          {/* Upload Foto Bukti Akhir */}
+          {/* Upload Multi-Foto Bukti Sesudah (Wajib) */}
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">
-              Foto Bukti Akhir (Panel Jam Operasi / Fisik Aset)
-            </label>
-            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-center">
-              {checkOutPhotoUrl ? (
-                <div className="relative inline-block group">
-                  <img
-                    src={checkOutPhotoUrl}
-                    alt="Foto Bukti Akhir"
-                    className="h-28 w-auto rounded-lg object-cover mx-auto border border-slate-200 shadow-xs"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => onChangePhotoUrl("")}
-                    className="absolute -top-2 -right-2 rounded-full bg-rose-600 text-white p-1 hover:bg-rose-700 shadow-sm transition"
-                    title="Hapus Foto"
-                  >
-                    <Icon icon="solar:trash-bin-trash-bold" width={14} />
-                  </button>
-                  <div className="mt-1 text-[10px] text-slate-500 font-medium flex items-center justify-center gap-1">
-                    <Icon
-                      icon="solar:check-circle-bold"
-                      width={12}
-                      className="text-emerald-600"
-                    />
-                    <span>Foto tersimpan</span>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block font-semibold text-slate-700">
+                Foto Bukti Sesudah (Bisa Upload Beberapa Foto){" "}
+                <span className="text-rose-500">*</span>
+              </label>
+              {checkOutPhotos.length > 0 && (
+                <span className="text-[10px] font-bold text-emerald-700">
+                  {checkOutPhotos.length} foto dilampirkan
+                </span>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+              {/* Input untuk Galeri / File (Tanpa atribut capture agar Galeri selalu muncul di HP) */}
+              <input
+                type="file"
+                id="checkOutGalleryInput"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={onAddPhotos}
+              />
+              {/* Input khusus Kamera HP */}
+              <input
+                type="file"
+                id="checkOutCameraInput"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={onAddPhotos}
+              />
+
+              {checkOutPhotos.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {checkOutPhotos.map((url, idx) => (
+                      <div
+                        key={idx}
+                        className="relative group rounded-lg overflow-hidden border border-slate-200 bg-white aspect-square shadow-2xs"
+                      >
+                        <img
+                          src={url}
+                          alt={`Foto Sesudah ${idx + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => onRemovePhoto(idx)}
+                          className="absolute top-1 right-1 rounded-full bg-rose-600/90 text-white p-1 hover:bg-rose-700 shadow-xs transition"
+                          title="Hapus Foto Ini"
+                        >
+                          <Icon icon="solar:trash-bin-trash-bold" width={12} />
+                        </button>
+                        <span className="absolute bottom-1 left-1 rounded bg-slate-900/70 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                          #{idx + 1}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Tombol Tambah Lagi dari Galeri atau Kamera */}
+                  <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                    <label
+                      htmlFor="checkOutGalleryInput"
+                      className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-white px-3 py-1.5 text-[11px] font-bold text-emerald-700 hover:bg-emerald-50 transition shadow-2xs"
+                    >
+                      <Icon icon="solar:gallery-bold" width={15} />
+                      <span>+ Pilih dari Galeri</span>
+                    </label>
+                    <label
+                      htmlFor="checkOutCameraInput"
+                      className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-100 transition shadow-2xs"
+                    >
+                      <Icon icon="solar:camera-bold" width={15} className="text-emerald-600" />
+                      <span>+ Ambil Kamera</span>
+                    </label>
                   </div>
                 </div>
               ) : (
-                <div>
-                  <input
-                    type="file"
-                    id="checkOutPhotoInput"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={(e) => onPhotoFileChange(e, onChangePhotoUrl)}
-                  />
-                  <label
-                    htmlFor="checkOutPhotoInput"
-                    className="cursor-pointer flex flex-col items-center justify-center p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-emerald-600 hover:bg-emerald-50/50 transition-all duration-150 group"
-                  >
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-2xs mb-2">
-                      <Icon icon="solar:camera-bold" width={22} />
-                    </div>
-                    <span className="block font-semibold text-slate-800 text-xs group-hover:text-emerald-700 transition">
-                      Ambil Foto Panel Kontrol Akhir
+                <div className="flex flex-col items-center justify-center p-3 rounded-xl border-2 border-dashed border-slate-300 bg-white/60 text-center space-y-2.5">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 shadow-2xs">
+                    <Icon icon="solar:gallery-wide-bold" width={20} />
+                  </div>
+                  <div>
+                    <span className="block font-semibold text-slate-800 text-xs">
+                      Lampirkan Foto Bukti Sesudah Kegiatan
                     </span>
                     <span className="text-[11px] text-slate-400 block mt-0.5">
-                      Ketuk untuk buka kamera HP atau upload file foto
+                      Pilih beberapa foto dari galeri HP atau ambil langsung dari kamera
                     </span>
-                  </label>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                    <label
+                      htmlFor="checkOutGalleryInput"
+                      className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition shadow-2xs"
+                    >
+                      <Icon icon="solar:gallery-bold" width={15} />
+                      <span>Pilih dari Galeri</span>
+                    </label>
+                    <label
+                      htmlFor="checkOutCameraInput"
+                      className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-2xs"
+                    >
+                      <Icon icon="solar:camera-bold" width={15} className="text-emerald-600" />
+                      <span>Buka Kamera</span>
+                    </label>
+                  </div>
                 </div>
               )}
             </div>
@@ -243,4 +290,3 @@ export default function CheckOutModal({
     </div>
   );
 }
-

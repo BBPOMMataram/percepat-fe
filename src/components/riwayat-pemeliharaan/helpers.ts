@@ -33,17 +33,44 @@ export const formatPersonName = (
 // Bentuk URL Tanda Tangan Digital dari Auth-BPOM
 export const getSignatureUrl = (sigPath?: string | null): string | null => {
   if (!sigPath) return null;
+  const trimmed = String(sigPath).trim();
+  if (!trimmed || trimmed === "-" || trimmed.toLowerCase() === "null") {
+    return null;
+  }
   if (
-    sigPath.startsWith("http://") ||
-    sigPath.startsWith("https://") ||
-    sigPath.startsWith("data:image/")
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("data:image/")
   ) {
-    return sigPath;
+    return trimmed;
   }
   const authBase =
     process.env.NEXT_PUBLIC_BACKEND_URL_AUTH || "http://localhost:8000";
-  const cleanPath = sigPath.startsWith("/") ? sigPath.slice(1) : sigPath;
+  const cleanPath = trimmed.startsWith("/") ? trimmed.slice(1) : trimmed;
   return `${authBase}/storage/${cleanPath}`;
+};
+
+// Parse nilai initial_photo_path / final_photo_path (bisa berupa JSON array string atau string tunggal)
+export const parsePhotoArray = (raw?: string | string[] | null): string[] => {
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw.filter((item) => typeof item === "string" && item.trim() !== "");
+  }
+  const str = String(raw).trim();
+  if (!str || str === "null") return [];
+  if (str.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(str);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(
+          (item) => typeof item === "string" && item.trim() !== ""
+        );
+      }
+    } catch {
+      // Fallback jika bukan JSON valid
+    }
+  }
+  return [str];
 };
 
 // Normalisasi log database menjadi format record tampilan
@@ -60,6 +87,13 @@ export const mapLogToRecord = (log: any): MaintenanceRecord => {
     log.endTime ||
     (finished ? `${pad(finished.getHours())}:${pad(finished.getMinutes())}` : "-");
 
+  const initialPhotos = parsePhotoArray(
+    log.initialPhotos || log.initial_photo_path || log.initialPhotoUrl
+  );
+  const finalPhotos = parsePhotoArray(
+    log.finalPhotos || log.final_photo_path || log.finalPhotoUrl
+  );
+
   return {
     id: log.id,
     date: dateStr,
@@ -68,10 +102,15 @@ export const mapLogToRecord = (log: any): MaintenanceRecord => {
     durationMinutes: log.duration_minutes ?? log.durationMinutes ?? 0,
     activityType: log.activity_type || log.activityType || "routine_service",
     activityDetails: log.activity_details || log.activityDetails || "",
+    userId: log.user_id ?? log.userId ?? null,
     executorName: log.executor_name || log.executorName || "Petugas",
     executorRole: log.executor_role || log.executorRole || "Petugas",
     executorNip: log.executor_nip ?? log.executorNip ?? null,
+    executorSignatureUrl:
+      log.executorSignatureUrl || getSignatureUrl(log.executor_signature_path),
     verifierName: log.verifier_name || log.verifierName || "PIC BMN",
+    verifierSignatureUrl:
+      log.verifierSignatureUrl || getSignatureUrl(log.verifier_signature_path),
     isVerified: !!(log.is_verified ?? log.isVerified),
     verifiedAt: log.verified_at
       ? new Date(log.verified_at).toLocaleDateString("id-ID", {
@@ -84,8 +123,10 @@ export const mapLogToRecord = (log: any): MaintenanceRecord => {
       : log.verifiedAt || undefined,
     statusAfter: log.status_after || log.statusAfter || "standby",
     notes: log.notes,
-    initialPhotoUrl: log.initial_photo_path || log.initialPhotoUrl,
-    finalPhotoUrl: log.final_photo_path || log.finalPhotoUrl,
+    initialPhotoUrl: initialPhotos[0],
+    finalPhotoUrl: finalPhotos[0],
+    initialPhotos,
+    finalPhotos,
   };
 };
 
@@ -105,6 +146,10 @@ export const mapActiveSession = (sess: any): ActiveMaintenanceSession => {
       minute: "2-digit",
     }) + " WITA";
 
+  const initialPhotos = parsePhotoArray(
+    sess.initialPhotos || sess.initial_photo_path || sess.initialPhotoUrl
+  );
+
   return {
     id: sess.id,
     date: dateStr,
@@ -113,10 +158,12 @@ export const mapActiveSession = (sess: any): ActiveMaintenanceSession => {
     startTimestamp: sess.startTimestamp || started.getTime(),
     activityType: sess.activity_type || sess.activityType || "warming_up",
     activityDetails: sess.activity_details || sess.activityDetails || "",
+    userId: sess.user_id ?? sess.userId ?? null,
     executorName: sess.executor_name || sess.executorName || "Petugas",
     executorRole: sess.executor_role || sess.executorRole || "Petugas",
     executorNip: sess.executor_nip ?? sess.executorNip ?? null,
-    initialPhotoUrl: sess.initial_photo_path || sess.initialPhotoUrl,
+    initialPhotoUrl: initialPhotos[0],
+    initialPhotos,
   };
 };
 
@@ -127,6 +174,8 @@ export const getActivityDynamicStatus = (
   switch (type) {
     case "warming_up":
       return "Sedang Dipanaskan (Warming-up)";
+    case "module_check":
+      return "Dalam Pemeriksaan (Pengecekan Modul)";
     case "emergency_run":
       return "Sedang Beroperasi (Darurat - PLN Padam)";
     case "routine_service":
@@ -149,6 +198,11 @@ export const getActivityBadge = (type: MaintenanceRecord["activityType"]) => {
       return {
         label: "Pemanasan Rutin",
         color: "text-amber-800 bg-amber-50 border-amber-200",
+      };
+    case "module_check":
+      return {
+        label: "Pengecekan Modul",
+        color: "text-cyan-800 bg-cyan-50 border-cyan-200",
       };
     case "emergency_run":
       return {
@@ -177,7 +231,7 @@ export const getActivityBadge = (type: MaintenanceRecord["activityType"]) => {
       };
     default:
       return {
-        label: "Pemeliharaan",
+        label: "Pemeliharaan Lainnya",
         color: "text-slate-700 bg-slate-100 border-slate-200",
       };
   }
@@ -196,56 +250,78 @@ export const formatDateDisplay = (dateStr: string): string => {
   }
 };
 
-// Kompresi Foto Kamera / File Upload sebelum disimpan
-export const compressAndReadPhotoFile = (
-  e: React.ChangeEvent<HTMLInputElement>,
-  setter: (url: string) => void,
-  onError: (msg: string) => void
-) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+// Kompresi 1 file gambar menjadi Data URL JPEG terkompresi
+const compressSingleImageFile = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    if (file.size > 15 * 1024 * 1024) {
+      reject(new Error(`Ukuran foto "${file.name}" melebihi 15MB.`));
+      return;
+    }
 
-  if (file.size > 12 * 1024 * 1024) {
-    onError("⚠️ Ukuran foto terlalu besar (maksimal 12MB).");
-    return;
-  }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Gagal membaca file foto."));
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Format gambar tidak valid."));
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 1080;
+        const MAX_HEIGHT = 1080;
+        let width = img.width;
+        let height = img.height;
 
-  const reader = new FileReader();
-  reader.onload = (event) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const MAX_WIDTH = 1280;
-      const MAX_HEIGHT = 1280;
-      let width = img.width;
-      let height = img.height;
-
-      if (width > height) {
-        if (width > MAX_WIDTH) {
-          height = Math.round((height * MAX_WIDTH) / width);
-          width = MAX_WIDTH;
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width = Math.round((width * MAX_HEIGHT) / height);
+            height = MAX_HEIGHT;
+          }
         }
-      } else {
-        if (height > MAX_HEIGHT) {
-          width = Math.round((width * MAX_HEIGHT) / height);
-          height = MAX_HEIGHT;
-        }
-      }
 
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
-        setter(dataUrl);
-      } else {
-        setter(event.target?.result as string);
-      }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.78);
+          resolve(dataUrl);
+        } else {
+          resolve(event.target?.result as string);
+        }
+      };
+      img.src = event.target?.result as string;
     };
-    img.src = event.target?.result as string;
-  };
-  reader.readAsDataURL(file);
-  e.target.value = "";
+    reader.readAsDataURL(file);
+  });
 };
 
+// Kompresi Multi-Foto dari input file dan tambahkan ke daftar foto
+export const compressAndReadMultiplePhotos = async (
+  e: React.ChangeEvent<HTMLInputElement>,
+  setter: React.Dispatch<React.SetStateAction<string[]>>,
+  onError: (msg: string) => void
+) => {
+  const fileList = e.target.files;
+  if (!fileList || fileList.length === 0) return;
+
+  const files = Array.from(fileList);
+  e.target.value = "";
+
+  const compressedResults: string[] = [];
+  for (const file of files) {
+    try {
+      const dataUrl = await compressSingleImageFile(file);
+      compressedResults.push(dataUrl);
+    } catch (err: any) {
+      onError(err?.message || "⚠️ Gagal memproses salah satu foto.");
+    }
+  }
+
+  if (compressedResults.length > 0) {
+    setter((prev) => [...prev, ...compressedResults]);
+  }
+};

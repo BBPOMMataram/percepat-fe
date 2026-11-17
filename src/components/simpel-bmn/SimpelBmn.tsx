@@ -115,6 +115,12 @@ export default function MainSimpelBmn() {
                                         DATA PEMELIHARAAN
                                     </Link>
 
+                                    <Link
+                                        href="/simpel-bmn/pemeliharaan-rutin"
+                                        className="btn btn-secondary">
+                                        PEMELIHARAAN RUTIN ASET
+                                    </Link>
+
                                     <motion.a
                                         href="/simpel-bmn/pemeliharaan/form"
                                         className="btn btn-error">

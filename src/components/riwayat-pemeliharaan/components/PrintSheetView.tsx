@@ -8,7 +8,7 @@ interface PrintSheetViewProps {
   assetInfo: AssetMetadata;
   picInfo: PicInfo | null;
   filteredRecords: MaintenanceRecord[];
-  executorSignatureUrl: string | null;
+  resolveExecutorSignature: (item: MaintenanceRecord) => string | null;
   picSignatureUrl: string | null;
 }
 
@@ -17,13 +17,17 @@ export default function PrintSheetView({
   assetInfo,
   picInfo,
   filteredRecords,
-  executorSignatureUrl,
+  resolveExecutorSignature,
   picSignatureUrl,
 }: PrintSheetViewProps) {
   const tokenParam = assetInfo.qr_token || "bpom-genset-mataram-01";
   const baseOrigin =
-    typeof window !== "undefined" ? window.location.origin : "https://bbpommataram.id";
-  const qrTargetUrl = `${baseOrigin}/riwayat-pemeliharaan?token=${encodeURIComponent(tokenParam)}`;
+    typeof window !== "undefined"
+      ? window.location.origin
+      : "https://bbpommataram.id";
+  const qrTargetUrl = `${baseOrigin}/simpel-bmn/pemeliharaan-rutin?token=${encodeURIComponent(
+    tokenParam
+  )}`;
 
   return (
     <>
@@ -78,26 +82,29 @@ export default function PrintSheetView({
                 {assetInfo.asset_code}
               </p>
               <p className="text-[10px] text-slate-600 mt-2">
-                Arahkan kamera smartphone ke QR di atas untuk membuka Riwayat
-                Pemeliharaan & Operasional
+                Arahkan kamera smartphone ke QR di atas untuk membuka Riwayat Pemeliharaan & Operasional
               </p>
             </div>
           </div>
         ) : (
           <div>
-            {/* KOP Surat Resmi BBPOM */}
-            <div className="text-center pb-3 mb-3 border-b-2 border-black">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-black">
-                BADAN PENGAWAS OBAT DAN MAKANAN RI
-              </h2>
-              <h1 className="text-base font-extrabold uppercase tracking-wide text-black">
-                BALAI BESAR PENGAWAS OBAT DAN MAKANAN DI MATARAM
-              </h1>
-              <p className="text-[10px] text-gray-700 mt-0.5">
-                Jl. Cendrawasih No. 58, Karang Taliwang, Kec. Cakranegara, Kota
-                Mataram, Nusa Tenggara Barat 83239
-              </p>
-              <div className="mt-2 pt-1 border-t border-gray-400">
+            {/* KOP Surat Resmi BBPOM Menggunakan Gambar header.png (Lebar penuh sejajar isi tabel) */}
+            <div className="w-full mb-3">
+              <div className="w-full overflow-hidden">
+                <img
+                  src="/assets/images/header.png"
+                  alt="Kop Surat BBPOM di Mataram"
+                  className="block h-auto"
+                  style={{
+                    width: "102.95%",
+                    maxWidth: "none",
+                    marginLeft: "-1.27%",
+                    marginTop: "-3%",
+                    marginBottom: "-1.5%",
+                  }}
+                />
+              </div>
+              <div className="mt-2 text-center">
                 <h3 className="text-xs font-bold uppercase tracking-wide text-black underline">
                   LEMBAR KENDALI OPERASIONAL DAN PEMELIHARAAN BMN
                 </h3>
@@ -115,32 +122,24 @@ export default function PrintSheetView({
                 <div className="flex mt-0.5">
                   <span className="w-36 font-semibold">Kode BMN / NUP</span>
                   <span className="w-3">:</span>
-                  <span className="font-mono">
-                    {assetInfo.asset_code} / NUP 0001
-                  </span>
+                  <span className="font-mono">{assetInfo.asset_code}</span>
                 </div>
                 <div className="flex mt-0.5">
-                  <span className="w-36 font-semibold">Lokasi Penempatan</span>
+                  <span className="w-36 font-semibold">Lokasi / Kategori</span>
                   <span className="w-3">:</span>
-                  <span>
-                    {assetInfo.category || "BBPOM di Mataram"}
-                  </span>
+                  <span>{assetInfo.category}</span>
                 </div>
               </div>
               <div>
                 <div className="flex">
-                  <span className="w-36 font-semibold">
-                    Penanggung Jawab (PIC)
-                  </span>
+                  <span className="w-36 font-semibold">Penanggung Jawab (PIC)</span>
                   <span className="w-3">:</span>
                   <span className="font-semibold">
                     {picInfo?.name || "PIC BMN"}
                   </span>
                 </div>
                 <div className="flex mt-0.5">
-                  <span className="w-36 font-semibold">
-                    Status Kondisi Terakhir
-                  </span>
+                  <span className="w-36 font-semibold">Status Kondisi Terakhir</span>
                   <span className="w-3">:</span>
                   <span className="font-semibold uppercase">
                     {assetInfo.current_status === "standby"
@@ -149,9 +148,7 @@ export default function PrintSheetView({
                   </span>
                 </div>
                 <div className="flex mt-0.5">
-                  <span className="w-36 font-semibold">
-                    Waktu Cetak Dokumen
-                  </span>
+                  <span className="w-36 font-semibold">Waktu Cetak Dokumen</span>
                   <span className="w-3">:</span>
                   <span>
                     {new Date().toLocaleDateString("id-ID", {
@@ -165,7 +162,7 @@ export default function PrintSheetView({
               </div>
             </div>
 
-            {/* Tabel Riwayat Pemeliharaan & Operasional (HANYA TABEL) */}
+            {/* Tabel Riwayat Pemeliharaan & Operasional */}
             <table className="w-full border-collapse border border-black text-[10px] text-left">
               <thead>
                 <tr className="bg-gray-100 text-center font-bold border-b border-black text-[10px]">
@@ -182,10 +179,10 @@ export default function PrintSheetView({
                   <th className="border border-black px-2 py-1.5">
                     URAIAN & CATATAN KEGIATAN
                   </th>
-                  <th className="border border-black px-2 py-1.5 w-32">
+                  <th className="border border-black px-2 py-1.5 w-36">
                     PETUGAS PELAKSANA
                   </th>
-                  <th className="border border-black px-2 py-1.5 w-28">
+                  <th className="border border-black px-2 py-1.5 w-32">
                     STATUS / PARAF PIC
                   </th>
                 </tr>
@@ -203,6 +200,10 @@ export default function PrintSheetView({
                 ) : (
                   filteredRecords.map((item, idx) => {
                     const typeBadge = getActivityBadge(item.activityType);
+                    const execSig = resolveExecutorSignature(item);
+                    const verifSig =
+                      item.verifierSignatureUrl || picSignatureUrl || null;
+
                     return (
                       <tr key={item.id} className="border-b border-black">
                         <td className="border border-black px-1.5 py-1.5 text-center font-medium">
@@ -241,28 +242,42 @@ export default function PrintSheetView({
                               {item.executorRole}
                             </div>
                           )}
-                          {item.executorNip && item.executorNip !== "-" && (
-                            <div className="text-[8px] text-gray-500 font-mono">
-                              NIP: {item.executorNip}
-                            </div>
+                          {execSig && (
+                            <img
+                              src={execSig}
+                              alt="TTD Pelaksana"
+                              className="h-7 max-w-[75px] object-contain mx-auto mt-0.5"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display =
+                                  "none";
+                              }}
+                            />
                           )}
                         </td>
                         <td className="border border-black px-2 py-1.5 text-center">
                           {item.isVerified ? (
                             <div>
                               <div className="font-bold text-emerald-900 text-[10px]">
-                                DISETUJUI
+                                DISETUJUI PIC
                               </div>
+                              {verifSig && (
+                                <img
+                                  src={verifSig}
+                                  alt="Paraf PIC"
+                                  className="h-7 max-w-[75px] object-contain mx-auto my-0.5"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display =
+                                      "none";
+                                  }}
+                                />
+                              )}
                               <div className="text-[8px] text-gray-600 font-mono mt-0.5">
                                 {item.verifiedAt || "Terverifikasi"}
-                              </div>
-                              <div className="text-[8px] text-gray-500">
-                                PIC BMN
                               </div>
                             </div>
                           ) : (
                             <div className="text-gray-400 italic text-[9px]">
-                              Belum Diverifikasi
+                              Menunggu Persetujuan
                             </div>
                           )}
                         </td>
@@ -273,40 +288,9 @@ export default function PrintSheetView({
               </tbody>
             </table>
 
-            {/* Lembar Tanda Tangan Pengesahan Murni dari Database Auth */}
-            <div className="mt-5 grid grid-cols-2 text-[10px] pt-2 break-inside-avoid">
-              <div className="text-center">
-                <p className="font-medium">Petugas Pelaksana Pemeliharaan,</p>
-                <div className="h-14 flex items-center justify-center">
-                  {filteredRecords.length > 0 && executorSignatureUrl ? (
-                    <img
-                      src={executorSignatureUrl}
-                      alt="TTD Pelaksana"
-                      className="max-h-12 max-w-[120px] object-contain"
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    <div className="text-gray-400 text-[9px] italic">
-                      ( Terverifikasi Digital via SSO )
-                    </div>
-                  )}
-                </div>
-                <p className="font-bold underline">
-                  {filteredRecords.length > 0
-                    ? filteredRecords[0].executorName
-                    : "( .................................................... )"}
-                </p>
-                {filteredRecords.length > 0 &&
-                filteredRecords[0].executorNip &&
-                filteredRecords[0].executorNip !== "-" ? (
-                  <p className="text-[9px] text-gray-600">
-                    NIP. {filteredRecords[0].executorNip}
-                  </p>
-                ) : null}
-              </div>
-              <div className="text-center">
+            {/* Lembar Tanda Tangan Pengesahan (Hanya TTD PIC di Sebelah Kanan) */}
+            <div className="mt-6 flex justify-end text-[10px] pt-2 break-inside-avoid pr-6">
+              <div className="text-center min-w-[220px]">
                 <p className="font-medium">
                   Mataram,{" "}
                   {new Date().toLocaleDateString("id-ID", {
@@ -317,14 +301,14 @@ export default function PrintSheetView({
                 </p>
                 <p className="font-medium">Mengetahui / Menyetujui,</p>
                 <p className="font-semibold">
-                  {picInfo?.role_title || "PIC BMN"}
+                  {picInfo?.role_title || "Kasubag Tata Usaha / PIC BMN"}
                 </p>
-                <div className="h-14 flex items-center justify-center">
+                <div className="h-16 flex items-center justify-center my-1">
                   {picSignatureUrl ? (
                     <img
                       src={picSignatureUrl}
                       alt="TTD PIC"
-                      className="max-h-12 max-w-[120px] object-contain"
+                      className="max-h-14 max-w-[140px] object-contain"
                       onError={(e) => {
                         (e.target as HTMLElement).style.display = "none";
                       }}
@@ -339,7 +323,9 @@ export default function PrintSheetView({
                   {picInfo?.name || "PIC BMN"}
                 </p>
                 {picInfo?.nip && picInfo.nip !== "-" ? (
-                  <p className="text-[9px] text-gray-600">NIP. {picInfo.nip}</p>
+                  <p className="text-[9px] text-gray-600">
+                    NIP. {picInfo.nip}
+                  </p>
                 ) : null}
               </div>
             </div>
@@ -349,4 +335,3 @@ export default function PrintSheetView({
     </>
   );
 }
-

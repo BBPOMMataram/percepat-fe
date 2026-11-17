@@ -30,6 +30,10 @@ type MonthTab = {
   title: string;
   google_sheet_id?: string | number | null;
   is_active?: number;
+  month_number?: number | null;
+  total_pagu?: number;
+  total_realisasi?: number;
+  has_realisasi?: boolean;
 };
 
 type AllocationInfo = {
@@ -138,10 +142,18 @@ export default function RekapitulasiAnggaran() {
 
       setTabs(tabList);
 
-      // Select initial or first tab
+      // Pilih tab dari query ?tab=, atau otomatis tab aktif terakhir dengan realisasi > 0
       if (tabList.length > 0) {
         const found = tabList.find((t) => String(t.id) === initialTabId);
-        const targetTab = found || tabList[0];
+        const latestApiId = String(raw?.latest_tab_id ?? raw?.data?.latest_tab_id ?? "");
+        const latestFromApi = latestApiId
+          ? tabList.find((t) => String(t.id) === latestApiId)
+          : undefined;
+        const latestWithReal =
+          [...tabList].reverse().find(
+            (t) => Boolean(t.has_realisasi) || Number(t.total_realisasi || 0) > 0
+          ) || tabList[tabList.length - 1];
+        const targetTab = found || latestFromApi || latestWithReal;
         setSelectedTabId(String(targetTab.id));
       } else {
         setSelectedTabId("");
@@ -465,9 +477,7 @@ export default function RekapitulasiAnggaran() {
           <p className="mt-3 text-xs text-slate-500">Memuat data rekapitulasi...</p>
         </div>
       ) : activeTabMode === "kegiatan" ? (
-        /* ============================================================ */
-        /* VIEW 1: REKAPITULASI TIAP KEGIATAN                          */
-        /* ============================================================ */
+
         <div className="space-y-4">
           {/* Search Bar */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

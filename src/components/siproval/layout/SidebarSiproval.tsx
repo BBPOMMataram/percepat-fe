@@ -8,30 +8,51 @@ import { Icon } from "@iconify/react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 
-type Actor = "katim" | "kabalai" | "tu" | "superadmin";
+export type Actor = "katim" | "kabalai" | "tu" | "superadmin";
 
-const menus = {
+export type SiprovalMenuItem = {
+  name: string;
+  headerTitle?: string;
+  description?: string;
+  icon: string;
+  url: string;
+  active: string;
+};
+
+export const menus: Record<Actor, SiprovalMenuItem[]> = {
   katim: [
     {
       name: "Dashboard",
+      headerTitle: "Dashboard Ketua Tim",
+      description: "Monitoring capaian dan realisasi kegiatan tim",
       icon: "solar:widget-5-bold",
       url: "/siproval/katim",
       active: "/siproval/katim",
     },
     {
       name: "Entry Data RHPK",
+      description: "Pengisian angka target dan data capaian kegiatan bulanan tim",
       icon: "solar:pen-new-square-bold",
       url: "/siproval/katim/entry-data-rhpk",
       active: "/siproval/katim/entry-data-rhpk",
     },
     {
+      name: "Rekap RHPK",
+      description: "Pantau dan kelola target, realisasi, kendala, serta data pendukung RHPK Balai",
+      icon: "solar:clipboard-check-bold",
+      url: "/siproval/katim/rekap-rhpk",
+      active: "/siproval/katim/rekap-rhpk",
+    },
+    {
       name: "Arahan Pimpinan",
+      description: "Daftar arahan dan evaluasi Kepala Balai untuk tim Anda",
       icon: "solar:chat-round-line-bold",
       url: "/siproval/katim/arahan-pimpinan",
       active: "/siproval/katim/arahan-pimpinan",
     },
     {
       name: "Anggota Tim IKSK",
+      description: "Daftar staf dan pelaksana yang bertugas pada IKSK Anda",
       icon: "solar:users-group-two-rounded-bold",
       url: "/siproval/katim/anggota",
       active: "/siproval/katim/anggota",
@@ -41,18 +62,22 @@ const menus = {
   kabalai: [
     {
       name: "Dashboard",
+      headerTitle: "Catatan Monev & Evaluasi",
+      description: "Monitoring, evaluasi, dan review laporan IKSK",
       icon: "solar:widget-5-bold",
       url: "/siproval/catatan",
       active: "/siproval/catatan",
     },
     {
       name: "Monitoring & Evaluasi",
+      description: "Rekapitulasi Rencana Hasil Pelaksanaan Kegiatan per tahun",
       icon: "solar:chart-2-bold",
       url: "/siproval/monev",
       active: "/siproval/monev",
     },
     {
       name: "RHPK (Read-Only)",
+      description: "Peninjauan seluruh lembar kerja IKSK 1 s.d. 28 dalam mode baca terlindungi",
       icon: "solar:folder-with-files-bold",
       url: "/siproval/rhpk/entry-data",
       active: "/siproval/rhpk/entry-data",
@@ -61,48 +86,56 @@ const menus = {
   tu: [
     {
       name: "Dashboard TU",
+      description: "Pengelolaan anggaran dan pemetaan program kerja",
       icon: "solar:widget-5-bold",
       url: "/siproval/tu",
       active: "/siproval/tu",
     },
     {
       name: "Realisasi RO",
+      description: "Pemantauan target tahunan, bulanan, realisasi, dan capaian Rincian Output",
       icon: "solar:document-medicine-bold",
       url: "/siproval/tu/realisasi-ro",
       active: "/siproval/tu/realisasi-ro",
     },
     {
-      name: "Lembar RHPK (Lihat)",
+      name: "Rekap RHPK",
+      description: "Pantau dan kelola target, realisasi, kendala, serta data pendukung RHPK Balai",
       icon: "solar:document-text-bold",
       url: "/siproval/tu/rhpk",
       active: "/siproval/tu/rhpk",
     },
     {
       name: "Tabel Konversi NKO",
+      description: "Perhitungan dan konversi Nilai Kinerja Organisasi (NKO)",
       icon: "solar:calculator-bold",
       url: "/siproval/tu/konversi-nko",
       active: "/siproval/tu/konversi-nko",
     },
     {
       name: "Budget Mapping",
+      description: "Pemetaan alokasi anggaran dan realisasi bulanan",
       icon: "solar:pie-chart-2-bold",
       url: "/siproval/budget-mapping",
       active: "/siproval/budget-mapping",
     },
     {
       name: "Rekapitulasi Anggaran",
+      description: "Ringkasan pagu dan realisasi anggaran per fungsi dan kegiatan",
       icon: "solar:chart-square-bold",
       url: "/siproval/tu/rekapitulasi-anggaran",
       active: "/siproval/tu/rekapitulasi-anggaran",
     },
     {
       name: "Matriks Rekomendasi",
+      description: "Pemantauan tindak lanjut rekomendasi evaluasi triwulanan",
       icon: "solar:clipboard-list-bold",
       url: "/siproval/tu/matriks-rekomendasi?quarter=TW2",
       active: "/siproval/tu/matriks-rekomendasi",
     },
     {
       name: "Eksport Laporan",
+      description: "Berita Acara Evaluasi Internal gabungan Volume (Realisasi RO) dan Anggaran (Budget Mapping)",
       icon: "solar:printer-bold",
       url: "/siproval/tu/laporan-evaluasi?quarter=TW2",
       active: "/siproval/tu/laporan-evaluasi",
@@ -111,44 +144,162 @@ const menus = {
   superadmin: [
     {
       name: "Entry Data RHPK",
+      headerTitle: "Entry Data RHPK (PIC / Admin)",
+      description: "Pengisian angka target dan data capaian kegiatan bulanan seluruh IKSK",
       icon: "solar:pen-new-square-bold",
       url: "/siproval/admin/entry-data-rhpk",
       active: "/siproval/admin/entry-data-rhpk",
     },
     {
       name: "Kelola Akses RHPK",
+      description: "Pengaturan hak akses dan penugasan IKSK untuk Ketua Tim",
       icon: "solar:document-medicine-bold",
       url: "/siproval/admin/kelola-akses-rhpk",
       active: "/siproval/admin/kelola-akses-rhpk",
     },
     {
       name: "Otorisasi & Kunci Bulan",
+      description: "Manajemen otorisasi dan penguncian periode pengisian bulanan",
       icon: "solar:lock-keyhole-bold",
       url: "/siproval/admin/permission",
       active: "/siproval/admin/permission",
     },
     {
       name: "Kelola User",
+      description: "Manajemen akun pengguna dan hak akses aplikasi SIPROVAL",
       icon: "solar:users-group-rounded-bold",
       url: "/siproval/admin/kelola-user",
       active: "/siproval/admin/kelola-user",
     },
     {
       name: "Kelola IKSK",
+      description: "Manajemen daftar Indikator Kinerja Sasaran Kegiatan (IKSK)",
       icon: "solar:list-check-bold",
       url: "/siproval/admin/kelola-iksk",
       active: "/siproval/admin/kelola-iksk",
     },
   ],
-} satisfies Record<
-  Actor,
+};
+
+const additionalRouteMeta: Array<{
+  active: string;
+  title: string;
+  description: string;
+}> = [
   {
-    name: string;
-    icon: string;
-    url: string;
+    active: "/siproval/pic/entry-data-rhpk",
+    title: "Entry Data RHPK (PIC / Admin)",
+    description: "Pengisian angka target dan data capaian kegiatan bulanan seluruh IKSK",
+  },
+  {
+    active: "/siproval/katim/rhpk",
+    title: "Pengisian Data RHPK",
+    description: "Pengisian capaian realisasi, target bulanan, kendala, dan tindak lanjut RHPK",
+  },
+  {
+    active: "/siproval/kabalai/rhpk",
+    title: "RHPK (Read-Only)",
+    description: "Peninjauan seluruh lembar kerja IKSK 1 s.d. 28 dalam mode baca terlindungi",
+  },
+  {
+    active: "/siproval/show-monev",
+    title: "Monitoring & Evaluasi",
+    description: "Rekapitulasi Rencana Hasil Pelaksanaan Kegiatan per tahun",
+  },
+  {
+    active: "/siproval/arahan-pimpinan",
+    title: "Arahan Pimpinan",
+    description: "Formulir penambahan arahan dan evaluasi Kepala Balai",
+  },
+  {
+    active: "/siproval/rhpk",
+    title: "Rekapitulasi RHPK",
+    description: "Data pemantauan dan evaluasi tab RHPK",
+  },
+  {
+    active: "/siproval/tu/budget-mapping",
+    title: "Budget Mapping",
+    description: "Pemetaan alokasi anggaran dan realisasi bulanan",
+  },
+  {
+    active: "/siproval/rekapitulasi-anggaran",
+    title: "Rekapitulasi Anggaran",
+    description: "Ringkasan pagu dan realisasi anggaran per fungsi dan kegiatan",
+  },
+  {
+    active: "/siproval/google-sheets",
+    title: "Data Realisasi Google Sheet",
+    description: "Pengisian dan pelaporan data capaian IKSK",
+  },
+  {
+    active: "/siproval/admin/sinkronisasi-spreadsheet",
+    title: "Sinkronisasi Spreadsheet",
+    description: "Integrasi dokumen Google Spreadsheet ke sistem SIPROVAL",
+  },
+  {
+    active: "/siproval/admin/sinkronisasi-tab",
+    title: "Sinkronisasi Tab",
+    description: "Pengelolaan tab dan konfigurasi pembacaan data spreadsheet",
+  },
+  {
+    active: "/siproval/profil",
+    title: "Profil Pengguna",
+    description: "Informasi akun dan pengaturan profil pengguna",
+  },
+];
+
+export function resolveSiprovalPageMeta(pathname: string): {
+  title: string;
+  description: string;
+} {
+  const cleanPath = (pathname || "").split("?")[0].replace(/\/+$/, "") || "/siproval";
+
+  const allCandidates: Array<{
     active: string;
-  }[]
->;
+    title: string;
+    description: string;
+  }> = [
+    ...Object.values(menus)
+      .flat()
+      .map((item) => ({
+        active: item.active.replace(/\/+$/, ""),
+        title: item.headerTitle || item.name,
+        description:
+          item.description ||
+          "Sistem Informasi Program dan Evaluasi BBPOM di Mataram",
+      })),
+    ...additionalRouteMeta,
+  ];
+
+  // Urutkan berdasarkan panjang path terpanjang (paling spesifik) agar sub-menu cocok terlebih dahulu
+  allCandidates.sort((a, b) => b.active.length - a.active.length);
+
+  const exactMatch = allCandidates.find((c) => cleanPath === c.active);
+  if (exactMatch) {
+    return { title: exactMatch.title, description: exactMatch.description };
+  }
+
+  // Untuk dashboard root per aktor (/siproval/tu/dashboard -> /siproval/tu)
+  if (cleanPath === "/siproval/tu/dashboard") {
+    const tuDash = menus.tu[0];
+    return {
+      title: tuDash.headerTitle || tuDash.name,
+      description: tuDash.description || "",
+    };
+  }
+
+  const prefixMatch = allCandidates.find((c) =>
+    cleanPath.startsWith(`${c.active}/`),
+  );
+  if (prefixMatch) {
+    return { title: prefixMatch.title, description: prefixMatch.description };
+  }
+
+  return {
+    title: "Dashboard SIPROVAL",
+    description: "Sistem Informasi Program dan Evaluasi BBPOM di Mataram",
+  };
+}
 
 type Props = {
   actor?: Actor;

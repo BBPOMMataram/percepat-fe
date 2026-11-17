@@ -8,6 +8,7 @@ import { AppDispatch, RootState } from "@/redux/store";
 import { logout } from "@/features/authSlice";
 import { showAlert } from "@/features/alertSlice";
 import { Icon } from "@iconify/react";
+import { resolveSiprovalPageMeta } from "./SidebarSiproval";
 
 type HeaderSiprovalProps = {
   title?: string;
@@ -47,79 +48,9 @@ export default function HeaderSiproval({
     }
   };
 
-  let computedTitle = title;
-  let computedDesc = description;
-
-  if (!computedTitle) {
-    if (
-      pathname.startsWith("/siproval/admin/entry-data-rhpk") ||
-      pathname.startsWith("/siproval/pic/entry-data-rhpk")
-    ) {
-      computedTitle = "Entry Data RHPK (PIC / Admin)";
-      computedDesc =
-        computedDesc ||
-        "Pengisian angka target dan data capaian kegiatan bulanan seluruh IKSK";
-    } else if (pathname.startsWith("/siproval/katim/entry-data-rhpk")) {
-      computedTitle = "Entry Data RHPK";
-      computedDesc =
-        computedDesc ||
-        "Pengisian angka target dan data capaian kegiatan bulanan tim";
-    } else if (pathname.startsWith("/siproval/katim/rhpk")) {
-      computedTitle = "Pengisian Data RHPK";
-      computedDesc = computedDesc || "Pengisian capaian realisasi, target bulanan, kendala, dan tindak lanjut RHPK";
-    } else if (pathname.startsWith("/siproval/katim/arahan-pimpinan")) {
-      computedTitle = "Arahan Pimpinan";
-      computedDesc = computedDesc || "Daftar arahan dan evaluasi Kepala Balai untuk tim Anda";
-    } else if (pathname.startsWith("/siproval/katim/anggota")) {
-      computedTitle = "Anggota Tim IKSK";
-      computedDesc = computedDesc || "Daftar staf dan pelaksana yang bertugas pada IKSK Anda";
-    } else if (pathname.startsWith("/siproval/katim")) {
-      computedTitle = "Dashboard Ketua Tim";
-      computedDesc = computedDesc || "Monitoring capaian dan realisasi kegiatan tim";
-    } else if (pathname.startsWith("/siproval/google-sheets")) {
-      computedTitle = "Data Realisasi Google Sheet";
-      computedDesc = computedDesc || "Pengisian dan pelaporan data capaian IKSK";
-    } else if (pathname.startsWith("/siproval/monev") || pathname.startsWith("/siproval/show-monev")) {
-      computedTitle = "Monitoring & Evaluasi RHPK";
-      computedDesc = computedDesc || "Rekapitulasi Rencana Hasil Pelaksanaan Kegiatan per tahun";
-    } else if (pathname.startsWith("/siproval/catatan")) {
-      computedTitle = "Catatan Monev & Evaluasi";
-      computedDesc = computedDesc || "Monitoring, evaluasi, dan review laporan IKSK";
-    } else if (pathname.startsWith("/siproval/arahan-pimpinan")) {
-      computedTitle = "Arahan Pimpinan";
-      computedDesc = computedDesc || "Formulir penambahan arahan dan evaluasi Kepala Balai";
-    } else if (pathname.startsWith("/siproval/rhpk/entry-data") || pathname.startsWith("/siproval/kabalai/rhpk")) {
-      computedTitle = "Dokumen Lembar Kerja RHPK (Read-Only)";
-      computedDesc = computedDesc || "Peninjauan seluruh lembar kerja IKSK 1 s.d. 28 dalam mode baca terlindungi";
-    } else if (pathname.startsWith("/siproval/rhpk")) {
-      computedTitle = "Rekapitulasi RHPK";
-      computedDesc = computedDesc || "Data pemantauan dan evaluasi tab RHPK";
-    } else if (pathname.startsWith("/siproval/tu/laporan-evaluasi")) {
-      computedTitle = "Eksport Laporan Evaluasi Internal";
-      computedDesc = computedDesc || "Berita Acara Evaluasi Internal gabungan Volume (Realisasi RO) dan Anggaran (Budget Mapping)";
-    } else if (pathname.startsWith("/siproval/tu/realisasi-ro")) {
-      computedTitle = "Realisasi RO";
-      computedDesc = computedDesc || "Pemantauan target tahunan, bulanan, realisasi, dan capaian Rincian Output";
-    } else if (pathname.startsWith("/siproval/tu")) {
-      computedTitle = "Dashboard Tata Usaha";
-      computedDesc = computedDesc || "Pengelolaan anggaran dan pemetaan program kerja";
-    } else if (pathname.startsWith("/siproval/budget-mapping")) {
-      computedTitle = "Budget Mapping";
-      computedDesc = computedDesc || "Pemetaan alokasi anggaran dan realisasi bulanan";
-    } else if (pathname.startsWith("/siproval/admin/sinkronisasi-spreadsheet")) {
-      computedTitle = "Sinkronisasi Spreadsheet";
-      computedDesc = computedDesc || "Integrasi dokumen Google Spreadsheet ke sistem SIPROVAL";
-    } else if (pathname.startsWith("/siproval/admin/sinkronisasi-tab")) {
-      computedTitle = "Sinkronisasi Tab";
-      computedDesc = computedDesc || "Pengelolaan tab dan konfigurasi pembacaan data spreadsheet";
-    } else if (pathname.startsWith("/siproval/admin/permission")) {
-      computedTitle = "Hak Akses & Permission";
-      computedDesc = computedDesc || "Manajemen hak akses user terhadap tab Google Spreadsheet";
-    } else {
-      computedTitle = "Dashboard SIPROVAL";
-      computedDesc = computedDesc || "Sistem Informasi Program dan Evaluasi BBPOM di Mataram";
-    }
-  }
+  const resolvedMeta = resolveSiprovalPageMeta(pathname);
+  const computedTitle = title || resolvedMeta.title;
+  const computedDesc = description || resolvedMeta.description;
 
   return (
     <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-4 border-b border-slate-200 bg-white/95 backdrop-blur-sm px-4 sm:px-6 lg:px-7 py-3 shadow-xs">

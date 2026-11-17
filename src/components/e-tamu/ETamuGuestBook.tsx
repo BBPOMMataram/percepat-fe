@@ -85,8 +85,23 @@ export default function ETamuGuestBook() {
     // Logika Rekursif Pengecekan Akurasi Lokasi (Dioptimalkan: kalkulasi jarak instan & cache sesi)
     const checkLocation = useCallback((retryCount = 0) => {
         if (typeof window !== 'undefined' && sessionStorage.getItem('etamu_location_allowed') === 'true') {
-            setLocationStatus('allowed');
-            return;
+            const cachedCoords = sessionStorage.getItem('etamu_user_coords');
+            if (cachedCoords) {
+                try {
+                    const parsed = JSON.parse(cachedCoords);
+                    if (typeof parsed?.lat === 'number' && typeof parsed?.lng === 'number') {
+                        setUserCoords({
+                            lat: parsed.lat,
+                            lng: parsed.lng,
+                            acc: typeof parsed.acc === 'number' ? parsed.acc : 10,
+                        });
+                        setLocationStatus('allowed');
+                        return;
+                    }
+                } catch {
+                    // Lanjut ambil lokasi ulang jika cache tidak valid
+                }
+            }
         }
 
         setLocationStatus('checking');
@@ -105,9 +120,14 @@ export default function ETamuGuestBook() {
 
                     // Jika berada dalam radius 50m atau localhost/dev, langsung izinkan instan tanpa menunggu retry
                     if (dist <= 50 || isLocal) {
+                        const coordsToSave = isLocal && dist > 50
+                            ? { lat: BPOM_LAT, lng: BPOM_LNG, acc: accuracy || 10 }
+                            : { lat: latitude, lng: longitude, acc: accuracy || 10 };
+                        setUserCoords(coordsToSave);
                         setLocationStatus('allowed');
                         if (typeof window !== 'undefined') {
                             sessionStorage.setItem('etamu_location_allowed', 'true');
+                            sessionStorage.setItem('etamu_user_coords', JSON.stringify(coordsToSave));
                         }
                         return;
                     }
@@ -117,10 +137,13 @@ export default function ETamuGuestBook() {
                         return;
                     }
 
-                    if (dist <= 1000) {
+                    if (dist <= 50) {
+                        const coordsToSave = { lat: latitude, lng: longitude, acc: accuracy || 10 };
+                        setUserCoords(coordsToSave);
                         setLocationStatus('allowed');
                         if (typeof window !== 'undefined') {
                             sessionStorage.setItem('etamu_location_allowed', 'true');
+                            sessionStorage.setItem('etamu_user_coords', JSON.stringify(coordsToSave));
                         }
                     } else {
                         setLocationStatus('too_far');
@@ -129,6 +152,7 @@ export default function ETamuGuestBook() {
                 (err) => {
                     console.error("Geolocation error:", err);
                     if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+                        setUserCoords({ lat: BPOM_LAT, lng: BPOM_LNG, acc: 10 });
                         setLocationStatus('allowed');
                         return;
                     }
@@ -503,9 +527,9 @@ export default function ETamuGuestBook() {
                 layananCustom: recognizedServiceCustom,
                 imageUri: recognizedPhoto, // Foto hasil scan terkini
                 face_descriptor: recognizedGuest.descriptor,
-                latitude: userCoords?.lat,
-                longitude: userCoords?.lng,
-                accuracy: userCoords?.acc,
+                latitude: userCoords?.lat ?? BPOM_LAT,
+                longitude: userCoords?.lng ?? BPOM_LNG,
+                accuracy: userCoords?.acc ?? 10,
             };
 
             const res = await api.post(`${baseURL}/api/e-tamu/store`, payload);
@@ -593,9 +617,9 @@ export default function ETamuGuestBook() {
                 ...formData, 
                 imageUri, 
                 face_descriptor: manualFaceDescriptor,
-                latitude: userCoords?.lat,
-                longitude: userCoords?.lng,
-                accuracy: userCoords?.acc
+                latitude: userCoords?.lat ?? BPOM_LAT,
+                longitude: userCoords?.lng ?? BPOM_LNG,
+                accuracy: userCoords?.acc ?? 10
             };
             const res = await api.post(`${baseURL}/api/e-tamu/store`, payload);
             
