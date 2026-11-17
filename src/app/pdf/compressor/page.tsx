@@ -52,6 +52,8 @@ export default function CompressPdfPage() {
     filename: string;
     resultSize: number;
     targetSize: number;
+    targetMb: string;
+    aggressiveAttempted: boolean;
   } | null>(null);
 
   const selectFile = (selectedFile?: File) => {
@@ -93,13 +95,21 @@ export default function CompressPdfPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleCompress = async () => {
+  const handleCompress = async (aggressive = false) => {
     if (!file) {
       setError("Pilih file PDF terlebih dahulu.");
       return;
     }
 
-    const target = Number(targetMb);
+    const retry = aggressive ? pendingDownload : null;
+    if (aggressive && !retry) {
+      setError("Hasil kompresi untuk diproses ulang tidak tersedia.");
+      return;
+    }
+
+    const sourceFile = retry?.blob ?? file;
+    const requestedTargetMb = retry?.targetMb ?? targetMb;
+    const target = Number(requestedTargetMb);
     if (!Number.isFinite(target) || target <= 0 || target > 100) {
       setError("Target ukuran harus lebih dari 0 dan maksimal 100 MB.");
       return;
@@ -107,13 +117,14 @@ export default function CompressPdfPage() {
 
     setError("");
     setResult("");
-    setPendingDownload(null);
+    if (!aggressive) setPendingDownload(null);
     setIsCompressing(true);
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", sourceFile, file?.name || "document.pdf");
       formData.append("target_mb", String(target));
+      if (aggressive) formData.append("aggressive", "true");
 
       const response = await fetch("/api/pdf/compress", {
         method: "POST",
@@ -151,10 +162,18 @@ export default function CompressPdfPage() {
           throw new Error("Informasi ukuran hasil kompresi dari layanan tidak valid.");
         }
 
-        setPendingDownload({ blob: compressedPdf, filename, resultSize, targetSize });
+        setPendingDownload({
+          blob: compressedPdf,
+          filename,
+          resultSize,
+          targetSize,
+          targetMb: String(requestedTargetMb),
+          aggressiveAttempted: aggressive,
+        });
         return;
       }
 
+      setPendingDownload(null);
       downloadPdf(compressedPdf, filename);
       setResult(`File berhasil dikompres dan diunduh (${formatFileSize(compressedPdf.size)}).`);
     } catch (compressionError) {
@@ -308,7 +327,7 @@ export default function CompressPdfPage() {
 
             <button
               type="button"
-              onClick={handleCompress}
+              onClick={() => handleCompress()}
               disabled={!file || isCompressing}
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-900 px-5 py-3.5 text-sm font-bold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
@@ -361,26 +380,42 @@ export default function CompressPdfPage() {
               Target ukuran belum tercapai
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              Hasil terkecil yang berhasil dikompres adalah{" "}
+              {pendingDownload.aggressiveAttempted
+                ? "Kompresi maksimal sudah dicoba, tetapi batas ukuran masih belum tercapai. Hasil terbaik yang tersedia adalah "
+                : "Hasil kompresi biasa belum mencapai target. Hasil terbaik saat ini adalah "}
               <span className="font-bold text-slate-900">{formatFileSize(pendingDownload.resultSize)}</span>,
               sedangkan target Anda{" "}
               <span className="font-bold text-slate-900">{formatFileSize(pendingDownload.targetSize)}</span>.
-              Apakah Anda ingin tetap mengunduh hasil ini?
+              {pendingDownload.aggressiveAttempted
+                ? " Anda tetap dapat mengunduh hasil ini."
+                : " Kompresi maksimal akan mengubah setiap halaman menjadi gambar; teks tidak dapat dicari atau disalin dan kualitas dapat menurun."}
             </p>
-            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:flex-wrap">
               <button
                 type="button"
                 onClick={cancelDownload}
+                disabled={isCompressing}
                 className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
               >
                 Batalkan
               </button>
+              {!pendingDownload.aggressiveAttempted && (
+                <button
+                  type="button"
+                  onClick={() => handleCompress(true)}
+                  disabled={isCompressing}
+                  className="rounded-xl bg-amber-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:bg-amber-300"
+                >
+                  {isCompressing ? "Mengompres maksimal..." : "Kompres maksimal"}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={continueDownload}
-                className="rounded-xl bg-blue-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-800"
+                disabled={isCompressing}
+                className="rounded-xl bg-blue-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-blue-300"
               >
-                Lanjutkan unduh
+                Unduh hasil ini
               </button>
             </div>
           </section>
