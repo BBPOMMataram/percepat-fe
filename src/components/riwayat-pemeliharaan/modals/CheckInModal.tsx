@@ -127,11 +127,11 @@ export default function CheckInModal({
               }
               className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 focus:border-[#005baa] focus:outline-none"
             >
-              <option value="warming_up">
-                🟡 Pemanasan Rutin (Warming-up / Pemeriksaan Rutin)
-              </option>
               <option value="module_check">
                 🔷 Pengecekan Modul (Panel Kontrol / Modul Instrumen)
+              </option>
+              <option value="warming_up">
+                🟡 Pemanasan Rutin (Warming-up / Pemeriksaan Rutin)
               </option>
               <option value="routine_service">
                 🟢 Pemeliharaan / Servis Berkala (Oli, Filter, Aki, Air)

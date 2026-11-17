@@ -156,16 +156,95 @@ export default function RiwayatPemeliharaanMain() {
     };
   }, [authUser, userAuthority.isPic]);
 
-  // URL Tanda Tangan PIC dari Database Auth-BPOM
+  // Resolusi Profil PIC & URL Tanda Tangan PIC dari Database Auth-BPOM (Selalu muncul untuk siapapun, baik login maupun tidak login)
+  const resolvedPicInfo: PicInfo | null = useMemo(() => {
+    const matchedAuthPic = authEmployees.find((emp: any) => {
+      if (picInfo?.email && emp.email && String(emp.email).toLowerCase() === String(picInfo.email).toLowerCase()) {
+        return true;
+      }
+      if (picInfo?.id && emp.id && String(emp.id) === String(picInfo.id)) {
+        return true;
+      }
+      const empRawName = (emp.name || "").trim().toLowerCase();
+      const empFormattedName = formatPersonName(
+        emp.name,
+        emp.employee?.gelar_depan,
+        emp.employee?.gelar_belakang
+      )
+        .trim()
+        .toLowerCase();
+      const targetPicName = (picInfo?.name || "").trim().toLowerCase();
+      const targetPicRaw = (picInfo?.raw_name || "").trim().toLowerCase();
+
+      if (
+        targetPicName &&
+        targetPicName !== "pic bmn" &&
+        (empRawName === targetPicName ||
+          empFormattedName === targetPicName ||
+          (targetPicRaw && empRawName === targetPicRaw))
+      ) {
+        return true;
+      }
+
+      // Cek apakah user memiliki site SIMPEL BMN (id = 4) di data Auth
+      if (Array.isArray(emp.sites)) {
+        const hasSimpelSite = emp.sites.some((s: any) => {
+          const sId = Number(s?.id);
+          const sName = String(s?.name || "").toLowerCase();
+          return sId === 4 || sName.includes("simpel bmn") || sName.includes("simpel-bmn");
+        });
+        if (hasSimpelSite) return true;
+      }
+
+      return false;
+    });
+
+    if (!picInfo && !matchedAuthPic) return null;
+
+    const fullNameFromAuth = matchedAuthPic
+      ? formatPersonName(
+          matchedAuthPic.name,
+          matchedAuthPic.employee?.gelar_depan,
+          matchedAuthPic.employee?.gelar_belakang
+        )
+      : null;
+
+    const cleanAuthNip =
+      matchedAuthPic?.employee?.nip &&
+      matchedAuthPic.employee.nip !== "-" &&
+      String(matchedAuthPic.employee.nip).toLowerCase() !== "null"
+        ? matchedAuthPic.employee.nip
+        : null;
+
+    return {
+      id: picInfo?.id || matchedAuthPic?.id,
+      name: fullNameFromAuth || picInfo?.name || "PIC BMN",
+      raw_name: matchedAuthPic?.name || picInfo?.raw_name,
+      email: picInfo?.email || matchedAuthPic?.email,
+      nip: picInfo?.nip || cleanAuthNip || null,
+      jabatan:
+        picInfo?.jabatan && picInfo.jabatan !== "PIC BMN"
+          ? picInfo.jabatan
+          : matchedAuthPic?.employee?.jabatan || "PIC BMN",
+      signature_path:
+        picInfo?.signature_path || matchedAuthPic?.signature_path || null,
+      role_title: picInfo?.role_title || "PIC BMN",
+    };
+  }, [picInfo, authEmployees]);
+
   const picSignatureUrl = useMemo(() => {
-    if (picInfo?.signature_path) {
-      return getSignatureUrl(picInfo.signature_path);
+    if (resolvedPicInfo?.signature_path) {
+      return getSignatureUrl(resolvedPicInfo.signature_path);
     }
     if (currentUser?.isPic && currentUser.signatureUrl) {
       return currentUser.signatureUrl;
     }
+    const verifiedRecWithSig = records.find((r) => r.verifierSignatureUrl);
+    if (verifiedRecWithSig?.verifierSignatureUrl) {
+      return verifiedRecWithSig.verifierSignatureUrl;
+    }
     return null;
-  }, [picInfo?.signature_path, currentUser]);
+  }, [resolvedPicInfo?.signature_path, currentUser, records]);
 
   // Resolusi URL Tanda Tangan Pelaksana untuk setiap baris log (dari DB Auth)
   const resolveExecutorSignature = useCallback(
@@ -289,7 +368,7 @@ export default function RiwayatPemeliharaanMain() {
     timestamp: 0,
   });
   const [checkInActivityType, setCheckInActivityType] =
-    useState<MaintenanceRecord["activityType"]>("warming_up");
+    useState<MaintenanceRecord["activityType"]>("module_check");
   const [checkInCustomType, setCheckInCustomType] = useState("");
   const [checkInDetails, setCheckInDetails] = useState("");
   const [checkInPhotos, setCheckInPhotos] = useState<string[]>([]);
@@ -490,6 +569,7 @@ export default function RiwayatPemeliharaanMain() {
             nip: authUser.employee?.nip || authUser.nik,
             role: authUser.role?.name || authUser.role?.level || "",
             jabatan: authUser.employee?.jabatan || "",
+            signature_path: authUser.signature_path || null,
             sites: Array.isArray(authUser.sites) ? authUser.sites : [],
             qr_token: assetInfo.qr_token,
           }
@@ -520,35 +600,30 @@ export default function RiwayatPemeliharaanMain() {
     checkAuthStatus();
   }, [authUser, SIMPEL_BMN_URL, assetInfo.qr_token]);
 
-  // Muat daftar pegawai dari SSO Auth BPOM & Master Barang jika PIC membuka modal kelola
+  // Muat daftar pegawai & tanda tangan dari SSO Auth BPOM saat halaman dibuka (agar TTD PIC & Petugas selalu muncul untuk siapapun)
+  useEffect(() => {
+    const fetchAuthUsers = async () => {
+      setLoadingEmployees(true);
+      try {
+        const res = await axios.get(`${AUTH_URL}/api/get-all-users`);
+        if (Array.isArray(res.data)) {
+          setAuthEmployees(res.data);
+        }
+      } catch (err) {
+        console.warn("Gagal load all users dari Auth BPOM:", err);
+      } finally {
+        setLoadingEmployees(false);
+      }
+    };
+    fetchAuthUsers();
+  }, [AUTH_URL]);
+
+  // Muat Master Barang jika PIC membuka modal kelola
   useEffect(() => {
     if (userAuthority.isPic && isManagePicModalOpen) {
       fetchMasterBarangs();
-
-      if (authEmployees.length === 0) {
-        const fetchAuthUsers = async () => {
-          setLoadingEmployees(true);
-          try {
-            const res = await axios.get(`${AUTH_URL}/api/get-all-users`);
-            if (Array.isArray(res.data)) {
-              setAuthEmployees(res.data);
-            }
-          } catch (err) {
-            console.warn("Gagal load all users dari Auth BPOM:", err);
-          } finally {
-            setLoadingEmployees(false);
-          }
-        };
-        fetchAuthUsers();
-      }
     }
-  }, [
-    userAuthority.isPic,
-    isManagePicModalOpen,
-    AUTH_URL,
-    authEmployees.length,
-    fetchMasterBarangs,
-  ]);
+  }, [userAuthority.isPic, isManagePicModalOpen, fetchMasterBarangs]);
 
   // Timer counter untuk sesi aktif (update durasi berjalan)
   useEffect(() => {
@@ -795,7 +870,7 @@ export default function RiwayatPemeliharaanMain() {
       timestamp: now.getTime(),
     });
 
-    setCheckInActivityType("warming_up");
+    setCheckInActivityType("module_check");
     setCheckInCustomType("");
     setCheckInDetails("");
     setCheckInPhotos([]);
@@ -837,6 +912,8 @@ export default function RiwayatPemeliharaanMain() {
       executor_name: currentUser?.name || authUser?.name || "Petugas",
       executor_role: currentUser?.role || "Petugas",
       executor_nip: currentUser?.nip || null,
+      executor_signature_path:
+        currentUser?.signaturePath || authUser?.signature_path || null,
     };
 
     try {
@@ -988,7 +1065,12 @@ export default function RiwayatPemeliharaanMain() {
         `${SIMPEL_BMN_URL}/api/maintenance/verify/${id}`,
         {
           verifier_name: picDisplayName,
-          verifier_id: authUser?.id || picInfo?.id,
+          verifier_id: authUser?.id || resolvedPicInfo?.id,
+          verifier_signature_path:
+            currentUser?.signaturePath ||
+            authUser?.signature_path ||
+            resolvedPicInfo?.signature_path ||
+            null,
         }
       );
       if (res.data?.success) {
@@ -1198,7 +1280,7 @@ export default function RiwayatPemeliharaanMain() {
       <AccessDeniedModal
         accessDeniedModal={accessDeniedModal}
         assetName={assetInfo.name}
-        picName={picInfo?.name}
+        picName={resolvedPicInfo?.name}
         onClose={() => setAccessDeniedModal(null)}
         onSwitchAccount={() => {
           setAccessDeniedModal(null);
@@ -1261,7 +1343,7 @@ export default function RiwayatPemeliharaanMain() {
       <PrintSheetView
         printMode={printMode}
         assetInfo={assetInfo}
-        picInfo={picInfo}
+        picInfo={resolvedPicInfo}
         filteredRecords={filteredRecords}
         resolveExecutorSignature={resolveExecutorSignature}
         picSignatureUrl={picSignatureUrl}
