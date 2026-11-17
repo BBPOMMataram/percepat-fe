@@ -1051,10 +1051,14 @@ export const recalculateRowFormulas = (
 
 interface TestLocalTableKatimProps {
   isKabalaiReadOnly?: boolean;
+  rekapBalaiOnly?: boolean;
+  headerRightSlot?: React.ReactNode;
 }
 
 export default function TestLocalTableKatim({
   isKabalaiReadOnly = false,
+  rekapBalaiOnly = false,
+  headerRightSlot,
 }: TestLocalTableKatimProps = {}) {
   const { user } = useSelector((state: RootState) => state.auth);
   const authQuery = user?.id ? `?user_id=${user.id}` : "";
@@ -1062,11 +1066,15 @@ export default function TestLocalTableKatim({
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
+  const isRekapBalaiView = Boolean(
+    rekapBalaiOnly || pathname?.startsWith("/siproval/katim/rekap-rhpk"),
+  );
   const isKabalai = Boolean(
     isKabalaiReadOnly ||
-    user?.employee?.group_jabatan_id === 1 ||
-    pathname?.startsWith("/siproval/kabalai") ||
-    pathname?.startsWith("/siproval/rhpk/entry-data"),
+      isRekapBalaiView ||
+      user?.employee?.group_jabatan_id === 1 ||
+      pathname?.startsWith("/siproval/kabalai") ||
+      pathname?.startsWith("/siproval/rhpk/entry-data"),
   );
   // Lembar RHPK lihat-saja untuk Tata Usaha (/siproval/tu/rhpk)
   const isTuView = Boolean(pathname?.startsWith("/siproval/tu/rhpk"));
@@ -1092,6 +1100,14 @@ export default function TestLocalTableKatim({
   );
   const [activeTab, setActiveTab] = useState<ActiveTabDetail | null>(null);
   const [katims, setKatims] = useState<any[]>([]);
+  const [assignedIkskIds, setAssignedIkskIds] = useState<number[]>([]);
+  const [rekapBalaiIkskFilter, setRekapBalaiIkskFilter] = useState<
+    "all" | "mine" | number
+  >("all");
+  const isCapaianRapkTab = useMemo(() => {
+    const title = (activeTab?.title || "").toLowerCase();
+    return title.includes("capaian rapk");
+  }, [activeTab?.title]);
 
   const activeSpreadsheet = useMemo(() => {
     return spreadsheets.find((s) => s.id === selectedSpId) || null;
@@ -1299,8 +1315,9 @@ export default function TestLocalTableKatim({
     setLoading(true);
     try {
       const qYear = `&year=${targetYear}`;
-      const effectiveIkskId =
-        ikskId !== undefined && ikskId !== null
+      const effectiveIkskId = isRekapBalaiView
+        ? null
+        : ikskId !== undefined && ikskId !== null
           ? ikskId
           : selectedIkskId !== null
             ? selectedIkskId
@@ -1312,8 +1329,9 @@ export default function TestLocalTableKatim({
       // Ketika beralih IKSK, spId & tId diset null sehingga tidak memakai fallback spreadsheet/tab lama
       const isSwitchingIksk =
         ikskId !== undefined && ikskId !== null && ikskId !== selectedIkskId;
-      const effectiveSpId =
-        spId !== undefined
+      const effectiveSpId = isRekapBalaiView
+        ? null
+        : spId !== undefined
           ? spId
           : isSwitchingIksk
             ? null
@@ -1331,12 +1349,16 @@ export default function TestLocalTableKatim({
             ? null
             : selectedTabId !== null
               ? selectedTabId
-              : paramTabId
+              : !isRekapBalaiView && paramTabId
                 ? Number(paramTabId)
                 : null;
       const qTab = effectiveTabId ? `&tab_id=${effectiveTabId}` : "";
 
-      const qKabalai = isKabalai ? "&is_kabalai=1" : "";
+      const qKabalai = isRekapBalaiView
+        ? "&rekap_balai_only=1&read_only=1"
+        : isKabalai
+          ? "&is_kabalai=1"
+          : "";
       const res = await api.get(
         `${baseUrl}/api/test-local-table${authQuery}${qYear}${qIksk}${qSp}${qTab}${qKabalai}`,
       );
@@ -1359,6 +1381,9 @@ export default function TestLocalTableKatim({
       }
       if (Array.isArray(d.my_iksks)) {
         setIksks(d.my_iksks);
+      }
+      if (Array.isArray(d.assigned_iksk_ids)) {
+        setAssignedIkskIds(d.assigned_iksk_ids.map(Number));
       }
       if (Array.isArray(d.katims)) {
         setKatims(d.katims);
@@ -1406,14 +1431,31 @@ export default function TestLocalTableKatim({
 
   useEffect(() => {
     if (user?.id) {
-      const initialIksk = paramIkskId ? Number(paramIkskId) : selectedIkskId;
-      const initialSp = paramSpreadsheetId
-        ? Number(paramSpreadsheetId)
-        : selectedSpId;
-      const initialTab = paramTabId ? Number(paramTabId) : selectedTabId;
+      const initialIksk = isRekapBalaiView
+        ? null
+        : paramIkskId
+          ? Number(paramIkskId)
+          : selectedIkskId;
+      const initialSp = isRekapBalaiView
+        ? null
+        : paramSpreadsheetId
+          ? Number(paramSpreadsheetId)
+          : selectedSpId;
+      const initialTab = isRekapBalaiView
+        ? selectedTabId
+        : paramTabId
+          ? Number(paramTabId)
+          : selectedTabId;
       fetchData(selectedYear, initialIksk, initialSp, initialTab);
     }
-  }, [user?.id, selectedYear, paramIkskId, paramSpreadsheetId, paramTabId]);
+  }, [
+    user?.id,
+    selectedYear,
+    paramIkskId,
+    paramSpreadsheetId,
+    paramTabId,
+    isRekapBalaiView,
+  ]);
 
   const handleToggleCurrentMonthLock = () => {
     const monthName = STANDARD_MONTH_NAMES[currentMonth - 1] || `Bulan ${currentMonth}`;
@@ -1517,13 +1559,13 @@ export default function TestLocalTableKatim({
   const doSelectTab = (tId: number) => {
     setSelectedTabId(tId);
 
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && !isRekapBalaiView) {
       const url = new URL(window.location.href);
       url.searchParams.set("tab_id", String(tId));
       window.history.replaceState({}, "", url.toString());
     }
 
-    if (selectedSpId) {
+    if (selectedSpId || isRekapBalaiView) {
       fetchData(selectedYear, selectedIkskId, selectedSpId, tId);
     }
   };
@@ -3725,10 +3767,29 @@ export default function TestLocalTableKatim({
     rowMonthMap,
   ]);
 
-  // Filter baris berdasarkan Bulan dan Pencarian
+  const getRowIkskNum = (row: RowData): number | null => {
+    const raw = row.cells?.col_3;
+    if (raw === null || raw === undefined) return null;
+    const str = String(raw).trim();
+    if (!str) return null;
+    const parsed = Number(str);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+  };
+
+  // Filter baris berdasarkan Bulan, IKSK (mode Rekap Balai), dan Pencarian
   const filteredRows = useMemo(() => {
     if (!activeTab?.rows_data) return [];
     let rows = activeTab.rows_data.filter((r) => !(r as any).is_hidden && !(r as any).hidden);
+
+    if (isRekapBalaiView && isCapaianRapkTab && rekapBalaiIkskFilter !== "all") {
+      rows = rows.filter((r) => {
+        const rowIkskNum = getRowIkskNum(r);
+        if (rekapBalaiIkskFilter === "mine") {
+          return rowIkskNum !== null && assignedIkskIds.includes(rowIkskNum);
+        }
+        return rowIkskNum === rekapBalaiIkskFilter;
+      });
+    }
 
     // Filter per Bulan (hanya jika tabel vertikal, karena pada tabel horizontal baris merupakan komoditi/item)
     if (selectedMonthFilter !== "all" && !isHorizontalMonthTable) {
@@ -3772,6 +3833,10 @@ export default function TestLocalTableKatim({
     isHorizontalMonthTable,
     searchQuery,
     monthColKey,
+    isRekapBalaiView,
+    isCapaianRapkTab,
+    rekapBalaiIkskFilter,
+    assignedIkskIds,
   ]);
 
   // Kolom yang ditampilkan saat ini (jika tabel horizontal difilter per bulan, tampilkan kolom tetap + kolom bulan terpilih)
@@ -4048,66 +4113,49 @@ export default function TestLocalTableKatim({
   }, [filteredRows, isPaginationNeeded, safeCurrentPage, pageSize]);
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-w-0 space-y-5">
       {/* Banner Katim / Kabalai */}
-      <div
-        className={`rounded-2xl border p-6 shadow-sm ${
-          isKabalai
-            ? "border-blue-200 bg-gradient-to-r from-blue-50/80 via-white to-slate-50"
-            : "border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-teal-50"
-        }`}
-      >
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span
-                className={`flex h-8 w-8 items-center justify-center rounded-xl text-white ${
-                  isKabalai ? "bg-[#005baa]" : "bg-emerald-600"
-                }`}
-              >
-                <Icon
-                  icon={
-                    isKabalai
-                      ? "solar:folder-with-files-bold"
-                      : "solar:pen-new-square-bold"
-                  }
-                  width={20}
-                />
-              </span>
-              <h1 className="text-xl font-bold text-slate-900">
-                {isKabalai
-                  ? "Dokumen Lembar Kerja RHPK (Read-Only)"
+      <section className="w-full rounded-xl border border-slate-200 bg-white p-5 shadow-2xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="min-w-0 space-y-1">
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
+              {isRekapBalaiView
+                ? "Tabel File Rekap Balai"
+                : isKabalai
+                  ? "Dokumen Lembar Kerja RHPK"
                   : "Entry Data RHPK"}
-              </h1>
-              <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
-                Tahun {selectedYear}
-              </span>
-              {isKabalai ? (
-                <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-bold text-[#005baa] flex items-center gap-1 shadow-2xs">
-                  <Icon icon="solar:eye-bold" width={13} />
-                  {isTuView ? "Mode Baca Tata Usaha" : "Mode Baca Kepala Balai"}
-                </span>
-              ) : (
-                isPicUser && (
-                  <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-bold text-[#005baa] flex items-center gap-1 shadow-2xs">
-                    <Icon icon="solar:shield-check-bold" width={13} />
-                    Akses Penuh PIC / Admin
-                  </span>
-                )
-              )}
-            </div>
-            <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 max-w-2xl leading-relaxed">
               {isKabalai
-                ? isTuView
-                  ? "Tinjau seluruh dokumen lembar kerja IKSK dan detail capaian bulanan dalam mode baca. Perubahan data dilakukan oleh Katim/PIC."
-                  : "Akses monitoring eksekutif Kepala Balai untuk meninjau seluruh dokumen lembar kerja IKSK 1 s.d. 28 dan detail capaian bulanan secara transparan dalam mode baca."
+                ? isRekapBalaiView
+                  ? "Tinjau seluruh sheet file Rekap Data RHPK Balai dalam mode baca-saja."
+                  : isTuView
+                    ? "Tinjau seluruh dokumen lembar kerja IKSK dan detail capaian bulanan dalam mode baca."
+                    : "Akses monitoring eksekutif Kepala Balai untuk meninjau seluruh dokumen lembar kerja IKSK 1 s.d. 28."
                 : isPicUser
-                  ? "Pengisian data capaian target dan indikator bulanan. Sebagai PIC/Admin, Anda memiliki akses penuh untuk mengisi angka target dan data realisasi di seluruh file dokumen RHPK."
-                  : "Pengisian data capaian target dan indikator kegiatan bulanan Katim secara langsung ke sistem internal BBPOM."}
+                  ? "Pengisian data capaian target dan indikator bulanan seluruh file dokumen RHPK."
+                  : "Pengisian data capaian target dan indikator kegiatan bulanan Katim."}
             </p>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-xs text-slate-600">
+              <span className="font-semibold text-[#005baa]">
+                {isKabalai
+                  ? isRekapBalaiView
+                    ? "Mode Katim · Baca-Saja (File Rekap Balai)"
+                    : isTuView
+                      ? "Mode Tata Usaha · Hanya Baca"
+                      : "Mode Kepala Balai · Hanya Baca"
+                  : isPicUser
+                    ? "Mode PIC / Admin · Akses Penuh"
+                    : "Mode Katim · IKSK Ampuan"}
+              </span>
+              <span className="text-slate-300">·</span>
+              <span>Tahun {selectedYear}</span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            {headerRightSlot}
+
             {/* Tombol Unggah / Import Excel (Khusus Katim / PIC) */}
             {!isKabalai &&
               selectedSpId &&
@@ -4117,33 +4165,24 @@ export default function TestLocalTableKatim({
                 <button
                   type="button"
                   onClick={() => setShowUploadModal(true)}
-                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-white px-4 py-2.5 text-xs font-bold text-emerald-800 shadow-2xs hover:bg-emerald-50 transition"
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition"
                   title="Unggah / Import data dari file Excel (.xlsx)"
                 >
                   <Icon
                     icon="solar:file-smile-linear"
-                    width={16}
-                    className="text-emerald-700"
+                    width={15}
+                    className="text-[#005baa]"
                   />
                   <span>Unggah Excel</span>
                 </button>
               )}
 
-            {isKabalai ? (
-              <div className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50/80 px-4 py-2.5 text-xs font-bold text-[#005baa] shadow-2xs">
-                <Icon
-                  icon="solar:eye-bold"
-                  width={16}
-                  className="text-[#005baa]"
-                />
-                <span>Mode Baca (Kepala Balai)</span>
-              </div>
-            ) : spreadsheets.find((s) => s.id === selectedSpId)?.is_readonly &&
+            {isKabalai ? null : spreadsheets.find((s) => s.id === selectedSpId)?.is_readonly &&
               !isPicEffective ? (
-              <div className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-800 shadow-2xs">
+              <div className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-2 text-xs font-semibold text-amber-800">
                 <Icon
                   icon="solar:eye-bold"
-                  width={16}
+                  width={15}
                   className="text-amber-600"
                 />
                 <span>Mode Baca (Master Rekap Balai)</span>
@@ -4242,7 +4281,7 @@ export default function TestLocalTableKatim({
             )}
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Alerts (menempel di atas layar agar tetap terlihat saat tabel di-scroll) */}
       {successMsg && (
@@ -4308,82 +4347,198 @@ export default function TestLocalTableKatim({
               </select>
             </div>
 
-            {/* IKSK Selector (Hanya IKSK yang diampu Katim) */}
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                IKSK:
-              </label>
-              <select
-                value={selectedIkskId ?? ""}
-                onChange={(e) => handleSelectIksk(Number(e.target.value))}
-                className="rounded-xl border border-emerald-300 bg-emerald-50/70 px-3 py-1.5 text-xs font-bold text-emerald-900 focus:border-emerald-600 focus:bg-white focus:outline-none max-w-xs md:max-w-sm truncate"
-              >
-                {iksks.length === 0 ? (
-                  <option value="">Tidak ada IKSK diampu</option>
-                ) : (
-                  iksks.map((i) => (
-                    <option key={i.id} value={i.id}>
-                      IKSK {i.id}. {i.name}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
+            {!isRekapBalaiView ? (
+              <>
+                {/* IKSK Selector (Hanya IKSK yang diampu Katim) */}
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-slate-700 whitespace-nowrap">
+                    IKSK:
+                  </label>
+                  <select
+                    value={selectedIkskId ?? ""}
+                    onChange={(e) => handleSelectIksk(Number(e.target.value))}
+                    className="rounded-xl border border-emerald-300 bg-emerald-50/70 px-3 py-1.5 text-xs font-bold text-emerald-900 focus:border-emerald-600 focus:bg-white focus:outline-none max-w-xs md:max-w-sm truncate"
+                  >
+                    {iksks.length === 0 ? (
+                      <option value="">Tidak ada IKSK diampu</option>
+                    ) : (
+                      iksks.map((i) => (
+                        <option key={i.id} value={i.id}>
+                          IKSK {i.id}. {i.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
 
-            {/* Document Info / Selector: jika hanya 1 file cukup info tanpa dropdown, jika >= 2 file baru muncul dropdown pilihan */}
-            {spreadsheets.length <= 1 ? (
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                  Dokumen:
-                </span>
-                {spreadsheets.length === 1 ? (
+                {/* Document Info / Selector: jika hanya 1 file cukup info tanpa dropdown, jika >= 2 file baru muncul dropdown pilihan */}
+                {spreadsheets.length <= 1 ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
+                      Dokumen:
+                    </span>
+                    {spreadsheets.length === 1 ? (
+                      <div
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-1.5 text-xs font-semibold text-slate-800 max-w-xs md:max-w-md truncate shadow-2xs"
+                        title={spreadsheets[0].name}
+                      >
+                        <Icon
+                          icon="solar:file-spreadsheet-bold"
+                          width={16}
+                          className="text-emerald-600 shrink-0"
+                        />
+                        <span className="truncate">{spreadsheets[0].name}</span>
+                      </div>
+                    ) : (
+                      <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-400 italic">
+                        Belum ada dokumen untuk IKSK ini
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-bold text-slate-700 whitespace-nowrap">
+                      Pilih Dokumen:
+                    </label>
+                    <select
+                      value={selectedSpId ?? ""}
+                      onChange={(e) =>
+                        handleSelectSpreadsheet(Number(e.target.value))
+                      }
+                      className="rounded-xl border border-emerald-300 bg-white px-3 py-1.5 text-xs font-bold text-emerald-900 focus:border-emerald-600 focus:outline-none max-w-xs md:max-w-md truncate cursor-pointer shadow-2xs"
+                    >
+                      {spreadsheets.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                    {spreadsheets.find((s) => s.id === selectedSpId)
+                      ?.is_readonly &&
+                      !isPicEffective && (
+                        <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 flex items-center gap-1">
+                          <Icon icon="solar:lock-bold" width={11} />
+                          Read-Only (Rekap Balai)
+                        </span>
+                      )}
+                    <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                      {spreadsheets.length} Dokumen
+                    </span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Info File Master Rekap Balai (Baca-Saja) */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
+                    Dokumen:
+                  </span>
                   <div
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-1.5 text-xs font-semibold text-slate-800 max-w-xs md:max-w-md truncate shadow-2xs"
-                    title={spreadsheets[0].name}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50/70 px-3 py-1.5 text-xs font-semibold text-[#005baa] max-w-xs md:max-w-md truncate shadow-2xs"
+                    title={spreadsheets[0]?.name || "REKAP DATA RHPK Mataram"}
                   >
                     <Icon
                       icon="solar:file-spreadsheet-bold"
                       width={16}
-                      className="text-emerald-600 shrink-0"
+                      className="text-[#005baa] shrink-0"
                     />
-                    <span className="truncate">{spreadsheets[0].name}</span>
+                    <span className="truncate">
+                      {spreadsheets[0]?.name ||
+                        `REKAP DATA RHPK ${selectedYear} Mataram`}
+                    </span>
+                  </div>
+                  <span className="rounded-md bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600 flex items-center gap-1">
+                    <Icon
+                      icon="solar:lock-keyhole-minimalistic-bold"
+                      width={11}
+                    />
+                    Baca-Saja
+                  </span>
+                </div>
+
+                {/* Filter IKSK pada sheet A. Capaian RAPK Mataram */}
+                {isCapaianRapkTab ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="text-xs font-bold text-slate-700 whitespace-nowrap">
+                      Filter IKSK:
+                    </label>
+                    <select
+                      value={
+                        typeof rekapBalaiIkskFilter === "number"
+                          ? String(rekapBalaiIkskFilter)
+                          : rekapBalaiIkskFilter
+                      }
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setRekapBalaiIkskFilter(
+                          v === "all" || v === "mine" ? v : Number(v),
+                        );
+                        setCurrentPage(1);
+                      }}
+                      className="rounded-xl border border-blue-300 bg-white px-3 py-1.5 text-xs font-bold text-[#003d73] focus:border-[#005baa] focus:outline-none max-w-xs md:max-w-sm truncate shadow-2xs"
+                    >
+                      <option value="all">Semua Baris (28 IKSK + UPT)</option>
+                      {assignedIkskIds.length > 0 && (
+                        <option value="mine">
+                          Hanya IKSK Ampuan Saya ({assignedIkskIds.length} IKSK)
+                        </option>
+                      )}
+                      {iksks.map((i) => (
+                        <option key={i.id} value={i.id}>
+                          IKSK {i.id}
+                          {assignedIkskIds.includes(i.id) ? " (Ampuan)" : ""}{" "}
+                          — {i.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRekapBalaiIkskFilter("all");
+                          setCurrentPage(1);
+                        }}
+                        className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${
+                          rekapBalaiIkskFilter === "all"
+                            ? "bg-[#005baa] text-white"
+                            : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                        }`}
+                      >
+                        Semua
+                      </button>
+                      {assignedIkskIds.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRekapBalaiIkskFilter((prev) =>
+                              prev === "mine" ? "all" : "mine",
+                            );
+                            setCurrentPage(1);
+                          }}
+                          className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${
+                            rekapBalaiIkskFilter === "mine"
+                              ? "bg-emerald-600 text-white"
+                              : "bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                          }`}
+                        >
+                          Ampuan Saya ({assignedIkskIds.length})
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ) : (
-                  <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-400 italic">
-                    Belum ada dokumen untuk IKSK ini
+                  <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
+                    <Icon
+                      icon="solar:info-circle-linear"
+                      width={14}
+                      className="text-[#005baa]"
+                    />
+                    Filter per IKSK tersedia di sheet A. Capaian RAPK Mataram
                   </span>
                 )}
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                  Pilih Dokumen:
-                </label>
-                <select
-                  value={selectedSpId ?? ""}
-                  onChange={(e) =>
-                    handleSelectSpreadsheet(Number(e.target.value))
-                  }
-                  className="rounded-xl border border-emerald-300 bg-white px-3 py-1.5 text-xs font-bold text-emerald-900 focus:border-emerald-600 focus:outline-none max-w-xs md:max-w-md truncate cursor-pointer shadow-2xs"
-                >
-                  {spreadsheets.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-                {spreadsheets.find((s) => s.id === selectedSpId)
-                  ?.is_readonly &&
-                  !isPicEffective && (
-                  <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 flex items-center gap-1">
-                    <Icon icon="solar:lock-bold" width={11} />
-                    Read-Only (Rekap Balai)
-                  </span>
-                )}
-                <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                  {spreadsheets.length} Dokumen
-                </span>
-              </div>
+              </>
             )}
           </div>
 
@@ -4496,8 +4651,9 @@ export default function TestLocalTableKatim({
               {activeTab ? activeTab.title : "Tabel Formulir"}
             </h2>
             <p className="text-xs text-slate-500">
-              Kolom dengan latar hijau adalah kolom yang dapat Anda isi. Kolom
-              terkunci dilindungi sistem.
+              {isKabalai
+                ? "Tabel ditampilkan dalam mode baca-saja. Nilai tidak dapat diubah dari halaman ini."
+                : "Kolom dengan latar hijau adalah kolom yang dapat Anda isi. Kolom terkunci dilindungi sistem."}
             </p>
           </div>
 

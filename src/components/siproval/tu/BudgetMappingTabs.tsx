@@ -15,6 +15,10 @@ type SpreadsheetTab = {
   title: string;
   google_sheet_id?: string | number | null;
   is_active?: number;
+  month_number?: number | null;
+  total_pagu?: number;
+  total_realisasi?: number;
+  has_realisasi?: boolean;
 };
 
 type TabsResponse = {
@@ -54,6 +58,58 @@ export default function BudgetMappingTabs() {
     "Januari", "Februari", "Maret", "April", "Mei", "Juni",
     "Juli", "Agustus", "September", "Oktober", "November", "Desember"
   ];
+
+  const latestExportInfo = useMemo(() => {
+    const activeTab =
+      [...tabs].reverse().find(
+        (t) => Boolean(t.has_realisasi) || Number(t.total_realisasi || 0) > 0
+      ) || tabs[tabs.length - 1];
+
+    if (!activeTab) {
+      return {
+        href: "/siproval/tu/laporan-evaluasi",
+        label: "Eksport Laporan",
+      };
+    }
+
+    const lowerTitle = String(activeTab.title || "").toLowerCase();
+    const aliasIdx = [
+      ["januari", "jan"],
+      ["februari", "pebruari", "feb", "peb"],
+      ["maret", "mar"],
+      ["april", "apr"],
+      ["mei"],
+      ["juni", "jun"],
+      ["juli", "jul"],
+      ["agustus", "agu", "agt", "ags"],
+      ["september", "sept", "sep"],
+      ["oktober", "okt", "oct"],
+      ["november", "nov"],
+      ["desember", "des", "dec"],
+    ].findIndex((aliases) =>
+      aliases.some((alias) => new RegExp(`\\b${alias}\\b`, "i").test(lowerTitle))
+    );
+
+    const monthNum =
+      activeTab.month_number && activeTab.month_number >= 1 && activeTab.month_number <= 12
+        ? activeTab.month_number
+        : aliasIdx >= 0
+          ? aliasIdx + 1
+          : null;
+
+    if (!monthNum) {
+      return {
+        href: "/siproval/tu/laporan-evaluasi",
+        label: "Eksport Laporan",
+      };
+    }
+
+    const monthName = MONTH_NAMES[monthNum - 1];
+    return {
+      href: `/siproval/tu/laporan-evaluasi?month=${monthName.toUpperCase()}`,
+      label: `Eksport Laporan (Bulan ${monthName})`,
+    };
+  }, [tabs]);
 
   async function fetchTabs() {
     setLoading(true);
@@ -184,11 +240,11 @@ export default function BudgetMappingTabs() {
           </button>
 
           <Link
-            href="/siproval/tu/laporan-evaluasi?month=APRIL"
+            href={latestExportInfo.href}
             className="inline-flex w-fit items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2 text-xs font-semibold text-[#005baa] shadow-sm transition hover:bg-blue-100"
           >
             <Icon icon="solar:printer-bold" width={16} />
-            Eksport Laporan (Bulan April)
+            {latestExportInfo.label}
           </Link>
 
           <Link

@@ -74,7 +74,9 @@ export default function BudgetMappingTable() {
   const { user } = useSelector((state: RootState) => state.auth);
   const searchParams = useSearchParams();
   const year = searchParams.get("year") || "2026";
-  const tabId = searchParams.get("tab") || "171";
+  const urlTabId = searchParams.get("tab") || "";
+  const [resolvedTabId, setResolvedTabId] = useState<string>(urlTabId);
+  const tabId = urlTabId || resolvedTabId;
 
   const [tabTitle, setTabTitle] = useState("Budget Mapping Bulanan");
   const [spreadsheet, setSpreadsheet] = useState<SpreadsheetInfo | null>(null);
@@ -94,15 +96,50 @@ export default function BudgetMappingTable() {
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Load Table Data from Server
-  async function loadTable() {
+  async function loadTable(overrideTabId?: string) {
     setLoading(true);
     setErrorMsg("");
     setApiNotice("");
     try {
       const query = user?.id ? `?user_id=${user.id}` : "";
+      let targetTabId = overrideTabId || urlTabId || resolvedTabId;
+
+      if (!targetTabId) {
+        const tabsRes = await api.get(
+          `${baseUrl}/api/budget-mapping/${year}/tabs${query}`,
+        );
+        const tabsRaw = tabsRes.data;
+        const tabList: {
+          id: number;
+          has_realisasi?: boolean;
+          total_realisasi?: number;
+        }[] = Array.isArray(tabsRaw?.tabs)
+          ? tabsRaw.tabs
+          : Array.isArray(tabsRaw?.data?.tabs)
+            ? tabsRaw.data.tabs
+            : [];
+        const latestApiId = String(
+          tabsRaw?.latest_tab_id ?? tabsRaw?.data?.latest_tab_id ?? "",
+        );
+        const fallbackTab =
+          [...tabList]
+            .reverse()
+            .find(
+              (t) =>
+                Boolean(t.has_realisasi) || Number(t.total_realisasi || 0) > 0,
+            ) || tabList[tabList.length - 1];
+        targetTabId =
+          latestApiId || (fallbackTab ? String(fallbackTab.id) : "");
+
+        if (!targetTabId) {
+          setErrorMsg("Belum ada tab bulan aktif pada tahun anggaran ini.");
+          return;
+        }
+        setResolvedTabId(targetTabId);
+      }
+
       const res = await api.get(
-        `${baseUrl}/api/budget-mapping/${year}/tab/${tabId}${query}`,
+        `${baseUrl}/api/budget-mapping/${year}/tab/${targetTabId}${query}`,
       );
 
       if (res.data) {
@@ -153,9 +190,12 @@ export default function BudgetMappingTable() {
 
   useEffect(() => {
     if (user?.id) {
-      loadTable();
+      if (urlTabId) {
+        setResolvedTabId(urlTabId);
+      }
+      loadTable(urlTabId || undefined);
     }
-  }, [year, tabId, user?.id]);
+  }, [year, urlTabId, user?.id]);
 
   // Overall budget summary
   const overallTotals = useMemo(() => {
@@ -697,7 +737,8 @@ export default function BudgetMappingTable() {
                         {keg.name}
                       </h3>
                       <p className="mt-0.5 text-xs text-slate-500">
-                        Kegiatan {kegIndex + 1} dari {localKegiatans.length} Output
+                        Kegiatan {kegIndex + 1} dari {localKegiatans.length}{" "}
+                        Output
                       </p>
                     </div>
                   </div>
@@ -712,8 +753,15 @@ export default function BudgetMappingTable() {
                             : "bg-amber-50 text-amber-800 border border-amber-200"
                       }`}
                     >
-                      <span className={`w-2 h-2 rounded-full ${isComplete ? 'bg-emerald-500' : isOver ? 'bg-red-500' : 'bg-amber-500'}`} />
-                      Alokasi IKSK: {formatPct(totalAllocPercent)} {isComplete ? "(Lengkap)" : isOver ? "(Melebihi)" : "(Belum 100%)"}
+                      <span
+                        className={`w-2 h-2 rounded-full ${isComplete ? "bg-emerald-500" : isOver ? "bg-red-500" : "bg-amber-500"}`}
+                      />
+                      Alokasi IKSK: {formatPct(totalAllocPercent)}{" "}
+                      {isComplete
+                        ? "(Lengkap)"
+                        : isOver
+                          ? "(Melebihi)"
+                          : "(Belum 100%)"}
                     </span>
                     <button
                       type="button"
@@ -790,12 +838,16 @@ export default function BudgetMappingTable() {
                         <span className="block text-xs font-bold text-slate-700 mb-1">
                           Sisa Pagu Anggaran
                         </span>
-                        <p className={`text-base font-bold ${sisaDana >= 0 ? "text-slate-900" : "text-red-600"}`}>
+                        <p
+                          className={`text-base font-bold ${sisaDana >= 0 ? "text-slate-900" : "text-red-600"}`}
+                        >
                           {formatRp(sisaDana)}
                         </p>
                       </div>
                       <span className="text-[11px] text-slate-400">
-                        {sisaDana >= 0 ? "Sisa dana belum terpakai" : "Realisasi melebihi pagu"}
+                        {sisaDana >= 0
+                          ? "Sisa dana belum terpakai"
+                          : "Realisasi melebihi pagu"}
                       </span>
                     </div>
 
@@ -813,7 +865,9 @@ export default function BudgetMappingTable() {
                         <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden mt-2">
                           <div
                             className="h-full rounded-full bg-emerald-600 transition-all duration-300"
-                            style={{ width: `${Math.min(100, Math.max(0, serapanKeg))}%` }}
+                            style={{
+                              width: `${Math.min(100, Math.max(0, serapanKeg))}%`,
+                            }}
                           />
                         </div>
                       </div>
@@ -832,7 +886,8 @@ export default function BudgetMappingTable() {
                         Pembagian Alokasi ke Indikator Sasaran (IKSK)
                       </h4>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        Tentukan porsi persentase alokasi anggaran belanja kegiatan ini ke sasaran IKSK yang bersesuaian.
+                        Tentukan porsi persentase alokasi anggaran belanja
+                        kegiatan ini ke sasaran IKSK yang bersesuaian.
                       </p>
                     </div>
 
@@ -851,7 +906,8 @@ export default function BudgetMappingTable() {
                             className="cursor-pointer appearance-none rounded-xl border border-blue-300 bg-blue-50/70 hover:bg-blue-100/70 pl-8 pr-8 py-2 text-xs font-bold text-[#005baa] transition focus:border-[#005baa] focus:ring-1 focus:ring-[#005baa] focus:outline-none shadow-xs"
                           >
                             <option value="" disabled>
-                              + Tambah Alokasi IKSK ({availableIksksToAdd.length} sasaran)
+                              + Tambah Alokasi IKSK (
+                              {availableIksksToAdd.length} sasaran)
                             </option>
                             {availableIksksToAdd.map((i) => (
                               <option key={i.iksk_number} value={i.iksk_number}>
@@ -863,7 +919,10 @@ export default function BudgetMappingTable() {
                             <Icon icon="solar:add-circle-bold" width={15} />
                           </div>
                           <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#005baa]">
-                            <Icon icon="solar:alt-arrow-down-linear" width={13} />
+                            <Icon
+                              icon="solar:alt-arrow-down-linear"
+                              width={13}
+                            />
                           </div>
                         </div>
                       ) : (
@@ -877,24 +936,42 @@ export default function BudgetMappingTable() {
                   {/* Progress Bar Total Alokasi */}
                   <div className="mb-4 rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs">
                     <div className="flex items-center justify-between text-xs mb-1.5 font-bold">
-                      <span className="text-slate-700">Total Alokasi Terbagi:</span>
-                      <span className={isComplete ? "text-emerald-700" : isOver ? "text-red-600" : "text-amber-600"}>
+                      <span className="text-slate-700">
+                        Total Alokasi Terbagi:
+                      </span>
+                      <span
+                        className={
+                          isComplete
+                            ? "text-emerald-700"
+                            : isOver
+                              ? "text-red-600"
+                              : "text-amber-600"
+                        }
+                      >
                         {formatPct(totalAllocPercent)} / 100%
                       </span>
                     </div>
                     <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-300 ${
-                          isComplete ? "bg-emerald-500" : isOver ? "bg-red-500" : "bg-amber-500"
+                          isComplete
+                            ? "bg-emerald-500"
+                            : isOver
+                              ? "bg-red-500"
+                              : "bg-amber-500"
                         }`}
-                        style={{ width: `${Math.min(100, Math.max(0, totalAllocPercent))}%` }}
+                        style={{
+                          width: `${Math.min(100, Math.max(0, totalAllocPercent))}%`,
+                        }}
                       />
                     </div>
                   </div>
 
                   {allocationsList.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-xs text-slate-500">
-                      Belum ada pembagian IKSK untuk kegiatan ini. Gunakan menu dropdown &quot;+ Tambah Alokasi IKSK&quot; di atas untuk menambahkan sasaran.
+                      Belum ada pembagian IKSK untuk kegiatan ini. Gunakan menu
+                      dropdown &quot;+ Tambah Alokasi IKSK&quot; di atas untuk
+                      menambahkan sasaran.
                     </div>
                   ) : (
                     <div className="space-y-2.5">
@@ -917,7 +994,8 @@ export default function BudgetMappingTable() {
                                   className="truncate text-xs font-bold text-slate-800"
                                   title={ikskInfo?.full_title}
                                 >
-                                  {ikskInfo?.full_title || `IKSK ${alloc.iksk_number}`}
+                                  {ikskInfo?.full_title ||
+                                    `IKSK ${alloc.iksk_number}`}
                                 </span>
                               </div>
                             </div>
@@ -935,7 +1013,9 @@ export default function BudgetMappingTable() {
                                     min="0"
                                     max="100"
                                     value={alloc.percent}
-                                    onWheel={(e) => (e.target as HTMLElement).blur()}
+                                    onWheel={(e) =>
+                                      (e.target as HTMLElement).blur()
+                                    }
                                     onChange={(e) =>
                                       handlePercentChange(
                                         kegIndex,
