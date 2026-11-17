@@ -49,6 +49,10 @@ export default function OurApps({ user }: { user: User | null }) {
 
     const adminApps = user?.sites ?? []
     const isAdmin = user?.role?.level == "admin" && adminApps.length > 0
+    const isSuperadmin = user?.role?.level === "superadmin"
+    const managedApps = adminApps.map((adminApp) =>
+        dataApp.find((app) => app.id === adminApp.id) ?? adminApp
+    )
 
     const filteredApps = useMemo(() => {
         const q = query.trim().toLowerCase()
@@ -75,7 +79,7 @@ export default function OurApps({ user }: { user: User | null }) {
                     </div>
 
                     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                        {adminApps.map((app, index) => (
+                        {managedApps.map((app, index) => (
                             <CardApp key={index} appData={app} isAdmin={true} />
                         ))}
                     </div>
@@ -110,7 +114,7 @@ export default function OurApps({ user }: { user: User | null }) {
                     {isLoading
                         ? Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)
                         : filteredApps.map((app, index) => (
-                            <CardApp key={index} appData={app} />
+                            <CardApp key={index} appData={app} isSuperadmin={isSuperadmin} />
                         ))
                     }
                 </div>

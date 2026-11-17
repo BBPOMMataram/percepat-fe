@@ -12,13 +12,35 @@ const ACCENTS = [
   { ring: 'hover:border-indigo-300', bar: 'from-indigo-500 to-blue-400', soft: 'bg-indigo-50', text: 'text-indigo-700', btn: 'bg-indigo-600 hover:bg-indigo-700' },
 ];
 
-const CardApp = ({ appData, isAdmin }: { appData: AppData, isAdmin?: boolean }) => {
+const CardApp = ({ appData, isAdmin, isSuperadmin }: { appData: AppData, isAdmin?: boolean, isSuperadmin?: boolean }) => {
   const accent = ACCENTS[(appData?.id ?? 0) % ACCENTS.length];
   const isExternal = appData.link?.includes('http');
   // link internal di DB bisa berbentuk "/percepat" atau "percepat" → normalisasi agar tidak jadi "//" atau "/admin//"
   const slug = (appData.link ?? '').replace(/^\/+/, '');
   const href = isExternal ? appData.link : (isAdmin ? `/admin/${slug}` : `/${slug}`);
   const ctaLabel = isAdmin ? 'Panel Admin' : 'Buka Aplikasi';
+  const showSuperadminActions = isSuperadmin && !isExternal;
+  const userPicNames = Array.isArray(appData.users)
+    ? appData.users.map((user) => {
+        const callName = (user.call_name ?? '').trim();
+        const fullName = (user.name ?? '').trim();
+        return callName && callName !== '-' ? callName : fullName;
+      })
+    : [];
+  const picNames = userPicNames.length > 0
+    ? userPicNames
+    : Array.isArray(appData.pics) && appData.pics.length > 0
+      ? appData.pics
+      : [appData.pic ?? ''];
+  const seenPicNames = new Set<string>();
+  const uniquePicNames = picNames
+    .map((name) => name.trim())
+    .filter((name) => {
+      const key = name.toLowerCase();
+      if (!name || name === '-' || seenPicNames.has(key)) return false;
+      seenPicNames.add(key);
+      return true;
+    });
 
   const body = (
     <div
@@ -70,36 +92,63 @@ const CardApp = ({ appData, isAdmin }: { appData: AppData, isAdmin?: boolean }) 
         </p>
 
         {/* PIC / unit penanggung jawab */}
-        {appData.pic && appData.pic !== '-' && (
-          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+        {uniquePicNames.length > 0 && (
+          <div className="flex items-start gap-1.5 text-xs text-gray-500">
             <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
-            <span className="truncate font-medium uppercase tracking-wide">{appData.pic}</span>
+            <span className="break-words font-medium uppercase tracking-wide">{uniquePicNames.join(', ')}</span>
           </div>
         )}
 
         {/* CTA */}
-        <div className="mt-auto pt-2">
-          <span
-            className={`inline-flex w-full items-center justify-center gap-2 rounded-xl ${accent.btn} px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors`}
-          >
-            {ctaLabel}
-            <svg
-              className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              viewBox="0 0 24 24"
-              aria-hidden="true"
+        <div className="mt-auto flex flex-col gap-2 pt-2">
+          {showSuperadminActions ? (
+            <>
+              <Link
+                href={href}
+                className={`inline-flex w-full items-center justify-center gap-2 rounded-xl ${accent.btn} px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors`}
+              >
+                Buka Aplikasi
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6l6 6-6 6M4 12h15" />
+                </svg>
+              </Link>
+              <Link
+                href={`/admin/${slug}`}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+              >
+                Buka Panel Admin
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6l6 6-6 6M4 12h15" />
+                </svg>
+              </Link>
+            </>
+          ) : (
+            <span
+              className={`inline-flex w-full items-center justify-center gap-2 rounded-xl ${accent.btn} px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors`}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6l6 6-6 6M4 12h15" />
-            </svg>
-          </span>
+              {ctaLabel}
+              <svg
+                className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6l6 6-6 6M4 12h15" />
+              </svg>
+            </span>
+          )}
         </div>
       </div>
     </div>
   );
+
+  if (showSuperadminActions) {
+    return <div className="h-full">{body}</div>;
+  }
 
   if (isExternal) {
     return (
