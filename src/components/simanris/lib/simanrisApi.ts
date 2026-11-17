@@ -2,6 +2,11 @@ import api from "@/utils/api";
 import type { AxiosProgressEvent } from "axios";
 import type {
   CategoryDistributionItem,
+  DashboardCategoryDistributionData,
+  DashboardDevelopmentData,
+  DashboardFunctionDistributionData,
+  DashboardHighResidualRisksData,
+  DashboardHighRiskTrendData,
   DataQualityData,
   DuplicateRiskWarning,
   DynamicFormSchemaResponse,
@@ -32,6 +37,22 @@ export const SIMANRIS_API_BASE =
   process.env.NEXT_PUBLIC_BACKEND_URL_SIMANRIS || "http://localhost:8002";
 
 const simanrisUrl = (path: string) => `${SIMANRIS_API_BASE}/api/simanris${path}`;
+
+export function setSimanrisActorHeaders(actor?: {
+  id?: string | number | null;
+  name?: string | null;
+  email?: string | null;
+}) {
+  if (actor?.name) {
+    api.defaults.headers.common["X-Actor-Name"] = actor.name;
+  }
+  if (actor?.email) {
+    api.defaults.headers.common["X-Actor-Email"] = actor.email;
+  }
+  if (actor?.id !== undefined && actor?.id !== null) {
+    api.defaults.headers.common["X-Actor-Id"] = String(actor.id);
+  }
+}
 
 function compactParams(params: Record<string, unknown> = {}) {
   const cleaned: Record<string, string | number | boolean> = {};
@@ -93,6 +114,59 @@ export const simanrisApi = {
       simanrisUrl("/dashboard/overview"),
       { params: compactParams(filters as Record<string, unknown>) }
     );
+    return res.data.data;
+  },
+
+  async getDashboardDevelopment(
+    filters: SimanrisDashboardFilters
+  ): Promise<DashboardDevelopmentData> {
+    const res = await api.get<SimanrisApiResponse<DashboardDevelopmentData>>(
+      simanrisUrl("/dashboard/development"),
+      { params: compactParams(filters as Record<string, unknown>) }
+    );
+    return res.data.data;
+  },
+
+  async getDashboardFunctionDistribution(
+    filters: SimanrisDashboardFilters
+  ): Promise<DashboardFunctionDistributionData> {
+    const res = await api.get<
+      SimanrisApiResponse<DashboardFunctionDistributionData>
+    >(simanrisUrl("/dashboard/function-distribution"), {
+      params: compactParams(filters as Record<string, unknown>),
+    });
+    return res.data.data;
+  },
+
+  async getDashboardCategoryDistribution(
+    filters: SimanrisDashboardFilters
+  ): Promise<DashboardCategoryDistributionData> {
+    const res = await api.get<
+      SimanrisApiResponse<DashboardCategoryDistributionData>
+    >(simanrisUrl("/dashboard/category-distribution"), {
+      params: compactParams(filters as Record<string, unknown>),
+    });
+    return res.data.data;
+  },
+
+  async getDashboardHighRiskTrend(
+    filters: SimanrisDashboardFilters
+  ): Promise<DashboardHighRiskTrendData> {
+    const res = await api.get<SimanrisApiResponse<DashboardHighRiskTrendData>>(
+      simanrisUrl("/dashboard/high-risk-trend"),
+      { params: compactParams(filters as Record<string, unknown>) }
+    );
+    return res.data.data;
+  },
+
+  async getDashboardHighResidualRisks(
+    filters: SimanrisDashboardFilters
+  ): Promise<DashboardHighResidualRisksData> {
+    const res = await api.get<
+      SimanrisApiResponse<DashboardHighResidualRisksData>
+    >(simanrisUrl("/dashboard/high-residual-risks"), {
+      params: compactParams(filters as Record<string, unknown>),
+    });
     return res.data.data;
   },
 
@@ -235,6 +309,8 @@ export const simanrisApi = {
 
   async listImports(params?: {
     period_id?: number | "";
+    year?: number | "";
+    semester?: number | "";
     status?: string;
     source_type?: string;
     per_page?: number;
@@ -251,6 +327,7 @@ export const simanrisApi = {
     batchId: number,
     params?: {
       row_type?: string;
+      source_sheet?: string;
       validation_status?: string;
       severity?: string;
       per_page?: number;
@@ -262,6 +339,46 @@ export const simanrisApi = {
       { params: compactParams((params || {}) as Record<string, unknown>) }
     );
     return res.data.data;
+  },
+
+  getImportDownloadUrl(batchId: number): string {
+    return simanrisUrl(`/imports/${batchId}/download`);
+  },
+
+  async downloadImportExcel(
+    batchId: number,
+    fallbackFileName = `SIMANRIS_Import_${batchId}.xlsx`
+  ): Promise<void> {
+    const res = await api.get(simanrisUrl(`/imports/${batchId}/download`), {
+      responseType: "blob",
+    });
+
+    let fileName = fallbackFileName;
+    const disposition = res.headers?.["content-disposition"];
+    if (typeof disposition === "string") {
+      const match = disposition.match(/filename\*?=(?:UTF-8'')?["']?([^"';\n]+)["']?/i);
+      if (match?.[1]) {
+        try {
+          fileName = decodeURIComponent(match[1]);
+        } catch {
+          fileName = match[1];
+        }
+      }
+    }
+
+    const blob = new Blob([res.data], {
+      type:
+        res.headers?.["content-type"] ||
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   },
 
   async revalidateImport(batchId: number): Promise<ImportBatchItem> {

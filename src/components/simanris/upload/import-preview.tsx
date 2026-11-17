@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Download,
   Info,
   RefreshCw,
   Rocket,
@@ -24,12 +25,14 @@ interface ImportPreviewProps {
 
 const ROW_TABS = [
   { key: "risk_register", label: "Register Risiko Utama" },
-  { key: "function_register", label: "Sheet Fungsi" },
   { key: "rtp", label: "RTP" },
   { key: "control_testing", label: "Pengendalian" },
   { key: "review", label: "Reviu" },
   { key: "positive_risk", label: "Risiko Positif" },
-  { key: "context", label: "Konteks / Piagam" },
+  { key: "context", label: "Piagam / Konteks" },
+  { key: "function_cross_check", label: "Sheet Fungsi" },
+  { key: "summary", label: "Ringkasan (Sheet8)" },
+  { key: "custom_sheet", label: "Tab Lainnya" },
 ];
 
 export function ImportPreview({
@@ -38,6 +41,7 @@ export function ImportPreview({
   onCancelled,
 }: ImportPreviewProps) {
   const [rowType, setRowType] = useState("risk_register");
+  const [sourceSheet, setSourceSheet] = useState("");
   const [validationStatus, setValidationStatus] = useState("");
   const [severityFilter, setSeverityFilter] = useState("");
   const [page, setPage] = useState(1);
@@ -53,7 +57,8 @@ export function ImportPreview({
     setError(null);
     try {
       const res = await simanrisApi.getImportPreview(batchId, {
-        row_type: rowType,
+        row_type: sourceSheet ? undefined : rowType,
+        source_sheet: sourceSheet || undefined,
         validation_status: validationStatus || undefined,
         severity: severityFilter || undefined,
         per_page: 20,
@@ -65,7 +70,7 @@ export function ImportPreview({
     } finally {
       setLoading(false);
     }
-  }, [batchId, rowType, validationStatus, severityFilter, page]);
+  }, [batchId, rowType, sourceSheet, validationStatus, severityFilter, page]);
 
   useEffect(() => {
     void fetchPreview();
@@ -152,6 +157,17 @@ export function ImportPreview({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={busyAction !== null}
+              onClick={() =>
+                void simanrisApi.downloadImportExcel(batch.id, batch.file_name)
+              }
+              className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2 text-xs font-semibold text-[#005baa] hover:bg-blue-100 disabled:opacity-50"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Unduh Excel Asli
+            </button>
             {!isPublished && !isCancelled && (
               <>
                 <button
@@ -243,16 +259,21 @@ export function ImportPreview({
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-1.5">
-            {ROW_TABS.map((t) => (
+            {ROW_TABS.filter(
+              (t) =>
+                t.key === "risk_register" ||
+                (counts[t.key] ?? 0) > 0
+            ).map((t) => (
               <button
                 key={t.key}
                 type="button"
                 onClick={() => {
                   setPage(1);
+                  setSourceSheet("");
                   setRowType(t.key);
                 }}
                 className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  rowType === t.key
+                  !sourceSheet && rowType === t.key
                     ? "bg-[#004281] text-white"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
@@ -262,19 +283,41 @@ export function ImportPreview({
             ))}
           </div>
 
-          <select
-            value={validationStatus}
-            onChange={(e) => {
-              setPage(1);
-              setValidationStatus(e.target.value);
-            }}
-            className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700"
-          >
-            <option value="">Semua Status Baris</option>
-            <option value="valid">Valid</option>
-            <option value="warning">Warning</option>
-            <option value="error">Error</option>
-          </select>
+          <div className="flex flex-wrap items-center gap-2">
+            {batch.detected_sheets && batch.detected_sheets.length > 0 && (
+              <select
+                value={sourceSheet}
+                onChange={(e) => {
+                  setPage(1);
+                  setSourceSheet(e.target.value);
+                }}
+                className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700"
+              >
+                <option value="">Filter per Tab Sheet Excel ({batch.detected_sheets.length} tab)</option>
+                {batch.detected_sheets.map((sh, i) => {
+                  const sName = sh.sheet_name || sh.name || `Sheet ${i + 1}`;
+                  return (
+                    <option key={sName} value={sName}>
+                      Tab: {sName} ({sh.row_count ?? 0} baris)
+                    </option>
+                  );
+                })}
+              </select>
+            )}
+            <select
+              value={validationStatus}
+              onChange={(e) => {
+                setPage(1);
+                setValidationStatus(e.target.value);
+              }}
+              className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700"
+            >
+              <option value="">Semua Status Baris</option>
+              <option value="valid">Valid</option>
+              <option value="warning">Warning</option>
+              <option value="error">Error</option>
+            </select>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -296,17 +339,29 @@ export function ImportPreview({
                 </tr>
               ) : (
                 staging.data.map((row) => {
-                  const norm = row.normalized_data || {};
-                  const summaryText =
-                    String(
-                      norm.risk_event ||
-                        norm.treatment_plan ||
-                        norm.opportunity_event ||
-                        norm.control_name ||
-                        norm.review_result ||
-                        norm.title ||
-                        "-"
-                    );
+                  const norm =
+                    (row.normalized_data ||
+                      row.normalized_payload ||
+                      {}) as Record<string, unknown>;
+                  const codeVal =
+                    row.risk_code ||
+                    (norm.risk_code as string) ||
+                    (norm.code as string) ||
+                    (norm.label as string) ||
+                    "-";
+                  const summaryText = String(
+                    norm.risk_event ||
+                      norm.mitigation_description ||
+                      norm.treatment_plan ||
+                      norm.description ||
+                      norm.opportunity_event ||
+                      norm.control_name ||
+                      norm.review_result ||
+                      norm.title ||
+                      (norm.count !== undefined ? `Jumlah: ${norm.count}` : "") ||
+                      (norm.columns ? JSON.stringify(norm.columns) : "") ||
+                      "-"
+                  );
                   return (
                     <tr key={row.id} className="hover:bg-slate-50">
                       <td className="px-3 py-2.5 whitespace-nowrap text-slate-600">
@@ -328,7 +383,7 @@ export function ImportPreview({
                         )}
                       </td>
                       <td className="px-3 py-2.5 whitespace-nowrap font-mono font-bold text-[#004281]">
-                        {row.risk_code || "-"}
+                        {codeVal}
                       </td>
                       <td className="px-3 py-2.5 text-slate-800 max-w-xl">
                         <p className="line-clamp-2">{summaryText}</p>

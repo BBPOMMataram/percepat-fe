@@ -1,14 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  ClipboardPlus,
+  FileSpreadsheet,
   ShieldAlert,
-  FileUp,
-  History,
-  GitCompareArrows,
   ArrowLeft,
   X,
 } from "lucide-react";
@@ -18,47 +16,68 @@ interface SidebarSimanrisProps {
   onCloseMobile?: () => void;
 }
 
+export interface SimanrisPageMeta {
+  title: string;
+  breadcrumb: string[];
+  description: string;
+}
+
+export function resolveSimanrisPageMeta(pathname: string | null): SimanrisPageMeta {
+  const path = pathname || "/simanris";
+
+  if (
+    path.startsWith("/simanris/data-excel") ||
+    path.startsWith("/simanris/upload") ||
+    path.startsWith("/simanris/import-history")
+  ) {
+    return {
+      title: "Data Excel",
+      breadcrumb: ["SIMANRIS", "Data Excel"],
+      description:
+        "Kelola unggahan dan riwayat file manajemen risiko berdasarkan periode dan tahun.",
+    };
+  }
+
+  if (
+    path.startsWith("/simanris/data-risiko") ||
+    path.startsWith("/simanris/risiko")
+  ) {
+    return {
+      title: "Daftar Risiko",
+      breadcrumb: ["SIMANRIS", "Daftar Risiko"],
+      description:
+        "Eksplorasi seluruh data risk register dan tab pendukung dari workbook manajemen risiko BBPOM di Mataram.",
+    };
+  }
+
+  return {
+    title: "Dashboard Manajemen Risiko",
+    breadcrumb: ["SIMANRIS", "Dashboard Manajemen Risiko"],
+    description:
+      "Pemantauan perkembangan jumlah risiko, sebaran per fungsi, kategori risiko, dan prioritas risiko tinggi BBPOM di Mataram.",
+  };
+}
+
 const MENU_ITEMS = [
   {
     href: "/simanris",
-    label: "Dashboard Eksekutif",
-    sub: "Ringkasan & Peta Risiko",
+    label: "Dashboard",
+    sub: "Analitik & Pemantauan Risiko",
     icon: LayoutDashboard,
     exact: true,
   },
   {
-    href: "/simanris/entry-risiko",
-    label: "Entry Risiko",
-    sub: "Input & Formulir Dinamis",
-    icon: ClipboardPlus,
+    href: "/simanris/data-excel",
+    label: "Data Excel",
+    sub: "Unggah & Riwayat Workbook",
+    icon: FileSpreadsheet,
     exact: false,
   },
   {
     href: "/simanris/data-risiko",
-    label: "Data Risiko",
-    sub: "Eksplorasi Risk Register",
+    label: "Daftar Risiko",
+    sub: "Risk Register & Semua Tab",
     icon: ShieldAlert,
-    exact: false,
-  },
-  {
-    href: "/simanris/upload",
-    label: "Upload Excel",
-    sub: "Import & Preview Workbook",
-    icon: FileUp,
-    exact: false,
-  },
-  {
-    href: "/simanris/import-history",
-    label: "Riwayat Import",
-    sub: "Snapshot & Aktivasi Dataset",
-    icon: History,
-    exact: false,
-  },
-  {
-    href: "/simanris/analytics",
-    label: "Analisis Semester",
-    sub: "Perbandingan & Data Pendukung",
-    icon: GitCompareArrows,
     exact: false,
   },
 ];
@@ -71,6 +90,14 @@ export default function SidebarSimanris({
 
   const isItemActive = (href: string, exact: boolean) => {
     if (exact) return pathname === href;
+    if (href === "/simanris/data-excel") {
+      return (
+        pathname === href ||
+        pathname?.startsWith(`${href}/`) ||
+        pathname?.startsWith("/simanris/upload") ||
+        pathname?.startsWith("/simanris/import-history")
+      );
+    }
     return pathname === href || pathname?.startsWith(`${href}/`);
   };
 
@@ -78,19 +105,24 @@ export default function SidebarSimanris({
     <div className="flex h-full flex-col justify-between bg-[#004281] text-white">
       <div>
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-5">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#04a451] text-xs font-extrabold tracking-wider text-white shadow-sm">
-                MR
-              </span>
-              <div>
-                <h1 className="text-base font-bold tracking-tight text-white">
-                  SIMANRIS
-                </h1>
-                <p className="text-[11px] text-blue-200">
-                  BBPOM di Mataram
-                </p>
-              </div>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white p-1.5 shadow-sm">
+              <Image
+                src="/assets/images/bpom_without_label.webp"
+                alt="Logo BBPOM di Mataram"
+                width={32}
+                height={32}
+                className="h-full w-auto object-contain"
+                priority
+              />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-base font-bold tracking-tight text-white leading-tight">
+                SIMANRIS
+              </h1>
+              <p className="text-[11px] text-blue-200 truncate">
+                BBPOM di Mataram
+              </p>
             </div>
           </div>
           {onCloseMobile && (

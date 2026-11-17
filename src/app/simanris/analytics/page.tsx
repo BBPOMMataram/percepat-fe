@@ -1,5 +1,5 @@
-import { AnalyticsView } from "@/components/simanris/analytics/analytics-view";
+import { redirect } from "next/navigation";
 
 export default function SimanrisAnalyticsPage() {
-  return <AnalyticsView />;
+  redirect("/simanris");
 }

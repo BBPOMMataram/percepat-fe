@@ -1,5 +1,5 @@
-import { ImportHistoryView } from "@/components/simanris/history/import-history-view";
+import { redirect } from "next/navigation";
 
 export default function SimanrisImportHistoryPage() {
-  return <ImportHistoryView />;
+  redirect("/simanris/data-excel");
 }

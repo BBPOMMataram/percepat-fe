@@ -68,6 +68,8 @@ export interface MasterOptionsData {
 export interface SimanrisDashboardFilters {
   period_id?: number | "";
   batch_id?: number | "";
+  year?: number | "";
+  semester?: number | "";
   function_id?: number | "";
   risk_category_id?: number | "";
   risk_source?: string;
@@ -77,6 +79,7 @@ export interface SimanrisDashboardFilters {
   status?: string;
   entry_mode?: string;
   include_unpublished?: boolean;
+  use_alias_mapping?: boolean;
 }
 
 export interface ReconciliationSummary {
@@ -335,26 +338,43 @@ export interface DataQualityData {
 export interface ImportBatchItem {
   id: number;
   period_id: number;
+  version?: number;
   function_id: number | null;
   template_version_id: number | null;
   file_name: string;
   file_hash?: string;
   file_size?: number;
   source_type: "master_compilation" | "function_workbook";
-  status: "uploaded" | "parsed" | "validated" | "staged" | "published" | "failed" | "cancelled";
+  status:
+    | "uploaded"
+    | "processing"
+    | "preview_ready"
+    | "validation_failed"
+    | "ready_to_publish"
+    | "parsed"
+    | "validated"
+    | "staged"
+    | "published"
+    | "failed"
+    | "cancelled";
   is_active: boolean;
   total_rows: number;
   valid_rows: number;
   warning_rows: number;
   error_rows: number;
+  info_rows?: number;
+  uploaded_by?: string | null;
   uploaded_by_name?: string | null;
+  notes?: string | null;
   published_at: string | null;
   created_at: string;
   reconciliation_summary: ReconciliationSummary | null;
   detected_sheets?: Array<{
     name?: string;
     sheet_name?: string;
+    sheet_type?: string;
     classified_as?: string;
+    status?: string;
     row_count?: number;
   }> | null;
   period?: PeriodItem | null;
@@ -370,22 +390,31 @@ export interface ImportStagingRowItem {
   row_type:
     | "risk_register"
     | "function_register"
+    | "function_cross_check"
     | "rtp"
     | "control_testing"
     | "review"
     | "positive_risk"
     | "context"
     | "summary"
+    | "custom_sheet"
     | "unknown";
   validation_status: "valid" | "warning" | "error";
-  risk_code: string | null;
-  normalized_data: Record<string, unknown> | null;
-  raw_data: Record<string, unknown> | null;
+  risk_code?: string | null;
+  normalized_data?: Record<string, unknown> | null;
+  normalized_payload?: Record<string, unknown> | null;
+  raw_data?: Record<string, unknown> | null;
+  raw_payload?: Record<string, unknown> | null;
 }
 
 export interface ImportPreviewData {
   batch: ImportBatchItem;
   row_type_counts: Record<string, number>;
+  sheet_row_counts?: Array<{
+    source_sheet: string;
+    row_type: string;
+    total: number;
+  }>;
   staging_rows: PaginatedData<ImportStagingRowItem>;
   issues: ImportIssueItem[];
 }
@@ -468,13 +497,164 @@ export interface RiskMovementData {
   notice: string;
 }
 
+export interface ExtraSheetGroup {
+  sheet_name: string;
+  row_type: string;
+  total: number;
+  rows: ImportStagingRowItem[];
+}
+
 export interface SupportingDataResponse {
-  batch_id?: number;
+  batch_id?: number | null;
+  detected_sheets?: Array<{
+    sheet_name: string;
+    sheet_type: string;
+    status: string;
+    row_count: number;
+  }>;
+  reconciliation_summary?: ReconciliationSummary | null;
   rtp: RiskTreatmentPlanItem[];
   control_testings: ControlTestingItem[];
   reviews: RiskReviewItem[];
   positive_risks: PositiveRiskItem[];
   contexts: RiskContextItem[];
+  extra_sheets?: ExtraSheetGroup[];
+}
+
+export interface DashboardDevelopmentItem {
+  period_id: number;
+  year: number;
+  semester: number;
+  label: string;
+  short_label: string;
+  total_risks: number;
+  primary_sheet: string;
+  summary_sheet_total: number | null;
+  reconciliation_note: string | null;
+  batch_id: number | null;
+  file_name: string | null;
+}
+
+export interface DashboardDevelopmentData {
+  year: number;
+  sem1_total: number;
+  sem2_total: number;
+  delta: number;
+  delta_percent: number;
+  items: DashboardDevelopmentItem[];
+  reconciliation_warnings: Array<{
+    period_id: number;
+    period_name: string;
+    primary_sheet: string;
+    primary_count: number;
+    summary_sheet_total: number;
+    differences: string[];
+    message: string;
+  }>;
+}
+
+export interface DashboardFunctionDistributionItem {
+  unit_name: string;
+  name: string;
+  total: number;
+  percentage: number;
+  inherent_high: number;
+  residual_high: number;
+}
+
+export interface DashboardFunctionDistributionData {
+  period: {
+    id: number;
+    year: number;
+    semester: number;
+    period_name: string;
+  } | null;
+  grand_total: number;
+  use_alias_mapping: boolean;
+  items: DashboardFunctionDistributionItem[];
+}
+
+export interface DashboardCategoryComparisonItem {
+  category_id: number | null;
+  code: string;
+  name: string;
+  sem1_total: number;
+  sem2_total: number;
+  delta: number;
+}
+
+export interface DashboardCategoryDistributionData {
+  year: number;
+  sem1_total: number;
+  sem2_total: number;
+  items: DashboardCategoryComparisonItem[];
+}
+
+export interface DashboardHighRiskTrendItem {
+  period_id: number;
+  year: number;
+  semester: number;
+  label: string;
+  short_label: string;
+  total_records: number;
+  inherent_high: number;
+  residual_high: number;
+  anomalies_count: number;
+}
+
+export interface DashboardHighRiskTrendData {
+  year: number;
+  min_level: number;
+  max_level: number;
+  level_range_label: string;
+  items: DashboardHighRiskTrendItem[];
+  anomalies: Array<{
+    period_id: number;
+    period_name: string;
+    sheet_name: string;
+    row_number: number | null;
+    field_name: string | null;
+    message: string;
+    raw_value: string | null;
+  }>;
+}
+
+export interface DashboardHighResidualRiskItem {
+  id: number;
+  risk_code: string | null;
+  normalized_risk_code: string | null;
+  risk_event: string | null;
+  risk_cause: string | null;
+  potential_impact: string | null;
+  objective: string | null;
+  business_process: string | null;
+  raw_unit_name: string;
+  function_name: string;
+  category_name: string;
+  risk_source: string | null;
+  inherent_likelihood: number | null;
+  inherent_impact: number | null;
+  inherent_level: number | null;
+  existing_controls: string | null;
+  control_effectiveness: string | null;
+  residual_likelihood: number | null;
+  residual_impact: number | null;
+  residual_level: number | null;
+  source_sheet: string | null;
+  source_row: number | null;
+}
+
+export interface DashboardHighResidualRisksData {
+  period: {
+    id: number;
+    year: number;
+    semester: number;
+    period_name: string;
+  } | null;
+  min_level: number;
+  max_level: number;
+  total: number;
+  items: DashboardHighResidualRiskItem[];
 }
 
 export type RiskRecordStatus = "draft" | "submitted" | "published" | "archived";
