@@ -153,6 +153,7 @@ export default function MatriksRekomendasiTu() {
   const [uploadQuarter, setUploadQuarter] = useState<string>(initialQuarter);
   const [uploadingExcel, setUploadingExcel] = useState(false);
   const [isDraggingExcel, setIsDraggingExcel] = useState(false);
+  const [showUtilityMenu, setShowUtilityMenu] = useState(false);
 
   // Focus Modal Popup State (For Laporan Item Input / Edit)
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -882,173 +883,144 @@ export default function MatriksRekomendasiTu() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Top Header & Breadcrumb */}
-      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-              <button
-                type="button"
-                onClick={() => setShowYearList(true)}
-                className="hover:text-[#005baa] font-semibold"
-              >
-                Daftar Tahun
-              </button>
-              <span>/</span>
-              <Link href="/siproval/tu" className="hover:text-[#005baa]">
-                Dashboard TU
-              </Link>
-              <span>/</span>
-              <span className="font-semibold text-slate-800">
-                Matriks Rekomendasi {selectedYear}
-              </span>
-            </div>
-            <h1 className="mt-1 text-xl font-bold text-slate-900">
-              Formulir & Matriks Rekomendasi {selectedYear}
-            </h1>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Tabel <strong>Warna Kuning (Header #ffc000)</strong> adalah matriks resmi yang <strong>dipakai untuk Laporan Kinerja & Evaluasi Internal (LAPKIN)</strong>. Sisanya adalah <strong>tab biasa hasil tarikan spreadsheet</strong>.
-            </p>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2.5">
+    <div className="space-y-4">
+      {/* Compact Header & Prioritized Action Bar */}
+      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-2xs lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <Link href="/siproval/tu" className="hover:text-[#005baa] transition">
+              Tata Usaha
+            </Link>
+            <Icon icon="solar:alt-arrow-right-linear" width={13} className="text-slate-400" />
             <button
               type="button"
-              onClick={() => setIsUploadModalOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:bg-slate-50"
+              onClick={() => setShowYearList(true)}
+              className="hover:text-[#005baa] transition"
             >
-              <Icon icon="solar:upload-track-2-bold" width={16} className="text-emerald-600" />
-              Unggah File Excel (.xlsx)
+              Matriks Rekomendasi
             </button>
-
-            {activeType === "laporan" && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => handleSyncSheet(selectedQuarter)}
-                  disabled={syncing || loading}
-                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 disabled:opacity-50"
-                  title={`Tarik data indikator, kendala, rekomendasi, dan RTL dari Tab A. Capaian RAPK Mataram bulan ${currentQuarterConfig?.month}`}
-                >
-                  <Icon
-                    icon={syncing ? "solar:refresh-circle-bold" : "solar:cloud-download-bold"}
-                    width={16}
-                    className={syncing ? "animate-spin" : ""}
-                  />
-                  <span>
-                    {syncing ? "Menyinkronkan..." : `Tarik Data dari Recap RAPK (${currentQuarterConfig?.month})`}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleSyncSheet("ALL")}
-                  disabled={syncing || loading}
-                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 shadow-2xs transition hover:bg-emerald-100 disabled:opacity-50"
-                  title="Tarik data semua triwulan (TW 1 s/d TW 4) dari Tab A. Capaian RAPK Mataram"
-                >
-                  <Icon icon="solar:double-alt-arrow-down-bold" width={16} />
-                  <span>Tarik Semua TW</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleOpenAddModal}
-                  disabled={loading}
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#005baa] px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#004b8d] disabled:opacity-50"
-                >
-                  <Icon icon="solar:add-circle-bold" width={16} />
-                  Tambah Rekomendasi
-                </button>
-              </>
-            )}
-
-            <Link
-              href={`/siproval/tu/laporan-evaluasi?quarter=${selectedQuarter}`}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-800 px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-slate-900"
+            <Icon icon="solar:alt-arrow-right-linear" width={13} className="text-slate-400" />
+            <span className="font-semibold text-[#005baa]">Tahun {selectedYear}</span>
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-2.5">
+            <h1 className="text-lg font-bold text-slate-900">
+              Matriks Rekomendasi Triwulan
+            </h1>
+            <select
+              value={selectedYear}
+              onChange={(e) => handleOpenYearMatriks(Number(e.target.value))}
+              className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-[#005baa] focus:border-[#005baa] focus:outline-none"
             >
-              <Icon icon="solar:printer-bold" width={16} />
-              Lihat di Eksport Laporan
-            </Link>
+              {availableYears.map((y) => (
+                <option key={y.year} value={y.year}>
+                  Tahun {y.year}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* TWO DEDICATED TAB GROUPS */}
-        <div className="border-t border-slate-100 pt-4 space-y-3">
-          {/* GROUP 1: ⭐ Matriks Rekomendasi (Digunakan untuk Laporan - Warna Kuning/Gold #ffc000) */}
-          <div className="rounded-xl border border-amber-300 bg-amber-50/70 p-3 shadow-2xs">
-            <div className="flex items-center justify-between mb-2">
-              <span className="flex items-center gap-1.5 text-xs font-black tracking-wide text-amber-950 uppercase">
-                <Icon icon="solar:star-circle-bold" width={16} className="text-amber-600" />
-                Matriks Rekomendasi (Warna Kuning - Dipake Buat Laporan)
-              </span>
-              <span className="rounded-md bg-amber-200/80 px-2 py-0.5 text-[10px] font-bold text-amber-900 border border-amber-300">
-                ⭐ Digunakan untuk Laporan Evaluasi Internal & LAPKIN
-              </span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              {QUARTERS.map((q) => {
-                const active = activeType === "laporan" && selectedQuarter === q.key;
-                return (
-                  <button
-                    key={q.key}
-                    type="button"
-                    onClick={() => handleSelectQuarter(q.key)}
-                    className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition ${
-                      active
-                        ? "bg-[#ffc000] text-slate-950 shadow-xs ring-2 ring-amber-400 border border-amber-500 font-black"
-                        : "bg-white text-amber-900 border border-amber-200 hover:bg-amber-100/70"
-                    }`}
-                  >
-                    <span>{q.short}</span>
-                    <span className="text-[11px] opacity-80">(Bulan {q.month})</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* GROUP 2: 📑 Tab Biasa Hasil Tarikan Spreadsheet */}
-          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 shadow-2xs">
-            <div className="flex items-center justify-between mb-2">
-              <span className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase">
-                <Icon icon="solar:document-text-bold" width={16} className="text-slate-500" />
-                Tab Biasa Hasil Tarikan (Monitoring & Evaluasi Lainnya)
-              </span>
-              <span className="rounded-md bg-slate-200/80 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
-                📑 Tab Hasil Tarikan Spreadsheet (Non-Laporan)
-              </span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-1.5">
-              {availableTabs.tarikan.length === 0 ? (
-                <span className="text-xs italic text-slate-400">
-                  Belum ada tab tarikan pada tahun {selectedYear}.
+        {/* Prioritized Actions: Primary + Secondary + Utility Dropdown */}
+        <div className="flex flex-wrap items-center gap-2">
+          {activeType === "laporan" && (
+            <>
+              {/* Secondary Action: Sync Active Quarter from RHPK */}
+              <button
+                type="button"
+                onClick={() => handleSyncSheet(selectedQuarter)}
+                disabled={syncing || loading}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 disabled:opacity-50"
+                title={`Sinkronkan data ${selectedQuarter} dari RHPK bulan ${currentQuarterConfig?.month}`}
+              >
+                <Icon
+                  icon={syncing ? "solar:refresh-circle-bold" : "solar:refresh-linear"}
+                  width={15}
+                  className={syncing ? "animate-spin text-[#005baa]" : "text-[#005baa]"}
+                />
+                <span>
+                  {syncing ? "Menyinkronkan..." : `Sinkron RHPK (${currentQuarterConfig?.month})`}
                 </span>
-              ) : (
-                availableTabs.tarikan.map((tab) => {
-                  const tabName = tab.sheet_name || tab.title;
-                  const active = activeType === "tarikan" && selectedTarikanSheet === tabName;
-                  return (
-                    <button
-                      key={tab.id || tabName}
-                      type="button"
-                      onClick={() => handleSelectTarikanTab(tabName)}
-                      className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
-                        active
-                          ? "bg-[#005baa] text-white shadow-xs ring-2 ring-[#005baa]/20"
-                          : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
-                      }`}
-                    >
-                      {tab.title || tabName}
-                    </button>
-                  );
-                })
-              )}
-            </div>
+              </button>
+
+              {/* Primary Action: Tambah Rekomendasi */}
+              <button
+                type="button"
+                onClick={handleOpenAddModal}
+                disabled={loading}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#005baa] px-4 py-2 text-xs font-semibold text-white shadow-2xs transition hover:bg-[#004b8d] disabled:opacity-50"
+              >
+                <Icon icon="solar:add-circle-bold" width={15} />
+                <span>Tambah Rekomendasi</span>
+              </button>
+            </>
+          )}
+
+          {/* Secondary Navigation: Ekspor Laporan */}
+          <Link
+            href={`/siproval/tu/laporan-evaluasi?year=${selectedYear}&quarter=${selectedQuarter}`}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-[#005baa]/25 bg-blue-50/70 px-3.5 py-2 text-xs font-semibold text-[#005baa] transition hover:bg-blue-100/80"
+          >
+            <Icon icon="solar:printer-minimalistic-bold" width={15} />
+            <span>Ekspor Laporan</span>
+          </Link>
+
+          {/* Utility Menu Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowUtilityMenu((prev) => !prev)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+              title="Aksi lainnya"
+            >
+              <Icon icon="solar:menu-dots-bold" width={16} />
+              <span>Lainnya</span>
+            </button>
+
+            {showUtilityMenu && (
+              <>
+                <div
+                  className="fixed inset-0 z-30"
+                  onClick={() => setShowUtilityMenu(false)}
+                />
+                <div className="absolute right-0 z-40 mt-1.5 w-60 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowUtilityMenu(false);
+                      setIsUploadModalOpen(true);
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    <Icon icon="solar:upload-track-2-bold" width={15} className="text-emerald-600" />
+                    <span>Unggah File Excel (.xlsx)</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={syncing || loading}
+                    onClick={() => {
+                      setShowUtilityMenu(false);
+                      handleSyncSheet("ALL");
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    <Icon icon="solar:double-alt-arrow-down-bold" width={15} className="text-[#005baa]" />
+                    <span>Sinkronkan Semua Triwulan (TW I–IV)</span>
+                  </button>
+                  <div className="my-1 border-t border-slate-100" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowUtilityMenu(false);
+                      setShowYearList(true);
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    <Icon icon="solar:calendar-bold" width={15} className="text-slate-500" />
+                    <span>Kelola Daftar Tahun</span>
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -1056,7 +1028,7 @@ export default function MatriksRekomendasiTu() {
       {/* Notifications */}
       {notification && (
         <div
-          className={`flex items-center justify-between rounded-xl p-3.5 text-xs font-semibold shadow-2xs ${
+          className={`flex items-center justify-between rounded-xl px-4 py-3 text-xs font-semibold shadow-2xs ${
             notification.type === "success"
               ? "border border-emerald-200 bg-emerald-50 text-emerald-800"
               : "border border-rose-200 bg-rose-50 text-rose-800"
@@ -1085,55 +1057,111 @@ export default function MatriksRekomendasiTu() {
 
       {/* Error message */}
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-medium text-red-700">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs font-medium text-red-700">
           {error}
         </div>
       )}
 
-      {/* Search & Filter Strip */}
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1">
-          <Icon
-            icon="solar:magnifer-linear"
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            width={16}
-          />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={
-              activeType === "laporan"
-                ? "Cari indikator, kendala, atau kode risiko..."
-                : `Cari di seluruh kolom tab ${selectedTarikanSheet}...`
-            }
-            className="w-full rounded-lg border border-slate-200 py-1.5 pl-9 pr-3 text-xs text-slate-800 placeholder-slate-400 focus:border-[#005baa] focus:outline-none"
-          />
-        </div>
+      {/* Unified Navigation, Search & Filter Toolbar */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-2xs space-y-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          {/* Left: Segmented Quarter Selector + Supporting Sheet Dropdown */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex flex-wrap items-center rounded-xl bg-slate-100 p-1 gap-1">
+              {QUARTERS.map((q) => {
+                const active = activeType === "laporan" && selectedQuarter === q.key;
+                return (
+                  <button
+                    key={q.key}
+                    type="button"
+                    onClick={() => handleSelectQuarter(q.key)}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                      active
+                        ? "bg-[#005baa] text-white shadow-xs"
+                        : "text-slate-600 hover:bg-white/70 hover:text-slate-900"
+                    }`}
+                  >
+                    <span>{q.short}</span>
+                    <span className={`text-[10px] font-medium ${active ? "text-blue-100" : "text-slate-400"}`}>
+                      ({q.month.slice(0, 3)})
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
 
-        {activeType === "laporan" ? (
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-slate-500">Status Risiko:</span>
-            <select
-              value={filterRisiko}
-              onChange={(e) => setFilterRisiko(e.target.value)}
-              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 focus:border-[#005baa] focus:outline-none"
-            >
-              <option value="ALL">Semua Indikator</option>
-              <option value="Y">Risiko: YA (Y)</option>
-              <option value="T">Bukan Risiko: TIDAK (T)</option>
-            </select>
+            {availableTabs.tarikan.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <select
+                  value={activeType === "tarikan" ? selectedTarikanSheet : ""}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      handleSelectTarikanTab(e.target.value);
+                    } else {
+                      handleSelectQuarter(selectedQuarter);
+                    }
+                  }}
+                  className={`rounded-xl border px-3 py-1.5 text-xs font-semibold transition focus:outline-none ${
+                    activeType === "tarikan"
+                      ? "border-[#005baa] bg-blue-50 text-[#005baa]"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                  }`}
+                >
+                  <option value="">Tab Pendukung ({availableTabs.tarikan.length})...</option>
+                  {availableTabs.tarikan.map((tab) => {
+                    const tabName = tab.sheet_name || tab.title;
+                    return (
+                      <option key={tab.id || tabName} value={tabName}>
+                        {tab.title || tabName}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="flex items-center gap-2 text-xs text-slate-500 font-semibold">
-            <span>
-              Menampilkan <strong>{filteredSheetRows.length}</strong> dari {activeSheetData?.rows?.length || 0} baris data
-            </span>
+
+          {/* Right: Search & Risk Status Filter */}
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+            <div className="relative flex-1 sm:w-72">
+              <Icon
+                icon="solar:magnifer-linear"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                width={15}
+              />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={
+                  activeType === "laporan"
+                    ? "Cari indikator, kendala, kode risiko..."
+                    : `Cari di ${selectedTarikanSheet}...`
+                }
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/60 py-1.5 pl-8 pr-3 text-xs text-slate-800 placeholder-slate-400 focus:border-[#005baa] focus:bg-white focus:outline-none"
+              />
+            </div>
+
+            {activeType === "laporan" ? (
+              <select
+                value={filterRisiko}
+                onChange={(e) => setFilterRisiko(e.target.value)}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 focus:border-[#005baa] focus:outline-none"
+              >
+                <option value="ALL">Semua Status Risiko</option>
+                <option value="Y">Dikelola Risiko (Y)</option>
+                <option value="T">Bukan Risiko (T)</option>
+              </select>
+            ) : (
+              <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
+                {filteredSheetRows.length} / {activeSheetData?.rows?.length || 0} baris
+              </span>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* MAIN VIEW: KATEGORI LAPORAN (YELLOW HEADER #ffc000) */}
+      {/* MAIN VIEW: KATEGORI LAPORAN */}
       {activeType === "laporan" && (
         <>
           {loading ? (
@@ -1154,16 +1182,16 @@ export default function MatriksRekomendasiTu() {
                 Belum ada data Matriks Rekomendasi untuk {selectedQuarter}
               </h3>
               <p className="mt-1 text-xs text-slate-500">
-                Anda dapat menyinkronkan data atau menambahkannya secara manual.
+                Anda dapat menyinkronkan data dari RHPK atau menambahkannya secara manual.
               </p>
               <div className="mt-4 flex justify-center gap-2">
                 <button
                   type="button"
                   onClick={() => handleSyncSheet(selectedQuarter)}
                   disabled={syncing}
-                  className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50"
+                  className="rounded-xl bg-[#005baa] px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-[#004b8d] disabled:opacity-50"
                 >
-                  {syncing ? "Menyinkronkan..." : `Tarik Data dari Recap RAPK (Bulan ${currentQuarterConfig?.month})`}
+                  {syncing ? "Menyinkronkan..." : `Sinkron RHPK (Bulan ${currentQuarterConfig?.month})`}
                 </button>
                 <button
                   type="button"
@@ -1175,22 +1203,22 @@ export default function MatriksRekomendasiTu() {
               </div>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-amber-300 bg-white shadow-xs">
-              {/* Table Header Accent banner with Gold/Amber Theme */}
-              <div className="flex flex-col gap-2 border-b border-amber-300 bg-amber-50 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
+              {/* Subtle Table Context Strip */}
+              <div className="flex flex-col gap-1.5 border-b border-slate-200 bg-slate-50/80 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-full bg-[#ffc000] ring-2 ring-amber-400" />
-                  <span className="text-xs font-black text-slate-950">
-                    ⭐ Tabel Matriks Rekomendasi Triwulan ({selectedQuarter} - {items.length} Indikator)
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#ffc000]" />
+                  <span className="text-xs font-bold text-slate-800">
+                    Matriks Rekomendasi {currentQuarterConfig?.label} {selectedYear}
+                  </span>
+                  <span className="rounded-md bg-slate-200/80 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                    {filteredItems.length} Indikator
                   </span>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-blue-100 border border-blue-300 px-2.5 py-1 text-[11px] font-bold text-blue-900 shadow-2xs">
-                    <Icon icon="solar:database-bold" width={14} className="text-[#005baa]" />
-                    Sumber Data: Tab A. Capaian RAPK Mataram (Bulan {currentQuarterConfig?.month})
-                  </span>
-                  <span className="rounded-md bg-amber-200/90 px-2 py-0.5 text-[11px] font-bold text-amber-950 border border-amber-300">
-                    ⭐ Digunakan untuk Laporan Kinerja & Evaluasi Internal (Header Kuning #ffc000)
+                <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                  <Icon icon="solar:database-bold" width={13} className="text-[#005baa]" />
+                  <span>
+                    Sumber: Tab A. Capaian RAPK Mataram &bull; Periode Akhir Triwulan: <strong className="text-slate-700">{currentQuarterConfig?.month} {selectedYear}</strong>
                   </span>
                 </div>
               </div>

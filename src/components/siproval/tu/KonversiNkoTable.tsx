@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { Fragment, useEffect, useState, useMemo, useRef } from "react";
 import { Icon } from "@iconify/react";
 import Link from "next/link";
 import api from "@/utils/api";
@@ -212,47 +212,43 @@ export default function KonversiNkoTable() {
   };
 
   return (
-    <div className="w-full space-y-6 p-4 sm:p-6 lg:p-8">
-      {/* Header Page */}
-      <div className="flex flex-col gap-4 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-cyan-950 p-6 text-white shadow-xl sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-cyan-500/20 px-3 py-1 text-xs font-bold text-cyan-300">
-              Tata Usaha (TU)
-            </span>
-            <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-slate-200">
+    <div className="w-full space-y-5">
+      {/* Header Page — selaras dengan Design System SIPROVAL / BPOM */}
+      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <Link href="/siproval/tu" className="hover:text-[#005baa] transition">
+              Tata Usaha
+            </Link>
+            <Icon icon="solar:alt-arrow-right-linear" width={13} className="text-slate-400" />
+            <span className="font-semibold text-[#005baa]">Konversi NKO</span>
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-2.5">
+            <h1 className="text-lg font-bold text-slate-900 sm:text-xl">
+              Tabel Konversi Nilai Kinerja Organisasi (NKO)
+            </h1>
+            <span className="rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-[#005baa]">
               Peraturan Ka BPOM No. 676/2025
             </span>
           </div>
-          <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
-            Tabel Konversi Nilai Kinerja Organisasi (NKO)
-          </h1>
-          <p className="text-xs text-slate-300 max-w-2xl">
-            Pengukuran capaian kinerja 28 IKU dan 8 Sasaran Kegiatan dengan formula normalisasi $\le$ 110%, koreksi akuntabilitas, dan rata-rata berkala bulanan/triwulanan/tahunan.
+          <p className="mt-1 text-xs text-slate-500">
+            Pengukuran capaian kinerja 28 IKU dan 8 Sasaran Kegiatan dengan formula normalisasi (&le; 110%), koreksi akuntabilitas, dan rata-rata berkala.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Tombol kembali ke Realisasi RO */}
-          <Link
-            href="/siproval/tu/realisasi-ro"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-white/20"
-          >
-            <Icon icon="solar:arrow-left-bold" className="text-base" />
-            Realisasi RO
-          </Link>
-
-          {/* Tombol Pengaturan Anggaran */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Secondary Action: Sinkronisasi dari RHPK */}
           <button
             type="button"
-            onClick={() => setShowAnggaranModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-white/20"
+            onClick={handleSyncRhpk}
+            disabled={syncing}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#005baa] px-4 py-2 text-xs font-semibold text-white shadow-2xs transition hover:bg-[#004b8d] disabled:opacity-50"
           >
-            <Icon icon="solar:wallet-money-bold" className="text-base" />
-            Set Anggaran
+            <Icon icon="solar:refresh-circle-bold" className={`text-base ${syncing ? "animate-spin" : ""}`} />
+            <span>{syncing ? "Menyinkronkan..." : "Sinkronkan RHPK"}</span>
           </button>
 
-          {/* Tombol Upload Excel */}
+          {/* Secondary Action: Upload Excel */}
           <input
             type="file"
             ref={fileInputRef}
@@ -264,29 +260,37 @@ export default function KonversiNkoTable() {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 disabled:opacity-50"
           >
-            <Icon icon="solar:upload-track-bold" className={`text-base ${uploading ? "animate-bounce" : ""}`} />
-            {uploading ? "Mengunggah..." : "Unggah Excel"}
+            <Icon icon="solar:upload-track-2-bold" className={`text-base text-emerald-600 ${uploading ? "animate-bounce" : ""}`} />
+            <span>{uploading ? "Mengunggah..." : "Unggah Excel"}</span>
           </button>
 
-          {/* Tombol Sinkronisasi dari RHPK */}
+          {/* Utility Action: Pengaturan Anggaran */}
           <button
             type="button"
-            onClick={handleSyncRhpk}
-            disabled={syncing}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-cyan-600 px-4 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-cyan-700 disabled:opacity-50"
+            onClick={() => setShowAnggaranModal(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50"
           >
-            <Icon icon="solar:refresh-circle-bold" className={`text-base ${syncing ? "animate-spin" : ""}`} />
-            {syncing ? "Menyinkronkan..." : "Sinkronkan RHPK"}
+            <Icon icon="solar:wallet-money-bold" className="text-base text-[#005baa]" />
+            <span>Set Anggaran</span>
           </button>
+
+          {/* Utility Navigation: Realisasi RO */}
+          <Link
+            href="/siproval/tu/realisasi-ro"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
+          >
+            <Icon icon="solar:arrow-left-linear" className="text-sm" />
+            <span>Realisasi RO</span>
+          </Link>
         </div>
       </div>
 
       {/* Alert Notifikasi */}
       {notice && (
         <div
-          className={`flex items-center justify-between rounded-2xl p-4 text-xs font-semibold ${
+          className={`flex items-center justify-between rounded-xl px-4 py-3 text-xs font-semibold ${
             notice.type === "success"
               ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
               : "bg-rose-50 text-rose-800 border border-rose-200"
@@ -295,7 +299,7 @@ export default function KonversiNkoTable() {
           <div className="flex items-center gap-2">
             <Icon
               icon={notice.type === "success" ? "solar:check-circle-bold" : "solar:danger-triangle-bold"}
-              className="text-lg flex-shrink-0"
+              className="text-lg shrink-0"
             />
             <span>{notice.message}</span>
           </div>
@@ -309,86 +313,34 @@ export default function KonversiNkoTable() {
         </div>
       )}
 
-      {/* Toolbar Filter & Kontrol */}
-      <div className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm border border-slate-100 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Pilih Tahun */}
-          <div className="flex items-center gap-1.5">
-            <label className="text-xs font-bold text-slate-600">Tahun:</label>
-            <select
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
-              className="rounded-xl border border-slate-200 bg-slate-50 py-1.5 px-3 text-xs font-bold text-slate-700 focus:border-cyan-500 focus:outline-none"
-            >
-              {availableYears.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Filter Tampilan Bulan */}
-          <div className="flex items-center gap-1.5">
-            <label className="text-xs font-bold text-slate-600">Tampilan Kolom:</label>
-            <select
-              value={viewMonth}
-              onChange={(e) => setViewMonth(Number(e.target.value))}
-              className="rounded-xl border border-slate-200 bg-slate-50 py-1.5 px-3 text-xs font-bold text-slate-700 focus:border-cyan-500 focus:outline-none"
-            >
-              <option value={0}>Semua Bulan (12 Bulan)</option>
-              {Object.entries(monthNames).map(([num, name]) => (
-                <option key={num} value={num}>
-                  Bulan {name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Pencarian */}
-        <div className="relative min-w-[240px]">
-          <Icon
-            icon="solar:magnifer-linear"
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"
-          />
-          <input
-            type="text"
-            placeholder="Cari indikator atau sasaran..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-1.5 pl-9 pr-3 text-xs text-slate-700 placeholder:text-slate-400 focus:border-cyan-500 focus:bg-white focus:outline-none"
-          />
-        </div>
-      </div>
-
       {/* Ringkasan NKO 12 Bulan (Cards Horizontal) */}
-      <div className="overflow-x-auto pb-2">
-        <div className="flex gap-3 min-w-max">
+      <div className="overflow-x-auto pb-1">
+        <div className="flex gap-2.5 min-w-max">
           {displayedMonths.map((mNum) => {
             const sum = summaries[mNum];
             const mName = monthNames[mNum] || `Bulan ${mNum}`;
             const score = sum ? Number(sum.nko_score) : 0;
             const predikat = sum?.predikat_nko || "Belum Ada Data";
             const activeCount = sum?.total_active_iku || 0;
-
-            const isSeptember = mNum === 9;
+            const isSelected = viewMonth === mNum;
 
             return (
-              <div
+              <button
                 key={mNum}
-                className={`min-w-[170px] rounded-2xl p-4 border transition-all ${
-                  isSeptember
-                    ? "bg-gradient-to-br from-cyan-500/10 to-teal-500/10 border-cyan-300 shadow-sm"
-                    : "bg-white border-slate-100 shadow-sm hover:border-slate-200"
+                type="button"
+                onClick={() => setViewMonth(viewMonth === mNum ? 0 : mNum)}
+                className={`min-w-[162px] rounded-xl p-3.5 border text-left transition ${
+                  isSelected
+                    ? "bg-blue-50/70 border-[#005baa] ring-1 ring-[#005baa]/20 shadow-xs"
+                    : "bg-white border-slate-200 shadow-2xs hover:border-slate-300"
                 }`}
               >
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span className={isSeptember ? "text-cyan-700" : "text-slate-600"}>
+                <div className="flex items-center justify-between gap-2 text-xs font-bold">
+                  <span className={isSelected ? "text-[#005baa]" : "text-slate-700"}>
                     {mName.toUpperCase()}
                   </span>
                   <span
-                    className={`rounded-md px-1.5 py-0.5 text-[10px] font-extrabold ${
+                    className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
                       (sum?.total_active_iku ?? 0) > 0
                         ? getNkoPredikat(score).className
                         : "bg-slate-100 text-slate-500"
@@ -397,58 +349,136 @@ export default function KonversiNkoTable() {
                     {predikat}
                   </span>
                 </div>
-                <div className="mt-2 text-2xl font-black text-slate-800 tracking-tight">
+                <div className="mt-1.5 text-xl font-extrabold text-slate-900 tracking-tight">
                   {score > 0 ? `${score.toFixed(2)}%` : "-"}
                 </div>
-                <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
                   <span>IKU Aktif:</span>
-                  <span className="font-bold text-slate-700">{activeCount} / 28</span>
+                  <span className="font-semibold text-slate-700">{activeCount} / 28</span>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
       </div>
 
-      {/* Tabel Konversi Utama (Sticky 12 Bulan) */}
-      <div className="overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-100">
-        <div className="overflow-x-auto max-h-[75vh]">
-          <table className="w-full border-collapse text-left text-xs">
+      {/* Kartu Utama: Toolbar Filter + Tabel Konversi Utama */}
+      <div className="overflow-hidden rounded-2xl bg-white shadow-xs border border-slate-200">
+        {/* Toolbar Filter & Kontrol */}
+        <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Pilih Tahun */}
+            <div className="flex items-center gap-1.5">
+              <label className="text-xs font-semibold text-slate-600">Tahun:</label>
+              <select
+                value={year}
+                onChange={(e) => setYear(Number(e.target.value))}
+                className="rounded-xl border border-slate-200 bg-white py-1.5 px-3 text-xs font-bold text-[#005baa] focus:border-[#005baa] focus:outline-none"
+              >
+                {availableYears.map((y) => (
+                  <option key={y} value={y}>
+                    Tahun {y}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filter Tampilan Bulan */}
+            <div className="flex items-center gap-1.5">
+              <label className="text-xs font-semibold text-slate-600">Periode Bulan:</label>
+              <select
+                value={viewMonth}
+                onChange={(e) => setViewMonth(Number(e.target.value))}
+                className="rounded-xl border border-slate-200 bg-white py-1.5 px-3 text-xs font-semibold text-slate-700 focus:border-[#005baa] focus:outline-none"
+              >
+                <option value={0}>Semua Bulan (12 Bulan)</option>
+                {Object.entries(monthNames).map(([num, name]) => (
+                  <option key={num} value={num}>
+                    Bulan {name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Pencarian */}
+          <div className="relative min-w-[260px]">
+            <Icon
+              icon="solar:magnifer-linear"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"
+            />
+            <input
+              type="text"
+              placeholder="Cari kode IKU, indikator, atau sasaran..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white py-1.5 pl-9 pr-3 text-xs text-slate-700 placeholder:text-slate-400 focus:border-[#005baa] focus:outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Tabel Konversi Utama (Sticky Kolom Kiri Solid & Z-Index Terstruktur) */}
+        <div className="overflow-x-auto max-h-[74vh] relative">
+          <table
+            className={`w-full border-collapse text-left text-xs table-fixed ${
+              displayedMonths.length > 1 ? "min-w-[5920px]" : "min-w-[1120px]"
+            }`}
+          >
+            <colgroup>
+              {/* 4 Sticky Left Columns: 48 + 230 + 52 + 310 = 640px */}
+              <col style={{ width: "48px" }} />
+              <col style={{ width: "230px" }} />
+              <col style={{ width: "52px" }} />
+              <col style={{ width: "310px" }} />
+              {/* 5 Columns per Displayed Month: 84 + 84 + 92 + 104 + 96 = 460px */}
+              {displayedMonths.map((mNum) => (
+                <Fragment key={`colgroup_${mNum}`}>
+                  <col style={{ width: "84px" }} />
+                  <col style={{ width: "84px" }} />
+                  <col style={{ width: "92px" }} />
+                  <col style={{ width: "104px" }} />
+                  <col style={{ width: "96px" }} />
+                </Fragment>
+              ))}
+            </colgroup>
+
             {/* Header Bertingkat */}
-            <thead className="sticky top-0 z-30 bg-[#1a2b49] text-white shadow-md">
+            <thead className="sticky top-0 z-30 bg-[#004281] text-white">
               {/* Row 1: Header Bulan */}
               <tr>
                 <th
                   rowSpan={2}
-                  className="sticky left-0 z-40 bg-[#1a2b49] w-12 py-3 px-2 text-center border-r border-b border-white/20"
+                  className="sticky left-0 top-0 z-40 bg-[#004281] w-[48px] min-w-[48px] max-w-[48px] py-3 px-2 text-center border-r border-b border-white/15 font-bold"
                 >
                   NO
                 </th>
                 <th
                   rowSpan={2}
-                  className="sticky left-12 z-40 bg-[#1a2b49] min-w-[220px] max-w-[260px] py-3 px-3 border-r border-b border-white/20"
+                  className="sticky left-[48px] top-0 z-40 bg-[#004281] w-[230px] min-w-[230px] max-w-[230px] py-3 px-3 border-r border-b border-white/15 font-bold"
                 >
                   SASARAN KEGIATAN
                 </th>
                 <th
                   rowSpan={2}
-                  className="sticky left-[308px] z-40 bg-[#1a2b49] w-14 py-3 px-2 text-center border-r border-b border-white/20"
+                  className="sticky left-[278px] top-0 z-40 bg-[#004281] w-[52px] min-w-[52px] max-w-[52px] py-3 px-2 text-center border-r border-b border-white/15 font-bold"
                 >
                   IKU
                 </th>
                 <th
                   rowSpan={2}
-                  className="sticky left-[364px] z-40 bg-[#1a2b49] min-w-[280px] max-w-[340px] py-3 px-3 border-r border-b border-white/20 shadow-r"
+                  className="sticky left-[330px] top-0 z-40 bg-[#004281] w-[310px] min-w-[310px] max-w-[310px] py-3 px-3 border-r-2 border-b border-white/25 shadow-[4px_0_10px_-2px_rgba(15,23,42,0.22)] font-bold"
                 >
                   INDIKATOR KINERJA
                 </th>
 
                 {/* Kolom per Bulan */}
-                {displayedMonths.map((mNum) => (
+                {displayedMonths.map((mNum, idx) => (
                   <th
-                    key={mNum}
+                    key={`h_month_${mNum}`}
                     colSpan={5}
-                    className="py-2.5 px-3 text-center border-r border-b border-white/20 font-extrabold uppercase tracking-wider bg-slate-800/90"
+                    className={`py-2.5 px-3 text-center border-r border-b border-white/15 font-extrabold uppercase tracking-wider ${
+                      idx % 2 === 0 ? "bg-[#005baa]" : "bg-[#004281]"
+                    }`}
                   >
                     {monthNames[mNum] || `Bulan ${mNum}`}
                   </th>
@@ -458,64 +488,64 @@ export default function KonversiNkoTable() {
               {/* Row 2: Sub-kolom per Bulan */}
               <tr>
                 {displayedMonths.map((mNum) => (
-                  <div key={mNum} style={{ display: "contents" }}>
-                    <th className="w-20 py-2 px-2 text-center border-r border-b border-white/20 text-[11px] font-semibold bg-slate-900/60">
+                  <Fragment key={`h_sub_${mNum}`}>
+                    <th className="py-2 px-2 text-center border-r border-b border-white/15 text-[11px] font-semibold bg-[#00376b]">
                       TARGET
                     </th>
-                    <th className="w-20 py-2 px-2 text-center border-r border-b border-white/20 text-[11px] font-semibold bg-slate-900/60">
+                    <th className="py-2 px-2 text-center border-r border-b border-white/15 text-[11px] font-semibold bg-[#00376b]">
                       REALISASI
                     </th>
-                    <th className="w-24 py-2 px-2 text-center border-r border-b border-white/20 text-[11px] font-semibold bg-slate-900/60">
+                    <th className="py-2 px-2 text-center border-r border-b border-white/15 text-[11px] font-semibold bg-[#00376b]">
                       % CAPAIAN
                     </th>
-                    <th className="w-28 py-2 px-2 text-center border-r border-b border-white/20 text-[11px] font-semibold bg-cyan-900/70 text-cyan-200">
+                    <th className="py-2 px-2 text-center border-r border-b border-white/15 text-[11px] font-bold bg-[#004c94] text-amber-200">
                       NORMALISASI
                     </th>
-                    <th className="w-24 py-2 px-2 text-center border-r border-b border-white/20 text-[11px] font-semibold bg-slate-900/60">
+                    <th className="py-2 px-2 text-center border-r border-b border-white/15 text-[11px] font-semibold bg-[#00376b]">
                       KATEGORI
                     </th>
-                  </div>
+                  </Fragment>
                 ))}
               </tr>
 
-              {/* Row 3: Baris Ringkasan NKO Organisasi (Row 4 Excel) */}
-              <tr className="bg-cyan-900/90 text-white font-extrabold text-[11px] tracking-wide border-b-2 border-cyan-400">
+              {/* Row 3: Baris Ringkasan NKO Organisasi */}
+              <tr className="bg-[#f0f7ff] text-slate-900 font-bold text-[11px] border-b-2 border-slate-300">
                 <td
                   colSpan={4}
-                  className="sticky left-0 z-40 bg-cyan-900 py-2.5 px-4 uppercase text-left border-r border-cyan-700 shadow-r"
+                  className="sticky left-0 z-40 bg-[#e6f0fa] py-2.5 px-4 uppercase text-left text-[#004281] font-extrabold border-r-2 border-slate-300 shadow-[4px_0_10px_-2px_rgba(15,23,42,0.12)]"
                 >
-                  Nilai Kinerja Organisasi (NKO) & Rata-rata Normalisasi
+                  Nilai Kinerja Organisasi (NKO) &amp; Rata-rata Normalisasi
                 </td>
                 {displayedMonths.map((mNum) => {
                   const s = summaries[mNum];
                   const score = s ? Number(s.nko_score) : 0;
                   const predikat = s?.predikat_nko || "-";
                   return (
-                    <div key={mNum} style={{ display: "contents" }}>
-                      <td colSpan={2} className="py-2.5 px-2 text-center border-r border-cyan-700 text-cyan-200">
+                    <Fragment key={`h_sum_${mNum}`}>
+                      <td colSpan={2} className="py-2 px-2 text-center border-r border-slate-200 text-slate-600 font-semibold bg-[#f0f7ff]">
                         Rata-rata:
                       </td>
-                      <td colSpan={2} className="py-2.5 px-2 text-center border-r border-cyan-700 text-white font-black text-xs">
+                      <td colSpan={2} className="py-2 px-2 text-center border-r border-slate-200 text-[#005baa] font-extrabold text-xs bg-[#f0f7ff]">
                         {score > 0 ? `${score.toFixed(2)}%` : "-"}
                       </td>
-                      <td className="py-2.5 px-2 text-center border-r border-cyan-700 text-cyan-200 text-[10px]">
+                      <td className="py-2 px-2 text-center border-r border-slate-300 text-slate-700 font-bold text-[10px] bg-[#f0f7ff]">
                         {predikat}
                       </td>
-                    </div>
+                    </Fragment>
                   );
                 })}
               </tr>
             </thead>
 
             {/* Isi Baris 28 IKU */}
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-200">
               {loading ? (
                 <tr>
                   <td
                     colSpan={4 + displayedMonths.length * 5}
-                    className="py-16 text-center text-slate-400"
+                    className="py-16 text-center text-slate-500"
                   >
-                    <Icon icon="solar:refresh-circle-bold" className="mx-auto mb-2 text-3xl animate-spin text-cyan-600" />
+                    <Icon icon="solar:refresh-circle-bold" className="mx-auto mb-2 text-3xl animate-spin text-[#005baa]" />
                     Memuat data tabel konversi NKO...
                   </td>
                 </tr>
@@ -523,7 +553,7 @@ export default function KonversiNkoTable() {
                 <tr>
                   <td
                     colSpan={4 + displayedMonths.length * 5}
-                    className="py-12 text-center text-slate-400 font-medium"
+                    className="py-12 text-center text-slate-500 font-medium"
                   >
                     Tidak ada indikator yang cocok dengan pencarian Anda.
                   </td>
@@ -531,63 +561,74 @@ export default function KonversiNkoTable() {
               ) : (
                 filteredIkus.map((ik, rowIdx) => {
                   const isEven = rowIdx % 2 === 1;
+                  // Background 100% solid (tanpa alpha/opacity) agar sel yang di-scroll di belakangnya tidak tembus
+                  const rowBgClass = isEven ? "bg-[#f8fafc]" : "bg-white";
+                  const stickyCellBgClass = isEven
+                    ? "bg-[#f8fafc] group-hover:bg-[#f1f5f9]"
+                    : "bg-white group-hover:bg-[#f1f5f9]";
+
                   return (
                     <tr
                       key={ik.iku_no}
-                      className={`transition-colors hover:bg-slate-50 ${
-                        isEven ? "bg-slate-50/40" : "bg-white"
-                      }`}
+                      className={`group transition-colors hover:bg-[#f1f5f9] ${rowBgClass}`}
                     >
-                      {/* Sticky Kolom Kiri */}
-                      <td className="sticky left-0 z-20 bg-inherit py-2.5 px-2 text-center font-bold text-slate-500 border-r border-slate-100">
+                      {/* Sticky Kolom Kiri — Lebar & Left Offset Presisi + Background Solid + Z-20 */}
+                      <td
+                        className={`sticky left-0 z-20 ${stickyCellBgClass} w-[48px] min-w-[48px] max-w-[48px] py-2.5 px-2 text-center font-bold text-slate-500 border-r border-slate-200 align-top`}
+                      >
                         {ik.ss_no}
                       </td>
-                      <td className="sticky left-12 z-20 bg-inherit py-2.5 px-3 text-slate-700 font-medium leading-tight border-r border-slate-100">
+                      <td
+                        className={`sticky left-[48px] z-20 ${stickyCellBgClass} w-[230px] min-w-[230px] max-w-[230px] py-2.5 px-3 text-slate-700 font-medium leading-snug border-r border-slate-200 align-top break-words`}
+                      >
                         {ik.ss_name}
                       </td>
-                      <td className="sticky left-[308px] z-20 bg-inherit py-2.5 px-2 text-center font-black text-slate-800 border-r border-slate-100">
+                      <td
+                        className={`sticky left-[278px] z-20 ${stickyCellBgClass} w-[52px] min-w-[52px] max-w-[52px] py-2.5 px-2 text-center font-extrabold text-[#005baa] border-r border-slate-200 align-top`}
+                      >
                         {ik.iku_no}
                       </td>
-                      <td className="sticky left-[364px] z-20 bg-inherit py-2.5 px-3 text-slate-800 font-semibold leading-tight border-r border-slate-100 shadow-r">
+                      <td
+                        className={`sticky left-[330px] z-20 ${stickyCellBgClass} w-[310px] min-w-[310px] max-w-[310px] py-2.5 px-3 text-slate-800 font-semibold leading-snug border-r-2 border-slate-300 shadow-[4px_0_10px_-2px_rgba(15,23,42,0.12)] align-top break-words`}
+                      >
                         {ik.iku_name}
                         {ik.is_annual_target && (
-                          <span className="ml-1.5 inline-block rounded bg-amber-50 px-1 py-0.2 text-[9px] font-bold text-amber-700 border border-amber-200">
+                          <span className="ml-1.5 inline-block rounded bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold text-amber-700 border border-amber-200">
                             Tahunan
                           </span>
                         )}
                       </td>
 
-                      {/* Kolom per Bulan */}
+                      {/* Kolom per Bulan (z-0 berada di bawah kolom sticky z-20) */}
                       {displayedMonths.map((mNum) => {
                         const mData = ik.months?.[mNum];
                         const target = mData?.target ?? "-";
                         const real = mData?.realisasi ?? "-";
                         const kat = mData?.kategori_iku || "-";
-                        const isActive = mData?.is_active ?? false;
 
                         return (
-                          <div key={mNum} style={{ display: "contents" }}>
+                          <Fragment key={`cell_${ik.iku_no}_${mNum}`}>
                             {/* Target */}
-                            <td className="py-2 px-2 text-center font-medium text-slate-700 border-r border-slate-100 whitespace-nowrap">
+                            <td className="relative z-0 py-2.5 px-2 text-center font-medium text-slate-700 border-r border-slate-200 whitespace-nowrap align-top">
                               {target}
                             </td>
                             {/* Realisasi */}
-                            <td className="py-2 px-2 text-center font-medium text-slate-700 border-r border-slate-100 whitespace-nowrap">
+                            <td className="relative z-0 py-2.5 px-2 text-center font-medium text-slate-700 border-r border-slate-200 whitespace-nowrap align-top">
                               {real}
                             </td>
                             {/* % Capaian */}
-                            <td className="py-2 px-2 text-center border-r border-slate-100 whitespace-nowrap">
+                            <td className="relative z-0 py-2.5 px-2 text-center border-r border-slate-200 whitespace-nowrap align-top">
                               {renderCapaianBadge(mData?.capaian)}
                             </td>
                             {/* Normalisasi (Maks 110%) */}
-                            <td className="py-2 px-2 text-center border-r border-slate-100 whitespace-nowrap">
+                            <td className="relative z-0 py-2.5 px-2 text-center border-r border-slate-200 whitespace-nowrap align-top">
                               {renderCapaianBadge(mData?.capaian_dinormalisasi)}
                             </td>
                             {/* Kategori IKU */}
-                            <td className="py-2 px-2 text-center border-r border-slate-100 whitespace-nowrap text-[11px] text-slate-600">
+                            <td className="relative z-0 py-2.5 px-2 text-center border-r border-slate-300 whitespace-nowrap text-[11px] text-slate-600 align-top">
                               {kat}
                             </td>
-                          </div>
+                          </Fragment>
                         );
                       })}
                     </tr>
@@ -601,11 +642,11 @@ export default function KonversiNkoTable() {
 
       {/* Modal Edit Pagu dan Realisasi Anggaran */}
       {showAnggaranModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-slate-100">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-                <Icon icon="solar:wallet-money-bold" className="text-cyan-600 text-xl" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Icon icon="solar:wallet-money-bold" className="text-[#005baa] text-xl" />
                 Pengaturan Anggaran DIPA {year}
               </h3>
               <button
@@ -626,7 +667,7 @@ export default function KonversiNkoTable() {
                   value={editPagu}
                   onChange={(e) => setEditPagu(e.target.value)}
                   required
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs font-semibold text-slate-800 focus:border-cyan-500 focus:bg-white focus:outline-none"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs font-semibold text-slate-800 focus:border-[#005baa] focus:bg-white focus:outline-none"
                 />
               </div>
 
@@ -638,14 +679,14 @@ export default function KonversiNkoTable() {
                   value={editRealisasi}
                   onChange={(e) => setEditRealisasi(e.target.value)}
                   required
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs font-semibold text-slate-800 focus:border-cyan-500 focus:bg-white focus:outline-none"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs font-semibold text-slate-800 focus:border-[#005baa] focus:bg-white focus:outline-none"
                 />
               </div>
 
-              <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
+              <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-3 text-xs text-slate-700">
                 <div className="flex justify-between font-bold">
                   <span>Persentase Capaian Belanja:</span>
-                  <span className="text-cyan-700">
+                  <span className="text-[#005baa]">
                     {Number(editPagu) > 0
                       ? `${((Number(editRealisasi) / Number(editPagu)) * 100).toFixed(2)}%`
                       : "0.00%"}
@@ -653,18 +694,18 @@ export default function KonversiNkoTable() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowAnggaranModal(false)}
-                  className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={savingAnggaran}
-                  className="rounded-xl bg-cyan-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-cyan-700 disabled:opacity-50"
+                  className="rounded-xl bg-[#005baa] px-4 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-[#004b8d] disabled:opacity-50"
                 >
                   {savingAnggaran ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>

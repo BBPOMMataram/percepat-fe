@@ -213,12 +213,65 @@ type ReportSources = {
   anggaran_tab: string;
 };
 
+const buildQuartersForYear = (year: number): QuarterOption[] => [
+  {
+    key: "TW1",
+    name: "Triwulan I",
+    label: `Triwulan I (Januari - Maret ${year})`,
+    short: "TW I (Jan-Mar)",
+    end_month: "MARET",
+    months: ["JANUARI", "FEBRUARI", "MARET"],
+    header_month_year: `MARET TAHUN ${year}`,
+    periode_text: `Januari sampai dengan Maret ${year}`,
+    section_title: `Capaian Kinerja dan Realisasi Anggaran per Output perbulan Sampai Maret Tahun ${year}`,
+  },
+  {
+    key: "TW2",
+    name: "Triwulan II",
+    label: `Triwulan II (April - Juni ${year})`,
+    short: "TW II (Apr-Jun)",
+    end_month: "JUNI",
+    months: ["APRIL", "MEI", "JUNI"],
+    header_month_year: `JUNI TAHUN ${year}`,
+    periode_text: `April sampai dengan Juni ${year}`,
+    section_title: `Capaian Kinerja dan Realisasi Anggaran per Output perbulan Sampai Juni Tahun ${year}`,
+  },
+  {
+    key: "TW3",
+    name: "Triwulan III",
+    label: `Triwulan III (Juli - September ${year})`,
+    short: "TW III (Jul-Sep)",
+    end_month: "SEPTEMBER",
+    months: ["JULI", "AGUSTUS", "SEPTEMBER"],
+    header_month_year: `SEPTEMBER TAHUN ${year}`,
+    periode_text: `Juli sampai dengan September ${year}`,
+    section_title: `Capaian Kinerja dan Realisasi Anggaran per Output perbulan Sampai September Tahun ${year}`,
+  },
+  {
+    key: "TW4",
+    name: "Triwulan IV",
+    label: `Triwulan IV (Oktober - Desember ${year})`,
+    short: "TW IV (Okt-Des)",
+    end_month: "DESEMBER",
+    months: ["OKTOBER", "NOVEMBER", "DESEMBER"],
+    header_month_year: `DESEMBER TAHUN ${year}`,
+    periode_text: `Oktober sampai dengan Desember ${year}`,
+    section_title: `Capaian Kinerja dan Realisasi Anggaran per Output perbulan Sampai Desember Tahun ${year}`,
+  },
+];
+
+const getQuarterInfo = (quarterKey: string, year: number): QuarterOption => {
+  const list = buildQuartersForYear(year);
+  return list.find((q) => q.key === quarterKey) || list[1];
+};
+
 export default function LaporanEvaluasiTu() {
   const { user } = useSelector((state: RootState) => state.auth);
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Parameter from URL: either ?quarter=TW2 or ?month=JUNI
+  // Parameter from URL: ?year=2026&quarter=TW3 or ?month=SEPTEMBER
+  const paramYear = searchParams.get("year");
   const paramQuarter = searchParams.get("quarter")?.toUpperCase();
   const paramMonth = searchParams.get("month")?.toUpperCase();
 
@@ -236,6 +289,10 @@ export default function LaporanEvaluasiTu() {
     return "TW2";
   };
 
+  const initialYear = paramYear && !Number.isNaN(Number(paramYear)) ? Number(paramYear) : 2026;
+  const initialQuarter = resolveInitialQuarter();
+  const initialQuarterInfo = getQuarterInfo(initialQuarter, initialYear);
+
   type LampiranItem = {
     id: string;
     title: string;
@@ -246,8 +303,8 @@ export default function LaporanEvaluasiTu() {
     fileSizeFormatted: string;
   };
 
-  const [selectedYear, setSelectedYear] = useState<number>(2026);
-  const availableYears = [2026];
+  const [selectedYear, setSelectedYear] = useState<number>(initialYear);
+  const availableYears = [2026, 2025];
 
   // ==========================================
   // 1. COVER LAPORAN (Terpisah dari Lampiran)
@@ -264,9 +321,12 @@ export default function LaporanEvaluasiTu() {
   const [coverTitle, setCoverTitle] = useState<string>(
     "LAPORAN EVALUASI INTERNAL",
   );
-  const [coverSubtitle, setCoverSubtitle] =
-    useState<string>("Triwulan II 2026");
-  const [coverDate, setCoverDate] = useState<string>("Tahun Anggaran 2026");
+  const [coverSubtitle, setCoverSubtitle] = useState<string>(
+    `${initialQuarterInfo.name} ${initialYear}`,
+  );
+  const [coverDate, setCoverDate] = useState<string>(
+    `Tahun Anggaran ${initialYear}`,
+  );
 
   const handleCoverUpload = (file: File | null) => {
     if (!file) return;
@@ -361,84 +421,36 @@ export default function LaporanEvaluasiTu() {
     setLampiranList((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const [selectedQuarter, setSelectedQuarter] = useState<string>(
-    resolveInitialQuarter(),
+  const [selectedQuarter, setSelectedQuarter] = useState<string>(initialQuarter);
+  const [availableQuarters, setAvailableQuarters] = useState<QuarterOption[]>(
+    () => buildQuartersForYear(initialYear),
   );
-
-  const [availableQuarters, setAvailableQuarters] = useState<QuarterOption[]>([
-    {
-      key: "TW1",
-      name: "Triwulan I",
-      label: "Triwulan I (Januari - Maret 2026)",
-      short: "TW I (Jan-Mar)",
-      end_month: "MARET",
-      months: ["JANUARI", "FEBRUARI", "MARET"],
-      header_month_year: "MARET TAHUN 2026",
-      periode_text: "Januari sampai dengan Maret 2026",
-      section_title:
-        "Capaian Kinerja dan Realisasi Anggaran per Output perbulan Sampai Maret Tahun 2026",
-    },
-    {
-      key: "TW2",
-      name: "Triwulan II",
-      label: "Triwulan II (April - Juni 2026)",
-      short: "TW II (Apr-Jun)",
-      end_month: "JUNI",
-      months: ["APRIL", "MEI", "JUNI"],
-      header_month_year: "JUNI TAHUN 2026",
-      periode_text: "April sampai dengan Juni 2026",
-      section_title:
-        "Capaian Kinerja dan Realisasi Anggaran per Output perbulan Sampai Juni Tahun 2026",
-    },
-    {
-      key: "TW3",
-      name: "Triwulan III",
-      label: "Triwulan III (Juli - September 2026)",
-      short: "TW III (Jul-Sep)",
-      end_month: "SEPTEMBER",
-      months: ["JULI", "AGUSTUS", "SEPTEMBER"],
-      header_month_year: "SEPTEMBER TAHUN 2026",
-      periode_text: "Juli sampai dengan September 2026",
-      section_title:
-        "Capaian Kinerja dan Realisasi Anggaran per Output perbulan Sampai September Tahun 2026",
-    },
-    {
-      key: "TW4",
-      name: "Triwulan IV",
-      label: "Triwulan IV (Oktober - Desember 2026)",
-      short: "TW IV (Okt-Des)",
-      end_month: "DESEMBER",
-      months: ["OKTOBER", "NOVEMBER", "DESEMBER"],
-      header_month_year: "DESEMBER TAHUN 2026",
-      periode_text: "Oktober sampai dengan Desember 2026",
-      section_title:
-        "Capaian Kinerja dan Realisasi Anggaran per Output perbulan Sampai Desember Tahun 2026",
-    },
-  ]);
-
   const [quarterLabel, setQuarterLabel] = useState<string>(
-    "Triwulan II (April - Juni 2026)",
+    initialQuarterInfo.label,
   );
   const [monthsData, setMonthsData] = useState<MonthData[]>([]);
   const [matriksRekomendasi, setMatriksRekomendasi] = useState<
     MatriksRekomendasiRow[]
   >([]);
   const [matriksTitle, setMatriksTitle] = useState<string>(
-    "Matriks Rekomendasi Triwulan TW II 2026",
+    `Matriks Rekomendasi ${initialQuarterInfo.name} ${initialYear}`,
   );
   const [summary, setSummary] = useState<ReportSummary | null>(null);
   const [sources, setSources] = useState<ReportSources>({
-    volume_spreadsheet: "Realisasi RO 2026",
+    volume_spreadsheet: `Realisasi RO ${initialYear}`,
     volume_tab: "Realisasi RO (Tab 155)",
-    anggaran_spreadsheet: "Maping Anggaran 2026",
+    anggaran_spreadsheet: `Maping Anggaran ${initialYear}`,
     anggaran_tab: "April, Mei, Juni 2026",
   });
   const [loading, setLoading] = useState<boolean>(true);
+  const [exportingPdf, setExportingPdf] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [showConfig, setShowConfig] = useState<boolean>(false);
 
   // Editable Berita Acara Metadata matching the template screenshot
-  const [baHeaderMonthYear, setBaHeaderMonthYear] = useState("JUNI TAHUN 2026");
+  const [baHeaderMonthYear, setBaHeaderMonthYear] = useState(
+    initialQuarterInfo.header_month_year,
+  );
   const [baOpeningText, setBaOpeningText] = useState(
     "Pada hari ini rabu, tanggal Lima Belas Juli Tahun Dua Ribu Dua Puluh Enam, bertempat di Balai Besar POM di Mataram, kami yang bertandatangan dibawah ini :",
   );
@@ -453,34 +465,46 @@ export default function LaporanEvaluasiTu() {
     "Ketua Tim Evaluasi Internal",
   );
   const [periodeText, setPeriodeText] = useState(
-    "April sampai dengan Juni 2026",
+    initialQuarterInfo.periode_text,
   );
   const [sectionTitle, setSectionTitle] = useState(
-    "Capaian Kinerja dan Realisasi Anggaran per Output perbulan Sampai Juni Tahun 2026",
+    initialQuarterInfo.section_title,
   );
   const [rapkMonthsData, setRapkMonthsData] = useState<RapkMonthData[]>([]);
   const [rapkSectionTitle, setRapkSectionTitle] = useState(
-    "Capaian Rencana Aksi Perjanjian Kinerja dan Realisasi Anggaran per bulan Sampai Juni Tahun 2026",
+    `Capaian Rencana Aksi Perjanjian Kinerja dan Realisasi Anggaran per bulan Sampai ${initialQuarterInfo.end_month.charAt(0) + initialQuarterInfo.end_month.slice(1).toLowerCase()} Tahun ${initialYear}`,
   );
 
   const printAreaRef = useRef<HTMLDivElement>(null);
+  const activeRequestIdRef = useRef<number>(0);
 
-  const fetchReport = async (quarterKey: string) => {
+  const fetchReport = async (quarterKey: string, targetYear: number) => {
+    const reqId = ++activeRequestIdRef.current;
     setLoading(true);
     setError("");
+
+    // Sinkronkan label periode secara instan saat fetch dimulai agar UI loading konsisten
+    const activeInfo = getQuarterInfo(quarterKey, targetYear);
+    setQuarterLabel(activeInfo.label);
+
     try {
       const query = user?.id
         ? `?quarter=${encodeURIComponent(quarterKey)}&user_id=${encodeURIComponent(String(user.id))}`
         : `?quarter=${encodeURIComponent(quarterKey)}`;
       const res = await api.get(
-        `${baseUrl}/api/tu/laporan-evaluasi/${selectedYear}${query}`,
+        `${baseUrl}/api/tu/laporan-evaluasi/${targetYear}${query}`,
       );
+
+      // Abaikan response jika ada request baru yang sudah dikirim (anti race condition)
+      if (reqId !== activeRequestIdRef.current) {
+        return;
+      }
 
       if (res.data?.data) {
         const d = res.data.data;
         const mData: MonthData[] = d.months_data || [];
         setMonthsData(mData);
-        setQuarterLabel(d.quarter_label || d.month_label || "");
+        setQuarterLabel(d.quarter_label || activeInfo.label);
 
         if (Array.isArray(d.rapk_months_data)) {
           setRapkMonthsData(d.rapk_months_data);
@@ -511,7 +535,7 @@ export default function LaporanEvaluasiTu() {
           setSources(d.sources);
         }
 
-        // Auto-update text defaults based on active quarter
+        // Sinkronisasi teks berita acara dengan data backend
         if (d.header_month_year) {
           setBaHeaderMonthYear(d.header_month_year);
         }
@@ -523,36 +547,107 @@ export default function LaporanEvaluasiTu() {
         }
       }
     } catch (err: unknown) {
+      if (reqId !== activeRequestIdRef.current) return;
       const e = err as { response?: { data?: { message?: string } } };
       setError(
         e.response?.data?.message ||
           "Gagal memuat data laporan evaluasi dari Realisasi RO dan Budget Mapping.",
       );
     } finally {
-      setLoading(false);
+      if (reqId === activeRequestIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
+    const nextQ = resolveInitialQuarter();
+    const nextYear =
+      paramYear && !Number.isNaN(Number(paramYear))
+        ? Number(paramYear)
+        : selectedYear;
+    let changed = false;
+    if (nextQ !== selectedQuarter) {
+      setSelectedQuarter(nextQ);
+      changed = true;
+    }
+    if (nextYear !== selectedYear) {
+      setSelectedYear(nextYear);
+      setAvailableQuarters(buildQuartersForYear(nextYear));
+      changed = true;
+    }
+    if (changed) {
+      const qObj = getQuarterInfo(nextQ, nextYear);
+      setQuarterLabel(qObj.label);
+      setBaHeaderMonthYear(qObj.header_month_year);
+      setPeriodeText(qObj.periode_text);
+      setSectionTitle(qObj.section_title);
+      setRapkSectionTitle(
+        `Capaian Rencana Aksi Perjanjian Kinerja dan Realisasi Anggaran per bulan Sampai ${qObj.end_month.charAt(0) + qObj.end_month.slice(1).toLowerCase()} Tahun ${nextYear}`,
+      );
+      setMatriksTitle(`Matriks Rekomendasi ${qObj.name} ${nextYear}`);
+      setCoverSubtitle(`${qObj.name} ${nextYear}`);
+      setCoverDate(`Tahun Anggaran ${nextYear}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paramQuarter, paramMonth, paramYear]);
+
+  useEffect(() => {
     if (user?.id) {
-      fetchReport(selectedQuarter);
+      fetchReport(selectedQuarter, selectedYear);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedQuarter, selectedYear, user?.id]);
 
   const handleSelectQuarter = (qKey: string) => {
     setSelectedQuarter(qKey);
-    const qObj = availableQuarters.find((q) => q.key === qKey);
+    const qObj =
+      availableQuarters.find((q) => q.key === qKey) ||
+      getQuarterInfo(qKey, selectedYear);
     if (qObj) {
+      setQuarterLabel(qObj.label);
       setBaHeaderMonthYear(qObj.header_month_year);
       setPeriodeText(qObj.periode_text);
       setSectionTitle(qObj.section_title);
-      setMatriksTitle(`Matriks Rekomendasi Triwulan ${qObj.name} 2026`);
+      setRapkSectionTitle(
+        `Capaian Rencana Aksi Perjanjian Kinerja dan Realisasi Anggaran per bulan Sampai ${qObj.end_month.charAt(0) + qObj.end_month.slice(1).toLowerCase()} Tahun ${selectedYear}`,
+      );
+      setMatriksTitle(`Matriks Rekomendasi ${qObj.name} ${selectedYear}`);
+      setCoverSubtitle(`${qObj.name} ${selectedYear}`);
+      setCoverDate(`Tahun Anggaran ${selectedYear}`);
     }
-    router.replace(`/siproval/tu/laporan-evaluasi?quarter=${qKey}`);
+    router.replace(
+      `/siproval/tu/laporan-evaluasi?year=${selectedYear}&quarter=${qKey}`,
+      { scroll: false },
+    );
   };
 
-  // Build HTML string for Word / Excel export containing all 3 months of Section 1 + Section 2 Matriks Rekomendasi
+  const handleSelectYear = (newYear: number) => {
+    setSelectedYear(newYear);
+    const updatedQuarters = buildQuartersForYear(newYear);
+    setAvailableQuarters(updatedQuarters);
+    const qObj =
+      updatedQuarters.find((q) => q.key === selectedQuarter) ||
+      getQuarterInfo(selectedQuarter, newYear);
+    if (qObj) {
+      setQuarterLabel(qObj.label);
+      setBaHeaderMonthYear(qObj.header_month_year);
+      setPeriodeText(qObj.periode_text);
+      setSectionTitle(qObj.section_title);
+      setRapkSectionTitle(
+        `Capaian Rencana Aksi Perjanjian Kinerja dan Realisasi Anggaran per bulan Sampai ${qObj.end_month.charAt(0) + qObj.end_month.slice(1).toLowerCase()} Tahun ${newYear}`,
+      );
+      setMatriksTitle(`Matriks Rekomendasi ${qObj.name} ${newYear}`);
+      setCoverSubtitle(`${qObj.name} ${newYear}`);
+      setCoverDate(`Tahun Anggaran ${newYear}`);
+    }
+    router.replace(
+      `/siproval/tu/laporan-evaluasi?year=${newYear}&quarter=${selectedQuarter}`,
+      { scroll: false },
+    );
+  };
+
+  // Build HTML string for Word / Excel export containing Section 1 (RO), Section 2 (RAPK), and Section 3 (Matriks Rekomendasi)
   const buildDocumentHtml = (forExcel = false) => {
     const monthsTablesHtml = monthsData
       .map(
@@ -569,7 +664,7 @@ export default function LaporanEvaluasiTu() {
               <th colspan="3" class="header-cell">Anggaran</th>
             </tr>
             <tr>
-              <th class="header-cell" style="width:82px;">Target 2026</th>
+              <th class="header-cell" style="width:82px;">Target ${selectedYear}</th>
               <th class="header-cell" style="width:78px;">Realisasi</th>
               <th class="header-cell" style="width:96px;">Capaian/<br/>Progress (%)</th>
               <th class="header-cell" style="width:115px;">Pagu awal (Rp)</th>
@@ -624,9 +719,72 @@ export default function LaporanEvaluasiTu() {
       )
       .join("");
 
+    const rapkTablesHtml =
+      rapkMonthsData.length > 0
+        ? `
+      <div style="font-size:11pt; margin-top:28px; margin-bottom:8px;">
+        2.&nbsp;&nbsp;&nbsp;&nbsp;${rapkSectionTitle}
+      </div>
+      ${rapkMonthsData
+        .map(
+          (rm, rmIdx) => `
+        <div style="font-weight:bold; font-size:11pt; margin-top:${rmIdx > 0 ? "20px" : "6px"}; margin-bottom:6px;">
+          ${rm.month_label}
+        </div>
+        <table class="ba-table" ${forExcel ? 'border="1"' : ""}>
+          <thead>
+            <tr>
+              <th rowspan="2" class="header-cell" style="width:34px;">No.</th>
+              <th rowspan="2" class="header-cell" style="width:150px;">Sasaran Strategis</th>
+              <th rowspan="2" class="header-cell" style="width:190px;">Nama Indikator</th>
+              <th colspan="7" class="header-cell">Volume</th>
+              <th colspan="3" class="header-cell">Anggaran per Sasaran Strategis</th>
+            </tr>
+            <tr>
+              <th class="header-cell">Target 2029</th>
+              <th class="header-cell">Target ${selectedYear}</th>
+              <th class="header-cell">Target ${rm.month_label.replace(/.*Bulan\\s+/i, "")}</th>
+              <th class="header-cell">Realisasi</th>
+              <th class="header-cell">Capaian (%) / target TW</th>
+              <th class="header-cell">Capaian (%) / target ${selectedYear}</th>
+              <th class="header-cell">Capaian (%) / target 2029</th>
+              <th class="header-cell">Pagu (Rp)</th>
+              <th class="header-cell">Realisasi (Rp)</th>
+              <th class="header-cell">Capaian (%)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rm.rows
+              .map(
+                (r) => `
+              <tr>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.no}</td>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:left; vertical-align:middle;">${r.sasaran_strategis}</td>
+                <td style="border:1px solid #000; padding:4px 8px; text-align:left; vertical-align:middle;">${r.nama_indikator}</td>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.volume.target_2029 || "-"}</td>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.volume.target_2026 || "-"}</td>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.volume.target_tw || "-"}</td>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.volume.realisasi || "-"}</td>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.volume.capaian_tw || "-"}</td>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.volume.capaian_2026 || "-"}</td>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.volume.capaian_2029 || "-"}</td>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.anggaran.pagu_formatted || "-"}</td>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.anggaran.realisasi_formatted || "-"}</td>
+                <td style="border:1px solid #000; padding:4px 6px; text-align:center; vertical-align:middle;">${r.anggaran.capaian_formatted || "-"}</td>
+              </tr>`,
+              )
+              .join("")}
+          </tbody>
+        </table>`,
+        )
+        .join("")}
+    `
+        : "";
+
+    const matriksSectionNumber = rapkMonthsData.length > 0 ? 3 : 2;
     const matriksHtml = `
       <div style="font-size:11pt; margin-top:28px; margin-bottom:8px;">
-        2.&nbsp;&nbsp;&nbsp;&nbsp;${matriksTitle}
+        ${matriksSectionNumber}.&nbsp;&nbsp;&nbsp;&nbsp;${matriksTitle}
       </div>
       <table class="ba-table" ${forExcel ? 'border="1"' : ""}>
         <thead>
@@ -812,6 +970,8 @@ export default function LaporanEvaluasiTu() {
 
         ${monthsTablesHtml}
 
+        ${rapkTablesHtml}
+
         ${matriksRekomendasi.length > 0 ? matriksHtml : ""}
 
         ${
@@ -882,7 +1042,7 @@ export default function LaporanEvaluasiTu() {
   };
 
   const handleExportPdf = async () => {
-    setLoading(true);
+    setExportingPdf(true);
     try {
       const doc = new jsPDF({
         orientation: "landscape",
@@ -1679,7 +1839,7 @@ export default function LaporanEvaluasiTu() {
         "Terjadi kendala saat menggabungkan berkas PDF. Silakan coba lagi.",
       );
     } finally {
-      setLoading(false);
+      setExportingPdf(false);
     }
   };
 
@@ -1815,7 +1975,7 @@ export default function LaporanEvaluasiTu() {
             </button>
 
             <Link
-              href={`/siproval/tu/matriks-rekomendasi?quarter=${selectedQuarter}`}
+              href={`/siproval/tu/matriks-rekomendasi?year=${selectedYear}&quarter=${selectedQuarter}`}
               className="inline-flex items-center gap-2 rounded-xl border border-[#005baa]/30 bg-blue-50 px-3.5 py-2 text-xs font-semibold text-[#005baa] transition hover:bg-blue-100"
             >
               <Icon icon="solar:clipboard-list-bold" width={16} />
@@ -1825,17 +1985,26 @@ export default function LaporanEvaluasiTu() {
             <button
               type="button"
               onClick={handleExportPdf}
-              disabled={loading || monthsData.length === 0}
+              disabled={loading || exportingPdf || monthsData.length === 0}
               className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-rose-700 disabled:opacity-50"
             >
-              <Icon icon="solar:file-download-bold" width={16} />
-              Eksport PDF (.pdf)
+              {exportingPdf ? (
+                <>
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent" />
+                  <span>Mengekspor PDF...</span>
+                </>
+              ) : (
+                <>
+                  <Icon icon="solar:file-download-bold" width={16} />
+                  <span>Eksport PDF (.pdf)</span>
+                </>
+              )}
             </button>
 
             <button
               type="button"
               onClick={handleExportWord}
-              disabled={loading || monthsData.length === 0}
+              disabled={loading || exportingPdf || monthsData.length === 0}
               className="inline-flex items-center gap-2 rounded-xl bg-[#005baa] px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#004b8d] disabled:opacity-50"
             >
               <Icon icon="solar:file-text-bold" width={16} />
@@ -1845,7 +2014,7 @@ export default function LaporanEvaluasiTu() {
             <button
               type="button"
               onClick={handleExportExcel}
-              disabled={loading || monthsData.length === 0}
+              disabled={loading || exportingPdf || monthsData.length === 0}
               className="inline-flex items-center gap-2 rounded-xl bg-[#00a651] px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#008c44] disabled:opacity-50"
             >
               <Icon icon="solar:file-smile-bold" width={16} />
@@ -1855,7 +2024,7 @@ export default function LaporanEvaluasiTu() {
             <button
               type="button"
               onClick={handlePrintPdf}
-              disabled={loading || monthsData.length === 0}
+              disabled={loading || exportingPdf || monthsData.length === 0}
               className="inline-flex items-center gap-2 rounded-xl border border-[#005baa]/20 bg-blue-50 px-4 py-2 text-xs font-bold text-[#005baa] transition hover:bg-blue-100 disabled:opacity-50"
             >
               <Icon icon="solar:printer-bold" width={16} />
@@ -1871,7 +2040,7 @@ export default function LaporanEvaluasiTu() {
               <span className="text-xs font-bold text-slate-700">Tahun:</span>
               <select
                 value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                onChange={(e) => handleSelectYear(Number(e.target.value))}
                 className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 shadow-2xs focus:border-[#005baa] focus:outline-none"
               >
                 {availableYears.map((y) => (
@@ -2428,10 +2597,12 @@ export default function LaporanEvaluasiTu() {
         <div className="rounded-2xl border border-slate-200 bg-white p-16 text-center shadow-xs">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-[#005baa] border-r-transparent" />
           <p className="mt-3 text-sm font-medium text-slate-700">
-            Menggabungkan data Triwulan ({quarterLabel})...
+            Menggabungkan data Triwulan (
+            {quarterLabel || getQuarterInfo(selectedQuarter, selectedYear).label}
+            )...
           </p>
           <p className="mt-1 text-xs text-slate-400">
-            Memuat Tabel Capaian Anggaran & Matriks Rekomendasi
+            Memuat Tabel Capaian Anggaran &amp; Matriks Rekomendasi
           </p>
         </div>
       ) : (
@@ -3118,7 +3289,7 @@ export default function LaporanEvaluasiTu() {
                   </div>
                 </div>
                 <Link
-                  href={`/siproval/tu/matriks-rekomendasi?quarter=${selectedQuarter}`}
+                  href={`/siproval/tu/matriks-rekomendasi?year=${selectedYear}&quarter=${selectedQuarter}`}
                   className="print:hidden inline-flex items-center gap-1.5 rounded-lg border border-[#005baa]/20 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#005baa] hover:bg-blue-100"
                 >
                   <Icon icon="solar:pen-new-square-bold" width={14} />
@@ -3131,7 +3302,7 @@ export default function LaporanEvaluasiTu() {
                   Belum ada data Matriks Rekomendasi untuk {selectedQuarter}.
                   Silakan isi melalui menu{" "}
                   <Link
-                    href={`/siproval/tu/matriks-rekomendasi?quarter=${selectedQuarter}`}
+                    href={`/siproval/tu/matriks-rekomendasi?year=${selectedYear}&quarter=${selectedQuarter}`}
                     className="font-semibold text-[#005baa] underline"
                   >
                     Matriks Rekomendasi
@@ -3322,6 +3493,21 @@ export default function LaporanEvaluasiTu() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Floating Indicator saat Exporting PDF */}
+      {exportingPdf && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl bg-slate-900/95 px-5 py-3.5 text-white shadow-2xl backdrop-blur-sm border border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-rose-400 border-r-transparent" />
+          <div className="text-xs">
+            <p className="font-semibold text-white">Sedang Menyusun Dokumen PDF</p>
+            <p className="text-slate-300">
+              Menggabungkan Berita Acara, Tabel Kinerja, Cover, dan Lampiran (
+              {quarterLabel || getQuarterInfo(selectedQuarter, selectedYear).label}
+              )...
+            </p>
+          </div>
         </div>
       )}
     </div>

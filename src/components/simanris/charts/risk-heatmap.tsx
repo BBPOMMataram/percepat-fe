@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { RiskMatrixData } from "../types";
+import { Filter, RotateCcw } from "lucide-react";
+import type { MasterOptionsData, RiskMatrixData } from "../types";
 import { getRiskLevelStyle } from "../shared/RiskLevelBadge";
 import { ChartLoadingState } from "../shared/ChartLoadingState";
 import { ChartEmptyState } from "../shared/ChartEmptyState";
@@ -10,6 +11,9 @@ interface RiskHeatmapProps {
   data: RiskMatrixData | null;
   loading: boolean;
   onSelectLevel?: (mode: "inherent" | "residual", level: string) => void;
+  options?: MasterOptionsData | null;
+  filters?: { function_id?: number | ""; risk_category_id?: number | "" };
+  onFilterChange?: (filters: { function_id?: number | ""; risk_category_id?: number | "" }) => void;
 }
 
 const LIKELIHOOD_LABELS: Record<number, string> = {
@@ -32,8 +36,14 @@ export function RiskHeatmap({
   data,
   loading,
   onSelectLevel,
+  options,
+  filters,
+  onFilterChange,
 }: RiskHeatmapProps) {
   const [mode, setMode] = useState<"residual" | "inherent">("residual");
+  const hasActiveFilter = Boolean(filters?.function_id || filters?.risk_category_id);
+  const activeFunctionName = options?.functions.find((f) => f.id === Number(filters?.function_id))?.name;
+  const activeCategoryName = options?.categories.find((c) => c.id === Number(filters?.risk_category_id))?.name;
 
   if (loading && !data) {
     return (
@@ -71,14 +81,16 @@ export function RiskHeatmap({
   const cols = [1, 2, 3, 4, 5];
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
         <div>
           <h3 className="text-sm font-bold text-slate-900">
             Peta Matriks Risiko 5×5 (Berdasarkan Konfigurasi Periode)
           </h3>
           <p className="text-xs text-slate-500">
             Skor di setiap sel berasal dari <code>matrix_config</code> periode aktif. Klik sel berisi risiko untuk menyaring daftar.
+            {activeFunctionName ? ` · Unit: ${activeFunctionName}` : ""}
+            {activeCategoryName ? ` · Kategori: ${activeCategoryName}` : ""}
           </p>
         </div>
 
@@ -108,6 +120,77 @@ export function RiskHeatmap({
         </div>
       </div>
 
+      {/* Local Filter Bar for Heatmap */}
+      {onFilterChange && (
+        <div data-export-ignore="true" className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+            <Filter className="h-3 w-3 text-[#005baa]" />
+            Filter Matriks:
+          </span>
+
+          <select
+            value={filters?.function_id ?? ""}
+            onChange={(e) =>
+              onFilterChange({
+                ...filters,
+                function_id: e.target.value ? Number(e.target.value) : "",
+              })
+            }
+            className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+              filters?.function_id
+                ? "border-blue-400 bg-blue-50 text-[#004281] font-semibold"
+                : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
+            }`}
+          >
+            <option value="">Semua Fungsi / Unit Kerja</option>
+            {options?.functions.map((fn) => (
+              <option key={fn.id} value={fn.id}>
+                {fn.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={filters?.risk_category_id ?? ""}
+            onChange={(e) =>
+              onFilterChange({
+                ...filters,
+                risk_category_id: e.target.value ? Number(e.target.value) : "",
+              })
+            }
+            className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+              filters?.risk_category_id
+                ? "border-blue-400 bg-blue-50 text-[#004281] font-semibold"
+                : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
+            }`}
+          >
+            <option value="">Semua Kategori Risiko</option>
+            {options?.categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.code} — {cat.name}
+              </option>
+            ))}
+          </select>
+
+          {hasActiveFilter && (
+            <button
+              type="button"
+              onClick={() =>
+                onFilterChange({
+                  function_id: "",
+                  risk_category_id: "",
+                })
+              }
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-colors"
+              title="Reset filter matriks ini"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Reset
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="w-full min-w-[540px] border-separate border-spacing-1.5 text-xs">
           <thead>
@@ -118,7 +201,7 @@ export function RiskHeatmap({
               {cols.map((imp) => (
                 <th
                   key={imp}
-                  className="text-center text-[11px] font-semibold text-slate-600 pb-1"
+                  className="text-center font-bold text-slate-700 px-1 py-1 text-[11px]"
                 >
                   {IMPACT_LABELS[imp]}
                 </th>
@@ -128,43 +211,34 @@ export function RiskHeatmap({
           <tbody>
             {rows.map((lik) => (
               <tr key={lik}>
-                <td className="text-[11px] font-semibold text-slate-600 pr-2">
+                <td className="font-semibold text-slate-700 px-1 py-1 text-[11px] whitespace-nowrap">
                   {LIKELIHOOD_LABELS[lik]}
                 </td>
                 {cols.map((imp) => {
                   const key = `${lik}x${imp}`;
-                  const matrixLevel = data.matrix_config[key] ?? null;
+                  const lvl = data.matrix_config[key] ?? null;
                   const count = countLookup.get(key) ?? 0;
-                  const style = getRiskLevelStyle(
-                    matrixLevel,
-                    data.high_risk_min_level
-                  );
+                  const style = getRiskLevelStyle(lvl, data.high_risk_min_level);
+
                   return (
-                    <td key={key}>
-                      <button
-                        type="button"
-                        disabled={count === 0 || matrixLevel === null}
-                        onClick={() => {
-                          if (matrixLevel !== null && onSelectLevel) {
-                            onSelectLevel(mode, String(matrixLevel));
-                          }
-                        }}
-                        className={`w-full rounded-xl p-2.5 text-center transition-all border border-black/5 ${
-                          style.cellBg
-                        } ${
-                          count > 0
-                            ? "cursor-pointer hover:ring-2 hover:ring-slate-900/40 shadow-xs"
-                            : "opacity-55 cursor-default"
-                        }`}
-                        title={`L=${lik}, D=${imp} → Level Matriks ${matrixLevel ?? "-"} (${count} risiko)`}
-                      >
-                        <div className="text-[10px] font-semibold opacity-80">
-                          Lv {matrixLevel ?? "-"}
-                        </div>
-                        <div className="mt-0.5 text-base font-extrabold leading-none">
-                          {count}
-                        </div>
-                      </button>
+                    <td
+                      key={imp}
+                      onClick={() => {
+                        if (count > 0 && lvl && onSelectLevel) {
+                          onSelectLevel(mode, String(lvl));
+                        }
+                      }}
+                      className={`h-12 text-center rounded-xl font-bold transition-all ${style.cellBg} ${
+                        count > 0
+                          ? "cursor-pointer ring-2 ring-slate-900/10 shadow-xs hover:scale-105"
+                          : "opacity-85"
+                      }`}
+                      title={`Kemungkinan: ${lik}, Dampak: ${imp} -> Level ${lvl} (${count} risiko)`}
+                    >
+                      <div className="text-[10px] opacity-80">Lvl {lvl ?? "-"}</div>
+                      <div className="text-base font-extrabold leading-none">
+                        {count > 0 ? count : ""}
+                      </div>
                     </td>
                   );
                 })}
@@ -172,6 +246,21 @@ export function RiskHeatmap({
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500">
+        <div>
+          Batas Risiko Tinggi periode aktif:{" "}
+          <b className="text-red-700 font-bold">
+            ≥ Level {data.high_risk_min_level}
+          </b>
+        </div>
+        <div>
+          Total sel terisi {mode === "residual" ? "Residual" : "Inheren"}:{" "}
+          <b>
+            {Array.from(countLookup.values()).reduce((a, b) => a + b, 0)} risiko
+          </b>
+        </div>
       </div>
     </div>
   );

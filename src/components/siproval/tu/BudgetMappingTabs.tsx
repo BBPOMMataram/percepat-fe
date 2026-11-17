@@ -54,6 +54,12 @@ export default function BudgetMappingTabs() {
   const [addSuccess, setAddSuccess] = useState("");
   const [addWarning, setAddWarning] = useState("");
 
+  // Delete Month Tab Modal State
+  const [tabToDelete, setTabToDelete] = useState<SpreadsheetTab | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [deleteSuccessToast, setDeleteSuccessToast] = useState("");
+
   const MONTH_NAMES = [
     "Januari", "Februari", "Maret", "April", "Mei", "Juni",
     "Juli", "Agustus", "September", "Oktober", "November", "Desember"
@@ -195,6 +201,36 @@ export default function BudgetMappingTabs() {
     }
   };
 
+  const handleConfirmDelete = async () => {
+    if (!tabToDelete) return;
+    setDeleting(true);
+    setDeleteError("");
+
+    try {
+      const res = await api.delete(
+        `${baseUrl}/api/budget-mapping/${year}/tabs/${tabToDelete.id}`
+      );
+      const msg =
+        res.data?.message ||
+        `Tab bulan '${tabToDelete.title}' berhasil dihapus.`;
+      setDeleteSuccessToast(msg);
+      setTabToDelete(null);
+      await fetchTabs();
+
+      setTimeout(() => {
+        setDeleteSuccessToast("");
+      }, 4000);
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      setDeleteError(
+        e.response?.data?.message ||
+          `Gagal menghapus tab bulan ${tabToDelete.title}.`
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   useEffect(() => {
     if (user?.id) {
       fetchTabs();
@@ -306,12 +342,20 @@ export default function BudgetMappingTabs() {
         </div>
       </div>
 
+      {/* Toast Notifikasi Sukses Hapus */}
+      {deleteSuccessToast && (
+        <div className="flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-800 animate-in fade-in">
+          <Icon icon="solar:check-circle-bold" className="h-5 w-5 text-emerald-600 shrink-0" />
+          <span>{deleteSuccessToast}</span>
+        </div>
+      )}
+
       {/* Tab List */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-6 py-4">
           <h3 className="text-base font-bold text-slate-900">Daftar Tab Anggaran</h3>
           <p className="mt-0.5 text-xs text-slate-500">
-            Klik pada salah satu tab untuk membuka tabel editor.
+            Klik pada salah satu tab untuk membuka tabel editor atau kelola alokasi bulanan.
           </p>
         </div>
 
@@ -346,14 +390,16 @@ export default function BudgetMappingTabs() {
         ) : (
           <div className="divide-y divide-slate-100">
             {filteredTabs.map((tab, index) => (
-              <Link
+              <div
                 key={tab.id}
-                href={`/siproval/budget-mapping/year/tab?year=${encodeURIComponent(
-                  year,
-                )}&tab=${encodeURIComponent(String(tab.id))}`}
-                className="group flex items-center justify-between gap-4 px-6 py-4.5 transition hover:bg-slate-50"
+                className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-6 py-4.5 transition hover:bg-slate-50/80"
               >
-                <div className="flex min-w-0 items-center gap-4">
+                <Link
+                  href={`/siproval/budget-mapping/year/tab?year=${encodeURIComponent(
+                    year,
+                  )}&tab=${encodeURIComponent(String(tab.id))}`}
+                  className="flex min-w-0 flex-1 items-center gap-4"
+                >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-sm font-bold text-[#005baa] transition group-hover:bg-[#005baa] group-hover:text-white">
                     {index + 1}
                   </div>
@@ -362,7 +408,7 @@ export default function BudgetMappingTabs() {
                     <h4 className="truncate text-sm font-bold text-slate-900 group-hover:text-[#005baa]">
                       {tab.title}
                     </h4>
-                    <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                       <span>Tab ID: {tab.id}</span>
                       {tab.google_sheet_id !== undefined && (
                         <>
@@ -370,20 +416,51 @@ export default function BudgetMappingTabs() {
                           <span>Sheet ID: {String(tab.google_sheet_id)}</span>
                         </>
                       )}
+                      {tab.total_pagu !== undefined && Number(tab.total_pagu) > 0 && (
+                        <>
+                          <span>•</span>
+                          <span className="text-emerald-700 font-medium">
+                            Pagu: Rp {Number(tab.total_pagu).toLocaleString("id-ID")}
+                          </span>
+                        </>
+                      )}
+                      {tab.total_realisasi !== undefined && Number(tab.total_realisasi) > 0 && (
+                        <>
+                          <span>•</span>
+                          <span className="text-[#005baa] font-medium">
+                            Realisasi: Rp {Number(tab.total_realisasi).toLocaleString("id-ID")}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
-                </div>
+                </Link>
 
-                <div className="flex shrink-0 items-center gap-3">
-                  <span className="hidden rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 sm:inline-flex group-hover:bg-blue-100 group-hover:text-[#005baa]">
-                    Input Alokasi
-                  </span>
-                  <Icon
-                    icon="solar:alt-arrow-right-linear"
-                    className="h-5 w-5 text-slate-400 transition group-hover:translate-x-1 group-hover:text-[#005baa]"
-                  />
+                <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
+                  <Link
+                    href={`/siproval/budget-mapping/year/tab?year=${encodeURIComponent(
+                      year,
+                    )}&tab=${encodeURIComponent(String(tab.id))}`}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-1.5 text-xs font-semibold text-[#005baa] transition hover:bg-[#005baa] hover:text-white shadow-2xs"
+                  >
+                    <Icon icon="solar:pen-new-square-linear" width={15} />
+                    <span>Input Alokasi</span>
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTabToDelete(tab);
+                      setDeleteError("");
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-600 hover:text-white hover:border-rose-600 shadow-2xs"
+                    title={`Hapus tab bulan ${tab.title}`}
+                  >
+                    <Icon icon="solar:trash-bin-trash-bold" width={15} />
+                    <span>Hapus</span>
+                  </button>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}
@@ -534,6 +611,84 @@ export default function BudgetMappingTabs() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Konfirmasi Hapus Bulan */}
+      {tabToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl transition-all">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
+                <Icon icon="solar:trash-bin-trash-bold" width={26} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Hapus Tab Bulan
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Tahun Anggaran {year}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <p className="text-sm text-slate-600">
+                Apakah Anda yakin ingin menghapus tab bulan{" "}
+                <span className="font-bold text-slate-900">
+                  &ldquo;{tabToDelete.title}&rdquo;
+                </span>
+                ?
+              </p>
+
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+                <p className="font-semibold">Perhatian:</p>
+                <p className="mt-0.5 text-rose-600">
+                  Tindakan ini akan menghapus seluruh data rincian kegiatan, alokasi pagu, dan realisasi anggaran pada bulan ini secara permanen dari database.
+                </p>
+              </div>
+
+              {deleteError && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+                  {deleteError}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!deleting) {
+                    setTabToDelete(null);
+                    setDeleteError("");
+                  }
+                }}
+                disabled={deleting}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+                className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-rose-700 disabled:opacity-50"
+              >
+                {deleting ? (
+                  <>
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent" />
+                    <span>Menghapus...</span>
+                  </>
+                ) : (
+                  <>
+                    <Icon icon="solar:trash-bin-trash-bold" width={16} />
+                    <span>Ya, Hapus Bulan</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

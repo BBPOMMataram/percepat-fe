@@ -8,7 +8,8 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import api from "@/utils/api";
 
-const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8006";
+const baseUrl =
+  process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8006";
 
 const MONTHS = [
   "JANUARI",
@@ -63,10 +64,13 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
   const [indicators, setIndicators] = useState<IndicatorRow[]>([]);
   const [apiNotice, setApiNotice] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"all" | "tercapai" | "belum" | "no_arahan">("all");
+  const [filterStatus, setFilterStatus] = useState<
+    "all" | "tercapai" | "belum" | "no_arahan"
+  >("all");
 
   // Modal State untuk Edit Arahan Pimpinan
-  const [selectedIndicator, setSelectedIndicator] = useState<IndicatorRow | null>(null);
+  const [selectedIndicator, setSelectedIndicator] =
+    useState<IndicatorRow | null>(null);
   const [arahanInput, setArahanInput] = useState("");
   const [savingArahan, setSavingArahan] = useState(false);
   const [modalSuccessMsg, setModalSuccessMsg] = useState("");
@@ -108,7 +112,8 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
       } catch (err: unknown) {
         const e = err as { response?: { data?: { message?: string } } };
         setApiNotice(
-          e.response?.data?.message || "Gagal memuat rincian rekapitulasi evaluasi RHPK."
+          e.response?.data?.message ||
+            "Gagal memuat rincian rekapitulasi evaluasi RHPK.",
         );
         setIndicators([]);
       } finally {
@@ -129,13 +134,16 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
         const q = searchQuery.toLowerCase();
         const matchInd = (row.indikator || "").toLowerCase().includes(q);
         const matchSas = (row.sasaran || "").toLowerCase().includes(q);
-        const matchArahan = (row.arahan_pimpinan || "").toLowerCase().includes(q);
+        const matchArahan = (row.arahan_pimpinan || "")
+          .toLowerCase()
+          .includes(q);
         if (!matchInd && !matchSas && !matchArahan) return false;
       }
 
       if (filterStatus === "tercapai") return row.status === "tercapai";
       if (filterStatus === "belum") return row.status === "belum";
-      if (filterStatus === "no_arahan") return !row.arahan_pimpinan || row.arahan_pimpinan.trim() === "";
+      if (filterStatus === "no_arahan")
+        return !row.arahan_pimpinan || row.arahan_pimpinan.trim() === "";
 
       return true;
     });
@@ -146,14 +154,17 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
     return indicators.filter((i) => !i.is_contoh);
   }, [indicators]);
 
-  const totalIndicators = nonContohIndicators.length > 0 ? nonContohIndicators.length : indicators.length;
-  const tercapaiCount = (nonContohIndicators.length > 0 ? nonContohIndicators : indicators).filter(
-    (i) => i.status === "tercapai"
-  ).length;
+  const totalIndicators =
+    nonContohIndicators.length > 0
+      ? nonContohIndicators.length
+      : indicators.length;
+  const tercapaiCount = (
+    nonContohIndicators.length > 0 ? nonContohIndicators : indicators
+  ).filter((i) => i.status === "tercapai").length;
   const belumTercapaiCount = totalIndicators - tercapaiCount;
-  const arahanFilledCount = (nonContohIndicators.length > 0 ? nonContohIndicators : indicators).filter(
-    (i) => i.arahan_pimpinan && i.arahan_pimpinan.trim() !== ""
-  ).length;
+  const arahanFilledCount = (
+    nonContohIndicators.length > 0 ? nonContohIndicators : indicators
+  ).filter((i) => i.arahan_pimpinan && i.arahan_pimpinan.trim() !== "").length;
 
   // Buka Modal Arahan
   const handleOpenArahanModal = (row: IndicatorRow) => {
@@ -194,8 +205,8 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
         prev.map((item) =>
           item.row_number === selectedIndicator.row_number
             ? { ...item, arahan_pimpinan: arahanInput }
-            : item
-        )
+            : item,
+        ),
       );
 
       // Tutup modal setelah delay singkat
@@ -205,7 +216,8 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       setModalErrorMsg(
-        e.response?.data?.message || "Gagal menyimpan arahan ke database lokal."
+        e.response?.data?.message ||
+          "Gagal menyimpan arahan ke database lokal.",
       );
     } finally {
       setSavingArahan(false);
@@ -217,7 +229,10 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
       {/* Breadcrumb & Navigation */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2 text-sm text-slate-500">
-          <Link href="/siproval/monev" className="transition hover:text-[#005baa]">
+          <Link
+            href="/siproval/monev"
+            className="transition hover:text-[#005baa]"
+          >
             Tambah Arahan Pimpinan
           </Link>
           <span>/</span>
@@ -252,7 +267,9 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
                 Data Lokal Mandiri
               </span>
             </div>
-            <h1 className="mt-1 text-xl font-bold text-slate-900">{tabTitle}</h1>
+            <h1 className="mt-1 text-xl font-bold text-slate-900">
+              {tabTitle}
+            </h1>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -261,7 +278,9 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
             </span>
             <span className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 flex items-center gap-1.5">
               <Icon icon="solar:shield-check-bold" width={15} />
-              Kolom Arahan: <span className="font-mono font-bold">{arahanColumn}</span> (Yogi Abaso Mataram - editable)
+              Kolom Arahan:{" "}
+              <span className="font-mono font-bold">{arahanColumn}</span> (Yogi
+              Abaso Mataram - editable)
             </span>
           </div>
         </div>
@@ -321,7 +340,9 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
               <p className="mt-2 text-2xl font-bold text-emerald-600">
                 {tercapaiCount}
               </p>
-              <span className="text-xs text-emerald-600">Capaian &ge; 100%</span>
+              <span className="text-xs text-emerald-600">
+                Capaian &ge; 100%
+              </span>
             </div>
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
               <Icon icon="solar:check-circle-bold" width={22} />
@@ -369,7 +390,11 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
       {/* Notice / Errors */}
       {apiNotice && (
         <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800">
-          <Icon icon="solar:info-circle-bold" width={18} className="text-amber-600 shrink-0" />
+          <Icon
+            icon="solar:info-circle-bold"
+            width={18}
+            className="text-amber-600 shrink-0"
+          />
           <span>{apiNotice}</span>
         </div>
       )}
@@ -425,8 +450,9 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
               Tabel Evaluasi Capaian & Arahan Kepala Balai ({selectedMonth})
             </h2>
             <p className="text-xs text-slate-500">
-              Data bersumber dari Database RHPK Mandiri SIPROVAL. Arahan pimpinan akan tersimpan dan langsung terhubung dengan Ketua Tim terkait.
-
+              Data bersumber dari Database RHPK Mandiri SIPROVAL. Arahan
+              pimpinan akan tersimpan dan langsung terhubung dengan Ketua Tim
+              terkait.
             </p>
           </div>
           <span className="text-xs font-medium text-slate-500">
@@ -437,13 +463,23 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
         {loading ? (
           <div className="p-16 text-center">
             <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-[#005baa] border-r-transparent" />
-            <p className="mt-2 text-xs text-slate-500">Memuat rincian evaluasi RHPK...</p>
+            <p className="mt-2 text-xs text-slate-500">
+              Memuat rincian evaluasi RHPK...
+            </p>
           </div>
         ) : filteredIndicators.length === 0 ? (
           <div className="p-12 text-center text-xs text-slate-500">
-            <Icon icon="solar:document-text-linear" width={32} className="mx-auto text-slate-400 mb-2" />
-            <p className="font-semibold text-slate-700">Tidak ada baris data indikator yang cocok</p>
-            <p className="mt-1">Coba sesuaikan kata kunci pencarian atau filter status.</p>
+            <Icon
+              icon="solar:document-text-linear"
+              width={32}
+              className="mx-auto text-slate-400 mb-2"
+            />
+            <p className="font-semibold text-slate-700">
+              Tidak ada baris data indikator yang cocok
+            </p>
+            <p className="mt-1">
+              Coba sesuaikan kata kunci pencarian atau filter status.
+            </p>
           </div>
         ) : (
           <div className="w-full overflow-x-auto">
@@ -451,9 +487,13 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
               <thead className="bg-slate-100 font-bold text-slate-700">
                 <tr className="border-b border-slate-200">
                   <th className="py-3 px-3 w-12 text-center">No</th>
-                  <th className="py-3 px-4 min-w-72">Indikator Kinerja & Sasaran</th>
+                  <th className="py-3 px-4 min-w-72">
+                    Indikator Kinerja & Sasaran
+                  </th>
                   <th className="py-3 px-3 w-24 text-center">Target {year}</th>
-                  <th className="py-3 px-3 w-24 text-center">Target {selectedMonth}</th>
+                  <th className="py-3 px-3 w-24 text-center">
+                    Target {selectedMonth}
+                  </th>
                   <th className="py-3 px-3 w-24 text-center">Realisasi</th>
                   <th className="py-3 px-3 w-24 text-center">% Capaian</th>
                   <th className="py-3 px-3 w-24 text-center">Status</th>
@@ -481,7 +521,9 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-1.5">
-                          <p className="font-semibold text-slate-900">{row.indikator}</p>
+                          <p className="font-semibold text-slate-900">
+                            {row.indikator}
+                          </p>
                           {row.is_contoh && (
                             <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
                               CONTOH
@@ -494,7 +536,8 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
                           </p>
                         )}
                         <span className="mt-0.5 inline-block text-[10px] font-mono text-slate-400">
-                          Baris Sheet: {row.row_number} | Target Sel: {targetSel}
+                          Baris Sheet: {row.row_number} | Target Sel:{" "}
+                          {targetSel}
                         </span>
                       </td>
                       <td className="py-3 px-3 text-center font-medium text-slate-700">
@@ -525,7 +568,9 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
                               : "bg-amber-50 text-amber-700 border border-amber-200"
                           }`}
                         >
-                          {row.status === "tercapai" ? "Tercapai" : "Belum Capai"}
+                          {row.status === "tercapai"
+                            ? "Tercapai"
+                            : "Belum Capai"}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-[11px]">
@@ -533,19 +578,25 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
                           <div className="space-y-1">
                             {row.kendala && (
                               <p className="text-amber-800">
-                                <strong className="font-semibold text-amber-900">Kendala:</strong>{" "}
+                                <strong className="font-semibold text-amber-900">
+                                  Kendala:
+                                </strong>{" "}
                                 {row.kendala}
                               </p>
                             )}
                             {row.rtl && (
                               <p className="text-blue-800">
-                                <strong className="font-semibold text-blue-900">RTL:</strong>{" "}
+                                <strong className="font-semibold text-blue-900">
+                                  RTL:
+                                </strong>{" "}
                                 {row.rtl}
                               </p>
                             )}
                           </div>
                         ) : (
-                          <span className="text-slate-400 italic">Tidak ada kendala</span>
+                          <span className="text-slate-400 italic">
+                            Tidak ada kendala
+                          </span>
                         )}
                       </td>
                       <td className="py-3 px-4">
@@ -571,7 +622,9 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
                           className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-[#005baa] transition hover:bg-[#005baa] hover:text-white shadow-sm"
                         >
                           <Icon icon="solar:pen-bold" width={14} />
-                          <span>{row.arahan_pimpinan ? "Edit" : "Beri Arahan"}</span>
+                          <span>
+                            {row.arahan_pimpinan ? "Edit" : "Beri Arahan"}
+                          </span>
                         </button>
                       </td>
                     </tr>
@@ -595,7 +648,8 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
                     Periode {selectedMonth}
                   </span>
                   <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
-                    Kolom {selectedIndicator.arahan_column || arahanColumn} (Yogi Abaso Mataram - editable)
+                    Kolom {selectedIndicator.arahan_column || arahanColumn}{" "}
+                    (Yogi Abaso Mataram - editable)
                   </span>
                 </div>
                 <h3 className="mt-2 text-base font-bold text-slate-900">
@@ -614,13 +668,21 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
             {/* Notification */}
             {modalSuccessMsg && (
               <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-medium text-emerald-800">
-                <Icon icon="solar:check-circle-bold" width={18} className="text-emerald-600 shrink-0" />
+                <Icon
+                  icon="solar:check-circle-bold"
+                  width={18}
+                  className="text-emerald-600 shrink-0"
+                />
                 <span>{modalSuccessMsg}</span>
               </div>
             )}
             {modalErrorMsg && (
               <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-medium text-red-800">
-                <Icon icon="solar:danger-triangle-bold" width={18} className="text-red-600 shrink-0" />
+                <Icon
+                  icon="solar:danger-triangle-bold"
+                  width={18}
+                  className="text-red-600 shrink-0"
+                />
                 <span>{modalErrorMsg}</span>
               </div>
             )}
@@ -635,21 +697,30 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
               </p>
               {selectedIndicator.sasaran && (
                 <p className="text-slate-500">
-                  <strong className="text-slate-700">Sasaran:</strong> {selectedIndicator.sasaran}
+                  <strong className="text-slate-700">Sasaran:</strong>{" "}
+                  {selectedIndicator.sasaran}
                 </p>
               )}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-200">
                 <div>
                   <span className="text-slate-400">Target {year}:</span>
-                  <p className="font-semibold text-slate-800">{selectedIndicator.target_tahunan}</p>
+                  <p className="font-semibold text-slate-800">
+                    {selectedIndicator.target_tahunan}
+                  </p>
                 </div>
                 <div>
-                  <span className="text-slate-400">Target {selectedMonth}:</span>
-                  <p className="font-semibold text-slate-800">{selectedIndicator.target_bulan}</p>
+                  <span className="text-slate-400">
+                    Target {selectedMonth}:
+                  </span>
+                  <p className="font-semibold text-slate-800">
+                    {selectedIndicator.target_bulan}
+                  </p>
                 </div>
                 <div>
                   <span className="text-slate-400">Realisasi:</span>
-                  <p className="font-semibold text-slate-800">{selectedIndicator.realisasi_bulan}</p>
+                  <p className="font-semibold text-slate-800">
+                    {selectedIndicator.realisasi_bulan}
+                  </p>
                 </div>
                 <div>
                   <span className="text-slate-400">Capaian:</span>
@@ -668,12 +739,14 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
                 <div className="pt-2 border-t border-slate-200 space-y-1">
                   {selectedIndicator.kendala && (
                     <p className="text-amber-800">
-                      <strong className="text-amber-900">Kendala PIC:</strong> {selectedIndicator.kendala}
+                      <strong className="text-amber-900">Kendala PIC:</strong>{" "}
+                      {selectedIndicator.kendala}
                     </p>
                   )}
                   {selectedIndicator.rtl && (
                     <p className="text-blue-800">
-                      <strong className="text-blue-900">RTL PIC:</strong> {selectedIndicator.rtl}
+                      <strong className="text-blue-900">RTL PIC:</strong>{" "}
+                      {selectedIndicator.rtl}
                     </p>
                   )}
                 </div>
@@ -687,7 +760,8 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
                   htmlFor="modalArahanInput"
                   className="block text-xs font-bold text-slate-800 mb-1"
                 >
-                  Instruksi / Arahan Kepala Balai (Kolom {selectedIndicator.arahan_column || arahanColumn}
+                  Instruksi / Arahan Kepala Balai (Kolom{" "}
+                  {selectedIndicator.arahan_column || arahanColumn}
                   {selectedIndicator.row_number}):
                 </label>
                 <textarea
@@ -705,9 +779,9 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
               <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                 <Link
                   href={`/siproval/arahan-pimpinan?year=${year}&month=${encodeURIComponent(
-                    selectedMonth
+                    selectedMonth,
                   )}&tab=${tab}&row=${selectedIndicator.row_number}&indikator=${encodeURIComponent(
-                    selectedIndicator.indikator
+                    selectedIndicator.indikator,
                   )}`}
                   className="text-xs text-[#005baa] hover:underline flex items-center gap-1"
                 >
@@ -729,11 +803,17 @@ export default function RecapTab({ year = "2026", tab = "154" }: Props) {
                     className="inline-flex items-center gap-2 rounded-xl bg-[#005baa] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#004b8d] transition disabled:opacity-50"
                   >
                     <Icon
-                      icon={savingArahan ? "solar:refresh-circle-linear" : "solar:check-circle-bold"}
+                      icon={
+                        savingArahan
+                          ? "solar:refresh-circle-linear"
+                          : "solar:check-circle-bold"
+                      }
                       width={16}
                       className={savingArahan ? "animate-spin" : ""}
                     />
-                    {savingArahan ? "Menyimpan Arahan..." : "Simpan Arahan Pimpinan"}
+                    {savingArahan
+                      ? "Menyimpan Arahan..."
+                      : "Simpan Arahan Pimpinan"}
                   </button>
                 </div>
               </div>

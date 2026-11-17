@@ -1,6 +1,6 @@
 "use client";
 
-import { RotateCcw, Search, SlidersHorizontal, X } from "lucide-react";
+import { Calendar, RotateCcw, Search, SlidersHorizontal, X } from "lucide-react";
 import type { MasterOptionsData, SimanrisDashboardFilters } from "../types";
 
 interface DashboardFilterProps {
@@ -8,6 +8,7 @@ interface DashboardFilterProps {
   filters: SimanrisDashboardFilters;
   onChange: (next: SimanrisDashboardFilters) => void;
   onReset: () => void;
+  mode?: "global" | "full";
 }
 
 export function DashboardFilter({
@@ -15,11 +16,134 @@ export function DashboardFilter({
   filters,
   onChange,
   onReset,
+  mode = "global",
 }: DashboardFilterProps) {
   const update = (patch: Partial<SimanrisDashboardFilters>) => {
     onChange({ ...filters, ...patch });
   };
 
+  // List of distinct years from periods
+  const availableYears = Array.from(
+    new Set(options?.periods.map((p) => p.year) ?? [2026])
+  ).sort((a, b) => b - a);
+
+  // If mode is "global", only show Year and Period/Semester filters
+  if (mode === "global") {
+    const isGlobalFiltered = Boolean(filters.year || filters.period_id);
+    const activePeriod = options?.periods.find((p) => p.id === Number(filters.period_id));
+    const periodsForYear = filters.year
+      ? options?.periods.filter((p) => p.year === Number(filters.year))
+      : options?.periods;
+
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs space-y-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-[#005baa]">
+              <Calendar className="h-4 w-4" />
+            </span>
+            <div>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                Filter Global Dashboard — Tahun &amp; Periode
+              </h2>
+              <p className="text-[11px] text-slate-500">
+                Menentukan tahun laporan dan dataset aktif untuk seluruh ringkasan &amp; grafik.
+              </p>
+            </div>
+          </div>
+
+          {isGlobalFiltered && (
+            <button
+              type="button"
+              onClick={onReset}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Reset ke Periode Default
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 items-end">
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+              Tahun Laporan
+            </label>
+            <select
+              value={filters.year ?? ""}
+              onChange={(e) => {
+                const newYear = e.target.value ? Number(e.target.value) : "";
+                update({
+                  year: newYear,
+                  // If current period_id does not belong to the selected year, reset period_id
+                  period_id: "",
+                  batch_id: "",
+                });
+              }}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:border-[#005baa] focus:ring-1 focus:ring-[#005baa] focus:outline-none"
+            >
+              <option value="">Semua Tahun (Sesuai Periode)</option>
+              {availableYears.map((yr) => (
+                <option key={yr} value={yr}>
+                  Tahun {yr}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+              Periode Semester / Dataset
+            </label>
+            <select
+              value={filters.period_id ?? ""}
+              onChange={(e) => {
+                const pid = e.target.value ? Number(e.target.value) : "";
+                const selectedP = options?.periods.find((p) => p.id === pid);
+                update({
+                  period_id: pid,
+                  year: selectedP ? selectedP.year : filters.year,
+                  batch_id: "",
+                });
+              }}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:border-[#005baa] focus:ring-1 focus:ring-[#005baa] focus:outline-none"
+            >
+              <option value="">Otomatis (Periode Aktif Terbaru)</option>
+              {(periodsForYear ?? options?.periods ?? []).map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.period_name}
+                  {p.active_import_batch_id ? " (Dataset Aktif)" : " (Belum Ada Dataset)"}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2 text-[11px] text-slate-500 bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2">
+            <span className="shrink-0 font-medium text-slate-700">Status:</span>
+            {activePeriod ? (
+              <span className="font-semibold text-[#005baa] truncate">
+                {activePeriod.period_name}
+                {activePeriod.active_import_batch_id ? " · Dataset Siap" : " · Belum Ada Dataset"}
+              </span>
+            ) : (
+              <span className="text-slate-600 font-medium truncate">
+                Periode Terpublikasi Terbaru (Otomatis)
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="pt-1 text-[11px] text-slate-500 flex items-center gap-1.5">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#005baa]"></span>
+          <span>
+            <b>Catatan:</b> Filter unit kerja, kategori, sumber risiko, dan pencarian kini telah disebarkan langsung pada masing-masing grafik dan tabel terkait di bawah untuk kemudahan navigasi.
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Full filter fallback (for Data Risiko table in /simanris/data-risiko)
   const hasSubFilters = Boolean(
     filters.function_id ||
       filters.risk_category_id ||
@@ -41,7 +165,7 @@ export function DashboardFilter({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-600">
           <SlidersHorizontal className="h-4 w-4 text-[#005baa]" />
-          Filter Global Dashboard & Tabel
+          Filter Tabel Data Risiko
         </div>
         {hasSubFilters && (
           <button

@@ -628,15 +628,13 @@ export default function RealisasiRoTable() {
       <th
         key={`${monthIndex}_${col.col_index}_${col.key}`}
         className={`sticky top-[37px] z-30 px-2.5 py-2 border-r ${
-          isLastInMonth ? "border-r-2 border-r-slate-400" : "border-r-slate-200"
+          isLastInMonth ? "border-r-2 border-r-slate-300" : "border-r-slate-200"
         } font-semibold text-[10px] ${
           isCap
-            ? "bg-emerald-50 text-emerald-800 text-center"
-            : isReal
-              ? "bg-blue-50 text-blue-800 text-center"
-              : isTgt
-                ? "bg-slate-50 text-slate-700 text-center"
-                : "bg-[#f8fafc] text-slate-700"
+            ? "bg-blue-50/80 text-[#004281] text-center"
+            : isReal || isTgt
+              ? "bg-slate-100 text-slate-800 text-center"
+              : "bg-[#f8fafc] text-slate-700"
         }`}
       >
         <div
@@ -646,7 +644,7 @@ export default function RealisasiRoTable() {
         >
           <span>{col.label}</span>
           {isCap && (
-            <span className="ml-1 text-[9px] lowercase font-normal text-emerald-600 bg-white px-1 rounded border border-emerald-200">
+            <span className="ml-1 text-[9px] lowercase font-medium text-[#005baa] bg-white px-1 rounded border border-blue-200">
               rumus
             </span>
           )}
@@ -1335,242 +1333,217 @@ export default function RealisasiRoTable() {
 
   return (
     <div className="space-y-4 pb-16">
-      {/* Top Header Ringkas */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs md:flex-row md:items-center md:justify-between">
-        <div>
-          <nav
-            aria-label="Breadcrumb"
-            className="flex items-center gap-2 text-xs text-slate-500"
-          >
-            <Link
-              href="/siproval/tu"
-              className="hover:text-[#005baa] transition"
+      {/* Unified Header, Actions & Summary Bar */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <nav
+              aria-label="Breadcrumb"
+              className="flex items-center gap-1.5 text-xs text-slate-500"
             >
-              Tata Usaha
+              <Link
+                href="/siproval/tu"
+                className="hover:text-[#005baa] transition"
+              >
+                Tata Usaha
+              </Link>
+              <Icon
+                icon="solar:alt-arrow-right-linear"
+                width={13}
+                className="text-slate-400"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setShowYearList(true);
+                  router.push("/siproval/tu/realisasi-ro");
+                }}
+                className="hover:text-[#005baa] transition"
+              >
+                Realisasi RO
+              </button>
+              <Icon
+                icon="solar:alt-arrow-right-linear"
+                width={13}
+                className="text-slate-400"
+              />
+              <span className="font-semibold text-[#005baa]">Tahun {activeYear}</span>
+            </nav>
+
+            <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
+              <h1 className="text-lg font-bold text-slate-900 sm:text-xl">
+                Realisasi Rincian Output (RO)
+              </h1>
+              <select
+                value={activeYear}
+                onChange={(e) => {
+                  const y = Number(e.target.value);
+                  setActiveYear(y);
+                  fetchData(selectedMonth, y);
+                  router.push(`/siproval/tu/realisasi-ro?year=${y}`);
+                }}
+                className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-[#005baa] focus:border-[#005baa] focus:outline-none"
+              >
+                {roYears.map((ry) => (
+                  <option key={ry.year} value={ry.year}>
+                    Tahun {ry.year}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+              <span className="inline-flex items-center gap-1.5">
+                <Icon icon="solar:document-text-bold" width={14} className="text-[#005baa]" />
+                <strong className="font-medium text-slate-700">
+                  {fileInfo?.original_filename || `Realisasi_RO_${activeYear}_Final.xlsx`}
+                </strong>
+              </span>
+              <span className="text-slate-300">&bull;</span>
+              <span className="inline-flex items-center gap-1">
+                <Icon icon="solar:calendar-date-bold" width={13} className="text-slate-400" />
+                Diunggah: <strong className="font-medium text-slate-700">{fileInfo?.uploaded_at_formatted || "-"}</strong>
+              </span>
+            </div>
+          </div>
+
+          {/* Prioritized Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Primary Save Action when cells are edited */}
+            {pendingCount > 0 && (
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                title="Simpan perubahan tabel ke database"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#00a651] px-4 py-2 text-xs font-semibold text-white hover:bg-[#008f45] transition shadow-2xs"
+              >
+                {saving ? (
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent" />
+                ) : (
+                  <Icon icon="solar:diskette-bold" width={15} />
+                )}
+                <span>Simpan Perubahan ({pendingCount})</span>
+              </button>
+            )}
+
+            {/* Primary Navigation: Eksport Laporan Berita Acara */}
+            <Link
+              href={`/siproval/tu/laporan-evaluasi?year=${activeYear}&month=${encodeURIComponent(selectedMonth || "SEPTEMBER")}`}
+              title="Ekspor Laporan Berita Acara Evaluasi Internal"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-[#005baa] px-4 py-2 text-xs font-semibold text-white hover:bg-[#004b8d] transition shadow-2xs"
+            >
+              <Icon icon="solar:printer-minimalistic-bold" width={15} />
+              <span>Ekspor Laporan</span>
             </Link>
-            <Icon
-              icon="solar:alt-arrow-right-linear"
-              width={14}
-              className="text-slate-400"
-            />
-            <span className="font-semibold text-slate-800">Realisasi RO</span>
-            <Icon
-              icon="solar:alt-arrow-right-linear"
-              width={14}
-              className="text-slate-400"
-            />
-            <span className="font-bold text-[#005baa]">Tahun {activeYear}</span>
-          </nav>
-          <div className="mt-1.5 flex flex-wrap items-center gap-3">
+
+            {/* Secondary Action: Sinkron Otomatis 9 RO dari Database RHPK Lokal */}
+            <button
+              type="button"
+              onClick={handleSyncIksk21}
+              disabled={isSyncingIksk21 || loading}
+              title="Sinkronkan seluruh 9 baris Realisasi RO langsung dari tabel RHPK di database lokal"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-2xs disabled:opacity-60"
+            >
+              <Icon
+                icon={isSyncingIksk21 ? "solar:refresh-circle-linear" : "solar:bolt-bold"}
+                width={15}
+                className={isSyncingIksk21 ? "animate-spin text-[#005baa]" : "text-[#005baa]"}
+              />
+              <span>{isSyncingIksk21 ? "Menyinkronkan..." : "Sinkron 9 RO (RHPK)"}</span>
+            </button>
+
+            {/* Utility Action: Unggah File Excel RO */}
             <button
               type="button"
               onClick={() => {
-                setShowYearList(true);
-                router.push("/siproval/tu/realisasi-ro");
+                setUploadYear(activeYear);
+                setShowUploadModal(true);
               }}
-              className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition shadow-2xs"
+              title="Unggah file Excel Realisasi RO (.xlsx / .xls)"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-2xs"
             >
-              <Icon icon="solar:arrow-left-linear" width={14} />
-              <span>Daftar Tahun</span>
+              <Icon
+                icon="solar:upload-track-2-bold"
+                width={15}
+                className="text-emerald-600"
+              />
+              <span>Unggah Excel</span>
             </button>
-            <h1 className="text-xl font-bold text-slate-900">
-              Realisasi Rincian Output (RO) {activeYear}
-            </h1>
-            <select
-              value={activeYear}
-              onChange={(e) => {
-                const y = Number(e.target.value);
-                setActiveYear(y);
-                fetchData(selectedMonth, y);
-                router.push(`/siproval/tu/realisasi-ro?year=${y}`);
-              }}
-              className="rounded-xl border border-blue-200 bg-blue-50/70 px-2.5 py-1 text-xs font-bold text-[#005baa] focus:outline-none"
-            >
-              {roYears.map((ry) => (
-                <option key={ry.year} value={ry.year}>
-                  Tahun {ry.year}
-                </option>
-              ))}
-            </select>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-300">
-              <Icon icon="solar:pen-new-square-bold" width={13} className="text-[#00a651]" />
-              Mode Edit Terbuka
-            </span>
-          </div>
-        </div>
 
-        {/* Action Buttons Top */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Tombol Simpan Perubahan (Saat ada perubahan sel) */}
-          {pendingCount > 0 && (
+            {/* Utility Action: Refresh Data */}
             <button
               type="button"
-              onClick={handleSave}
-              disabled={saving}
-              title="Simpan perubahan tabel ke database"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[#00a651] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#008f45] transition shadow-2xs"
+              onClick={() => fetchData(selectedMonth)}
+              disabled={loading}
+              title="Segarkan data Realisasi RO"
+              className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white p-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-[#005baa] transition shadow-2xs disabled:opacity-60"
             >
-              {saving ? (
-                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent" />
-              ) : (
-                <Icon icon="solar:diskette-bold" width={16} />
-              )}
-              Simpan Perubahan ({pendingCount})
+              <Icon
+                icon="solar:refresh-linear"
+                width={16}
+                className={loading ? "animate-spin text-[#005baa]" : ""}
+              />
             </button>
-          )}
-
-          {/* Tombol Sinkron Otomatis 9 RO dari Database RHPK Lokal */}
-          <button
-            type="button"
-            onClick={handleSyncIksk21}
-            disabled={isSyncingIksk21 || loading}
-            title="Sinkronkan seluruh 9 baris Realisasi RO (IMPORTRANGE) langsung dari tabel RHPK di database lokal"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition shadow-2xs disabled:opacity-60"
-          >
-            <Icon
-              icon={isSyncingIksk21 ? "solar:refresh-circle-linear" : "solar:bolt-bold"}
-              width={16}
-              className={isSyncingIksk21 ? "animate-spin text-[#00a651]" : "text-[#00a651]"}
-            />
-            <span>{isSyncingIksk21 ? "Menyinkronkan..." : "Sinkron 9 RO (RHPK)"}</span>
-          </button>
-
-          {/* Tombol Eksport Laporan Berita Acara */}
-          <Link
-            href={`/siproval/tu/laporan-evaluasi?month=${encodeURIComponent(selectedMonth || "APRIL")}`}
-            title="Eksport Laporan Berita Acara Evaluasi Internal"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[#005baa] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#004b8d] transition shadow-2xs"
-          >
-            <Icon icon="solar:printer-bold" width={16} />
-            Eksport Laporan
-          </Link>
-
-          {/* Tombol Tambah File Excel RO */}
-          <button
-            type="button"
-            onClick={() => {
-              setUploadYear(activeYear);
-              setShowUploadModal(true);
-            }}
-            title="Unggah file Excel Realisasi RO (.xlsx / .xls)"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition shadow-2xs"
-          >
-            <Icon
-              icon="solar:upload-track-2-bold"
-              width={16}
-              className="text-[#00a651]"
-            />
-            Tambah File Excel RO
-          </button>
-
-          {/* Tombol Refresh Data */}
-          <button
-            type="button"
-            onClick={() => fetchData(selectedMonth)}
-            disabled={loading}
-            title="Segarkan data Realisasi RO"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2 text-xs font-bold text-[#005baa] hover:bg-blue-100 transition shadow-2xs disabled:opacity-60"
-          >
-            <Icon
-              icon="solar:refresh-linear"
-              width={16}
-              className={
-                loading ? "animate-spin text-[#005baa]" : "text-[#005baa]"
-              }
-            />
-            <span>{loading ? "Memuat..." : "Refresh Data"}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Banner Info Berkas RO & Tanggal Diunggah ke Sistem */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 rounded-2xl border border-blue-200/90 bg-gradient-to-r from-blue-50/90 via-slate-50 to-emerald-50/70 p-4 shadow-2xs">
-        <div className="flex items-start sm:items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#005baa] text-white shadow-xs">
-            <Icon icon="solar:document-bold" width={22} />
           </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-sm font-bold text-slate-900">
-                {fileInfo?.original_filename || `Realisasi_RO_${activeYear}_Final.xlsx`}
-              </h2>
-              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[11px] font-bold border border-emerald-300">
-                <Icon icon="solar:pen-new-square-bold" width={12} />
-                Mode Edit Terbuka
-              </span>
+        </div>
+
+        {/* Integrated Summary Strip */}
+        <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3.5 sm:grid-cols-4">
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                Total Indikator RO
+              </p>
+              <p className="mt-0.5 text-lg font-bold text-slate-900 leading-tight">
+                {totalRO} <span className="text-xs font-normal text-slate-500">Output</span>
+              </p>
             </div>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Data Realisasi RO terbuka untuk diperbarui oleh seluruh anggota tim Tata Usaha (TU). Ubah nilai pada tabel lalu klik Simpan Perubahan.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
-          <div className="rounded-xl border border-blue-200 bg-white px-3.5 py-2 shadow-2xs text-left">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Tanggal Diunggah ke Sistem
-            </p>
-            <div className="flex items-center gap-1.5 text-xs font-bold text-[#005baa] mt-0.5">
-              <Icon icon="solar:calendar-date-bold" width={15} />
-              <span>{fileInfo?.uploaded_at_formatted || "-"}</span>
+            <div className="rounded-lg bg-blue-50 p-2 text-[#005baa]">
+              <Icon icon="solar:folder-with-files-bold" width={18} />
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Mini KPI Ringkas */}
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-        <div className="flex items-center justify-between rounded-xl border border-blue-200/70 bg-blue-50/40 px-3.5 py-2 shadow-2xs">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[#005baa]">
-              Total RO
-            </p>
-            <p className="text-xl font-extrabold text-slate-900 leading-tight">
-              {totalRO}
-            </p>
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                Tercapai ({selectedMonth})
+              </p>
+              <p className="mt-0.5 text-lg font-bold text-emerald-700 leading-tight">
+                {tercapaiCount} <span className="text-xs font-normal text-slate-500">RO</span>
+              </p>
+            </div>
+            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-600">
+              <Icon icon="solar:check-circle-bold" width={18} />
+            </div>
           </div>
-          <div className="rounded-lg bg-blue-100/70 p-1.5 text-[#005baa]">
-            <Icon icon="solar:folder-with-files-bold" width={20} />
+
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                Belum Tercapai ({selectedMonth})
+              </p>
+              <p className="mt-0.5 text-lg font-bold text-amber-600 leading-tight">
+                {belumTercapaiCount} <span className="text-xs font-normal text-slate-500">RO</span>
+              </p>
+            </div>
+            <div className="rounded-lg bg-amber-50 p-2 text-amber-600">
+              <Icon icon="solar:clock-circle-bold" width={18} />
+            </div>
           </div>
-        </div>
-        <div className="flex items-center justify-between rounded-xl border border-emerald-200/70 bg-emerald-50/40 px-3.5 py-2 shadow-2xs">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[#00a651]">
-              Tercapai ({selectedMonth})
-            </p>
-            <p className="text-xl font-extrabold text-[#00a651] leading-tight">
-              {tercapaiCount}
-            </p>
-          </div>
-          <div className="rounded-lg bg-emerald-100/70 p-1.5 text-[#00a651]">
-            <Icon icon="solar:check-circle-bold" width={20} />
-          </div>
-        </div>
-        <div className="flex items-center justify-between rounded-xl border border-amber-200/70 bg-amber-50/40 px-3.5 py-2 shadow-2xs">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">
-              Belum ({selectedMonth})
-            </p>
-            <p className="text-xl font-extrabold text-amber-600 leading-tight">
-              {belumTercapaiCount}
-            </p>
-          </div>
-          <div className="rounded-lg bg-amber-100/70 p-1.5 text-amber-600">
-            <Icon icon="solar:clock-circle-bold" width={20} />
-          </div>
-        </div>
-        <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2 shadow-2xs">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
-              Status Mode
-            </p>
-            <p className="text-sm font-extrabold text-emerald-800 leading-tight mt-0.5 flex items-center gap-1">
-              <Icon icon="solar:pen-bold" width={14} className="text-[#00a651]" />
-              Terbuka (Dapat Diedit)
-            </p>
-          </div>
-          <div className="rounded-lg bg-emerald-100/70 p-1.5 text-[#00a651]">
-            <Icon icon="solar:pen-new-square-bold" width={20} />
+
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                Rata-rata Capaian ({selectedMonth})
+              </p>
+              <p className="mt-0.5 text-lg font-bold text-[#005baa] leading-tight">
+                {computedSummary.avgCapaian}%
+              </p>
+            </div>
+            <div className="rounded-lg bg-blue-50 p-2 text-[#005baa]">
+              <Icon icon="solar:chart-square-bold" width={18} />
+            </div>
           </div>
         </div>
       </div>
@@ -1936,9 +1909,9 @@ export default function RealisasiRoTable() {
                   {viewMode === "month" ? (
                     <th
                       colSpan={monthHeaders.length}
-                      className="sticky top-0 z-30 px-4 py-2 text-center bg-[#f0f9ff] text-[#005baa] border-b border-blue-200 font-extrabold"
+                      className="sticky top-0 z-30 px-4 py-2 text-center bg-[#e6f0fa] text-[#004281] border-b border-blue-200 font-extrabold"
                     >
-                      Periode: {selectedMonth}
+                      Periode: {selectedMonth} {activeYear}
                     </th>
                   ) : (
                     MONTH_NAMES.map((mName, idx) => {
@@ -1952,8 +1925,8 @@ export default function RealisasiRoTable() {
                           colSpan={colLen}
                           className={`sticky top-0 z-30 px-3 py-2 text-center border-b border-r-2 border-slate-300 font-extrabold ${
                             isEven
-                              ? "bg-[#e0f2fe] text-[#005baa]"
-                              : "bg-[#f0fdf4] text-[#15803d]"
+                              ? "bg-[#e6f0fa] text-[#004281]"
+                              : "bg-[#f1f5f9] text-slate-800"
                           }`}
                         >
                           {mName}
@@ -2253,7 +2226,7 @@ export default function RealisasiRoTable() {
           <span>
             Menampilkan {filteredRows.length} dari {totalRO} Rincian Output
           </span>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5 text-slate-600">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
               Tercapai (&ge; 100%)
@@ -2261,10 +2234,6 @@ export default function RealisasiRoTable() {
             <span className="flex items-center gap-1.5 text-slate-600">
               <span className="h-2 w-2 rounded-full bg-amber-500" />
               Belum (&lt; 100%)
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-emerald-800 font-bold bg-emerald-50 px-3 py-1 rounded-full border border-emerald-300">
-              <Icon icon="solar:pen-new-square-bold" width={13} className="text-[#00a651]" />
-              Mode Edit Terbuka (Semua Anggota TU)
             </span>
           </div>
         </div>
