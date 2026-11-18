@@ -86,12 +86,12 @@ export default function AssetHeroCard({
       <div className="pointer-events-none absolute right-24 bottom-0 h-40 w-40 rounded-full bg-sky-300/10 blur-xl" />
 
       {/* Baris Atas: Status Kesiapan Aset & Pilihan Aset */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
           {activeSession ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/20 px-2.5 py-1 text-[11px] sm:text-xs font-bold text-amber-200 border border-amber-300/40 backdrop-blur-xs">
-              <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping" />
-              <span>
+            <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-amber-400/20 px-2.5 py-1 text-[11px] sm:text-xs font-bold text-amber-200 border border-amber-300/40 backdrop-blur-xs">
+              <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+              <span className="leading-snug">
                 Kondisi: {getActivityDynamicStatus(activeSession.activityType)}
                 {activeSession.executorName
                   ? ` (${activeSession.executorName})`
@@ -99,9 +99,9 @@ export default function AssetHeroCard({
               </span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/20 px-2.5 py-1 text-[11px] sm:text-xs font-bold text-emerald-200 border border-emerald-300/30 backdrop-blur-xs">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              Kondisi: Siaga (Standby - Siap Digunakan)
+            <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-emerald-400/20 px-2.5 py-1 text-[11px] sm:text-xs font-bold text-emerald-200 border border-emerald-300/30 backdrop-blur-xs">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              <span>Kondisi: Siaga (Standby)</span>
             </span>
           )}
 
@@ -110,7 +110,7 @@ export default function AssetHeroCard({
             <select
               value={assetInfo.qr_token}
               onChange={(e) => onSelectAssetToken(e.target.value)}
-              className="rounded-lg bg-white/15 border border-white/25 px-2.5 py-1 text-[11px] font-semibold text-white focus:outline-none focus:ring-1 focus:ring-sky-300"
+              className="w-full sm:w-auto sm:max-w-[280px] truncate rounded-lg bg-white/15 border border-white/25 px-2.5 py-1.5 sm:py-1 text-[11px] font-semibold text-white focus:outline-none focus:ring-1 focus:ring-sky-300"
               title="Ganti aset pemeliharaan yang ditampilkan"
             >
               {availableAssets.map((a) => (
@@ -122,24 +122,24 @@ export default function AssetHeroCard({
           )}
         </div>
 
-        <span className="text-[10px] sm:text-[11px] font-mono text-sky-200/90 tracking-wide">
+        <span className="text-[10px] sm:text-[11px] font-mono text-sky-200/90 tracking-wide break-words">
           KODE BMN: {assetInfo.asset_code} &bull; {assetInfo.category.toUpperCase()}
         </span>
       </div>
 
       {/* Baris Tengah: Judul Aset & Petugas Resmi */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-white/15">
-        <div>
-          <h2 className="text-lg sm:text-2xl font-black tracking-tight text-white uppercase leading-tight">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3.5 sm:pb-4 border-b border-white/15">
+        <div className="min-w-0">
+          <h2 className="text-base sm:text-2xl font-black tracking-tight text-white uppercase leading-snug sm:leading-tight break-words">
             {assetInfo.name}
           </h2>
           {/* Petugas Resmi yang Ditugaskan */}
-          <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-sky-200/90 flex-wrap">
-            <span className="font-semibold text-white flex items-center gap-1">
+          <div className="mt-2.5 flex items-start sm:items-center gap-1.5 text-[11px] text-sky-200/90 flex-wrap">
+            <span className="font-semibold text-white inline-flex items-center gap-1 shrink-0">
               <Icon icon="solar:shield-check-bold" width={14} className="text-emerald-300" />
               Petugas Ditunjuk PIC:
             </span>
-            <span className="bg-white/15 px-2 py-0.5 rounded-md font-mono text-white text-[10px]">
+            <span className="bg-white/15 px-2 py-0.5 rounded-md font-mono text-white text-[10px] leading-relaxed break-words">
               {officers.length > 0 ? officers.map((o) => o.name).join(", ") : "-"}
             </span>
           </div>

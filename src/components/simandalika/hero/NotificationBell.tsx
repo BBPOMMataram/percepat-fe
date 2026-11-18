@@ -47,7 +47,11 @@ function formatRelativeTime(dateString: string): string {
     }
 }
 
-export default function NotificationBell() {
+interface NotificationBellProps {
+    compact?: boolean;
+}
+
+export default function NotificationBell({ compact = false }: NotificationBellProps) {
     const router = useRouter();
     const { user } = useSelector((state: RootState) => state.auth);
     const authUrl = process.env.NEXT_PUBLIC_BACKEND_URL_AUTH || "http://localhost:8000";
@@ -246,7 +250,9 @@ export default function NotificationBell() {
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`relative w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 cursor-pointer shadow-xs border ${
+                className={`relative flex items-center justify-center transition-all duration-200 cursor-pointer shadow-xs border ${
+                    compact ? "w-9 h-9 rounded-xl" : "w-11 h-11 rounded-2xl"
+                } ${
                     isOpen
                         ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/30"
                         : "bg-white text-slate-700 border-slate-200/90 hover:bg-slate-50 hover:text-blue-600 hover:border-blue-300"
@@ -256,13 +262,19 @@ export default function NotificationBell() {
             >
                 <Icon
                     icon={unreadCount > 0 ? "solar:bell-bing-bold" : "solar:bell-linear"}
-                    width={22}
+                    width={compact ? 18 : 22}
                     className={unreadCount > 0 && !isOpen ? "animate-wiggle text-amber-500" : ""}
                 />
 
                 {/* BADGE MERAH MENYALA */}
                 {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 rounded-full bg-rose-600 text-white text-[11px] font-black flex items-center justify-center shadow-md shadow-rose-500/40 ring-2 ring-white animate-pulse">
+                    <span
+                        className={`absolute -top-1 -right-1 rounded-full bg-rose-600 text-white font-black flex items-center justify-center shadow-md shadow-rose-500/40 ring-2 ring-white animate-pulse ${
+                            compact
+                                ? "min-w-[18px] h-[18px] px-1 text-[10px]"
+                                : "min-w-[20px] h-5 px-1.5 text-[11px]"
+                        }`}
+                    >
                         {unreadCount > 99 ? "99+" : unreadCount}
                     </span>
                 )}
@@ -270,7 +282,7 @@ export default function NotificationBell() {
 
             {/* DROPDOWN POPOVER NOTIFIKASI */}
             {isOpen && (
-                <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-3xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div className="fixed inset-x-3 top-14 sm:absolute sm:inset-auto sm:right-0 sm:top-auto sm:mt-3 sm:w-96 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-2xl sm:rounded-3xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                     {/* Header Popover */}
                     <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
                         <div className="flex items-center gap-2">

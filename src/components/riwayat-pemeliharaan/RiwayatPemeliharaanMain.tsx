@@ -1176,7 +1176,7 @@ export default function RiwayatPemeliharaanMain() {
     <div className="min-h-screen bg-slate-50/70 pb-20 font-sans text-slate-800 antialiased">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 rounded-xl bg-slate-900 px-4 py-3 text-xs font-medium text-white shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-200 max-w-md no-print print:hidden">
+        <div className="fixed bottom-4 inset-x-3 sm:inset-x-auto sm:bottom-5 sm:right-5 z-50 flex items-center gap-2.5 rounded-xl bg-slate-900 px-4 py-3 text-xs font-medium text-white shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-200 sm:max-w-md no-print print:hidden">
           <Icon
             icon="solar:bell-bing-bold"
             width={16}

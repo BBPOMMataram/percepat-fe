@@ -123,9 +123,9 @@ export default function MaintenanceLogTable({
     <>
       {/* Toolbar Kontrol: Pencarian + Filter Kombinasi (Bulan, Tahun, Jenis Kegiatan) */}
       <div className="rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-3.5 shadow-2xs space-y-2.5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2 items-center">
+        <div className="grid grid-cols-2 lg:grid-cols-12 gap-2 items-center">
           {/* Pencarian Teks */}
-          <div className="relative sm:col-span-2 lg:col-span-4">
+          <div className="relative col-span-2 lg:col-span-4">
             <Icon
               icon="solar:magnifer-linear"
               width={15}
@@ -150,7 +150,7 @@ export default function MaintenanceLogTable({
           </div>
 
           {/* Filter Bulan */}
-          <div className="lg:col-span-2">
+          <div className="col-span-1 lg:col-span-2">
             <select
               value={selectedMonth}
               onChange={(e) => onChangeMonth(e.target.value)}
@@ -166,7 +166,7 @@ export default function MaintenanceLogTable({
           </div>
 
           {/* Filter Tahun */}
-          <div className="lg:col-span-2">
+          <div className="col-span-1 lg:col-span-2">
             <select
               value={selectedYear}
               onChange={(e) => onChangeYear(e.target.value)}
@@ -183,7 +183,7 @@ export default function MaintenanceLogTable({
           </div>
 
           {/* Filter Jenis Kegiatan */}
-          <div className="lg:col-span-3">
+          <div className="col-span-2 sm:col-span-1 lg:col-span-3">
             <select
               value={selectedActivityType}
               onChange={(e) => onChangeActivityType(e.target.value)}
@@ -199,19 +199,22 @@ export default function MaintenanceLogTable({
           </div>
 
           {/* Tombol Reset / Info Total */}
-          <div className="lg:col-span-1 flex items-center justify-end">
+          <div className="col-span-2 sm:col-span-1 lg:col-span-1 flex items-center justify-between sm:justify-end gap-2">
+            <span className="sm:hidden text-[11px] text-slate-500 font-medium">
+              Menampilkan <strong className="text-slate-800">{totalItems}</strong> catatan
+            </span>
             {hasActiveFilter ? (
               <button
                 type="button"
                 onClick={onResetFilters}
-                className="h-9 w-full inline-flex items-center justify-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-2.5 text-[11px] font-semibold text-rose-700 hover:bg-rose-100 transition"
+                className="h-8 sm:h-9 px-3 sm:px-2.5 sm:w-full inline-flex items-center justify-center gap-1 rounded-xl border border-rose-200 bg-rose-50 text-[11px] font-semibold text-rose-700 hover:bg-rose-100 transition"
                 title="Reset semua filter"
               >
                 <Icon icon="solar:restart-bold" width={13} />
                 <span>Reset</span>
               </button>
             ) : (
-              <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">
+              <span className="hidden sm:inline text-[11px] text-slate-400 font-medium whitespace-nowrap">
                 Total: <strong className="text-slate-700">{totalItems}</strong>
               </span>
             )}
@@ -219,26 +222,285 @@ export default function MaintenanceLogTable({
         </div>
       </div>
 
-      {/* Tabel Lembar Kendali Pemeliharaan (Responsif Mobile) */}
+      {/* Daftar Riwayat Pemeliharaan: Tampilan Kartu Rapi di Mobile (< md) + Tabel Lengkap di Desktop (md+) */}
       <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-2xs">
-        {/* Petunjuk Geser Horizontal Khusus Mobile */}
-        <div className="md:hidden flex items-center justify-between px-3.5 py-2 bg-gradient-to-r from-blue-50/90 via-sky-50/70 to-indigo-50/70 border-b border-blue-100 text-[11px] text-blue-800 font-medium">
-          <span className="flex items-center gap-1.5">
-            <Icon
-              icon="solar:round-arrow-right-bold"
-              width={14}
-              className="text-[#005baa] animate-pulse shrink-0"
-            />
-            <span>
-              Geser tabel ke samping untuk melihat foto, status & aksi &rarr;
-            </span>
-          </span>
-          <span className="text-[10px] bg-white/90 px-2 py-0.5 rounded-md font-mono text-slate-600 border border-blue-200 shrink-0">
-            {totalItems} Data
-          </span>
+        {/* === TAMPILAN KARTU KHUSUS MOBILE (< md) === */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {paginatedRecords.length === 0 ? (
+            <div className="py-12 px-4 text-center text-slate-400">
+              <div className="flex flex-col items-center justify-center gap-1.5">
+                <Icon
+                  icon="solar:clipboard-list-linear"
+                  width={32}
+                  className="text-slate-300"
+                />
+                <span className="font-semibold text-xs">
+                  Tidak ada catatan pemeliharaan yang sesuai filter.
+                </span>
+              </div>
+            </div>
+          ) : (
+            paginatedRecords.map((item, idx) => {
+              const rowNo = startIndex + idx + 1;
+              const typeBadge = getActivityBadge(item.activityType);
+              const isEmergency = item.activityType === "emergency_run";
+              const execSigUrl = resolveExecutorSignature(item);
+              const verifSigUrl =
+                item.verifierSignatureUrl || picSignatureUrl || null;
+              const allowDelete = canDeleteRecord(item);
+
+              return (
+                <div
+                  key={item.id}
+                  className={`p-3.5 space-y-3 ${
+                    isEmergency ? "bg-rose-50/25" : "bg-white"
+                  }`}
+                >
+                  {/* Baris Atas Kartu: Nomor, Tanggal & Badge Status */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                      <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-md bg-slate-100 px-1.5 text-[10px] font-bold text-slate-500 font-mono">
+                        #{rowNo}
+                      </span>
+                      <span className="text-xs font-bold text-slate-900 font-mono">
+                        {formatDateDisplay(item.date)}
+                      </span>
+                    </div>
+
+                    {item.isVerified ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200/80 shrink-0">
+                        <Icon
+                          icon="solar:check-circle-bold"
+                          width={12}
+                          className="text-emerald-600"
+                        />
+                        <span>Disetujui PIC</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold text-amber-700 border border-amber-200 shrink-0">
+                        <Icon
+                          icon="solar:clock-circle-bold"
+                          width={11}
+                          className="text-amber-500"
+                        />
+                        <span>Menunggu PIC</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Jenis Kegiatan, Jam & Uraian */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span
+                        className={`inline-block rounded-md px-2 py-0.5 text-[10px] font-semibold border ${typeBadge.color}`}
+                      >
+                        {typeBadge.label}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-mono text-slate-500">
+                        <Icon icon="solar:clock-circle-linear" width={12} />
+                        {item.startTime} - {item.endTime} ({item.durationMinutes} mnt)
+                      </span>
+                    </div>
+                    <p className="text-xs font-semibold text-slate-900 leading-relaxed">
+                      {item.activityDetails || typeBadge.label}
+                    </p>
+                    {item.notes && (
+                      <p className="rounded-lg bg-slate-50 border border-slate-100 px-2.5 py-1.5 text-[11px] text-slate-600 leading-relaxed">
+                        <span className="font-semibold text-slate-700">Catatan:</span>{" "}
+                        {item.notes}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Grid Pelaksana, TTD & Foto Dokumentasi */}
+                  <div className="grid grid-cols-2 gap-2.5 rounded-xl border border-slate-100 bg-slate-50/70 p-2.5">
+                    {/* Kolom Kiri: Pelaksana & TTD */}
+                    <div className="min-w-0 space-y-1">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block">
+                        Pelaksana
+                      </span>
+                      <span className="text-xs font-bold text-slate-900 block leading-snug truncate">
+                        {item.executorName}
+                      </span>
+                      <span className="text-[10px] text-slate-500 block font-mono truncate">
+                        {item.executorRole || "Petugas"}
+                      </span>
+                      {execSigUrl ? (
+                        <div className="mt-1 inline-block rounded-lg border border-slate-200/80 bg-white px-2 py-1">
+                          <img
+                            src={execSigUrl}
+                            alt={`TTD ${item.executorName}`}
+                            className="h-7 max-w-[90px] object-contain"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = "none";
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <span className="mt-1 inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-semibold text-emerald-700 border border-emerald-200">
+                          <Icon icon="solar:check-circle-bold" width={10} />
+                          Terverifikasi SSO
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Kolom Kanan: Foto Sebelum/Sesudah + Paraf PIC */}
+                    <div className="min-w-0 space-y-2">
+                      <div>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                          Dokumentasi Foto
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {/* Sebelum */}
+                          <div className="flex flex-col items-center gap-0.5">
+                            {item.initialPhotos && item.initialPhotos.length > 0 ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  onPreviewPhoto({
+                                    urls: item.initialPhotos,
+                                    initialIndex: 0,
+                                    caption: `Foto Sebelum: ${typeBadge.label} (${formatDateDisplay(
+                                      item.date
+                                    )})`,
+                                  })
+                                }
+                                className="relative inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white active:scale-95 transition"
+                              >
+                                <img
+                                  src={item.initialPhotos[0]}
+                                  alt="Foto Sebelum"
+                                  className="h-full w-full object-cover"
+                                />
+                                {item.initialPhotos.length > 1 && (
+                                  <span className="absolute bottom-0 right-0 rounded-tl-md bg-[#005baa]/90 px-1 text-[9px] font-bold text-white">
+                                    +{item.initialPhotos.length - 1}
+                                  </span>
+                                )}
+                              </button>
+                            ) : (
+                              <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-white text-[10px] text-slate-300">
+                                -
+                              </div>
+                            )}
+                            <span className="text-[9px] text-slate-500">Sebelum</span>
+                          </div>
+
+                          {/* Sesudah */}
+                          <div className="flex flex-col items-center gap-0.5">
+                            {item.finalPhotos && item.finalPhotos.length > 0 ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  onPreviewPhoto({
+                                    urls: item.finalPhotos,
+                                    initialIndex: 0,
+                                    caption: `Foto Sesudah: ${typeBadge.label} (${formatDateDisplay(
+                                      item.date
+                                    )})`,
+                                  })
+                                }
+                                className="relative inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white active:scale-95 transition"
+                              >
+                                <img
+                                  src={item.finalPhotos[0]}
+                                  alt="Foto Sesudah"
+                                  className="h-full w-full object-cover"
+                                />
+                                {item.finalPhotos.length > 1 && (
+                                  <span className="absolute bottom-0 right-0 rounded-tl-md bg-emerald-600/90 px-1 text-[9px] font-bold text-white">
+                                    +{item.finalPhotos.length - 1}
+                                  </span>
+                                )}
+                              </button>
+                            ) : (
+                              <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-white text-[10px] text-slate-300">
+                                -
+                              </div>
+                            )}
+                            <span className="text-[9px] text-slate-500">Sesudah</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {item.isVerified && verifSigUrl && (
+                        <div className="pt-1 border-t border-slate-200/70">
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-700 block">
+                            Paraf PIC
+                          </span>
+                          <div className="mt-0.5 flex items-center gap-1.5">
+                            <img
+                              src={verifSigUrl}
+                              alt="TTD PIC"
+                              className="h-6 max-w-[68px] object-contain"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = "none";
+                              }}
+                            />
+                            {item.verifiedAt && (
+                              <span className="text-[9px] text-slate-400 font-mono truncate">
+                                {item.verifiedAt}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Baris Aksi Mobile (Hanya tampil jika ada aksi yang bisa dilakukan) */}
+                  {((currentUser?.isPic && !item.isVerified) ||
+                    (!currentUser?.isPic && !item.isVerified && allowDelete)) && (
+                    <div className="pt-0.5">
+                      {currentUser?.isPic && !item.isVerified ? (
+                        <button
+                          type="button"
+                          disabled={verifyingLogId === item.id}
+                          onClick={() => onVerifyLog(item.id)}
+                          className="w-full h-9 inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 text-xs font-bold text-white shadow-2xs hover:bg-emerald-700 active:scale-[0.99] transition disabled:opacity-50"
+                        >
+                          <Icon
+                            icon={
+                              verifyingLogId === item.id
+                                ? "solar:refresh-circle-bold"
+                                : "solar:check-circle-bold"
+                            }
+                            width={15}
+                            className={
+                              verifyingLogId === item.id ? "animate-spin" : ""
+                            }
+                          />
+                          <span>
+                            {verifyingLogId === item.id
+                              ? "Memproses Verifikasi..."
+                              : "Setujui & Verifikasi PIC"}
+                          </span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={deletingLogId === item.id}
+                          onClick={() => onDeleteLog(item.id)}
+                          className="w-full h-9 inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-700 hover:bg-rose-100 active:scale-[0.99] transition disabled:opacity-50"
+                        >
+                          <Icon icon="solar:trash-bin-trash-bold" width={14} />
+                          <span>
+                            {deletingLogId === item.id
+                              ? "Menghapus Catatan..."
+                              : "Hapus Catatan"}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
 
-        <div className="overflow-x-auto">
+        {/* === TAMPILAN TABEL LENGKAP KHUSUS DESKTOP (md+) === */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50/90 text-slate-700 font-semibold text-[11px] uppercase tracking-wider">
@@ -546,16 +808,18 @@ export default function MaintenanceLogTable({
         </div>
 
         {/* Footer Table + Pagination */}
-        <div className="border-t border-slate-100 bg-slate-50/60 px-3.5 py-3 text-xs text-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          <div className="flex items-center gap-3 flex-wrap">
-            <span>
+        <div className="border-t border-slate-100 bg-slate-50/60 px-3.5 py-3 text-xs text-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center justify-between sm:justify-start gap-3 flex-wrap">
+            <span className="text-[11px] sm:text-xs">
               Menampilkan{" "}
               <strong>
                 {totalItems === 0 ? 0 : startIndex + 1} -{" "}
                 {Math.min(startIndex + rowsPerPage, totalItems)}
               </strong>{" "}
-              dari <strong>{totalItems}</strong> catatan (Total keseluruhan:{" "}
-              <strong>{records.length}</strong>)
+              dari <strong>{totalItems}</strong>{" "}
+              <span className="hidden sm:inline">
+                catatan (Total keseluruhan: <strong>{records.length}</strong>)
+              </span>
             </span>
 
             <div className="flex items-center gap-1.5">
@@ -574,12 +838,12 @@ export default function MaintenanceLogTable({
 
           {/* Kontrol Halaman (Pagination) */}
           {totalPages > 1 && (
-            <div className="flex items-center gap-1 self-end sm:self-auto">
+            <div className="flex items-center justify-between sm:justify-end gap-1.5 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/70">
               <button
                 type="button"
                 disabled={safePage <= 1}
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition"
+                className="inline-flex h-8 sm:h-7 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 sm:px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition"
               >
                 <Icon icon="solar:alt-arrow-left-linear" width={13} />
                 <span>Prev</span>
@@ -595,7 +859,7 @@ export default function MaintenanceLogTable({
                 onClick={() =>
                   setCurrentPage((p) => Math.min(totalPages, p + 1))
                 }
-                className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition"
+                className="inline-flex h-8 sm:h-7 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 sm:px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition"
               >
                 <span>Next</span>
                 <Icon icon="solar:alt-arrow-right-linear" width={13} />
