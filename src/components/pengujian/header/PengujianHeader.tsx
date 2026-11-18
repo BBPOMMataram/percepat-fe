@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 
 interface PengujianHeaderProps {
     totalOverall: number;
@@ -40,6 +41,12 @@ export default function PengujianHeader({
 
                 {/* Header Actions */}
                 <div className="flex items-center gap-2">
+                    <Link
+                        href="/pengujian/pengendalian-mutu"
+                        className="inline-flex items-center rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-[#005baa] transition hover:bg-blue-100"
+                    >
+                        Pengendalian Mutu
+                    </Link>
                     {totalOverall > 0 && (
                         <>
                             <button
