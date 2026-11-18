@@ -7,6 +7,14 @@ import { useRouter } from "next/navigation";
 import { RootState } from "@/redux/store";
 import api from "@/utils/axios";
 import { Icon } from "@iconify/react";
+import {
+    getPushPermissionState,
+    isWebPushSupported,
+    PushPermissionState,
+    subscribeWebPush,
+    syncWebPushIfGranted,
+    unsubscribeWebPush,
+} from "@/utils/webPush";
 
 interface NotificationItem {
     id: number;
@@ -49,6 +57,10 @@ export default function NotificationBell() {
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [filterModule, setFilterModule] = useState<string>("all");
+    const [pushPermission, setPushPermission] = useState<PushPermissionState>("unsupported");
+    const [isPushSubscribed, setIsPushSubscribed] = useState(false);
+    const [isPushBusy, setIsPushBusy] = useState(false);
+    const [pushFeedback, setPushFeedback] = useState<string | null>(null);
 
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -71,6 +83,56 @@ export default function NotificationBell() {
             return () => clearInterval(interval);
         }
     }, [user, authUrl]);
+
+    // Cek status izin Web Push & sinkronisasi otomatis jika user sudah pernah mengizinkan
+    useEffect(() => {
+        if (!user) {
+            setIsPushSubscribed(false);
+            return;
+        }
+        const perm = getPushPermissionState();
+        setPushPermission(perm);
+
+        if (!isWebPushSupported()) return;
+
+        let active = true;
+        (async () => {
+            if (perm === "granted") {
+                const synced = await syncWebPushIfGranted(authUrl);
+                if (active) setIsPushSubscribed(synced);
+            } else {
+                if (active) setIsPushSubscribed(false);
+            }
+        })();
+
+        return () => {
+            active = false;
+        };
+    }, [user?.id, authUrl]);
+
+    const handleEnableWebPush = async () => {
+        setIsPushBusy(true);
+        setPushFeedback(null);
+        const result = await subscribeWebPush(authUrl);
+        setPushPermission(getPushPermissionState());
+        if (result.ok) {
+            setIsPushSubscribed(true);
+            setPushFeedback("Notifikasi perangkat aktif. Anda akan menerima pemberitahuan meski web ditutup.");
+        } else {
+            setIsPushSubscribed(false);
+            setPushFeedback(result.message || "Gagal mengaktifkan notifikasi perangkat.");
+        }
+        setIsPushBusy(false);
+    };
+
+    const handleDisableWebPush = async () => {
+        setIsPushBusy(true);
+        setPushFeedback(null);
+        await unsubscribeWebPush(authUrl, true);
+        setIsPushSubscribed(false);
+        setPushFeedback("Notifikasi perangkat dinonaktifkan untuk perangkat ini.");
+        setIsPushBusy(false);
+    };
 
     // Reset filter jika modul yang dipilih sudah tidak ada di daftar notifikasi
     useEffect(() => {
@@ -234,6 +296,62 @@ export default function NotificationBell() {
                             </button>
                         )}
                     </div>
+
+                    {/* Status & Toggle Web Push Notification Perangkat */}
+                    {pushPermission !== "unsupported" && (
+                        <div className="px-4 py-2.5 bg-white border-b border-slate-100 space-y-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <span
+                                        className={`w-2 h-2 rounded-full shrink-0 ${
+                                            isPushSubscribed
+                                                ? "bg-emerald-500"
+                                                : pushPermission === "denied"
+                                                ? "bg-rose-500"
+                                                : "bg-amber-400"
+                                        }`}
+                                    />
+                                    <span className="text-[11px] font-semibold text-slate-700 truncate">
+                                        {isPushSubscribed
+                                            ? "Push Notifikasi Aktif"
+                                            : pushPermission === "denied"
+                                            ? "Notifikasi Diblokir Browser"
+                                            : "Aktifkan Push Notifikasi"}
+                                    </span>
+                                </div>
+
+                                {isPushSubscribed ? (
+                                    <button
+                                        type="button"
+                                        onClick={handleDisableWebPush}
+                                        disabled={isPushBusy}
+                                        className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer shrink-0 disabled:opacity-50"
+                                    >
+                                        {isPushBusy ? "..." : "Nonaktifkan"}
+                                    </button>
+                                ) : pushPermission === "denied" ? (
+                                    <span className="text-[10px] text-rose-500 font-semibold shrink-0">
+                                        Ubah di izin situs
+                                    </span>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={handleEnableWebPush}
+                                        disabled={isPushBusy}
+                                        className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-blue-600 text-white hover:bg-blue-700 transition cursor-pointer shrink-0 disabled:opacity-50"
+                                    >
+                                        {isPushBusy ? "Memproses..." : "Izinkan"}
+                                    </button>
+                                )}
+                            </div>
+
+                            {pushFeedback && (
+                                <p className="text-[10px] text-slate-500 leading-snug">
+                                    {pushFeedback}
+                                </p>
+                            )}
+                        </div>
+                    )}
 
                     {/* Filter Kategori Modul (Hanya modul yang memiliki notifikasi aktif) */}
                     {availableModules.length > 0 && (

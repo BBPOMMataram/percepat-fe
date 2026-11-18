@@ -1,5 +1,6 @@
 import { LoginOrRegisterResponse, LoginPayload, User } from "@/types/auth";
 import axios from "@/utils/axios";
+import { unsubscribeWebPush } from "@/utils/webPush";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { AxiosError } from "axios";
 
@@ -66,6 +67,12 @@ export const refreshToken = createAsyncThunk<LoginOrRegisterResponse, void, { re
 export const logout = createAsyncThunk<void, void>(
     "auth/logout",
     async () => {
+        try {
+            const authUrl = process.env.NEXT_PUBLIC_BACKEND_URL_AUTH || "http://localhost:8000";
+            await unsubscribeWebPush(authUrl, false);
+        } catch {
+            // Abaikan error pelepasan push agar logout tetap berjalan
+        }
         try {
             await axios.post(process.env.NEXT_PUBLIC_BACKEND_URL_AUTH + "/api/logout", {});
         } catch (error) {

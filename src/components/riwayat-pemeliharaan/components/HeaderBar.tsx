@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Icon } from "@iconify/react";
+import NotificationBell from "@/components/main/NotificationBell";
 import type { ActiveMaintenanceSession, AuthUser } from "../types";
 
 interface HeaderBarProps {
@@ -46,8 +47,10 @@ export default function HeaderBar({
           </div>
         </div>
 
-        {/* Sisi Kanan: Status Petugas, Kelola Aset & Petugas (PIC), & Tombol Aksi */}
+        {/* Sisi Kanan: Lonceng Notifikasi Global, Status Petugas, Kelola Aset & Petugas (PIC), & Tombol Aksi */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {currentUser && <NotificationBell />}
+
           {/* Tombol Khusus PIC: Kelola Aset & Petugas */}
           {currentUser?.isPic && (
             <button
