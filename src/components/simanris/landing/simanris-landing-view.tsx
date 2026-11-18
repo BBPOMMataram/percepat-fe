@@ -609,12 +609,12 @@ export function SimanrisLandingView() {
                   className="relative z-10 flex flex-col items-center"
                 >
                   <Image
-                    src="/assets/images/agent-inges.png"
+                    src="/assets/images/inges-simanris.png"
                     alt="Mascot Si Inges BBPOM di Mataram"
-                    width={396}
-                    height={942}
+                    width={764}
+                    height={1024}
                     priority
-                    className="w-auto h-[380px] sm:h-[450px] lg:h-[490px] object-contain drop-shadow-[0_20px_40px_rgba(0,66,129,0.2)] select-none pointer-events-none"
+                    className="w-auto h-[380px] sm:h-[450px] lg:h-[500px] object-contain drop-shadow-[0_20px_40px_rgba(0,66,129,0.2)] select-none pointer-events-none"
                   />
                   {/* Pedestal Shadow under sandals */}
                   <div className="w-48 sm:w-56 h-4 rounded-full bg-gradient-to-r from-transparent via-[#004281]/15 to-transparent blur-md -mt-2 z-0" />
