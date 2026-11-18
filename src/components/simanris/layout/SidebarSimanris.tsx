@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   FileSpreadsheet,
   ShieldAlert,
+  ClipboardCheck,
   ArrowLeft,
   X,
 } from "lucide-react";
@@ -50,6 +51,15 @@ export function resolveSimanrisPageMeta(pathname: string | null): SimanrisPageMe
     };
   }
 
+  if (path.startsWith("/simanris/entry-pengujian")) {
+    return {
+      title: "Entry Data Pengujian",
+      breadcrumb: ["SIMANRIS", "Entry Data Pengujian"],
+      description:
+        "Pengisian hasil pengujian aktivitas pengendalian terhadap risiko inheren tinggi.",
+    };
+  }
+
   return {
     title: "Dashboard Manajemen Risiko",
     breadcrumb: ["SIMANRIS", "Dashboard Manajemen Risiko"],
@@ -78,6 +88,13 @@ const MENU_ITEMS = [
     label: "Daftar Risiko",
     sub: "Risk Register & Semua Tab",
     icon: ShieldAlert,
+    exact: false,
+  },
+  {
+    href: "/simanris/entry-pengujian",
+    label: "Entry Data Pengujian",
+    sub: "Pengujian Aktivitas Pengendalian",
+    icon: ClipboardCheck,
     exact: false,
   },
 ];

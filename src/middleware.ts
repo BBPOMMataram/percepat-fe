@@ -18,6 +18,7 @@ export async function middleware(req: NextRequest) {
     "/simako/dashboard",
     "/sismora",
     "/siproval",
+    "/simanris",
   ];
 
   const isSiprovalWhatsNew = pathname.startsWith("/siproval/whats-new");

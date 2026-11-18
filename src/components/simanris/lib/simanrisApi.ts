@@ -31,6 +31,11 @@ import type {
   SimanrisDashboardFilters,
   SupportingDataResponse,
   TemplateVersionItem,
+  TestingAttachmentItem,
+  TestingDetailResponse,
+  TestingListResponse,
+  TestingPayload,
+  TestingSummaryData,
 } from "../types";
 
 export const SIMANRIS_API_BASE =
@@ -42,6 +47,8 @@ export function setSimanrisActorHeaders(actor?: {
   id?: string | number | null;
   name?: string | null;
   email?: string | null;
+  fungsi_id?: string | number | null;
+  fungsi_name?: string | null;
 }) {
   if (actor?.name) {
     api.defaults.headers.common["X-Actor-Name"] = actor.name;
@@ -51,6 +58,12 @@ export function setSimanrisActorHeaders(actor?: {
   }
   if (actor?.id !== undefined && actor?.id !== null) {
     api.defaults.headers.common["X-Actor-Id"] = String(actor.id);
+  }
+  if (actor?.fungsi_id !== undefined && actor?.fungsi_id !== null) {
+    api.defaults.headers.common["X-Actor-Function-Id"] = String(actor.fungsi_id);
+  }
+  if (actor?.fungsi_name) {
+    api.defaults.headers.common["X-Actor-Function-Name"] = actor.fungsi_name;
   }
 }
 
@@ -534,5 +547,119 @@ export const simanrisApi = {
       simanrisUrl(`/templates/${id}/activate`)
     );
     return res.data.data;
+  },
+
+  /* ------------------------------------------------------------------
+   * Entry Data Pengujian Aktivitas Pengendalian
+   * ------------------------------------------------------------------ */
+  async getTestingList(params: {
+    period_id?: number | "";
+    batch_id?: number | "";
+    year?: number | "";
+    semester?: number | "";
+    function_id?: number | "";
+    function_name?: string;
+    status?: string;
+    search?: string;
+    page?: number;
+    per_page?: number;
+    sort_by?: string;
+    sort_dir?: string;
+  }): Promise<TestingListResponse> {
+    const res = await api.get<SimanrisApiResponse<TestingListResponse>>(
+      simanrisUrl("/testing"),
+      { params: compactParams(params) }
+    );
+    return res.data.data;
+  },
+
+  async getTestingProgress(params: {
+    period_id?: number | "";
+    batch_id?: number | "";
+    year?: number | "";
+    semester?: number | "";
+    function_id?: number | "";
+    function_name?: string;
+  }): Promise<{ period: any; batch: any; summary: TestingSummaryData }> {
+    const res = await api.get<
+      SimanrisApiResponse<{ period: any; batch: any; summary: TestingSummaryData }>
+    >(simanrisUrl("/testing/progress"), { params: compactParams(params) });
+    return res.data.data;
+  },
+
+  async getTestingDetail(riskRecordId: number): Promise<TestingDetailResponse> {
+    const res = await api.get<SimanrisApiResponse<TestingDetailResponse>>(
+      simanrisUrl(`/testing/${riskRecordId}`)
+    );
+    return res.data.data;
+  },
+
+  async saveTestingDraft(
+    riskRecordId: number,
+    payload: TestingPayload
+  ): Promise<any> {
+    const res = await api.put<SimanrisApiResponse<any>>(
+      simanrisUrl(`/testing/${riskRecordId}`),
+      payload
+    );
+    return res.data.data;
+  },
+
+  async completeTesting(
+    riskRecordId: number,
+    payload: TestingPayload
+  ): Promise<any> {
+    const res = await api.post<SimanrisApiResponse<any>>(
+      simanrisUrl(`/testing/${riskRecordId}/complete`),
+      payload
+    );
+    return res.data.data;
+  },
+
+  async uploadTestingAttachment(file: File): Promise<TestingAttachmentItem> {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await api.post<SimanrisApiResponse<TestingAttachmentItem>>(
+      simanrisUrl("/testing/upload-attachment"),
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+    return res.data.data;
+  },
+
+  async downloadTestingExcel(params: Record<string, any>): Promise<void> {
+    const res = await api.get(simanrisUrl("/testing/export"), {
+      params: compactParams(params),
+      responseType: "blob",
+    });
+
+    const disposition = (res.headers && res.headers["content-disposition"]) || "";
+    let filename = "SIMANRIS_Kertas_Kerja_Pengujian.xlsx";
+    const match = disposition.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i);
+    if (match && match[1]) {
+      filename = decodeURIComponent(match[1]);
+    }
+
+    const blob = new Blob([res.data], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+  },
+
+  getAttachmentDownloadUrl(fileName: string, originalName?: string): string {
+    const query = new URLSearchParams({ file: fileName });
+    if (originalName) query.set("name", originalName);
+    return `${simanrisUrl("/testing/attachments/download")}?${query.toString()}`;
   },
 };

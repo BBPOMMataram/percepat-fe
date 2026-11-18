@@ -784,3 +784,140 @@ export interface RiskRecordEntry {
   [key: string]: unknown;
 }
 
+export type TestingStatus = "not_started" | "draft" | "completed";
+
+export interface TestingAttachmentItem {
+  id: string;
+  name: string;
+  file_name?: string;
+  file_path: string;
+  url?: string;
+  size: number;
+  size_formatted?: string;
+  extension: string;
+  mime?: string;
+  uploaded_at?: string;
+}
+
+export interface RiskControlTestingData {
+  id?: number;
+  sample_count?: number | null;
+  compliant_sample_count?: number | null;
+  non_compliant_sample_count?: number | null;
+  non_compliance_description?: string | null;
+  non_compliance_percentage?: number | null;
+  control_weakness_assessment?: string | null;
+  control_effectiveness_conclusion?: string | null;
+  recommendation?: string | null;
+  testing_method?: string | null;
+  notes?: string | null;
+  supporting_link?: string | null;
+  supporting_files?: TestingAttachmentItem[] | null;
+  status: TestingStatus;
+  completed_at?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+  updated_at?: string | null;
+}
+
+export interface TestingListItem {
+  id: number;
+  risk_code: string;
+  function_name: string;
+  function_id?: number | null;
+  category_name?: string | null;
+  risk_event: string;
+  inherent_likelihood?: number | null;
+  inherent_impact?: number | null;
+  inherent_level: number;
+  existing_controls: string;
+  control_attributes?: string | null;
+  source_sheet?: string;
+  source_row?: number;
+  supporting_link?: string | null;
+  supporting_files_count?: number;
+  can_edit?: boolean;
+  testing?: Partial<RiskControlTestingData> | null;
+  testing_status: TestingStatus;
+}
+
+export interface TestingSummaryData {
+  total_eligible: number;
+  not_started: number;
+  draft: number;
+  completed: number;
+  completion_percentage: number;
+}
+
+export interface TestingListResponse {
+  period: PeriodItem | null;
+  batch: {
+    id: number;
+    file_name: string;
+    published_at?: string | null;
+    is_active: boolean;
+  } | null;
+  summary: TestingSummaryData;
+  records: PaginatedData<TestingListItem>;
+  notice?: string;
+}
+
+export interface TestingDetailResponse {
+  risk_record: {
+    id: number;
+    risk_code: string;
+    risk_event: string;
+    objective?: string | null;
+    business_process?: string | null;
+    risk_cause?: string | null;
+    potential_impact?: string | null;
+    function_name: string;
+    category_name?: string | null;
+    risk_owner?: string | null;
+    risk_source?: string | null;
+    inherent_likelihood?: number | null;
+    inherent_impact?: number | null;
+    inherent_level: number;
+    existing_controls: string;
+    control_attributes?: string | null;
+    source_sheet?: string;
+    source_row?: number;
+    period: PeriodItem;
+    batch?: {
+      id: number;
+      file_name: string;
+      is_active: boolean;
+    } | null;
+    is_dataset_outdated?: boolean;
+  };
+  testing: RiskControlTestingData | null;
+  options: {
+    weakness_options: string[];
+    effectiveness_options: string[];
+    method_options: string[];
+  };
+  can_edit?: boolean;
+  user_actor?: {
+    id?: string | number | null;
+    name?: string | null;
+    role?: string | null;
+    fungsi_id?: number | null;
+    fungsi_name?: string | null;
+  };
+}
+
+export interface TestingPayload {
+  sample_count?: number | null;
+  compliant_sample_count?: number | null;
+  non_compliant_sample_count?: number | null;
+  non_compliance_description?: string | null;
+  control_weakness_assessment?: string | null;
+  control_effectiveness_conclusion?: string | null;
+  recommendation?: string | null;
+  testing_method?: string | null;
+  notes?: string | null;
+  supporting_link?: string | null;
+  supporting_files?: TestingAttachmentItem[] | null;
+}
+
+
