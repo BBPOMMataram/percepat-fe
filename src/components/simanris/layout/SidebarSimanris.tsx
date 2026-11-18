@@ -10,6 +10,7 @@ import {
   ClipboardCheck,
   ArrowLeft,
   X,
+  Home,
 } from "lucide-react";
 
 interface SidebarSimanrisProps {
@@ -60,6 +61,15 @@ export function resolveSimanrisPageMeta(pathname: string | null): SimanrisPageMe
     };
   }
 
+  if (path === "/simanris/dashboard") {
+    return {
+      title: "Dashboard Manajemen Risiko",
+      breadcrumb: ["SIMANRIS", "Dashboard Manajemen Risiko"],
+      description:
+        "Pemantauan perkembangan jumlah risiko, sebaran per fungsi, kategori risiko, dan prioritas risiko tinggi BBPOM di Mataram.",
+    };
+  }
+
   return {
     title: "Dashboard Manajemen Risiko",
     breadcrumb: ["SIMANRIS", "Dashboard Manajemen Risiko"],
@@ -71,6 +81,13 @@ export function resolveSimanrisPageMeta(pathname: string | null): SimanrisPageMe
 const MENU_ITEMS = [
   {
     href: "/simanris",
+    label: "Beranda",
+    sub: "Pengantar & Overview Sistem",
+    icon: Home,
+    exact: true,
+  },
+  {
+    href: "/simanris/dashboard",
     label: "Dashboard",
     sub: "Analitik & Pemantauan Risiko",
     icon: LayoutDashboard,
