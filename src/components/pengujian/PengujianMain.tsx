@@ -49,27 +49,35 @@ export default function PengujianMain() {
             setBatches(data.batches || []);
             setSelectedBatchId(data.selectedBatchId || null);
             setCurrentBatch(data.currentBatch || null);
-            setSiblingSheets(data.siblingSheets || []);
+            const normalizedSiblings: BatchItem[] = Array.isArray(data.siblingSheets)
+                ? data.siblingSheets
+                : (Object.values(data.siblingSheets || {}) as BatchItem[]);
+            setSiblingSheets(normalizedSiblings);
             setHeaders(data.headers || []);
             setTotalOverall(data.totalOverall || 0);
         } catch (err: any) {
             console.error("Error loading pengujian data:", err);
             const msg =
                 err.response?.data?.message ||
-                "Gagal terhubung ke backend pengujian. Pastikan backend di port 8008 aktif.";
+                "Gagal terhubung ke server backend pengujian. Pastikan layanan backend pengujian aktif.";
             setErrorMessage(msg);
         } finally {
             setLoading(false);
         }
     }, []);
 
-    // Initial Load
+    // Initial Load (dukung query ?batch=... sama seperti Blade)
     useEffect(() => {
-        loadData();
+        let initialBatch: string | undefined;
+        if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            initialBatch = params.get("batch") || undefined;
+        }
+        loadData(initialBatch);
     }, [loadData]);
 
     // Handle Upload File(s)
-    const handleUpload = async (files: File[]) => {
+    const handleUpload = async (files: File[]): Promise<boolean> => {
         setActionLoading(true);
         setSuccessMessage(null);
         setErrorMessage(null);
@@ -78,11 +86,22 @@ export default function PengujianMain() {
             const res = await pengujianService.uploadFiles(files);
             setSuccessMessage(res.message);
             await loadData(res.batch_id);
+            if (res.batch_id && typeof window !== "undefined") {
+                try {
+                    window.history.pushState(
+                        null,
+                        "",
+                        `${window.location.pathname}?batch=${encodeURIComponent(res.batch_id)}`
+                    );
+                } catch {}
+            }
+            return true;
         } catch (err: any) {
             const msg =
                 err.response?.data?.message ||
                 "Gagal memproses file. Pastikan format file sesuai (.xlsx, .xls, .csv, .pdf).";
             setErrorMessage(msg);
+            return false;
         } finally {
             setActionLoading(false);
         }
@@ -92,6 +111,15 @@ export default function PengujianMain() {
     const handleSelectBatch = (batchId: string) => {
         setSelectedBatchId(batchId);
         loadData(batchId);
+        if (batchId && typeof window !== "undefined") {
+            try {
+                window.history.pushState(
+                    null,
+                    "",
+                    `${window.location.pathname}?batch=${encodeURIComponent(batchId)}`
+                );
+            } catch {}
+        }
     };
 
     // Handle Delete Batch

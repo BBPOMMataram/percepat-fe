@@ -1,7 +1,8 @@
 import axios from "axios";
 
-export const PENGUJIAN_BASE_URL =
-    process.env.NEXT_PUBLIC_BACKEND_URL_PENGUJIAN || "http://localhost:8008";
+export const PENGUJIAN_BASE_URL = (
+    process.env.NEXT_PUBLIC_BACKEND_URL_PENGUJIAN ?? ""
+).replace(/\/+$/, "");
 
 export const pengujianApi = axios.create({
     baseURL: PENGUJIAN_BASE_URL,

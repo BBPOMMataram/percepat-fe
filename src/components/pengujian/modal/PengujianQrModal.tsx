@@ -38,8 +38,9 @@ export default function PengujianQrModal({
     };
 
     const handleCopyInfo = () => {
-        if (!data.info) return;
-        navigator.clipboard.writeText(data.info).then(() => {
+        const textToCopy = (data.info || "").replace(/^Wilayah:\s*/gim, "Lokasi Sampel: ");
+        if (!textToCopy) return;
+        navigator.clipboard.writeText(textToCopy).then(() => {
             setCopiedInfo(true);
             setTimeout(() => setCopiedInfo(false), 2000);
         });

@@ -49,6 +49,7 @@ jobs:
           NEXT_PUBLIC_BACKEND_URL_PAULA: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_PAULA }}
           NEXT_PUBLIC_BACKEND_URL_SIPROVAL: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || 'https://siproval.bbpommataram.id' }}
           NEXT_PUBLIC_BACKEND_URL_SIMANRIS: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_SIMANRIS || 'https://simanris.bbpommataram.id' }}
+          NEXT_PUBLIC_BACKEND_URL_PENGUJIAN: ${{ secrets.NEXT_PUBLIC_BACKEND_URL_PENGUJIAN || 'https://pengujian.bbpommataram.id' }}
 
       # 6️⃣ Upload build ke VPS (Ganti package-lock ke bun.lockb)
       - name: Upload build to VPS

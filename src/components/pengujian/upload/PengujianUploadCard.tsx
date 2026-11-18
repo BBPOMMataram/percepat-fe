@@ -4,7 +4,14 @@ import React, { useState, useRef, useMemo } from "react";
 
 interface PengujianUploadCardProps {
     loading: boolean;
-    onUpload: (files: File[]) => void;
+    onUpload: (files: File[]) => Promise<boolean> | void;
+}
+
+function formatBytes(bytes: number): string {
+    if (bytes < 1024 * 1024) {
+        return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
 export default function PengujianUploadCard({
@@ -15,11 +22,22 @@ export default function PengujianUploadCard({
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            const newFiles = Array.from(e.target.files);
+    const addValidatedFiles = (incoming: FileList | File[]) => {
+        const list = Array.from(incoming);
+        const validFiles = list.filter((f) => {
+            const ext = f.name.split(".").pop()?.toLowerCase();
+            return Boolean(ext && ["xlsx", "xls", "csv", "pdf"].includes(ext));
+        });
+
+        if (validFiles.length < list.length) {
+            alert(
+                "Beberapa file diabaikan karena bukan berformat .xlsx, .xls, .csv, atau .pdf."
+            );
+        }
+
+        if (validFiles.length > 0) {
             setSelectedFiles((prev) => {
-                const combined = [...prev, ...newFiles];
+                const combined = [...prev, ...validFiles];
                 return combined.filter(
                     (file, idx, arr) =>
                         arr.findIndex(
@@ -27,6 +45,19 @@ export default function PengujianUploadCard({
                         ) === idx
                 );
             });
+        }
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            addValidatedFiles(e.target.files);
+        }
+    };
+
+    const openFileDialog = () => {
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+            fileInputRef.current.click();
         }
     };
 
@@ -46,29 +77,7 @@ export default function PengujianUploadCard({
         setDragActive(false);
 
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            const dropped = Array.from(e.dataTransfer.files);
-            const validFiles = dropped.filter((f) => {
-                const ext = f.name.split(".").pop()?.toLowerCase();
-                return ext && ["xlsx", "xls", "csv", "pdf"].includes(ext);
-            });
-
-            if (validFiles.length < dropped.length) {
-                alert(
-                    "Beberapa file diabaikan karena bukan berformat .xlsx, .xls, .csv, atau .pdf."
-                );
-            }
-
-            if (validFiles.length > 0) {
-                setSelectedFiles((prev) => {
-                    const combined = [...prev, ...validFiles];
-                    return combined.filter(
-                        (file, idx, arr) =>
-                            arr.findIndex(
-                                (f) => f.name === file.name && f.size === file.size
-                            ) === idx
-                    );
-                });
-            }
+            addValidatedFiles(e.dataTransfer.files);
         }
     };
 
@@ -84,22 +93,23 @@ export default function PengujianUploadCard({
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (selectedFiles.length === 0) {
             alert("Silakan pilih setidaknya satu file Excel, CSV, atau PDF terlebih dahulu.");
             return;
         }
-        onUpload(selectedFiles);
+        const ok = await onUpload(selectedFiles);
+        if (ok) {
+            setSelectedFiles([]);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+        }
     };
 
     // Calculate total size
     const totalSizeFormatted = useMemo(() => {
         const bytes = selectedFiles.reduce((acc, f) => acc + f.size, 0);
-        if (bytes < 1024 * 1024) {
-            return `${(bytes / 1024).toFixed(1)} KB`;
-        }
-        return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+        return formatBytes(bytes);
     }, [selectedFiles]);
 
     const getFileIcon = (filename: string) => {
@@ -165,7 +175,7 @@ export default function PengujianUploadCard({
 
                     {/* Inner Frosted Glass Card */}
                     <div
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={openFileDialog}
                         onDragEnter={handleDrag}
                         onDragLeave={handleDrag}
                         onDragOver={handleDrag}
@@ -224,12 +234,12 @@ export default function PengujianUploadCard({
                                 <div className="flex items-center justify-between px-1">
                                     <div className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                                         <span>Daftar file yang akan diunggah:</span>
-                                        <span className="text-[#005baa]">({selectedFiles.length} file)</span>
+                                        <span className="text-[#005baa] font-bold">({selectedFiles.length} file)</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button
                                             type="button"
-                                            onClick={() => fileInputRef.current?.click()}
+                                            onClick={openFileDialog}
                                             className="text-xs font-medium text-[#005baa] hover:underline cursor-pointer"
                                         >
                                             + Tambah File
@@ -254,11 +264,11 @@ export default function PengujianUploadCard({
                                             <div className="flex items-center gap-2.5 min-w-0">
                                                 {getFileIcon(file.name)}
                                                 <div className="text-left truncate">
-                                                    <p className="text-xs font-semibold text-slate-800 truncate">
+                                                    <p className="text-xs font-semibold text-slate-800 truncate" title={file.name}>
                                                         {file.name}
                                                     </p>
                                                     <p className="text-[10px] text-slate-400">
-                                                        {(file.size / 1024).toFixed(1)} KB
+                                                        {formatBytes(file.size)}
                                                     </p>
                                                 </div>
                                             </div>
@@ -288,7 +298,7 @@ export default function PengujianUploadCard({
                     </div>
                     <button
                         type="submit"
-                        disabled={loading || selectedFiles.length === 0}
+                        disabled={loading}
                         className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#005baa] hover:bg-[#004887] text-white font-semibold text-xs sm:text-sm shadow-sm transition disabled:opacity-50 cursor-pointer"
                     >
                         <span>

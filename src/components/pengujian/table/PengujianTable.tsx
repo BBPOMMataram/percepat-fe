@@ -1,10 +1,15 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { BatchItem, PengujianItem, pengujianService } from "../pengujianService";
 import { QrModalData } from "../types";
 
 const IGNORED_COLS = [
+    "no",
+    "no.",
+    "nomor",
+    "identitas pengirim",
+    "identitas_pengirim",
     "manager_administrasi",
     "nip_manager_administrasi",
     "kepala_balai",
@@ -37,6 +42,12 @@ export default function PengujianTable({
     const [tableSearch, setTableSearch] = useState("");
     const [pageSize, setPageSize] = useState<number>(10);
     const [currentPage, setCurrentPage] = useState<number>(1);
+
+    // Reset pencarian & halaman ke 1 saat batch berganti (persis dtController.reinit() di Blade)
+    useEffect(() => {
+        setTableSearch("");
+        setCurrentPage(1);
+    }, [currentBatch?.batch_id]);
 
     // Filter out internal metadata and QR columns (case-insensitive) as QR is rendered in its own dedicated column
     const displayHeaders = useMemo(
@@ -89,7 +100,7 @@ export default function PengujianTable({
         const targetUrl = item.target_url || pengujianService.getScanUrl(item.qr_token);
         const pdfUrl = pengujianService.getItemPdfUrl(item.id);
         const fpdfUrl = pengujianService.getItemFpdfUrl(item.id);
-        const rawInfo = item.qr_content || item.code || "-";
+        const rawInfo = item.qr_content_display || item.qr_content || item.code || "-";
 
         onOpenQrModal({
             isOpen: true,
@@ -280,7 +291,7 @@ export default function PengujianTable({
             ) : (
                 <>
                     <div className="overflow-x-auto custom-scrollbar">
-                        <table className="w-full text-left border-collapse text-xs">
+                        <table className={`w-full text-left border-collapse text-xs transition-opacity duration-200 ${loading ? "opacity-35" : "opacity-100"}`}>
                             <thead>
                                 <tr className="bg-slate-50 text-slate-700 border-b border-slate-200">
                                     <th className="py-3 px-3.5 font-bold uppercase tracking-wider text-center w-12">
@@ -290,7 +301,9 @@ export default function PengujianTable({
                                     {/* Dynamic Headers from Excel */}
                                     {displayHeaders.map((h, i) => {
                                         if (h.includes(" - ")) {
-                                            const [mainH, subH] = h.split(" - ");
+                                            const dashIdx = h.indexOf(" - ");
+                                            const mainH = h.slice(0, dashIdx);
+                                            const subH = h.slice(dashIdx + 3);
                                             return (
                                                 <th
                                                     key={i}

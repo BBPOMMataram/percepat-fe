@@ -69,8 +69,8 @@ export default function PengujianBatchSelector({
     return (
         <div className="space-y-3">
             <div className="flex flex-col gap-3 bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs">
-                {/* BARIS KATEGORI KOMODITI */}
-                {categories.length > 0 && (
+                {/* BARIS KATEGORI KOMODITI (Tampil hanya jika > 1 kategori, persis Blade) */}
+                {categories.length > 1 && (
                     <div className="flex items-center gap-1.5 flex-wrap pb-2.5 border-b border-slate-100">
                         <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">
                             Kategori:
@@ -138,25 +138,25 @@ export default function PengujianBatchSelector({
                     {/* Batch Export and Delete Actions */}
                     <div className="flex items-center gap-2 flex-wrap shrink-0">
                         {selectedBatchId && hasItems && (
-                            <>
-                                <a
-                                    href={pengujianService.getBatchPdfUrl(selectedBatchId)}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition shadow-2xs"
-                                    title="Unduh seluruh data dalam format Surat Permintaan Uji PDF"
-                                >
-                                    <span>Export PDF Tabular</span>
-                                </a>
+                            <a
+                                href={pengujianService.getBatchPdfUrl(selectedBatchId)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition shadow-2xs"
+                                title="Unduh seluruh data dalam format Surat Permintaan Uji PDF"
+                            >
+                                <span>Export PDF Tabular</span>
+                            </a>
+                        )}
 
-                                <button
-                                    type="button"
-                                    onClick={handleDelete}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200 transition cursor-pointer"
-                                >
-                                    <span>Hapus</span>
-                                </button>
-                            </>
+                        {selectedBatchId && (
+                            <button
+                                type="button"
+                                onClick={handleDelete}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200 transition cursor-pointer"
+                            >
+                                <span>Hapus</span>
+                            </button>
                         )}
                     </div>
                 </div>
