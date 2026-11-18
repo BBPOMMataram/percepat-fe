@@ -280,43 +280,44 @@ export default function PengujianQrModal({
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-xs transition-opacity"
             onClick={(e) => {
                 if (e.target === e.currentTarget) onClose();
             }}
         >
-            <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden transform transition-all text-slate-800">
+            <div className="relative w-full max-w-lg max-h-[calc(100vh-2.5rem)] sm:max-h-[calc(100vh-3.5rem)] flex flex-col bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden transform transition-all text-slate-800">
                 {/* Modal Header */}
-                <div className="bg-gradient-to-r from-[#005baa] to-blue-700 p-5 text-white flex items-center justify-between">
-                    <div>
-                        <h3 className="font-bold text-base leading-tight">Pop-up QR Code Sampel</h3>
-                        <p className="text-xs text-blue-100 mt-0.5">
+                <div className="shrink-0 bg-gradient-to-r from-[#005baa] to-blue-700 px-5 py-3.5 sm:px-6 sm:py-4 text-white flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                        <h3 className="font-bold text-sm sm:text-base leading-tight">Pop-up QR Code Sampel</h3>
+                        <p className="text-[11px] sm:text-xs text-blue-100 mt-0.5 leading-snug">
                             Pindai QR untuk langsung membuka Laporan Dokumen PDF baris ini
                         </p>
                     </div>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition text-lg font-bold cursor-pointer"
+                        className="w-8 h-8 shrink-0 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition text-lg font-bold cursor-pointer"
+                        aria-label="Tutup"
                     >
                         &times;
                     </button>
                 </div>
 
                 {/* Modal Body */}
-                <div className="p-6 text-center space-y-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
+                <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 sm:px-6 sm:py-5 text-center space-y-3.5 custom-scrollbar">
                     <div>
                         <span className="inline-block px-3 py-1 rounded-full text-xs font-extrabold bg-blue-100 text-[#005baa] tracking-wide font-mono">
                             {data.code || "SMP-0001"}
                         </span>
-                        <h4 className="text-base font-bold text-slate-900 mt-1.5 leading-snug">
+                        <h4 className="text-sm sm:text-base font-bold text-slate-900 mt-1.5 leading-snug">
                             {data.title || "Nama Sampel Pengujian"}
                         </h4>
                     </div>
 
                     {/* Big QR Code Container */}
-                    <div className="p-4 bg-slate-50 rounded-2xl border-2 border-dashed border-blue-200 inline-block shadow-inner">
-                        <div className="w-56 h-56 mx-auto flex items-center justify-center bg-white p-2 rounded-xl shadow-xs">
+                    <div className="p-3.5 bg-slate-50 rounded-2xl border-2 border-dashed border-blue-200 inline-block shadow-inner">
+                        <div className="w-40 h-40 sm:w-48 sm:h-48 mx-auto flex items-center justify-center bg-white p-2 rounded-xl shadow-xs">
                             <img
                                 ref={qrImgRef}
                                 src={qrImageSrc}
@@ -331,14 +332,14 @@ export default function PengujianQrModal({
 
                     {/* Card: Link Target Dokumen PDF */}
                     <div className="bg-blue-50/70 border border-blue-200 rounded-2xl p-3 text-left space-y-1.5">
-                        <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-[#005baa]">
+                        <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#005baa]">
                                 Link Target QR Code (File Export PDF):
                             </span>
                             <button
                                 type="button"
                                 onClick={handleCopyUrl}
-                                className="text-[11px] font-bold text-[#005baa] hover:underline cursor-pointer"
+                                className="text-[11px] font-bold text-[#005baa] hover:underline cursor-pointer shrink-0"
                             >
                                 <span>{copiedUrl ? "Tersalin!" : "Salin Link"}</span>
                             </button>
@@ -354,20 +355,20 @@ export default function PengujianQrModal({
                     </div>
 
                     {/* Card: Rincian Data Sampel Pengujian */}
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-left space-y-2">
-                        <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 sm:p-3.5 text-left space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500">
                                 Rincian Data Sampel:
                             </span>
                             <button
                                 type="button"
                                 onClick={handleCopyInfo}
-                                className="text-[11px] font-bold text-slate-600 hover:text-[#005baa] cursor-pointer"
+                                className="text-[11px] font-bold text-slate-600 hover:text-[#005baa] cursor-pointer shrink-0"
                             >
                                 <span>{copiedInfo ? "Tersalin!" : "Salin Rincian"}</span>
                             </button>
                         </div>
-                        <div className="text-xs font-mono text-slate-800 bg-white p-2.5 rounded-xl border border-slate-200 break-words whitespace-pre-line select-all font-medium leading-relaxed max-h-36 overflow-y-auto custom-scrollbar">
+                        <div className="text-xs font-mono text-slate-800 bg-white p-2.5 rounded-xl border border-slate-200 break-words whitespace-pre-line select-all font-medium leading-relaxed max-h-32 overflow-y-auto custom-scrollbar">
                             {displayInfo || "-"}
                         </div>
                     </div>
@@ -377,7 +378,7 @@ export default function PengujianQrModal({
                         <button
                             type="button"
                             onClick={handlePrintBarcode}
-                            className="inline-flex items-center justify-center py-2.5 px-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all cursor-pointer"
+                            className="inline-flex items-center justify-center py-2.5 px-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] sm:text-xs shadow-md shadow-indigo-500/20 transition-all cursor-pointer"
                             title="Cetak langsung stiker label barcode ke printer label"
                         >
                             <span>Cetak Barcode</span>
@@ -386,7 +387,7 @@ export default function PengujianQrModal({
                         <button
                             type="button"
                             onClick={downloadQrPng}
-                            className="inline-flex items-center justify-center py-2.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-all border border-slate-200 cursor-pointer"
+                            className="inline-flex items-center justify-center py-2.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-[11px] sm:text-xs transition-all border border-slate-200 cursor-pointer"
                             title="Unduh gambar QR Code berformat PNG siap cetak / print"
                         >
                             <span>Unduh PNG</span>
@@ -396,7 +397,7 @@ export default function PengujianQrModal({
                             href={data.pdfUrl || data.targetUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center justify-center py-2.5 px-2 rounded-xl bg-[#005baa] hover:bg-[#004887] text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                            className="inline-flex items-center justify-center py-2.5 px-2 rounded-xl bg-[#005baa] hover:bg-[#004887] text-white font-bold text-[11px] sm:text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer"
                         >
                             <span>Buka PDF</span>
                         </a>
@@ -404,12 +405,12 @@ export default function PengujianQrModal({
                 </div>
 
                 {/* Modal Footer */}
-                <div className="bg-slate-50 px-6 py-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                    <span className="text-[11px]">Dapat dipindai langsung dengan kamera smartphone</span>
+                <div className="shrink-0 bg-slate-50 px-5 py-3 sm:px-6 border-t border-slate-100 flex items-center justify-between gap-2 text-xs text-slate-500">
+                    <span className="text-[11px] leading-snug">Dapat dipindai langsung dengan kamera smartphone</span>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-200 transition cursor-pointer"
+                        className="px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-200 transition cursor-pointer shrink-0"
                     >
                         Tutup
                     </button>

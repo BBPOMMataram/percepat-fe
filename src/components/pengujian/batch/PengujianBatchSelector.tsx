@@ -104,7 +104,7 @@ export default function PengujianBatchSelector({
                 )}
 
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5 flex-wrap flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2.5 flex-1 min-w-0">
                         <label htmlFor="batch-select" className="text-xs font-bold text-slate-500 uppercase tracking-wider shrink-0">
                             Pilihan Batch:
                         </label>
@@ -113,7 +113,7 @@ export default function PengujianBatchSelector({
                                 Tidak ada file dalam kategori ini
                             </span>
                         ) : (
-                            <div className="relative flex-1 max-w-md sm:max-w-lg">
+                            <div className="relative w-full sm:flex-1 sm:max-w-md md:max-w-lg min-w-0">
                                 <select
                                     id="batch-select"
                                     value={selectedBatchId || (filteredBatches[0]?.batch_id ?? "")}

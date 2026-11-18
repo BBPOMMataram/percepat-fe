@@ -126,14 +126,14 @@ export default function PengujianPhotoModal({
 
     return (
         <div
-            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 transition-opacity"
+            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 transition-opacity"
             onClick={(e) => {
                 if (e.target === e.currentTarget) onClose();
             }}
         >
-            <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full max-h-[calc(100vh-2.5rem)] sm:max-h-[calc(100vh-3.5rem)] flex flex-col border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
                 {/* Header */}
-                <div className="px-6 py-4.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-white border-b border-emerald-100 flex items-center justify-between">
+                <div className="shrink-0 px-5 py-4 sm:px-6 bg-gradient-to-r from-emerald-50 via-teal-50 to-white border-b border-emerald-100 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,7 +171,7 @@ export default function PengujianPhotoModal({
                     encType="multipart/form-data"
                     target="_blank"
                     onSubmit={handleFormSubmit}
-                    className="p-6 space-y-4"
+                    className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-6 space-y-4 custom-scrollbar"
                 >
                     {/* File Upload / Drag Zone */}
                     <div>

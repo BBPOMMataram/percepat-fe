@@ -233,9 +233,9 @@ export default function PengujianTable({
                 </div>
 
                 {items.length > 0 && (
-                    <div className="flex items-center gap-2.5 flex-wrap">
+                    <div className="flex items-center gap-2.5 flex-wrap w-full sm:w-auto">
                         {/* Search Input */}
-                        <div className="relative">
+                        <div className="relative flex-1 sm:flex-none">
                             <input
                                 type="text"
                                 value={tableSearch}
@@ -244,7 +244,7 @@ export default function PengujianTable({
                                     setCurrentPage(1);
                                 }}
                                 placeholder="Cari data di tabel..."
-                                className="w-48 sm:w-64 pl-3 pr-8 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:border-[#005baa] focus:ring-1 focus:ring-[#005baa] transition bg-white"
+                                className="w-full sm:w-64 pl-3 pr-8 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:border-[#005baa] focus:ring-1 focus:ring-[#005baa] transition bg-white"
                             />
                             {tableSearch && (
                                 <button
