@@ -19,6 +19,7 @@ export async function middleware(req: NextRequest) {
     "/sismora",
     "/siproval",
     "/simanris",
+    "/pengujian",
   ];
 
   const isSiprovalWhatsNew = pathname.startsWith("/siproval/whats-new");
@@ -187,5 +188,7 @@ export const config = {
     "/sismora",
     "/sismora/:path*",
     "/siproval/:path*",
+    "/pengujian",
+    "/pengujian/:path*",
   ],
 };

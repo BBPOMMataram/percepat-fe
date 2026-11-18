@@ -5,16 +5,22 @@ import React from "react";
 interface PengujianHeaderProps {
     totalOverall: number;
     loading: boolean;
+    canReset: boolean;
     onClearAll: () => void;
 }
 
 export default function PengujianHeader({
     totalOverall,
     loading,
+    canReset,
     onClearAll,
 }: PengujianHeaderProps) {
     const handleReset = () => {
-        if (confirm("Kosongkan semua riwayat pengujian?")) {
+        if (!canReset) return;
+        const confirmText = window.prompt(
+            "PERINGATAN: Tindakan ini akan mengosongkan SELURUH riwayat pengujian.\nKetik RESET untuk melanjutkan:"
+        );
+        if (confirmText && confirmText.trim().toUpperCase() === "RESET") {
             onClearAll();
         }
     };
@@ -42,15 +48,17 @@ export default function PengujianHeader({
                 <div className="flex items-center gap-2">
                     {totalOverall > 0 && (
                         <>
-                            <button
-                                type="button"
-                                disabled={loading}
-                                onClick={handleReset}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition cursor-pointer disabled:opacity-50"
-                                title="Kosongkan Semua Data"
-                            >
-                                <span>Reset Data</span>
-                            </button>
+                            {canReset && (
+                                <button
+                                    type="button"
+                                    disabled={loading}
+                                    onClick={handleReset}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition cursor-pointer disabled:opacity-50"
+                                    title="Kosongkan Semua Data (Khusus Superadmin)"
+                                >
+                                    <span>Reset Data</span>
+                                </button>
+                            )}
                             <span className="text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg font-medium border border-slate-200">
                                 Total <strong>{totalOverall.toLocaleString("id-ID")}</strong> Sampel
                             </span>

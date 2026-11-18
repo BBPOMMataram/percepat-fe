@@ -9,6 +9,7 @@ interface PengujianBatchSelectorProps {
     currentBatch: BatchItem | null;
     siblingSheets: BatchItem[];
     hasItems: boolean;
+    canDelete: boolean;
     onSelectBatch: (batchId: string) => void;
     onDeleteBatch: (batchId: string) => void;
 }
@@ -19,6 +20,7 @@ export default function PengujianBatchSelector({
     currentBatch,
     siblingSheets,
     hasItems,
+    canDelete,
     onSelectBatch,
     onDeleteBatch,
 }: PengujianBatchSelectorProps) {
@@ -149,11 +151,12 @@ export default function PengujianBatchSelector({
                             </a>
                         )}
 
-                        {selectedBatchId && (
+                        {selectedBatchId && canDelete && (
                             <button
                                 type="button"
                                 onClick={handleDelete}
                                 className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200 transition cursor-pointer"
+                                title="Hapus batch ini (Khusus Superadmin)"
                             >
                                 <span>Hapus</span>
                             </button>

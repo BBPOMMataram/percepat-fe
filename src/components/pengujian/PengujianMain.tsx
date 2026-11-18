@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/redux/store";
+import { getUser } from "@/features/authSlice";
 import {
     BatchItem,
     PengujianItem,
@@ -15,6 +18,10 @@ import PengujianQrModal from "./modal/PengujianQrModal";
 import PengujianFooter from "./footer/PengujianFooter";
 
 export default function PengujianMain() {
+    const dispatch = useDispatch<AppDispatch>();
+    const { user } = useSelector((state: RootState) => state.auth);
+    const isSuperadmin = String(user?.role?.level || "").toLowerCase() === "superadmin";
+
     const [loading, setLoading] = useState<boolean>(true);
     const [actionLoading, setActionLoading] = useState<boolean>(false);
     const [items, setItems] = useState<PengujianItem[]>([]);
@@ -57,6 +64,13 @@ export default function PengujianMain() {
             setTotalOverall(data.totalOverall || 0);
         } catch (err: any) {
             console.error("Error loading pengujian data:", err);
+            if (err.response?.status === 401 && typeof window !== "undefined") {
+                const redirect = encodeURIComponent(
+                    window.location.pathname + window.location.search
+                );
+                window.location.href = `/login?redirectUrl=${redirect}`;
+                return;
+            }
             const msg =
                 err.response?.data?.message ||
                 "Gagal terhubung ke server backend pengujian. Pastikan layanan backend pengujian aktif.";
@@ -65,6 +79,13 @@ export default function PengujianMain() {
             setLoading(false);
         }
     }, []);
+
+    // Muat profil SSO user agar status role (superadmin) selalu akurat
+    useEffect(() => {
+        if (!user) {
+            dispatch(getUser());
+        }
+    }, [dispatch, user]);
 
     // Initial Load (dukung query ?batch=... sama seperti Blade)
     useEffect(() => {
@@ -258,6 +279,7 @@ export default function PengujianMain() {
                 <PengujianHeader
                     totalOverall={totalOverall}
                     loading={loading || actionLoading}
+                    canReset={isSuperadmin}
                     onClearAll={handleClearAll}
                 />
 
@@ -309,6 +331,7 @@ export default function PengujianMain() {
                         currentBatch={currentBatch}
                         siblingSheets={siblingSheets}
                         hasItems={items.length > 0}
+                        canDelete={isSuperadmin}
                         onSelectBatch={handleSelectBatch}
                         onDeleteBatch={handleDeleteBatch}
                     />
