@@ -9,7 +9,7 @@ export default function SimanrisLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isLandingPage = pathname === "/simanris";
+  const isLandingPage = pathname === "/simanris" || pathname === "/simanris/";
 
   if (isLandingPage) {
     return <>{children}</>;
