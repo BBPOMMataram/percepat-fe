@@ -799,7 +799,201 @@ export const recalculateCumulativeRows = (
   return newRows;
 };
 
-// Helper format tampilan nilai sel tabel (persentase otomatis untuk Realisasi Media dan kolom rasio/persen)
+// Helper identifikasi Tab Data detil pengujian khusus IKSK 1 (Sediaan Farmasi Berisiko)
+export function isIksk1DetilPengujianTab(
+  tabTitle?: string | null,
+  spName?: string | null,
+): boolean {
+  const t = (tabTitle || "").toLowerCase();
+  const s = (spName || "").toLowerCase();
+  const isDetil = t.includes("detil pengujian") || t.includes("detail pengujian");
+  const isIksk1 = s.includes("sediaan farmasi") || s.includes("sampel sediaan farmasi");
+  return isDetil && isIksk1;
+}
+
+// Helper rekalkulasi kumulatif horizontal dan total per kolom khusus Data detil pengujian (IKSK 1)
+export const recalculateIksk1DetilPengujianRows = (
+  rows: RowData[],
+  columns: ColumnSchema[],
+): RowData[] => {
+  if (!rows || rows.length === 0) return rows;
+
+  const newRows = rows.map((r) => ({
+    ...r,
+    cells: { ...r.cells },
+  }));
+
+  const commodityRowIndices: number[] = [];
+  let subtotalRowIdx: number | null = null;
+  let lainLainRowIdx: number | null = null;
+  let totalRowIdx: number | null = null;
+
+  newRows.forEach((r, idx) => {
+    const c1 = String(r.cells?.col_1 || "").trim();
+    const isTot =
+      Boolean((r as any).is_total_row) ||
+      Boolean(r.is_total) ||
+      c1.toLowerCase() === "total";
+    const isSubtot =
+      Boolean((r as any).is_formula_row) || c1.toLowerCase().includes("subtotal");
+    const isLainLain = c1.toLowerCase().includes("lain-lain (kasus");
+
+    if (isTot) {
+      totalRowIdx = idx;
+    } else if (isSubtot) {
+      subtotalRowIdx = idx;
+    } else if (isLainLain) {
+      lainLainRowIdx = idx;
+    } else if (c1.startsWith("-")) {
+      commodityRowIndices.push(idx);
+    }
+  });
+
+  // 1. Evaluasi kumulatif horizontal per baris komoditi (4 metrik per bulan)
+  commodityRowIndices.forEach((rIdx) => {
+    for (let metric = 0; metric < 4; metric++) {
+      let runningTotal = 0;
+      let hasPrevCum = false;
+
+      for (let m = 1; m <= 12; m++) {
+        const colIdx = 3 + (m - 1) * 4 + metric;
+        const colKey = `col_${colIdx}`;
+        const inputKey = `${colKey}_input`;
+
+        const hasInput =
+          newRows[rIdx].cells[inputKey] !== undefined &&
+          newRows[rIdx].cells[inputKey] !== null &&
+          newRows[rIdx].cells[inputKey] !== "";
+
+        const cellVal = newRows[rIdx].cells[colKey];
+        const hasCellVal =
+          cellVal !== undefined &&
+          cellVal !== null &&
+          cellVal !== "" &&
+          !isNaN(Number(String(cellVal).replace(",", ".")));
+
+        if (m === 1) {
+          let monthlyDelta: number | null = null;
+          if (hasInput) {
+            monthlyDelta =
+              parseFloat(String(newRows[rIdx].cells[inputKey]).replace(",", ".")) || 0;
+          } else if (hasCellVal) {
+            monthlyDelta =
+              parseFloat(String(cellVal).replace(",", ".")) || 0;
+            newRows[rIdx].cells[inputKey] = monthlyDelta;
+          }
+
+          if (monthlyDelta !== null) {
+            runningTotal = monthlyDelta;
+            newRows[rIdx].cells[colKey] = runningTotal;
+            hasPrevCum = true;
+          } else {
+            newRows[rIdx].cells[colKey] = "";
+          }
+        } else {
+          let monthlyDelta: number | null = null;
+          if (hasInput) {
+            monthlyDelta =
+              parseFloat(String(newRows[rIdx].cells[inputKey]).replace(",", ".")) || 0;
+          } else if (hasCellVal) {
+            const currentVal =
+              parseFloat(String(cellVal).replace(",", ".")) || 0;
+            if (hasPrevCum && currentVal >= runningTotal && runningTotal > 0) {
+              monthlyDelta = currentVal - runningTotal;
+            } else {
+              monthlyDelta = currentVal;
+            }
+            newRows[rIdx].cells[inputKey] = monthlyDelta;
+          }
+
+          if (monthlyDelta !== null) {
+            runningTotal = Math.round((runningTotal + monthlyDelta) * 100) / 100;
+            newRows[rIdx].cells[colKey] = runningTotal;
+            hasPrevCum = true;
+          } else {
+            newRows[rIdx].cells[colKey] = "";
+          }
+        }
+      }
+    }
+  });
+
+  // 2. Subtotal Sampel lain2 (baris komoditi 7..11)
+  const sampelLainIndices = commodityRowIndices.filter(
+    (idx) => idx >= 7 && idx <= 11,
+  );
+
+  if (subtotalRowIdx !== null) {
+    (newRows[subtotalRowIdx] as any).row_type = "formula";
+    (newRows[subtotalRowIdx] as any).is_formula_row = true;
+    newRows[subtotalRowIdx].can_edit_row = false;
+    for (let c = 3; c <= 50; c++) {
+      const colKey = `col_${c}`;
+      let subSum = 0;
+      let hasNum = false;
+      sampelLainIndices.forEach((sIdx) => {
+        const v = newRows[sIdx].cells[colKey];
+        if (
+          v !== undefined &&
+          v !== null &&
+          v !== "" &&
+          !isNaN(Number(String(v).replace(",", ".")))
+        ) {
+          subSum += parseFloat(String(v).replace(",", "."));
+          hasNum = true;
+        }
+      });
+      const val = hasNum ? Math.round(subSum * 100) / 100 : "";
+      newRows[subtotalRowIdx].cells[colKey] = val;
+      if (lainLainRowIdx !== null) {
+        newRows[lainLainRowIdx].cells[colKey] = val;
+        (newRows[lainLainRowIdx] as any).row_type = "formula";
+        (newRows[lainLainRowIdx] as any).is_formula_row = true;
+        newRows[lainLainRowIdx].can_edit_row = false;
+      }
+    }
+  }
+
+  // 3. Baris Total (hanya menjumlahkan 20 baris komoditi)
+  if (totalRowIdx !== null) {
+    let tgtSum = 0;
+    commodityRowIndices.forEach((cIdx) => {
+      const v = newRows[cIdx].cells["col_2"];
+      if (
+        v !== undefined &&
+        v !== null &&
+        v !== "" &&
+        !isNaN(Number(String(v).replace(",", ".")))
+      ) {
+        tgtSum += parseFloat(String(v).replace(",", "."));
+      }
+    });
+    newRows[totalRowIdx].cells["col_2"] = Math.round(tgtSum * 100) / 100;
+
+    for (let c = 3; c <= 50; c++) {
+      const colKey = `col_${c}`;
+      let totSum = 0;
+      let hasNum = false;
+      commodityRowIndices.forEach((cIdx) => {
+        const v = newRows[cIdx].cells[colKey];
+        if (
+          v !== undefined &&
+          v !== null &&
+          v !== "" &&
+          !isNaN(Number(String(v).replace(",", ".")))
+        ) {
+          totSum += parseFloat(String(v).replace(",", "."));
+          hasNum = true;
+        }
+      });
+      newRows[totalRowIdx].cells[colKey] = hasNum
+        ? Math.round(totSum * 100) / 100
+        : "";
+    }
+  }
+
+  return newRows;
+};
 export const formatDisplayCellValue = (val: any, col?: any): string => {
   if (val === null || val === undefined || val === "") return "-";
 
@@ -1112,6 +1306,13 @@ export default function TestLocalTableKatim({
   const activeSpreadsheet = useMemo(() => {
     return spreadsheets.find((s) => s.id === selectedSpId) || null;
   }, [spreadsheets, selectedSpId]);
+
+  const isIksk1DetilPengujian = useMemo(() => {
+    return isIksk1DetilPengujianTab(
+      activeTab?.title,
+      activeSpreadsheet?.name,
+    );
+  }, [activeTab?.title, activeSpreadsheet?.name]);
   const [currentMonth, setCurrentMonth] = useState<number>(
     new Date().getMonth() + 1,
   );
@@ -1407,11 +1608,20 @@ export default function TestLocalTableKatim({
           ...r,
           cells: r.cells || {},
         }));
-        rows = recalculateCumulativeRows(rows, cols);
-        rows = rows.map((r: any) => ({
-          ...r,
-          cells: recalculateRowFormulas(r.cells || {}, cols, r),
-        }));
+        if (
+          isIksk1DetilPengujianTab(
+            d.active_tab?.title,
+            d.active_spreadsheet?.name,
+          )
+        ) {
+          rows = recalculateIksk1DetilPengujianRows(rows, cols);
+        } else {
+          rows = recalculateCumulativeRows(rows, cols);
+          rows = rows.map((r: any) => ({
+            ...r,
+            cells: recalculateRowFormulas(r.cells || {}, cols, r),
+          }));
+        }
         setActiveTab({ ...d.active_tab, rows_data: rows });
       } else {
         setSelectedTabId(null);
@@ -1682,6 +1892,41 @@ export default function TestLocalTableKatim({
     // Update state activeTab lokal
     setActiveTab((prev) => {
       if (!prev) return prev;
+
+      if (isIksk1DetilPengujian && /^col_(?:[3-9]|[1-4]\d|50)$/.test(colKey)) {
+        let newRows = prev.rows_data.map((r, idx) => {
+          const rKey =
+            r.month !== undefined && r.month !== null && r.month !== 0
+              ? r.month
+              : r.row_index !== undefined
+                ? r.row_index
+                : idx;
+          if (
+            rKey === rowId ||
+            (rowIdx !== undefined && (r.row_index === rowIdx || idx === rowIdx))
+          ) {
+            return {
+              ...r,
+              cells: {
+                ...r.cells,
+                [`${colKey}_input`]: parsedVal,
+              },
+            };
+          }
+          return r;
+        });
+
+        newRows = recalculateIksk1DetilPengujianRows(
+          newRows,
+          effectiveColumnsSchema,
+        );
+
+        return {
+          ...prev,
+          rows_data: newRows,
+        };
+      }
+
       let newRows = prev.rows_data.map((r, idx) => {
         const rKey =
           r.month !== undefined && r.month !== null && r.month !== 0
@@ -6073,37 +6318,87 @@ export default function TestLocalTableKatim({
                                     />
                                   ) : (
                                     (() => {
+                                      const isDetilCol =
+                                        isIksk1DetilPengujian &&
+                                        /^col_(?:[3-9]|[1-4]\d|50)$/.test(col.key);
                                       const isCum =
-                                        !isHorizontalMonthTable &&
-                                        isCumulativeCol(col);
+                                        (!isHorizontalMonthTable &&
+                                          isCumulativeCol(col)) ||
+                                        isDetilCol;
                                       const rawInput =
                                         row.cells?.[col.key + "_input"];
                                       const cellVal = row.cells?.[col.key];
-                                      const prevVal =
-                                        !isHorizontalMonthTable &&
-                                        activeTab?.rows_data &&
-                                        rowIdxNum !== undefined &&
-                                        rowIdxNum > 0
-                                          ? Number(
-                                              activeTab.rows_data[rowIdxNum - 1]
-                                                ?.cells?.[col.key] || 0,
-                                            )
+
+                                      let displayVal: any = val;
+                                      let cumulativeVal: any = null;
+
+                                      if (isDetilCol) {
+                                        const colIdxNum = parseInt(
+                                          col.key.replace("col_", ""),
+                                          10,
+                                        );
+                                        const m =
+                                          Math.floor((colIdxNum - 3) / 4) + 1;
+                                        const prevColKey =
+                                          m > 1 ? `col_${colIdxNum - 4}` : null;
+                                        const prevVal = prevColKey
+                                          ? Number(row.cells?.[prevColKey] || 0)
                                           : 0;
-                                      const displayVal = isCum
-                                        ? rawInput !== undefined &&
-                                          rawInput !== null &&
-                                          rawInput !== ""
-                                          ? rawInput
-                                          : rowIdxNum === 0
-                                            ? cellVal
-                                            : Number(cellVal) >= prevVal &&
-                                                prevVal > 0
-                                              ? Number(cellVal) - prevVal
-                                              : cellVal
-                                        : val;
-                                      const cumulativeVal = isCum
-                                        ? (cellVal ?? displayVal)
-                                        : null;
+
+                                        if (m === 1) {
+                                          displayVal =
+                                            rawInput !== undefined &&
+                                            rawInput !== null &&
+                                            rawInput !== ""
+                                              ? rawInput
+                                              : (cellVal ?? "");
+                                          cumulativeVal = cellVal ?? displayVal;
+                                        } else {
+                                          displayVal =
+                                            rawInput !== undefined &&
+                                            rawInput !== null &&
+                                            rawInput !== ""
+                                              ? rawInput
+                                              : Number(cellVal) >= prevVal &&
+                                                  prevVal > 0
+                                                ? Number(cellVal) - prevVal
+                                                : (cellVal ?? "");
+                                          cumulativeVal =
+                                            cellVal !== undefined &&
+                                            cellVal !== null &&
+                                            cellVal !== ""
+                                              ? cellVal
+                                              : displayVal !== ""
+                                                ? prevVal + Number(displayVal)
+                                                : "";
+                                        }
+                                      } else {
+                                        const prevVal =
+                                          !isHorizontalMonthTable &&
+                                          activeTab?.rows_data &&
+                                          rowIdxNum !== undefined &&
+                                          rowIdxNum > 0
+                                            ? Number(
+                                                activeTab.rows_data[rowIdxNum - 1]
+                                                  ?.cells?.[col.key] || 0,
+                                              )
+                                            : 0;
+                                        displayVal = isCum
+                                          ? rawInput !== undefined &&
+                                            rawInput !== null &&
+                                            rawInput !== ""
+                                            ? rawInput
+                                            : rowIdxNum === 0
+                                              ? cellVal
+                                              : Number(cellVal) >= prevVal &&
+                                                  prevVal > 0
+                                                ? Number(cellVal) - prevVal
+                                                : cellVal
+                                          : val;
+                                        cumulativeVal = isCum
+                                          ? (cellVal ?? displayVal)
+                                          : null;
+                                      }
 
                                       return (
                                         <div>
@@ -6183,8 +6478,10 @@ export default function TestLocalTableKatim({
                                             }`}
                                           />
                                           {isCum &&
-                                            rowIdxNum !== undefined &&
-                                            rowIdxNum > 0 && (
+                                            (isDetilCol
+                                              ? true
+                                              : rowIdxNum !== undefined &&
+                                                rowIdxNum > 0) && (
                                               <div className="mt-1 flex items-center justify-between px-1 text-[10px] text-slate-500 font-mono">
                                                 <span className="text-[9px] text-slate-400">
                                                   Kumulatif:
