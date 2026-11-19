@@ -3530,6 +3530,10 @@ export default function TestLocalTableKatim({
                                       col.allowed_katim_ids.some(
                                         (id: string | number) =>
                                           String(id) === String(user?.id),
+                                      ) ||
+                                      Boolean(
+                                        selectedIkskId &&
+                                          assignedIkskIds.includes(selectedIkskId),
                                       );
                                     const isEditableForMe =
                                       !isKabalai &&
@@ -3632,6 +3636,10 @@ export default function TestLocalTableKatim({
                                       c.allowed_katim_ids.some(
                                         (id: string | number) =>
                                           String(id) === String(user?.id),
+                                      ) ||
+                                      Boolean(
+                                        selectedIkskId &&
+                                          assignedIkskIds.includes(selectedIkskId),
                                       );
                                     return c.can_edit && isColAllowed;
                                   },
@@ -3760,6 +3768,10 @@ export default function TestLocalTableKatim({
                               col.allowed_katim_ids.some(
                                 (id: string | number) =>
                                   String(id) === String(user?.id),
+                              ) ||
+                              Boolean(
+                                selectedIkskId &&
+                                  assignedIkskIds.includes(selectedIkskId),
                               );
                             const isEditableForMe =
                               col.can_edit &&
@@ -3871,6 +3883,10 @@ export default function TestLocalTableKatim({
                           col.allowed_katim_ids.some(
                             (id: string | number) =>
                               String(id) === String(user?.id),
+                          ) ||
+                          Boolean(
+                            selectedIkskId &&
+                              assignedIkskIds.includes(selectedIkskId),
                           );
                         const isEditableForMe =
                           !isKabalai && col.can_edit && isColAllowedForMe;
@@ -4049,9 +4065,22 @@ export default function TestLocalTableKatim({
                       const isCurrent =
                         isMonthRow &&
                         (row.is_current || effectiveMonth === currentMonth);
+                      const rowAllowed = (row as any).allowed_katim_ids;
+                      const isUserAllowedForThisRow =
+                        isPicUser ||
+                        !rowAllowed ||
+                        rowAllowed.length === 0 ||
+                        rowAllowed.some(
+                          (id: string | number) => String(id) === String(user?.id),
+                        ) ||
+                        Boolean(selectedIkskId && assignedIkskIds.includes(selectedIkskId));
+
                       const canEditThisRow =
                         !isKabalai &&
-                        row.can_edit_row !== false &&
+                        !isTotalRow &&
+                        !isFormulaRow &&
+                        !isSectionRow &&
+                        (row.can_edit_row !== false || isUserAllowedForThisRow) &&
                         !isMonthLocked;
 
                       const isHighlightedIncomplete =
@@ -4161,6 +4190,10 @@ export default function TestLocalTableKatim({
                               col.allowed_katim_ids.some(
                                 (id: string | number) =>
                                   String(id) === String(user?.id),
+                              ) ||
+                              Boolean(
+                                selectedIkskId &&
+                                  assignedIkskIds.includes(selectedIkskId),
                               );
 
                             const canEditCell =
