@@ -2,6 +2,7 @@
 
 import LogoutBtn from "@/components/main/LogoutBtn";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { getUserPhotoUrl } from "@/utils/userPhoto";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -79,10 +80,16 @@ export default function NavBarSiapMelayani() {
                             <div className="dropdown dropdown-end">
                                 <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
                                     <div className="w-10">
-                                        <Image fill priority
-                                            className="rounded-full"
+                                        {/* Profile photos may come from a runtime-configured auth host. */}
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                            className="h-10 w-10 rounded-full object-cover"
                                             alt="User's profile picture"
-                                            src={user.photo_path || '/assets/images/noimage.svg'} />
+                                            src={getUserPhotoUrl(user.photo_path)}
+                                            onError={(event) => {
+                                                event.currentTarget.src = "/assets/images/noimage.svg";
+                                            }}
+                                        />
                                     </div>
                                 </div>
                                 <ul

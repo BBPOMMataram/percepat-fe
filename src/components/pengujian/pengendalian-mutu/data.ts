@@ -1,3 +1,5 @@
+import { getAuthStorageUrl } from "@/utils/userPhoto";
+
 export type ChecklistStatus = "ya" | "tidak" | "na";
 
 export interface ChecklistItem {
@@ -141,14 +143,5 @@ export function getSignatureUrl(signaturePath: string | null | undefined): strin
     if (!signaturePath) return null;
     const trimmed = signaturePath.trim();
     if (!trimmed || trimmed === "-" || trimmed.toLowerCase() === "null") return null;
-    if (
-        trimmed.startsWith("http://")
-        || trimmed.startsWith("https://")
-        || trimmed.startsWith("data:image/")
-    ) {
-        return trimmed;
-    }
-
-    const authBase = process.env.NEXT_PUBLIC_BACKEND_URL_AUTH || "http://localhost:8000";
-    return `${authBase}/storage/${trimmed.replace(/^\/+/, "")}`;
+    return getAuthStorageUrl(trimmed);
 }

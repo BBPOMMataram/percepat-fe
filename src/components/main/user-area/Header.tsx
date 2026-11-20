@@ -2,10 +2,10 @@
 
 import { User } from "@/types/auth";
 import dayjs from "@/utils/dayjs";
-import Image from "next/image";
 import Link from "next/link";
 import LogoutBtn from "../LogoutBtn";
 import NotificationBell from "@/components/simandalika/hero/NotificationBell";
+import { getUserPhotoUrl } from "@/utils/userPhoto";
 
 export default function HeaderUserArea({ user, callName }: { user: User | null, callName: string }) {
     return (
@@ -32,12 +32,16 @@ export default function HeaderUserArea({ user, callName }: { user: User | null, 
                 <NotificationBell />
                 <div className="dropdown dropdown-end">
                     <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
-                        <Image
-                            src={user?.photo_path || "/assets/images/noimage.webp"}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={getUserPhotoUrl(user?.photo_path)}
                             alt="Profile photo"
                             width={32}
                             height={32}
                             className="rounded-full object-cover w-8 h-8"
+                            onError={(event) => {
+                                event.currentTarget.src = "/assets/images/noimage.webp";
+                            }}
                         />
                     </div>
                     <ul

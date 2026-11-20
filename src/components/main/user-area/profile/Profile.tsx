@@ -6,7 +6,7 @@ import { AppDispatch } from "@/redux/store";
 import { User } from "@/types/auth";
 import api from "@/utils/api";
 import dayjs from "@/utils/dayjs";
-import Image from "next/image";
+import { getAuthStorageUrl, getUserPhotoUrl } from "@/utils/userPhoto";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import SignatureCanvas from "react-signature-canvas";
@@ -83,39 +83,26 @@ export default function Profile({ user, updateCallName, callName }: { user: User
         }
     }, [isEditing]);
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         if (formProfileRef.current) {
             const formData = new FormData(formProfileRef.current);
             formData.append('_method', 'PATCH');
 
-            // Jika canvas tidak kosong, user mengubah tanda tangan
-            if (!signatureSelectRef.current.isEmpty()) {
-                const signatureDataURL = signatureSelectRef.current.toDataURL();
-
-                api.patch(`${process.env.NEXT_PUBLIC_BACKEND_URL_PERCEPAT}/api/v1/update-signature`, {
-                    signature_path: signatureDataURL,
-                })
-                    .then(res => {
-                        dispatch(showAlert({ type: "success", message: res.data.message, description: res.data.message }));
-                    })
-                    .catch(err => {
-                        dispatch(showAlert({ type: "error", message: err?.response?.data?.message, description: err.response?.data?.message || "No Message from Backend" }));
-                    });
-                formData.append('signature_path', signatureDataURL);
+            if (signatureSelectRef.current && !signatureSelectRef.current.isEmpty()) {
+                formData.append('signature_path', signatureSelectRef.current.toDataURL());
             }
 
-            // Selalu kirim update profile (tanpa signature)
-            api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/update-profile`, formData)
-                .then(res => {
-                    dispatch(showAlert({ type: "success", message: res.data.message, description: res.data.message }));
-                    dispatch(getUser());
-                    setIsEditing(false);
-                })
-                .catch(err => {
-                    dispatch(showAlert({ type: "error", message: err?.response?.data?.message, description: err.response?.data?.message || "No Message from Backend" }));
-                });
+            try {
+                const res = await api.post(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/update-profile`, formData);
+                dispatch(showAlert({ type: "success", message: res.data.message, description: res.data.message }));
+                await dispatch(getUser());
+                setIsEditing(false);
+            } catch (err: any) {
+                const message = err?.response?.data?.message || "No Message from Backend";
+                dispatch(showAlert({ type: "error", message, description: message }));
+            }
         }
     };
 
@@ -126,12 +113,16 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                     <div className="flex flex-wrap gap-4 mb-8">
                         <div className="flex flex-col gap-3">
                             <div className="flex flex-wrap items-center gap-4">
-                                <Image
-                                    src={user?.photo_path || "/assets/images/noimage.webp"}
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src={getUserPhotoUrl(user?.photo_path)}
                                     alt="Profile photo"
                                     width={64}
                                     height={64}
                                     className="w-16 h-16 rounded-full object-cover"
+                                    onError={(event) => {
+                                        event.currentTarget.src = "/assets/images/noimage.webp";
+                                    }}
                                 />
                                 <div>
                                     <h3 className=" md:text-lg font-semibold text-gray-800">{`${gelarDepan ? gelarDepan + ". " : ""}${name}${gelarBelakang ? ", " + gelarBelakang : ""}`}</h3>
@@ -363,12 +354,16 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                                 <label className="block text-sm font-medium text-gray-700">
                                     Tanda Tangan
                                 </label>
-                                <Image
-                                    src={user?.signature_path || "/assets/images/noimage.svg"}
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src={getAuthStorageUrl(user?.signature_path)}
                                     alt="Signature Image"
                                     width={64}
                                     height={64}
                                     className="w-30 h-30 object-contain"
+                                    onError={(event) => {
+                                        event.currentTarget.src = "/assets/images/noimage.svg";
+                                    }}
                                 />
                             </>
                         }

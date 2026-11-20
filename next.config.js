@@ -1,4 +1,21 @@
 /** @type {import('next').NextConfig} */
+const authBackendImagePattern = (() => {
+    const authBackendUrl = process.env.NEXT_PUBLIC_BACKEND_URL_AUTH;
+    if (!authBackendUrl) return null;
+
+    try {
+        const url = new URL(authBackendUrl);
+        return {
+            protocol: url.protocol.slice(0, -1),
+            hostname: url.hostname,
+            port: url.port,
+            pathname: "/**",
+        };
+    } catch {
+        return null;
+    }
+})();
+
 const nextConfig = {
     compiler: { styledComponents: true },
     images: {
@@ -11,6 +28,7 @@ const nextConfig = {
                 protocol: 'http',
                 hostname: '127.0.0.1',
             },
+            ...(authBackendImagePattern ? [authBackendImagePattern] : []),
             {
                 protocol: 'https',
                 hostname: 'percepat-api.bbpommataram.id',
@@ -30,10 +48,6 @@ const nextConfig = {
             {
                 protocol: 'https',
                 hostname: 'simpel.bbpommataram.id',
-            },
-            {
-                protocol: 'http',
-                hostname: 'auth-bpom.test',
             },
         ],
     },

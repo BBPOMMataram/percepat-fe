@@ -1,6 +1,6 @@
 import api from "@/utils/api";
+import { getUserPhotoUrl } from "@/utils/userPhoto";
 import dayjs from "dayjs";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import GroupJabatan from "./GroupJabatan";
 
@@ -66,7 +66,17 @@ export default function ListDisposisiPemeliharaan({ listDisposisi }: any) {
                     {mergedDisposisi.map((disposisi, i) => (
                         < li className="list-row" key={i} >
                             <div>
-                                <Image alt="profile photo" width={40} height={40} className="size-10 rounded-full" src={disposisi?.from_user?.auth_user?.photo_path ? disposisi?.from_user?.auth_user?.photo_path : "/assets/images/noimage.webp"} />
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    alt="Profile pengirim disposisi"
+                                    width={40}
+                                    height={40}
+                                    className="size-10 rounded-full object-cover"
+                                    src={getUserPhotoUrl(disposisi?.from_user?.auth_user?.photo_path)}
+                                    onError={(event) => {
+                                        event.currentTarget.src = "/assets/images/noimage.webp";
+                                    }}
+                                />
                             </div>
 
                             < div >
