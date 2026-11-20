@@ -5,1055 +5,162 @@ import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
-import api from "@/utils/api";
+import {
+  rhpkApiService,
+  fetchTableData as apiFetchTableData,
+  toggleMonthLock as apiToggleMonthLock,
+  updateTab as apiUpdateTab,
+  getSpreadsheetExportUrl as apiGetSpreadsheetExportUrl,
+  importTabExcel as apiImportTabExcel,
+  uploadExcel as apiUploadExcel,
+} from "./table/services/rhpkApiService";
+
+export {
+  rhpkApiService,
+  apiFetchTableData,
+  apiToggleMonthLock,
+  apiUpdateTab,
+  apiGetSpreadsheetExportUrl,
+  apiImportTabExcel,
+  apiUploadExcel,
+};
 import * as XLSX from "xlsx";
 
-const baseUrl = (
-  process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000"
-).replace(/\/+$/, "");
+import {
+  DEFAULT_BASE_URL as baseUrl,
+  MAX_EXCEL_SIZE_MB,
+  STANDARD_MONTH_NAMES,
+  NUMERIC_HEADER_RE,
+  NARRATIVE_HEADER_RE,
+  getMonthColor,
+} from "./table/constants/tableConstants";
 
-type TabItem = {
-  id: number;
-  spreadsheet_id: number;
-  title: string;
+export { STANDARD_MONTH_NAMES, getMonthColor, MAX_EXCEL_SIZE_MB };
+
+import type {
+  TabItem,
+  SpreadsheetItem,
+  ColumnSchema,
+  RowData,
+  ActiveTabDetail,
+  YearItem,
+  IkskItem,
+  NoteItem,
+  IncompleteValidationModal,
+  CollabModalState,
+  ConfirmDialogState,
+  RowFormulaContext,
+  TestLocalTableKatimProps,
+  CollabNumModalState,
+  HeaderGroup,
+} from "./table/types/tableTypes";
+
+import {
+  ConfirmDialogModal,
+  ValidationModal,
+  CollabNumModal,
+  CollabNotesModal,
+  ExcelUploadModal,
+  ExcelTabImportModal,
+  TableAlerts,
+  TableLegendNotes,
+  TablePagination,
+  TableBanner,
+  TableSpreadsheetSelector,
+  TableControlBar,
+} from "./table/components";
+
+export {
+  ConfirmDialogModal,
+  ValidationModal,
+  CollabNumModal,
+  CollabNotesModal,
+  ExcelUploadModal,
+  ExcelTabImportModal,
+  TableAlerts,
+  TableLegendNotes,
+  TablePagination,
+  TableBanner,
+  TableSpreadsheetSelector,
+  TableControlBar,
 };
 
-type SpreadsheetItem = {
-  id: number;
-  name: string;
-  year: number;
-  is_readonly?: boolean;
-  is_balai_rekap?: boolean;
-  tabs: TabItem[];
+export type {
+  TabItem,
+  SpreadsheetItem,
+  ColumnSchema,
+  RowData,
+  ActiveTabDetail,
+  YearItem,
+  IkskItem,
+  NoteItem,
+  IncompleteValidationModal,
+  CollabModalState,
+  ConfirmDialogState,
+  RowFormulaContext,
+  TestLocalTableKatimProps,
+  CollabNumModalState,
+  HeaderGroup,
 };
 
-type ColumnSchema = {
-  key: string;
-  col_letter: string;
-  label: string;
-  type:
-    | "readonly"
-    | "editable"
-    | "formula"
-    | "editable_cumulative"
-    | "editable_collab_cumulative";
-  formula: string | null;
-  can_edit: boolean;
-  allowed_katim_ids?: string[];
-  is_collaborative?: boolean;
-  is_cumulative?: boolean;
-  is_kendala?: boolean;
-  is_rtl?: boolean;
-  parent_header?: string | null;
-  sub_label?: string | null;
-  sub_parent?: string | null;
-  hidden?: boolean;
-  is_hidden?: boolean;
+import {
+  isKendalaCol,
+  isRtlCol,
+  isCellContentFilled,
+  getOwnColumnHeader,
+  isCollaborativeCol,
+  isSummaryOrTotalRow,
+  isCumulativeCol,
+  isHorizontalTable,
+  isIksk1DetilPengujianTab,
+} from "./table/utils/tableDetection";
+
+import {
+  parseNotes,
+  formatNotes,
+  getPageNumbers,
+  resolveRowMonthName,
+  getApiErrorMessage,
+  getMonthNumberFromText,
+  getRowExplicitMonth,
+  formatDisplayCellValue,
+} from "./table/utils/tableFormatting";
+
+export {
+  isKendalaCol,
+  isRtlCol,
+  isCellContentFilled,
+  getOwnColumnHeader,
+  isCollaborativeCol,
+  isSummaryOrTotalRow,
+  isCumulativeCol,
+  isHorizontalTable,
+  isIksk1DetilPengujianTab,
+  parseNotes,
+  formatNotes,
+  getPageNumbers,
+  resolveRowMonthName,
+  getApiErrorMessage,
+  getMonthNumberFromText,
+  getRowExplicitMonth,
+  formatDisplayCellValue,
 };
 
-type RowData = {
-  row_index?: number;
-  month?: number;
-  month_name?: string;
-  is_locked: boolean;
-  is_current: boolean;
-  can_edit_row?: boolean;
-  pic_name?: string;
-  row_name?: string;
-  is_month_row?: boolean;
-  is_total?: boolean;
-  is_updated?: boolean;
-  // Baris yang ditambahkan di browser dan belum tersimpan ke server
-  is_new_client_row?: boolean;
-  // Rumus asli tiap sel & nomor baris Excel (dari impor file) untuk perhitungan ulang yang benar
-  formulas?: Record<string, string> | null;
-  errors?: Record<string, string> | null;
-  excel_row?: number | null;
-  cells: Record<string, any>;
+import {
+  recalculateCumulativeRows,
+  recalculateIksk1DetilPengujianRows,
+  cellNumber,
+  resolveRowFormula,
+  recalculateRowFormulas,
+} from "./table/utils/formulaEngine";
+
+export {
+  recalculateCumulativeRows,
+  recalculateIksk1DetilPengujianRows,
+  cellNumber,
+  resolveRowFormula,
+  recalculateRowFormulas,
 };
-
-type ActiveTabDetail = {
-  id: number;
-  title: string;
-  columns_schema: ColumnSchema[];
-  rows_data: RowData[];
-};
-
-type YearItem = {
-  id: number;
-  year_number: number;
-  desc?: string;
-};
-
-type IkskItem = {
-  id: number;
-  name: string;
-};
-
-export type NoteItem = {
-  num?: number | null;
-  text: string;
-  author: string;
-};
-
-export function isKendalaCol(headerName?: string | null): boolean {
-  const h = (headerName || "").toLowerCase();
-  return h.includes("kendala");
-}
-
-export function isRtlCol(headerName?: string | null): boolean {
-  const h = (headerName || "").toLowerCase();
-  if (h.includes("rencana tindak lanjut") || /\brtl\b/i.test(h)) return true;
-  if (
-    h.includes("tindak lanjut") &&
-    !/(%|persen|bobot|jumlah|sampel|surat|sesuai|kualitas|ketepatan|laporan|indikator|formula|perhitungan|capaian)/i.test(
-      h,
-    )
-  ) {
-    return true;
-  }
-  return false;
-}
-
-export function isCellContentFilled(val: unknown): boolean {
-  if (val === null || val === undefined) return false;
-  const s = String(val).trim();
-  return s !== "" && s !== "-" && s !== "/";
-}
-
-export type IncompleteValidationModal = {
-  isOpen: boolean;
-  rowIndex: number;
-  rowKey: number;
-  monthName: string;
-  isKendalaMissing: boolean;
-  isRtlMissing: boolean;
-  kendalaCol?: ColumnSchema;
-  rtlCol?: ColumnSchema;
-};
-
-// Aturan terpadu (SAMA PERSIS dengan ApiLocalRhpkTestController::isCollaborativeColumn di backend)
-const NUMERIC_HEADER_RE =
-  /(jumlah|target|persentase|%|realisasi|skor|nilai|rasio|bobot|anggaran|total|\ba[1-9]\b|\bb[1-9]?\b|\bc[1-9]?\b)/i;
-const NARRATIVE_HEADER_RE = /(catatan|keterangan|deskripsi|uraian|rekomendasi)/i;
-
-// Judul "milik" kolom itu sendiri: sub_label, atau bagian terakhir label multi-indikator ("Nilai AKIP - Rekomendasi" -> "Rekomendasi")
-export function getOwnColumnHeader(col: ColumnSchema): string {
-  const sub = String((col as any).sub_label || "").trim();
-  if (sub) return sub.toLowerCase();
-  const label = String(col.label || "").trim();
-  const parts = label.split(" - ");
-  return (parts.length > 1 ? parts[parts.length - 1] : label).toLowerCase();
-}
-
-export function isCollaborativeCol(col: ColumnSchema): boolean {
-  if (col.type === "formula" || col.type === "readonly") return false;
-  if (col.is_collaborative === true) return true;
-
-  const sub = String((col as any).sub_label || "").toLowerCase();
-  const label = (col.label || "").toLowerCase();
-
-  // 1. Kendala & RTL selalu kolom catatan kolaboratif
-  if (isKendalaCol(sub) || isKendalaCol(label)) return true;
-  if (isRtlCol(sub) || isRtlCol(label)) return true;
-
-  // 2. Nilai sub_label diperiksa lebih dulu: "Jumlah rekomendasi ..." = angka, "Rekomendasi" = catatan
-  const own = getOwnColumnHeader(col);
-  if (NUMERIC_HEADER_RE.test(own)) return false;
-  return NARRATIVE_HEADER_RE.test(own);
-}
-
-export function getMonthColor(monthName?: string | null) {
-  let m = (monthName || "").toUpperCase().trim();
-  m = m.replace(/^S[\.\/]?D[\.\s]+/i, "").trim();
-  if (m === "PEBRUARI") m = "FEBRUARI";
-  if (m === "NOPEMBER") m = "NOVEMBER";
-  switch (m) {
-    case "JANUARI":
-      return {
-        header: "bg-[#fce8e6] text-[#991b1b] border-r border-rose-300",
-        sub: "bg-[#fff5f5] text-slate-700",
-        dot: "bg-[#e11d48]",
-      };
-    case "FEBRUARI":
-      return {
-        header: "bg-[#f3e8fd] text-[#581c87] border-r border-purple-300",
-        sub: "bg-[#faf5ff] text-slate-700",
-        dot: "bg-[#9333ea]",
-      };
-    case "MARET":
-      return {
-        header: "bg-[#fef7e0] text-[#78350f] border-r border-amber-300",
-        sub: "bg-[#fffbeb] text-slate-700",
-        dot: "bg-[#d97706]",
-      };
-    case "APRIL":
-      return {
-        header: "bg-[#e6f4ea] text-[#064e3b] border-r border-emerald-300",
-        sub: "bg-[#f0fdf4] text-slate-700",
-        dot: "bg-[#059669]",
-      };
-    case "MEI":
-      return {
-        header: "bg-[#e8f0fe] text-[#1e3a8a] border-r border-blue-300",
-        sub: "bg-[#eff6ff] text-slate-700",
-        dot: "bg-[#2563eb]",
-      };
-    case "JUNI":
-      return {
-        header: "bg-[#ede9fe] text-[#3730a3] border-r border-indigo-300",
-        sub: "bg-[#f5f3ff] text-slate-700",
-        dot: "bg-[#4f46e5]",
-      };
-    case "JULI":
-      return {
-        header: "bg-[#ffedd5] text-[#9a3412] border-r border-orange-300",
-        sub: "bg-[#fff7ed] text-slate-700",
-        dot: "bg-[#ea580c]",
-      };
-    case "AGUSTUS":
-      return {
-        header: "bg-[#ccfbf1] text-[#115e59] border-r border-teal-300",
-        sub: "bg-[#f0fdfa] text-slate-700",
-        dot: "bg-[#0d9488]",
-      };
-    case "SEPTEMBER":
-      return {
-        header: "bg-[#fef9c3] text-[#854d0e] border-r border-yellow-300",
-        sub: "bg-[#fefce8] text-slate-700",
-        dot: "bg-[#ca8a04]",
-      };
-    case "OKTOBER":
-      return {
-        header: "bg-[#cffafe] text-[#155e75] border-r border-cyan-300",
-        sub: "bg-[#ecfeff] text-slate-700",
-        dot: "bg-[#0891b2]",
-      };
-    case "NOVEMBER":
-      return {
-        header: "bg-[#e0f2fe] text-[#075985] border-r border-sky-300",
-        sub: "bg-[#f0f9ff] text-slate-700",
-        dot: "bg-[#0284c7]",
-      };
-    case "DESEMBER":
-      return {
-        header: "bg-[#ffe4e6] text-[#9f1239] border-r border-rose-300",
-        sub: "bg-[#fff1f2] text-slate-700",
-        dot: "bg-[#e11d48]",
-      };
-    default:
-      return {
-        header: "bg-slate-100 text-slate-800 border-r border-slate-300",
-        sub: "bg-slate-50 text-slate-700",
-        dot: "bg-slate-500",
-      };
-  }
-}
-
-export function parseNotes(raw: unknown): NoteItem[] {
-  const rawText = String(raw ?? "").trim();
-  if (!rawText || rawText === "-" || rawText === "/") return [];
-
-  const lines = rawText
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
-  const result: NoteItem[] = [];
-
-  lines.forEach((line, idx) => {
-    // 1. Check (+ Name) or (Name) at end
-    let match = line.match(
-      /^(?:(\d+)[\.\)]\s*)?(.*?)(?:\s*\(\+?\s*([^\(\)]+)\))$/,
-    );
-    if (match && match[2]) {
-      result.push({
-        num: match[1] ? parseInt(match[1], 10) : idx + 1,
-        text: match[2].trim(),
-        author: match[3].trim().replace(/^\+\s*/, ""),
-      });
-      return;
-    }
-    // 2. Check + Name at end
-    match = line.match(
-      /^(?:(\d+)[\.\)]\s*)?(.*?)(?:\s*\+\s*([a-zA-Z\s\.,]+))$/,
-    );
-    if (match && match[2] && match[3]) {
-      result.push({
-        num: match[1] ? parseInt(match[1], 10) : idx + 1,
-        text: match[2].trim(),
-        author: match[3].trim().replace(/^\+\s*/, ""),
-      });
-      return;
-    }
-    // 3. Fallback without author
-    match = line.match(/^(?:(\d+)[\.\)]\s*)?(.*)$/);
-    result.push({
-      num: match && match[1] ? parseInt(match[1], 10) : idx + 1,
-      text: (match && match[2] ? match[2] : line).trim(),
-      author: "",
-    });
-  });
-
-  return result;
-}
-
-export function formatNotes(notes: NoteItem[]): string {
-  return notes
-    .filter((n) => n.text.trim())
-    .map((n, idx) => {
-      const cleanAuthor = (n.author || "").replace(/^\+\s*/, "").trim();
-      const authorPart = cleanAuthor ? ` (+ ${cleanAuthor})` : "";
-      return `${idx + 1}. ${n.text.trim()}${authorPart}`;
-    })
-    .join("\n");
-}
-
-export function getPageNumbers(
-  current: number,
-  total: number,
-): (number | string)[] {
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, i) => i + 1);
-  }
-  if (current <= 4) {
-    return [1, 2, 3, 4, 5, "...", total];
-  }
-  if (current >= total - 3) {
-    return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
-  }
-  return [1, "...", current - 1, current, current + 1, "...", total];
-}
-
-export function resolveRowMonthName(
-  r: RowData,
-  monthColKey?: string | null,
-): string {
-  if (
-    monthColKey &&
-    r.cells?.[monthColKey] &&
-    String(r.cells[monthColKey]).trim()
-  ) {
-    return String(r.cells[monthColKey]).trim();
-  }
-  if (r.month_name && typeof r.month_name === "string" && r.month_name.trim()) {
-    return r.month_name.trim();
-  }
-  if (r.cells?.col_2 && typeof r.cells.col_2 === "string") {
-    const val = r.cells.col_2.trim();
-    if (
-      /(januari|februari|pebruari|maret|april|mei|juni|juli|agustus|september|oktober|november|nopember|desember)/i.test(
-        val,
-      )
-    ) {
-      return val;
-    }
-  }
-  if (r.cells?.col_0 && typeof r.cells.col_0 === "string") {
-    const val = r.cells.col_0.trim();
-    if (
-      /(januari|februari|pebruari|maret|april|mei|juni|juli|agustus|september|oktober|november|nopember|desember)/i.test(
-        val,
-      )
-    ) {
-      return val;
-    }
-  }
-  if (r.month && r.month >= 1 && r.month <= 12) {
-    const standardOrder = [
-      "Januari",
-      "Februari",
-      "Maret",
-      "April",
-      "Mei",
-      "Juni",
-      "Juli",
-      "Agustus",
-      "September",
-      "Oktober",
-      "November",
-      "Desember",
-    ];
-    return standardOrder[r.month - 1];
-  }
-  return "";
-}
-
-type CollabModalState = {
-  isOpen: boolean;
-  rowKey: number;
-  rowIndex?: number;
-  colKey: string;
-  colLabel: string;
-  colLetter: string;
-  monthName: string;
-  isLocked: boolean;
-  notes: NoteItem[];
-  newNoteText: string;
-  editingIndex: number | null;
-  editingText: string;
-};
-
-type ConfirmDialogState = {
-  tone: "emerald" | "amber" | "rose";
-  icon: string;
-  title: string;
-  message: string;
-  // Teks peringatan tebal di bawah pesan utama (cth: "Data akan terupdate")
-  note?: string;
-  details?: string[];
-  warnings?: string[];
-  confirmLabel: string;
-  cancelLabel?: string;
-  hideCancel?: boolean;
-  onConfirm: () => void;
-};
-
-const MAX_EXCEL_SIZE_MB = 20;
-
-// Terjemahkan error axios menjadi pesan yang mudah dipahami user
-function getApiErrorMessage(err: any, fallback: string): string {
-  if (!err?.response) {
-    if (err?.code === "ECONNABORTED") {
-      return "Permintaan ke server melebihi batas waktu. Periksa koneksi lalu coba lagi.";
-    }
-    return "Tidak dapat terhubung ke server. Periksa koneksi internet Anda lalu coba lagi.";
-  }
-  const status = err.response.status;
-  const data = err.response.data;
-  if (data?.message && typeof data.message === "string") {
-    // Pesan validasi Laravel (422) kadang menyertakan detail per-field
-    if (data.errors && typeof data.errors === "object" && !Array.isArray(data.errors)) {
-      const first = Object.values(data.errors).flat()[0];
-      if (typeof first === "string") return first;
-    }
-    return data.message;
-  }
-  if (status === 401) return "Sesi Anda telah berakhir. Silakan login kembali.";
-  if (status === 403) return "Anda tidak memiliki hak akses untuk melakukan aksi ini.";
-  if (status === 404) return "Data tidak ditemukan. Muat ulang halaman lalu coba lagi.";
-  if (status === 413) return `Ukuran file terlalu besar untuk diterima server (maks. ${MAX_EXCEL_SIZE_MB} MB).`;
-  if (status >= 500) return `${fallback} (kesalahan server ${status}). Data di sistem tidak berubah.`;
-  return fallback;
-}
-
-export const STANDARD_MONTH_NAMES = [
-  "Januari",
-  "Februari",
-  "Maret",
-  "April",
-  "Mei",
-  "Juni",
-  "Juli",
-  "Agustus",
-  "September",
-  "Oktober",
-  "November",
-  "Desember",
-];
-
-export function getMonthNumberFromText(text?: string | null): number | null {
-  if (!text) return null;
-  let t = String(text).trim().toLowerCase();
-  if (!t) return null;
-  t = t.replace(/^(s[\.\/]?d[\.\s]+|sampai\s+dengan\s+|periode\s*:?\s*)/i, "").trim();
-
-  // 1. Check Excel serial date numbers (e.g. 44000 to 48000 is years 2020-2031)
-  const numVal = Number(t);
-  if (!isNaN(numVal) && numVal >= 44000 && numVal <= 48000) {
-    try {
-      const date = new Date((numVal - 25569) * 86400 * 1000);
-      if (!isNaN(date.getTime())) {
-        return date.getUTCMonth() + 1;
-      }
-    } catch {}
-  }
-
-  // 2. Check ISO or standard date formats (YYYY-MM-DD or DD-MM-YYYY or DD/MM/YYYY)
-  const isoMatch = t.match(/\b\d{4}[-\/](\d{1,2})[-\/]\d{1,2}\b/);
-  if (isoMatch) {
-    const m = parseInt(isoMatch[1], 10);
-    if (m >= 1 && m <= 12) return m;
-  }
-  const dmyMatch = t.match(/\b\d{1,2}[-\/](\d{1,2})[-\/]\d{4}\b/);
-  if (dmyMatch) {
-    const m = parseInt(dmyMatch[1], 10);
-    if (m >= 1 && m <= 12) return m;
-  }
-
-  // 3. Check Indonesian / English month names in text (matching word boundaries)
-  const monthMap: [RegExp, number][] = [
-    [/\b(januari|january|jan)\b/i, 1],
-    [/\b(februari|february|pebruari|feb)\b/i, 2],
-    [/\b(maret|march|mar)\b/i, 3],
-    [/\b(april|apr)\b/i, 4],
-    [/\b(mei|may)\b/i, 5],
-    [/\b(juni|june|jun)\b/i, 6],
-    [/\b(juli|july|jul)\b/i, 7],
-    [/\b(agustus|august|agust|agst|ags|agu)\b/i, 8],
-    [/\b(september|sept|sep)\b/i, 9],
-    [/\b(oktober|october|okt|oct)\b/i, 10],
-    [/\b(november|nopember|nov)\b/i, 11],
-    [/\b(desember|december|des|dec)\b/i, 12],
-  ];
-
-  for (const [regex, num] of monthMap) {
-    if (regex.test(t)) {
-      return num;
-    }
-  }
-
-  const map: Record<string, number> = {
-    januari: 1,
-    jan: 1,
-    january: 1,
-    februari: 2,
-    feb: 2,
-    pebruari: 2,
-    february: 2,
-    maret: 3,
-    mar: 3,
-    march: 3,
-    april: 4,
-    apr: 4,
-    mei: 5,
-    may: 5,
-    juni: 6,
-    jun: 6,
-    june: 6,
-    juli: 7,
-    jul: 7,
-    july: 7,
-    agustus: 8,
-    agu: 8,
-    ags: 8,
-    agst: 8,
-    agust: 8,
-    august: 8,
-    september: 9,
-    sep: 9,
-    sept: 9,
-    oktober: 10,
-    okt: 10,
-    oct: 10,
-    october: 10,
-    november: 11,
-    nov: 11,
-    nopember: 11,
-    desember: 12,
-    des: 12,
-    dec: 12,
-    december: 12,
-  };
-
-  if (map[t]) return map[t];
-
-  for (const [key, num] of Object.entries(map)) {
-    if (
-      t.startsWith(key + " ") ||
-      t.startsWith(key + " -") ||
-      t.startsWith(key + "-") ||
-      t.startsWith(key + ":") ||
-      t.startsWith(key + "/") ||
-      t.startsWith(key + "(")
-    ) {
-      return num;
-    }
-  }
-
-  for (const [key, num] of Object.entries(map)) {
-    if (
-      t.endsWith(" " + key) ||
-      t.endsWith("-" + key) ||
-      t.endsWith("/" + key)
-    ) {
-      return num;
-    }
-  }
-
-  return null;
-}
-
-// Helper untuk mendeteksi apakah suatu baris merupakan baris summary/total
-export function isSummaryOrTotalRow(r?: RowData | null): boolean {
-  if (!r?.cells) return false;
-  const keys = ["col_0", "col_1", "col_2", "col_3", "col_4"];
-  for (const k of keys) {
-    const val = r.cells[k];
-    if (typeof val === "string") {
-      const lower = val.toLowerCase().trim();
-      if (
-        lower === "total" ||
-        lower === "jumlah" ||
-        lower.startsWith("total ") ||
-        lower.startsWith("jumlah ") ||
-        lower === "rata-rata" ||
-        lower === "rata - rata" ||
-        lower === "average" ||
-        lower.startsWith("rata-rata") ||
-        lower.startsWith("rata - rata")
-      ) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-// Ekstrak nomor bulan (1..12) dari sebuah baris data secara eksplisit (tanpa forward-fill)
-export function getRowExplicitMonth(
-  r?: RowData | null,
-  monthColKey?: string | null,
-): number | null {
-  if (!r) return null;
-
-  // 1. Cek dari kolom bulan jika header terdeteksi
-  if (monthColKey && r.cells?.[monthColKey] !== undefined) {
-    const n = getMonthNumberFromText(String(r.cells[monthColKey]));
-    if (n !== null) return n;
-  }
-
-  // 2. Cek kolom col_0 (standar utama kolom Periode/Tanggal/Bulan di RHPK vertikal)
-  if (r.cells?.col_0 !== undefined) {
-    const val0 = String(r.cells.col_0).trim();
-    if (val0) {
-      const n = getMonthNumberFromText(val0);
-      if (n !== null) return n;
-    }
-  }
-
-  // 3. Cek month_name bawaan dari database/metadata
-  if (r.month_name) {
-    const n = getMonthNumberFromText(r.month_name);
-    if (n !== null) return n;
-  }
-
-  // 4. Cek r.month jika bernilai 1..12
-  if (typeof r.month === "number" && r.month >= 1 && r.month <= 12) {
-    return r.month;
-  }
-
-  // 5. Cek kolom col_1, col_2, col_3 HANYA jika teks pendek (<= 30 karakter)
-  // dan BUKAN teks sampel/produk (menghindari salah deteksi expired date 'ED 16 Januari' sebagai bulan baris)
-  for (const k of ["col_1", "col_2", "col_3"]) {
-    if (r.cells?.[k] !== undefined) {
-      const val = String(r.cells[k]).trim();
-      if (val && val.length <= 30) {
-        if (!/\b(ed|exp|kadaluarsa|expired|sampel|klb|mbg)\b/i.test(val)) {
-          const n = getMonthNumberFromText(val);
-          if (n !== null) return n;
-        }
-      }
-    }
-  }
-
-  return null;
-}
-
-// Helper deteksi kolom editable kumulatif (cth: G2=40+g1 atau formula =G3+13)
-export function isCumulativeCol(col?: ColumnSchema | null): boolean {
-  if (!col) return false;
-  if (col.type === "formula" || col.type === "readonly") return false;
-  // Jika kolom secara eksplisit bertipe editable biasa ('editable'):
-  // Patuhi status editable biasa dan JANGAN masukkan jadi kumulatif kecuali is_cumulative diset true!
-  if (col.type === "editable") {
-    return Boolean((col as any).is_cumulative);
-  }
-  if ((col as any).is_cumulative) return true;
-  if (
-    col.type === "editable_cumulative" ||
-    col.type === "editable_collab_cumulative"
-  )
-    return true;
-  const formula = (col.formula || "").trim();
-  const letter = (col.col_letter || "").trim().toUpperCase();
-  if (formula && letter) {
-    // Format formula cth: =G3+13, =G2+11, =H3+13, =G+13, =G+, =F8, =G8
-    const regex = new RegExp(`^=?\\s*${letter}\\d*(\\+|$)`, "i");
-    if (regex.test(formula)) return true;
-  }
-  const l = (col.label || "").toLowerCase();
-  if (l.includes("%") || l.includes("persen")) return false;
-  if (
-    l.includes("kumulatif") ||
-    l.includes("sd bulan") ||
-    l.includes("s.d. bulan") ||
-    l.includes("s/d bulan") ||
-    l.includes("s.d") ||
-    l.includes("capaian sd") ||
-    l.includes("realisasi sd") ||
-    l.includes("jumlah sd") ||
-    l.includes("total kumulatif") ||
-    l.includes("ditindaklanjuti") ||
-    l.includes("diberikan kepada") ||
-    l.includes("sarana yang diperiksa") ||
-    l.includes("sampel yang diuji") ||
-    l.includes("renlak") ||
-    l.includes("tepat waktu")
-  ) {
-    return true;
-  }
-  return false;
-}
-
-// Helper deteksi apakah tabel menggunakan struktur horizontal (bulan ada di kolom)
-export function isHorizontalTable(columns?: ColumnSchema[] | null): boolean {
-  if (!columns || columns.length === 0) return false;
-  const monthColsCount = columns.filter((c) => {
-    const pHeader = c.parent_header || "";
-    const lbl = c.label || "";
-    return (
-      getMonthNumberFromText(pHeader) !== null ||
-      getMonthNumberFromText(lbl) !== null
-    );
-  }).length;
-  return monthColsCount >= 3;
-}
-
-// Helper kalkulasi kolom kumulatif berjenjang: i = input + (i-1)
-export const recalculateCumulativeRows = (
-  rows: RowData[],
-  columns: ColumnSchema[],
-  isHorizontal: boolean = false,
-): RowData[] => {
-  if (
-    isHorizontal ||
-    isHorizontalTable(columns) ||
-    !rows ||
-    rows.length === 0 ||
-    !columns ||
-    columns.length === 0
-  )
-    return rows;
-
-  const cumCols = columns.filter((c) => isCumulativeCol(c));
-  if (cumCols.length === 0) return rows;
-
-  const newRows = rows.map((r) => ({
-    ...r,
-    cells: { ...r.cells },
-  }));
-
-  cumCols.forEach((col) => {
-    let runningTotal = 0;
-    for (let i = 0; i < newRows.length; i++) {
-      const inputKey = `${col.key}_input`;
-      const contribKey = `${col.key}_contributors`;
-
-      const contribs = newRows[i].cells[contribKey];
-      const hasContrib =
-        contribs &&
-        typeof contribs === "object" &&
-        Object.keys(contribs).length > 0;
-
-      const hasInput =
-        newRows[i].cells[inputKey] !== undefined &&
-        newRows[i].cells[inputKey] !== null &&
-        newRows[i].cells[inputKey] !== "";
-
-      const cellVal = newRows[i].cells[col.key];
-      const isEmpty =
-        cellVal === undefined || cellVal === null || cellVal === "";
-
-      let monthlyDelta = 0;
-      let hasMonthActivity = false;
-
-      if (hasContrib) {
-        let cSum = 0;
-        Object.values(contribs).forEach((c: any) => {
-          cSum += parseFloat(String(c?.value || 0).replace(",", ".")) || 0;
-        });
-        monthlyDelta = cSum;
-        newRows[i].cells[inputKey] = cSum;
-        hasMonthActivity = true;
-      } else if (hasInput) {
-        monthlyDelta =
-          parseFloat(String(newRows[i].cells[inputKey]).replace(",", ".")) || 0;
-        hasMonthActivity = true;
-      } else if (
-        !isEmpty &&
-        !isNaN(Number(String(cellVal).replace(",", ".")))
-      ) {
-        const currentVal = parseFloat(String(cellVal).replace(",", ".")) || 0;
-        if (i === 0) {
-          monthlyDelta = currentVal;
-        } else {
-          monthlyDelta =
-            currentVal >= runningTotal && runningTotal > 0
-              ? currentVal - runningTotal
-              : currentVal;
-        }
-        newRows[i].cells[inputKey] = monthlyDelta;
-        hasMonthActivity = true;
-      }
-
-      if (hasMonthActivity) {
-        runningTotal += monthlyDelta;
-        newRows[i].cells[col.key] = Math.round(runningTotal * 100) / 100;
-      } else if (runningTotal > 0 && !isEmpty) {
-        // Carry-over nilai bulan sebelumnya jika ada baris aktif
-        newRows[i].cells[col.key] = Math.round(runningTotal * 100) / 100;
-      }
-    }
-  });
-
-  return newRows;
-};
-
-// Helper format tampilan nilai sel tabel (persentase otomatis untuk Realisasi Media dan kolom rasio/persen)
-export const formatDisplayCellValue = (val: any, col?: any): string => {
-  if (val === null || val === undefined || val === "") return "-";
-
-  if (col) {
-    // Kolom berformat persen di Excel menyimpan rasio (1 = 100%, 1.05 = 105%)
-    if ((col as any).percent_scale === "ratio" && !isNaN(Number(val))) {
-      const pct = Math.round(Number(val) * 100 * 100) / 100;
-      return `${pct.toFixed(2)}%`;
-    }
-    const lbl = (col.label || "").toLowerCase();
-    const sub = ((col as any).sub_label || "").toLowerCase();
-    const numFormat = ((col as any).number_format || "").toLowerCase();
-
-    // Kolom-kolom realisasi media cetak/online/penyiaran/luar ruang adalah persentase murni
-    const isMediaRealisasi =
-      lbl.includes("realisasi media") || sub.includes("realisasi media");
-
-    const isWeightedScore =
-      lbl.includes("(40%)") ||
-      lbl.includes("(20%)") ||
-      lbl.includes("(10%)") ||
-      lbl.includes("(70%)") ||
-      lbl.includes("pemenuhan target") ||
-      lbl.includes("proporsi media") ||
-      lbl.includes("waktu pelaporan");
-
-    const isExplicitPercentage =
-      !isWeightedScore &&
-      (isMediaRealisasi ||
-        numFormat.includes("%") ||
-        Boolean((col as any).is_percentage));
-
-    if (isExplicitPercentage && !isNaN(Number(val))) {
-      const num = Number(val);
-      // Jika nilai berupa rasio desimal 0 s.d. 1 (misal 1 -> 100.00%, 0.875 -> 87.50%, 0.9 -> 90.00%)
-      if (num <= 1 && num > 0) {
-        const pct = num * 100;
-        const rounded = Math.round(pct * 100) / 100;
-        return `${rounded.toFixed(2)}%`;
-      }
-      // Jika nilai sudah berupa persentase 0..100 (misal 100 -> 100.00%, 87.5 -> 87.50%)
-      if (num > 1) {
-        const rounded = Math.round(num * 100) / 100;
-        return `${rounded.toFixed(2)}%`;
-      }
-      if (num === 0) {
-        return "0.00%";
-      }
-    }
-  }
-
-  return String(val);
-};
-
-// Helper evaluasi rumus per baris data (PRATINJAU di browser; nilai final dihitung ulang server dengan mesin Excel)
-//
-// Aturan (sama dengan backend RhpkFormulaEngine):
-// - Baris memakai rumus ASLINYA sendiri (row.formulas[key]) yang disimpan saat impor file Excel.
-//   Baris tanpa rumus pada kolom itu (mis. baris "Jumlah Responden" / baris Total) tidak dihitung.
-// - Di browser hanya rumus yang merujuk sel pada BARIS YANG SAMA yang dihitung. Rumus yang merujuk baris lain
-//   (=F2+27, =SUM(C5:C11)) atau sheet lain ('11A. % Iklan Obat'!L2) dibiarkan; server menghitungnya saat simpan.
-// - Baris lama tanpa rumus per baris hanya memakai rumus kolom bila rumus itu tidak memuat nomor baris
-//   (rumus buatan aplikasi, mis. "IF(F>0,(E/F)*100,0)").
-// - Tidak ada pembatasan tambahan (bobot / 110%): nilai sel mengikuti rumus Excel apa adanya.
-type RowFormulaContext = {
-  formulas?: Record<string, string> | null;
-  // Sel yang di Excel bernilai galat (#DIV/0! dsb.; disimpan 0 untuk tampilan)
-  errors?: Record<string, string> | null;
-  excel_row?: number | null;
-};
-
-// Angka dari isi sel: "87,5" -> 87.5, "1.234,5" -> 1234.5, "100%" -> 1 (rasio seperti Excel)
-function cellNumber(raw: any): number | null {
-  if (raw === undefined || raw === null || raw === "") return null;
-  if (typeof raw === "number") return isFinite(raw) ? raw : null;
-  if (typeof raw === "boolean") return raw ? 1 : 0;
-  let s = String(raw).trim().replace(/\s/g, "");
-  const pct = s.endsWith("%");
-  if (pct) s = s.slice(0, -1);
-  if (/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) {
-    s = s.replace(/\./g, "").replace(",", ".");
-  } else {
-    s = s.replace(",", ".");
-  }
-  const n = Number(s);
-  if (s === "" || isNaN(n)) return null;
-  return pct ? n / 100 : n;
-}
-
-const A1_REF_RE = /\$?\b([A-Za-z]{1,3})\$?(\d+)\b/g;
-
-function resolveRowFormula(
-  col: ColumnSchema,
-  row?: RowFormulaContext | null,
-): string | null {
-  const hasRowFormulas =
-    !!row && !!row.formulas && typeof row.formulas === "object";
-  if (hasRowFormulas) {
-    const f = (row!.formulas as Record<string, string>)[col.key];
-    if (!f || typeof f !== "string") return null;
-    if (f.includes("!")) return null; // rujukan sheet lain -> dihitung server
-    const rowNum = Number(row!.excel_row || 0);
-    let sameRow = true;
-    f.replace(A1_REF_RE, (m, _l, n) => {
-      if (!rowNum || Number(n) !== rowNum) sameRow = false;
-      return m;
-    });
-    if (!sameRow || /[A-Za-z]{1,3}\$?\d+\s*:\s*\$?[A-Za-z]{1,3}\$?\d+/.test(f))
-      return null; // rujukan baris lain / rentang -> dihitung server
-    return f.replace(A1_REF_RE, (_m, l) => String(l).toUpperCase());
-  }
-  const tpl = (col.formula || "").trim();
-  if (!tpl || tpl.includes("!")) return null;
-  if (/\$?\b[A-Za-z]{1,3}\$?\d+\b/.test(tpl.replace(/^=/, ""))) return null;
-  return tpl;
-}
-
-export const recalculateRowFormulas = (
-  cells: Record<string, any>,
-  columns: ColumnSchema[],
-  row?: RowFormulaContext | null,
-): Record<string, any> => {
-  const updatedCells = { ...cells };
-
-  const excelMathEnv = {
-    sum: (...args: any[]) =>
-      args
-        .flat(Infinity)
-        .reduce((a: number, b: number) => Number(a) + (Number(b) || 0), 0),
-    average: (...args: any[]) => {
-      const flat = args
-        .flat(Infinity)
-        .filter((x: any) => typeof x === "number" && !isNaN(x));
-      return flat.length
-        ? flat.reduce((a: number, b: number) => a + b, 0) / flat.length
-        : 0;
-    },
-    min: Math.min,
-    max: Math.max,
-    abs: Math.abs,
-    round: (v: number, d: number = 0) => {
-      const p = Math.pow(10, d || 0);
-      return Math.round(v * p) / p;
-    },
-    roundup: (v: number, d: number = 0) => {
-      const p = Math.pow(10, d || 0);
-      const scaled = Math.round(v * p * 1e6) / 1e6;
-      return (v >= 0 ? Math.ceil(scaled) : Math.floor(scaled)) / p;
-    },
-    if: (cond: any, a: any, b: any) => (Boolean(cond) ? a : b),
-    na: () => NaN,
-    iserror: (val: any) =>
-      typeof val !== "number" || isNaN(val) || !isFinite(val),
-    iferror: (val: any, fallback: any) =>
-      typeof val === "number" && !isNaN(val) && isFinite(val) ? val : fallback,
-  };
-
-  columns.forEach((col) => {
-    if (col.type !== "formula" || (col as any).is_cumulative) return;
-    const source = resolveRowFormula(col, row);
-    if (!source) return;
-
-    let expr = source.trim();
-    if (expr.startsWith("=")) expr = expr.slice(1).trim();
-    expr = expr.replace(/\$/g, "");
-
-    // Excel memakai '=' / '<>' untuk perbandingan dan '&' untuk teks: di luar cakupan pratinjau
-    if (/&|"/.test(expr)) return;
-    expr = expr.replace(/<>/g, "!=").replace(/([^<>!=])=([^=])/g, "$1==$2");
-
-    // 1. Persen: 20% -> (20/100), (A/B)% -> ((A/B)/100)
-    expr = expr.replace(/(\d+(?:\.\d+)?|\))\s*%/g, "$1/100");
-
-    // 2. Token huruf kolom & key kolom -> nilai sel baris ini
-    //    (sel yang di Excel bernilai galat -> NaN, agar ISERROR/IFERROR berperilaku seperti Excel)
-    const tokenMap: Record<string, string> = {};
-    const errs: Record<string, string> = (row && row.errors) || {};
-    columns.forEach((c) => {
-      const letter = (c.col_letter || "").toUpperCase().trim();
-      const n = cellNumber(updatedCells[c.key]);
-      const isErr = Boolean(errs[c.key]) && (n === null || n === 0);
-      const token = isErr ? "NaN" : String(n ?? 0);
-      if (letter) tokenMap[letter] = token;
-      tokenMap[c.key] = token;
-    });
-    const tokens = Object.keys(tokenMap).sort((a, b) => b.length - a.length);
-    for (const tok of tokens) {
-      const regex = new RegExp(`\\b${tok}\\b(?!\\s*\\()`, "gi");
-      expr = expr.replace(regex, `(${tokenMap[tok]})`);
-    }
-
-    // Pembagian dengan nol = galat #DIV/0! seperti Excel (termasuk di dalam kondisi IF)
-    const divZeroRe = /\/\s*\(\s*-?0(\.0+)?\s*\)/g;
-    const hasDivZero = divZeroRe.test(expr);
-    expr = expr.replace(divZeroRe, "/(NaN)");
-    const handlesErrors = /iferror|iserror/i.test(source);
-
-    // 3. Fungsi Excel umum
-    expr = expr
-      .replace(/\biferror\s*\(/gi, "excelMathEnv.iferror(")
-      .replace(/\biserror\s*\(/gi, "excelMathEnv.iserror(")
-      .replace(/\bif\s*\(/gi, "excelMathEnv.if(")
-      .replace(/\bna\s*\(\s*\)/gi, "excelMathEnv.na()")
-      .replace(/\bsum\s*\(/gi, "excelMathEnv.sum(")
-      .replace(/\baveragea?\s*\(/gi, "excelMathEnv.average(")
-      .replace(/\bmin\s*\(/gi, "excelMathEnv.min(")
-      .replace(/\bmax\s*\(/gi, "excelMathEnv.max(")
-      .replace(/\babs\s*\(/gi, "excelMathEnv.abs(")
-      .replace(/\broundup\s*\(/gi, "excelMathEnv.roundup(")
-      .replace(/\bround\s*\(/gi, "excelMathEnv.round(");
-
-    // 4. Hanya ekspresi aritmetika aman yang dievaluasi
-    const sanitized = expr.replace(
-      /excelMathEnv\.(iferror|iserror|if|na|sum|average|min|max|abs|roundup|round)/g,
-      "",
-    );
-    if (!/^[\d\+\-\*/\(\)\,\.\s><=!]+$/.test(sanitized.replace(/NaN/g, "0")))
-      return;
-    if (hasDivZero && !handlesErrors) {
-      updatedCells[col.key] = 0; // #DIV/0! -> 0 (sama dengan server)
-      return;
-    }
-    try {
-      const res = Function(
-        "excelMathEnv",
-        `"use strict"; return (${expr})`,
-      )(excelMathEnv);
-      if (typeof res === "number" && !isNaN(res) && isFinite(res)) {
-        const colLbl = `${col.label || ""} ${(col as any).sub_label || ""}`.toLowerCase();
-        const isIksk16RoundUp =
-          res > 0 &&
-          (colLbl.includes("sarprod fortif") ||
-            colLbl.includes("pangan fortifikasi"));
-        updatedCells[col.key] = isIksk16RoundUp
-          ? Math.ceil(Math.round(res * 10 * 1e6) / 1e6) / 10
-          : res > 0 && res <= 1
-            ? Math.round(res * 10000) / 10000
-            : Math.round(res * 100) / 100;
-      } else if (typeof res === "number") {
-        updatedCells[col.key] = 0; // #DIV/0! -> 0 (sama dengan server)
-      }
-    } catch {
-      // Ekspresi tidak dapat dihitung di browser: nilai dibiarkan, server menghitung saat simpan
-    }
-  });
-
-  return updatedCells;
-};
-
-interface TestLocalTableKatimProps {
-  isKabalaiReadOnly?: boolean;
-  rekapBalaiOnly?: boolean;
-  headerRightSlot?: React.ReactNode;
-}
 
 export default function TestLocalTableKatim({
   isKabalaiReadOnly = false,
@@ -1071,10 +178,10 @@ export default function TestLocalTableKatim({
   );
   const isKabalai = Boolean(
     isKabalaiReadOnly ||
-      isRekapBalaiView ||
-      user?.employee?.group_jabatan_id === 1 ||
-      pathname?.startsWith("/siproval/kabalai") ||
-      pathname?.startsWith("/siproval/rhpk/entry-data"),
+    isRekapBalaiView ||
+    user?.employee?.group_jabatan_id === 1 ||
+    pathname?.startsWith("/siproval/kabalai") ||
+    pathname?.startsWith("/siproval/rhpk/entry-data"),
   );
   // Lembar RHPK lihat-saja untuk Tata Usaha (/siproval/tu/rhpk)
   const isTuView = Boolean(pathname?.startsWith("/siproval/tu/rhpk"));
@@ -1112,6 +219,10 @@ export default function TestLocalTableKatim({
   const activeSpreadsheet = useMemo(() => {
     return spreadsheets.find((s) => s.id === selectedSpId) || null;
   }, [spreadsheets, selectedSpId]);
+
+  const isIksk1DetilPengujian = useMemo(() => {
+    return isIksk1DetilPengujianTab(activeTab?.title, activeSpreadsheet?.name);
+  }, [activeTab?.title, activeSpreadsheet?.name]);
   const [currentMonth, setCurrentMonth] = useState<number>(
     new Date().getMonth() + 1,
   );
@@ -1141,19 +252,6 @@ export default function TestLocalTableKatim({
   >(null);
 
   // Modal Kolaborasi Angka Multi-Katim (Point 6)
-  interface CollabNumModalState {
-    isOpen: boolean;
-    rowKey: number;
-    rowIndex: number;
-    monthName: string;
-    col: ColumnSchema;
-    contributors: Record<
-      string,
-      { user_id: string; author: string; value: number; updated_at?: string }
-    >;
-    myValue: string;
-    canEdit: boolean;
-  }
   const [collabNumModal, setCollabNumModal] =
     useState<CollabNumModalState | null>(null);
 
@@ -1258,7 +356,7 @@ export default function TestLocalTableKatim({
       icon: "solar:danger-triangle-bold",
       title: "Perubahan Belum Disimpan",
       message: `Anda memiliki ${pending} perubahan yang belum disimpan. Jika Anda berpindah ke ${targetLabel}, perubahan tersebut akan HILANG.`,
-      note: "Klik \"Batal\" lalu tekan tombol \"Simpan Perubahan\" jika ingin menyimpannya terlebih dahulu.",
+      note: 'Klik "Batal" lalu tekan tombol "Simpan Perubahan" jika ingin menyimpannya terlebih dahulu.',
       confirmLabel: "Ya, Buang Perubahan",
       onConfirm: action,
     });
@@ -1354,14 +452,16 @@ export default function TestLocalTableKatim({
                 : null;
       const qTab = effectiveTabId ? `&tab_id=${effectiveTabId}` : "";
 
-      const qKabalai = isRekapBalaiView
-        ? "&rekap_balai_only=1&read_only=1"
-        : isKabalai
-          ? "&is_kabalai=1"
-          : "";
-      const res = await api.get(
-        `${baseUrl}/api/test-local-table${authQuery}${qYear}${qIksk}${qSp}${qTab}${qKabalai}`,
-      );
+      const res = await rhpkApiService.fetchTableData({
+        year: targetYear,
+        ikskId: effectiveIkskId,
+        spreadsheetId: effectiveSpId,
+        tabId: effectiveTabId,
+        isRekapBalaiView,
+        isKabalai,
+        userId: user?.id,
+        baseUrl,
+      });
       const d = res.data?.data || {};
 
       if (d.is_pic !== undefined) {
@@ -1407,11 +507,20 @@ export default function TestLocalTableKatim({
           ...r,
           cells: r.cells || {},
         }));
-        rows = recalculateCumulativeRows(rows, cols);
-        rows = rows.map((r: any) => ({
-          ...r,
-          cells: recalculateRowFormulas(r.cells || {}, cols, r),
-        }));
+        if (
+          isIksk1DetilPengujianTab(
+            d.active_tab?.title,
+            d.active_spreadsheet?.name,
+          )
+        ) {
+          rows = recalculateIksk1DetilPengujianRows(rows, cols);
+        } else {
+          rows = recalculateCumulativeRows(rows, cols);
+          rows = rows.map((r: any) => ({
+            ...r,
+            cells: recalculateRowFormulas(r.cells || {}, cols, r),
+          }));
+        }
         setActiveTab({ ...d.active_tab, rows_data: rows });
       } else {
         setSelectedTabId(null);
@@ -1458,7 +567,8 @@ export default function TestLocalTableKatim({
   ]);
 
   const handleToggleCurrentMonthLock = () => {
-    const monthName = STANDARD_MONTH_NAMES[currentMonth - 1] || `Bulan ${currentMonth}`;
+    const monthName =
+      STANDARD_MONTH_NAMES[currentMonth - 1] || `Bulan ${currentMonth}`;
     const willUnlock = isCurrentMonthLocked;
     setConfirmDialog({
       tone: willUnlock ? "emerald" : "amber",
@@ -1482,17 +592,16 @@ export default function TestLocalTableKatim({
     setErrorMsg("");
     try {
       const newUnlocked = isCurrentMonthLocked;
-      const lockRes = await api.post(
-        `${baseUrl}/api/test-local-table/toggle-month-lock${authQuery}`,
-        {
-          month: currentMonth,
-          year: selectedYear,
-          is_unlocked: newUnlocked,
-          note: newUnlocked
-            ? `Bulan ${currentMonth} dibuka oleh PIC/Admin`
-            : `Bulan ${currentMonth} dikunci oleh PIC/Admin`,
-        },
-      );
+      const lockRes = await rhpkApiService.toggleMonthLock({
+        month: currentMonth,
+        year: selectedYear,
+        isUnlocked: newUnlocked,
+        note: newUnlocked
+          ? `Bulan ${currentMonth} dibuka oleh PIC/Admin`
+          : `Bulan ${currentMonth} dikunci oleh PIC/Admin`,
+        userId: user?.id,
+        baseUrl,
+      });
       setIsCurrentMonthLocked(!newUnlocked);
       await fetchData();
       setSuccessMsg(
@@ -1500,9 +609,7 @@ export default function TestLocalTableKatim({
       );
     } catch (err: unknown) {
       console.error("Gagal mengubah status kunci bulan", err);
-      setErrorMsg(
-        getApiErrorMessage(err, "Gagal mengubah status kunci bulan"),
-      );
+      setErrorMsg(getApiErrorMessage(err, "Gagal mengubah status kunci bulan"));
     } finally {
       setIsTogglingLock(false);
     }
@@ -1682,6 +789,41 @@ export default function TestLocalTableKatim({
     // Update state activeTab lokal
     setActiveTab((prev) => {
       if (!prev) return prev;
+
+      if (isIksk1DetilPengujian && /^col_(?:[3-9]|[1-4]\d|50)$/.test(colKey)) {
+        let newRows = prev.rows_data.map((r, idx) => {
+          const rKey =
+            r.month !== undefined && r.month !== null && r.month !== 0
+              ? r.month
+              : r.row_index !== undefined
+                ? r.row_index
+                : idx;
+          if (
+            rKey === rowId ||
+            (rowIdx !== undefined && (r.row_index === rowIdx || idx === rowIdx))
+          ) {
+            return {
+              ...r,
+              cells: {
+                ...r.cells,
+                [`${colKey}_input`]: parsedVal,
+              },
+            };
+          }
+          return r;
+        });
+
+        newRows = recalculateIksk1DetilPengujianRows(
+          newRows,
+          effectiveColumnsSchema,
+        );
+
+        return {
+          ...prev,
+          rows_data: newRows,
+        };
+      }
+
       let newRows = prev.rows_data.map((r, idx) => {
         const rKey =
           r.month !== undefined && r.month !== null && r.month !== 0
@@ -2367,9 +1509,11 @@ export default function TestLocalTableKatim({
         };
       });
 
-      const res = await api.post(
-        `${baseUrl}/api/test-local-table/tab/${activeTab.id}/update${authQuery}`,
+      const res = await rhpkApiService.updateTab(
+        activeTab.id,
         { rows_data: finalRows },
+        user?.id,
+        baseUrl,
       );
 
       if (res.data?.data?.rows_data) {
@@ -2437,6 +1581,26 @@ export default function TestLocalTableKatim({
     const currentRows = activeTab.rows_data;
     const targetMonthNum = getMonthNumberFromText(targetMonthName) || 0;
 
+    // Validasi kunci periode: jika bulan terkunci dan bukan PIC, tolak penambahan baris
+    if (
+      !isPicUser &&
+      targetMonthNum >= 1 &&
+      targetMonthNum <= 12 &&
+      Boolean(monthLocksMap[targetMonthNum])
+    ) {
+      setConfirmDialog({
+        tone: "rose",
+        icon: "solar:lock-bold",
+        title: "Periode Terkunci",
+        message: `Pengisian dan penambahan data untuk periode ${targetMonthName} sedang dikunci oleh Administrator / Tim Kerja TU.`,
+        note: "Anda tidak dapat menambah baris baru pada bulan yang telah dikunci. Hubungi Tim Kerja TU jika periode ini perlu dibuka kembali.",
+        confirmLabel: "Mengerti",
+        hideCancel: true,
+        onConfirm: () => {},
+      });
+      return;
+    }
+
     // Cari kolom nomor urut jika ada
     const noCol = effectiveColumnsSchema.find(
       (c) =>
@@ -2459,23 +1623,39 @@ export default function TestLocalTableKatim({
 
     if (noCol) {
       newCells[noCol.key] = nextNo;
-    } else {
-      newCells.col_0 = nextNo;
     }
 
     if (monthColKey) {
       newCells[monthColKey] = targetMonthName;
+    } else if (!noCol) {
+      newCells.col_0 = targetMonthName;
     } else {
       newCells.col_2 = targetMonthName;
     }
+
+    // Default UPT untuk tabel vertikal jika ada kolom UPT/Balai
+    const uptCol = effectiveColumnsSchema.find((c) => {
+      const l = (c.label || "").toLowerCase();
+      return l === "upt" || l.includes("balai");
+    });
+    if (uptCol && !newCells[uptCol.key]) {
+      newCells[uptCol.key] = "BBPOM di Mataram";
+    }
+
+    const isTargetLocked =
+      !isPicUser &&
+      targetMonthNum >= 1 &&
+      targetMonthNum <= 12 &&
+      Boolean(monthLocksMap[targetMonthNum]);
 
     const newRow: RowData = {
       row_index: 0,
       month: targetMonthNum,
       month_name: targetMonthName,
-      is_locked: false,
-      is_current: true,
-      can_edit_row: true,
+      is_month_row: true,
+      is_locked: isTargetLocked,
+      is_current: targetMonthNum === currentMonth,
+      can_edit_row: !isTargetLocked,
       is_new_client_row: true,
       cells: newCells,
     };
@@ -2494,7 +1674,7 @@ export default function TestLocalTableKatim({
       };
     });
 
-    const updateColKey = monthColKey || "col_2";
+    const updateColKey = monthColKey || (!noCol ? "col_0" : "col_2");
     const updateVal = targetMonthName;
 
     // Baris baru disisipkan di indeks 0 sehingga seluruh baris lain bergeser +1:
@@ -2503,7 +1683,8 @@ export default function TestLocalTableKatim({
       const shifted: typeof prev = {};
       Object.values(prev).forEach((up) => {
         const ri = up.row_index !== undefined ? up.row_index + 1 : undefined;
-        const k = ri !== undefined ? `row_${ri}_${up.key}` : `m_${up.month}_${up.key}`;
+        const k =
+          ri !== undefined ? `row_${ri}_${up.key}` : `m_${up.month}_${up.key}`;
         shifted[k] = { ...up, row_index: ri };
       });
       shifted[`row_0_${updateColKey}`] = {
@@ -2580,12 +1761,14 @@ export default function TestLocalTableKatim({
     setErrorMsg("");
 
     try {
-      const res = await api.post(
-        `${baseUrl}/api/test-local-table/tab/${activeTab.id}/update${authQuery}`,
+      const res = await rhpkApiService.updateTab(
+        activeTab.id,
         {
           rows_data: updatedRows,
           base_row_count: getBaseRowCount(activeTab.rows_data),
         },
+        user?.id,
+        baseUrl,
       );
       setSuccessMsg(`Baris "${rowLabel}" berhasil dihapus dari tabel.`);
       if (res.data?.data?.rows_data) {
@@ -2633,7 +1816,8 @@ export default function TestLocalTableKatim({
     const details = updatesList
       .slice(0, 6)
       .map(
-        (up) => `${rowLabel(up)} • ${colLabel(up.key)} → ${formatVal(up.value)}`,
+        (up) =>
+          `${rowLabel(up)} • ${colLabel(up.key)} → ${formatVal(up.value)}`,
       );
     if (updatesList.length > 6) {
       details.push(`…dan ${updatesList.length - 6} perubahan lainnya`);
@@ -2767,13 +1951,15 @@ export default function TestLocalTableKatim({
             setSaving(true);
             setErrorMsg("");
             try {
-              const res = await api.post(
-                `${baseUrl}/api/test-local-table/tab/${activeTab.id}/update${authQuery}`,
+              const res = await rhpkApiService.updateTab(
+                activeTab.id,
                 {
                   updates: updatesList,
                   rows_data: activeTab.rows_data,
                   base_row_count: getBaseRowCount(activeTab.rows_data),
                 },
+                user?.id,
+                baseUrl,
               );
               setDirtyUpdates({});
               if (res.data?.data?.rows_data) {
@@ -2832,13 +2018,15 @@ export default function TestLocalTableKatim({
     setErrorMsg("");
     setSuccessMsg("");
     try {
-      const res = await api.post(
-        `${baseUrl}/api/test-local-table/tab/${activeTab.id}/update${authQuery}`,
+      const res = await rhpkApiService.updateTab(
+        activeTab.id,
         {
-                  updates: updatesList,
-                  rows_data: activeTab.rows_data,
-                  base_row_count: getBaseRowCount(activeTab.rows_data),
-                },
+          updates: updatesList,
+          rows_data: activeTab.rows_data,
+          base_row_count: getBaseRowCount(activeTab.rows_data),
+        },
+        user?.id,
+        baseUrl,
       );
       setSuccessMsg(res.data?.message || "Data berhasil disimpan.");
       setDirtyUpdates({});
@@ -2870,7 +2058,12 @@ export default function TestLocalTableKatim({
       setErrorMsg("Pilih dokumen spreadsheet terlebih dahulu.");
       return;
     }
-    const exportUrl = `${baseUrl}/api/test-local-table/spreadsheet/${activeSpreadsheet.id}/export?mode=${mode}${authQuery}`;
+    const exportUrl = rhpkApiService.getSpreadsheetExportUrl(
+      activeSpreadsheet.id,
+      mode,
+      user?.id,
+      baseUrl,
+    );
     window.open(exportUrl, "_blank");
   };
 
@@ -2972,8 +2165,8 @@ export default function TestLocalTableKatim({
     });
 
     try {
-      const res = await api.post(
-        `${baseUrl}/api/test-local-table/tab/${activeTab.id}/update${authQuery}`,
+      const res = await rhpkApiService.updateTab(
+        activeTab.id,
         {
           updates: [
             {
@@ -2984,6 +2177,8 @@ export default function TestLocalTableKatim({
             },
           ],
         },
+        user?.id,
+        baseUrl,
       );
       if (res.data?.data?.rows_data) {
         setActiveTab((prev) =>
@@ -3097,8 +2292,8 @@ export default function TestLocalTableKatim({
         : collabModal.rowKey;
 
     try {
-      const res = await api.post(
-        `${baseUrl}/api/test-local-table/tab/${activeTab.id}/update${authQuery}`,
+      const res = await rhpkApiService.updateTab(
+        activeTab.id,
         {
           updates: [
             {
@@ -3109,6 +2304,8 @@ export default function TestLocalTableKatim({
             },
           ],
         },
+        user?.id,
+        baseUrl,
       );
       setSuccessMsg(
         res.data?.message || "Catatan kendala/RTL berhasil disimpan!",
@@ -3180,14 +2377,13 @@ export default function TestLocalTableKatim({
       }
       setCheckingUpload(true);
       try {
-        const formData = new FormData();
-        formData.append("file", uploadFile);
-        formData.append("dry_run", "1");
-        const res = await api.post(
-          `${baseUrl}/api/test-local-table/tab/${activeTab.id}/import-excel${authQuery}`,
-          formData,
-          { headers: { "Content-Type": "multipart/form-data" } },
-        );
+        const res = await rhpkApiService.importTabExcel({
+          tabId: activeTab.id,
+          file: uploadFile,
+          dryRun: true,
+          userId: user?.id,
+          baseUrl,
+        });
         const summary = res.data?.data?.summary || {};
         const updated: string[] = summary.updated_months || [];
         const added: string[] = summary.added_months || [];
@@ -3228,7 +2424,10 @@ export default function TestLocalTableKatim({
           );
         }
 
-        const warnings: string[] = [...(summary.warnings || []), ...unsavedWarning];
+        const warnings: string[] = [
+          ...(summary.warnings || []),
+          ...unsavedWarning,
+        ];
         if (locked.length > 0) {
           warnings.push(
             `${locked.length} bulan dilewati karena DIKUNCI: ${locked.join(", ")}`,
@@ -3260,8 +2459,7 @@ export default function TestLocalTableKatim({
 
     // Lingkup Dokumen Penuh
     const spName =
-      spreadsheets.find((s) => s.id === selectedSpId)?.name ||
-      "dokumen ini";
+      spreadsheets.find((s) => s.id === selectedSpId)?.name || "dokumen ini";
     setConfirmDialog({
       tone: "rose",
       icon: "solar:folder-with-files-bold",
@@ -3293,30 +2491,33 @@ export default function TestLocalTableKatim({
     setErrorMsg("");
     setSuccessMsg("");
 
-    const formData = new FormData();
-    formData.append("file", uploadFile);
-
     try {
       if (uploadMode === "tab" && activeTab) {
         // Import khusus ke tab ini (UPDATE per bulan, bukan menambah baris)
-        const res = await api.post(
-          `${baseUrl}/api/test-local-table/tab/${activeTab.id}/import-excel${authQuery}`,
-          formData,
-          { headers: { "Content-Type": "multipart/form-data" } },
-        );
+        const res = await rhpkApiService.importTabExcel({
+          tabId: activeTab.id,
+          file: uploadFile,
+          userId: user?.id,
+          baseUrl,
+        });
         setSuccessMsg(
           res.data?.message || "Data tab berhasil diperbarui dari file Excel!",
         );
         // Muat ulang tab dari server agar rumus & data kumulatif konsisten
-        await fetchData(selectedYear, selectedIkskId, selectedSpId, activeTab.id);
+        await fetchData(
+          selectedYear,
+          selectedIkskId,
+          selectedSpId,
+          activeTab.id,
+        );
       } else {
         // Upload/Perbarui seluruh dokumen
-        formData.append("year", String(selectedYear));
-        const res = await api.post(
-          `${baseUrl}/api/test-local-table/upload${authQuery}`,
-          formData,
-          { headers: { "Content-Type": "multipart/form-data" } },
-        );
+        const res = await rhpkApiService.uploadExcel({
+          file: uploadFile,
+          year: selectedYear,
+          userId: user?.id,
+          baseUrl,
+        });
         setSuccessMsg(
           res.data?.message || "Dokumen Excel berhasil diunggah dan terupdate!",
         );
@@ -3359,16 +2560,26 @@ export default function TestLocalTableKatim({
           return true;
         })
         .map((c) => {
+          // Suatu kolom adalah identity column (tanpa parent header grup/bulan) HANYA jika:
+          // 1. Kolom tidak memiliki parent_header eksplisit di database
+          // 2. Berupa col_0 (kolom pertama) atau berlabel "kode unit", "nama unit", "komoditi", "bulan", "periode"
+          // JANGAN memaksakan col_1 (B) atau col_2 (C) menjadi identity column jika ber-parent JANUARI atau memuat ' - '
+          const labelTrimmed = (c.label || "").trim();
+          const labelLower = labelTrimmed.toLowerCase();
+          const rawParentHeader = (c as any).parent_header;
+
           const isIdentityCol =
-            c.key === "col_0" ||
-            c.key === "col_1" ||
-            c.key === "col_2" ||
-            c.col_letter === "A" ||
-            c.col_letter === "B" ||
-            c.col_letter === "C" ||
-            (c.label || "").toLowerCase().startsWith("kode unit") ||
-            (c.label || "").toLowerCase().startsWith("nama unit") ||
-            (c.label || "").toLowerCase().startsWith("bulan");
+            !rawParentHeader &&
+            (c.key === "col_0" ||
+              labelLower === "komoditi" ||
+              labelLower === "bulan" ||
+              labelLower === "periode" ||
+              labelLower.startsWith("kode unit") ||
+              labelLower.startsWith("nama unit") ||
+              ((c.key === "col_1" || c.col_letter === "B") &&
+                (labelLower === "upt" ||
+                  labelLower.includes("nama balai") ||
+                  labelLower.includes("sarana"))));
 
           // Ekstrak parentHeader dan subLabel jika ada " - " di luar kurung (misal: "Grup - Sub")
           // Cegah pemotongan palsu pada rentang waktu di dalam kurung seperti "(Jan - Feb)"
@@ -3398,11 +2609,11 @@ export default function TestLocalTableKatim({
 
           const parentHeader = isIdentityCol
             ? null
-            : ((c as any).parent_header || parsedParent);
+            : (c as any).parent_header || parsedParent;
 
           const subLabel = isIdentityCol
             ? c.label
-            : ((c as any).sub_label || parsedSub);
+            : (c as any).sub_label || parsedSub;
 
           const colWithParent: ColumnSchema = {
             ...c,
@@ -3446,11 +2657,6 @@ export default function TestLocalTableKatim({
       Boolean(c.parent_header),
     );
     if (!hasGroups) return null;
-
-    type HeaderGroup = {
-      parent: string | null;
-      cols: ColumnSchema[];
-    };
 
     const groups: HeaderGroup[] = [];
     let currentGroup: HeaderGroup | null = null;
@@ -3685,7 +2891,9 @@ export default function TestLocalTableKatim({
 
   // Ekstrak daftar bulan yang ada di tab saat ini beserta jumlah barisnya
   const availableMonths = useMemo(() => {
-    const rawCount = (activeTab?.rows_data || []).filter((r) => !(r as any).is_hidden && !(r as any).hidden).length;
+    const rawCount = (activeTab?.rows_data || []).filter(
+      (r) => !(r as any).is_hidden && !(r as any).hidden,
+    ).length;
     if (rawCount === 0) return [];
 
     const standardOrder = [
@@ -3779,9 +2987,15 @@ export default function TestLocalTableKatim({
   // Filter baris berdasarkan Bulan, IKSK (mode Rekap Balai), dan Pencarian
   const filteredRows = useMemo(() => {
     if (!activeTab?.rows_data) return [];
-    let rows = activeTab.rows_data.filter((r) => !(r as any).is_hidden && !(r as any).hidden);
+    let rows = activeTab.rows_data.filter(
+      (r) => !(r as any).is_hidden && !(r as any).hidden,
+    );
 
-    if (isRekapBalaiView && isCapaianRapkTab && rekapBalaiIkskFilter !== "all") {
+    if (
+      isRekapBalaiView &&
+      isCapaianRapkTab &&
+      rekapBalaiIkskFilter !== "all"
+    ) {
       rows = rows.filter((r) => {
         const rowIkskNum = getRowIkskNum(r);
         if (rekapBalaiIkskFilter === "mine") {
@@ -3839,56 +3053,6 @@ export default function TestLocalTableKatim({
     assignedIkskIds,
   ]);
 
-  // Kolom yang ditampilkan saat ini (jika tabel horizontal difilter per bulan, tampilkan kolom tetap + kolom bulan terpilih)
-  const displayedColumnsSchema = useMemo<ColumnSchema[]>(() => {
-    let schema = effectiveColumnsSchema;
-
-    // Filter fokus IKSK jika dokumen multi-indikator
-    if (isMultiIndicatorSheet && focusSelectedIksk && matchedIndicatorParent) {
-      schema = schema.filter((col) => {
-        const isIdentity =
-          col.key === "col_0" ||
-          col.key === "col_1" ||
-          col.key === "col_2" ||
-          (!col.parent_header &&
-            (col.col_letter === "A" ||
-              col.col_letter === "B" ||
-              col.col_letter === "C"));
-        const belongsToIndicator = col.parent_header === matchedIndicatorParent;
-        return isIdentity || belongsToIndicator;
-      });
-    }
-
-    if (!isHorizontalMonthTable || selectedMonthFilter === "all") {
-      return schema;
-    }
-    const targetMonthNum = getMonthNumberFromText(selectedMonthFilter);
-    if (!targetMonthNum) return schema;
-
-    return schema.filter((col) => {
-      const isFixedLeft =
-        col.key === "col_0" ||
-        col.key === "col_1" ||
-        col.key === "col_2" ||
-        col.key === "col_3" ||
-        col.key === "col_4" ||
-        col.key === "col_5" ||
-        (!col.parent_header && getMonthNumberFromText(col.label) === null);
-      const colMonthNum =
-        getMonthNumberFromText(col.parent_header) ||
-        getMonthNumberFromText((col as any).sub_parent) ||
-        getMonthNumberFromText(col.label);
-      return isFixedLeft || colMonthNum === targetMonthNum;
-    });
-  }, [
-    effectiveColumnsSchema,
-    isHorizontalMonthTable,
-    selectedMonthFilter,
-    isMultiIndicatorSheet,
-    focusSelectedIksk,
-    matchedIndicatorParent,
-  ]);
-
   // Header groups yang ditampilkan saat ini
   const displayedHeaderGroups = useMemo(() => {
     if (!headerGroups) return null;
@@ -3898,7 +3062,7 @@ export default function TestLocalTableKatim({
     if (isMultiIndicatorSheet && focusSelectedIksk && matchedIndicatorParent) {
       groups = groups.filter((grp) => {
         if (!grp.parent) {
-          // Hanya loloskan grup kolom identity yang ada di displayedColumnsSchema
+          // Hanya loloskan grup kolom identity yang ada di effectiveColumnsSchema
           return grp.cols.some(
             (c) =>
               c.key === "col_0" ||
@@ -3945,6 +3109,59 @@ export default function TestLocalTableKatim({
       .filter((grp): grp is NonNullable<typeof grp> => grp !== null);
   }, [
     headerGroups,
+    isHorizontalMonthTable,
+    selectedMonthFilter,
+    isMultiIndicatorSheet,
+    focusSelectedIksk,
+    matchedIndicatorParent,
+  ]);
+
+  // Kolom yang ditampilkan saat ini (sinkron 100% dengan displayedHeaderGroups jika menggunakan grup header)
+  const displayedColumnsSchema = useMemo<ColumnSchema[]>(() => {
+    // Jika tabel memiliki grup header bertingkat, body sel HARUS 100% presisi mengikuti kolom header yang aktif
+    if (displayedHeaderGroups && displayedHeaderGroups.length > 0) {
+      return displayedHeaderGroups.flatMap((grp) => grp.cols);
+    }
+
+    let schema = effectiveColumnsSchema;
+
+    // Filter fokus IKSK jika dokumen multi-indikator
+    if (isMultiIndicatorSheet && focusSelectedIksk && matchedIndicatorParent) {
+      schema = schema.filter((col) => {
+        const isIdentity =
+          col.key === "col_0" ||
+          col.key === "col_1" ||
+          col.key === "col_2" ||
+          (!col.parent_header &&
+            (col.col_letter === "A" ||
+              col.col_letter === "B" ||
+              col.col_letter === "C"));
+        const belongsToIndicator = col.parent_header === matchedIndicatorParent;
+        return isIdentity || belongsToIndicator;
+      });
+    }
+
+    if (!isHorizontalMonthTable || selectedMonthFilter === "all") {
+      return schema;
+    }
+    const targetMonthNum = getMonthNumberFromText(selectedMonthFilter);
+    if (!targetMonthNum) return schema;
+
+    return schema.filter((col) => {
+      const isFixedLeft =
+        col.key === "col_0" ||
+        col.key === "col_1" ||
+        col.key === "col_2" ||
+        (!col.parent_header && getMonthNumberFromText(col.label) === null);
+      const colMonthNum =
+        getMonthNumberFromText(col.parent_header) ||
+        getMonthNumberFromText((col as any).sub_parent) ||
+        getMonthNumberFromText(col.label);
+      return isFixedLeft || colMonthNum === targetMonthNum;
+    });
+  }, [
+    displayedHeaderGroups,
+    effectiveColumnsSchema,
     isHorizontalMonthTable,
     selectedMonthFilter,
     isMultiIndicatorSheet,
@@ -4115,533 +3332,60 @@ export default function TestLocalTableKatim({
   return (
     <div className="w-full min-w-0 space-y-5">
       {/* Banner Katim / Kabalai */}
-      <section className="w-full rounded-xl border border-slate-200 bg-white p-5 shadow-2xs">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="min-w-0 space-y-1">
-            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
-              {isRekapBalaiView
-                ? "Tabel File Rekap Balai"
-                : isKabalai
-                  ? "Dokumen Lembar Kerja RHPK"
-                  : "Entry Data RHPK"}
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 max-w-2xl leading-relaxed">
-              {isKabalai
-                ? isRekapBalaiView
-                  ? "Tinjau seluruh sheet file Rekap Data RHPK Balai dalam mode baca-saja."
-                  : isTuView
-                    ? "Tinjau seluruh dokumen lembar kerja IKSK dan detail capaian bulanan dalam mode baca."
-                    : "Akses monitoring eksekutif Kepala Balai untuk meninjau seluruh dokumen lembar kerja IKSK 1 s.d. 28."
-                : isPicUser
-                  ? "Pengisian data capaian target dan indikator bulanan seluruh file dokumen RHPK."
-                  : "Pengisian data capaian target dan indikator kegiatan bulanan Katim."}
-            </p>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-xs text-slate-600">
-              <span className="font-semibold text-[#005baa]">
-                {isKabalai
-                  ? isRekapBalaiView
-                    ? "Mode Katim · Baca-Saja (File Rekap Balai)"
-                    : isTuView
-                      ? "Mode Tata Usaha · Hanya Baca"
-                      : "Mode Kepala Balai · Hanya Baca"
-                  : isPicUser
-                    ? "Mode PIC / Admin · Akses Penuh"
-                    : "Mode Katim · IKSK Ampuan"}
-              </span>
-              <span className="text-slate-300">·</span>
-              <span>Tahun {selectedYear}</span>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-            {headerRightSlot}
-
-            {/* Tombol Unggah / Import Excel (Khusus Katim / PIC) */}
-            {!isKabalai &&
-              selectedSpId &&
-              (isPicUser ||
-                !spreadsheets.find((s) => s.id === selectedSpId)
-                  ?.is_readonly) && (
-                <button
-                  type="button"
-                  onClick={() => setShowUploadModal(true)}
-                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition"
-                  title="Unggah / Import data dari file Excel (.xlsx)"
-                >
-                  <Icon
-                    icon="solar:file-smile-linear"
-                    width={15}
-                    className="text-[#005baa]"
-                  />
-                  <span>Unggah Excel</span>
-                </button>
-              )}
-
-            {isKabalai ? null : spreadsheets.find((s) => s.id === selectedSpId)?.is_readonly &&
-              !isPicEffective ? (
-              <div className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-2 text-xs font-semibold text-amber-800">
-                <Icon
-                  icon="solar:eye-bold"
-                  width={15}
-                  className="text-amber-600"
-                />
-                <span>Mode Baca (Master Rekap Balai)</span>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving || dirtyCount === 0}
-                className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold shadow-sm transition ${
-                  dirtyCount > 0
-                    ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-600/20"
-                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
-                }`}
-              >
-                {saving ? (
-                  <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent" />
-                    <span>Menyimpan...</span>
-                  </>
-                ) : (
-                  <>
-                    <Icon icon="solar:diskette-bold" width={16} />
-                    <span>
-                      Simpan Perubahan {dirtyCount > 0 ? `(${dirtyCount})` : ""}
-                    </span>
-                  </>
-                )}
-              </button>
-            )}
-
-            {/* Tombol Unduh Excel RHPK dengan Tanda Tangan Kabalai (Point 3) */}
-            {activeSpreadsheet && (
-              <div className="relative inline-block text-left">
-                <button
-                  type="button"
-                  onClick={() => setShowExportDropdown((prev) => !prev)}
-                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-white px-4 py-2.5 text-xs font-bold text-emerald-800 shadow-xs hover:bg-emerald-50 transition"
-                  title="Unduh file Excel dokumen RHPK lengkap dengan format Tanda Tangan Kabalai"
-                >
-                  <Icon
-                    icon="solar:file-download-bold"
-                    width={16}
-                    className="text-emerald-600"
-                  />
-                  <span>Unduh Excel (RHPK)</span>
-                  <Icon
-                    icon="solar:alt-arrow-down-linear"
-                    width={14}
-                    className="text-slate-400"
-                  />
-                </button>
-
-                {showExportDropdown && (
-                  <div className="absolute right-0 z-50 mt-1.5 w-64 origin-top-right rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl ring-1 ring-black/5 animate-in fade-in zoom-in-95">
-                    <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 border-b border-slate-100">
-                      PILIH PERIODE UNDUH (RHPK)
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleExportExcel("locked")}
-                      className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-lg flex flex-col gap-0.5 transition"
-                    >
-                      <div className="font-bold flex items-center gap-1.5">
-                        <Icon
-                          icon="solar:lock-keyhole-bold"
-                          width={13}
-                          className="text-amber-500"
-                        />
-                        <span>Bulan Terkunci (Final)</span>
-                      </div>
-                      <span className="text-[10px] text-slate-500">
-                        Khusus bulan final terkunci + Tanda Tangan Kabalai
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleExportExcel("all")}
-                      className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg flex flex-col gap-0.5 transition"
-                    >
-                      <div className="font-bold flex items-center gap-1.5">
-                        <Icon
-                          icon="solar:calendar-bold"
-                          width={13}
-                          className="text-blue-500"
-                        />
-                        <span>Semua Bulan (1 - 12)</span>
-                      </div>
-                      <span className="text-[10px] text-slate-500">
-                        Unduh seluruh 12 bulan + Tanda Tangan Kabalai
-                      </span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
+      <TableBanner
+        isRekapBalaiView={isRekapBalaiView}
+        isKabalai={isKabalai}
+        isTuView={isTuView}
+        isPicUser={isPicUser}
+        isPicEffective={isPicEffective}
+        selectedYear={selectedYear}
+        selectedSpId={selectedSpId}
+        spreadsheets={spreadsheets}
+        activeSpreadsheet={activeSpreadsheet}
+        dirtyCount={dirtyCount}
+        saving={saving}
+        headerRightSlot={headerRightSlot}
+        onOpenUploadModal={() => setShowUploadModal(true)}
+        onSave={handleSave}
+        onExportExcel={handleExportExcel}
+      />
 
       {/* Alerts (menempel di atas layar agar tetap terlihat saat tabel di-scroll) */}
-      {successMsg && (
-        <div
-          role="status"
-          className="sticky top-2 z-40 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-800 shadow-md"
-        >
-          <div className="flex items-center gap-2">
-            <Icon
-              icon="solar:check-circle-bold"
-              width={18}
-              className="text-emerald-600"
-            />
-            <span>{successMsg}</span>
-          </div>
-          <button
-            onClick={() => setSuccessMsg("")}
-            className="text-emerald-700"
-          >
-            <Icon icon="solar:close-circle-linear" width={16} />
-          </button>
-        </div>
-      )}
-
-      {errorMsg && (
-        <div
-          role="alert"
-          className="sticky top-2 z-40 flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-800 shadow-md"
-        >
-          <div className="flex items-center gap-2">
-            <Icon
-              icon="solar:danger-triangle-bold"
-              width={18}
-              className="text-red-600"
-            />
-            <span>{errorMsg}</span>
-          </div>
-          <button onClick={() => setErrorMsg("")} className="text-red-700">
-            <Icon icon="solar:close-circle-linear" width={16} />
-          </button>
-        </div>
-      )}
+      <TableAlerts
+        successMsg={successMsg}
+        errorMsg={errorMsg}
+        onClearSuccess={() => setSuccessMsg("")}
+        onClearError={() => setErrorMsg("")}
+      />
 
       {/* Selector Spreadsheet & Tab */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Year Selector */}
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                Tahun:
-              </label>
-              <select
-                value={selectedYear}
-                onChange={(e) => handleSelectYear(Number(e.target.value))}
-                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-[#005baa] focus:border-emerald-600 focus:bg-white focus:outline-none"
-              >
-                {years.map((y) => (
-                  <option key={y.id} value={y.year_number}>
-                    {y.year_number}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {!isRekapBalaiView ? (
-              <>
-                {/* IKSK Selector (Hanya IKSK yang diampu Katim) */}
-                <div className="flex items-center gap-2">
-                  <label className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                    IKSK:
-                  </label>
-                  <select
-                    value={selectedIkskId ?? ""}
-                    onChange={(e) => handleSelectIksk(Number(e.target.value))}
-                    className="rounded-xl border border-emerald-300 bg-emerald-50/70 px-3 py-1.5 text-xs font-bold text-emerald-900 focus:border-emerald-600 focus:bg-white focus:outline-none max-w-xs md:max-w-sm truncate"
-                  >
-                    {iksks.length === 0 ? (
-                      <option value="">Tidak ada IKSK diampu</option>
-                    ) : (
-                      iksks.map((i) => (
-                        <option key={i.id} value={i.id}>
-                          IKSK {i.id}. {i.name}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </div>
-
-                {/* Document Info / Selector: jika hanya 1 file cukup info tanpa dropdown, jika >= 2 file baru muncul dropdown pilihan */}
-                {spreadsheets.length <= 1 ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                      Dokumen:
-                    </span>
-                    {spreadsheets.length === 1 ? (
-                      <div
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-1.5 text-xs font-semibold text-slate-800 max-w-xs md:max-w-md truncate shadow-2xs"
-                        title={spreadsheets[0].name}
-                      >
-                        <Icon
-                          icon="solar:file-spreadsheet-bold"
-                          width={16}
-                          className="text-emerald-600 shrink-0"
-                        />
-                        <span className="truncate">{spreadsheets[0].name}</span>
-                      </div>
-                    ) : (
-                      <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-400 italic">
-                        Belum ada dokumen untuk IKSK ini
-                      </span>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                      Pilih Dokumen:
-                    </label>
-                    <select
-                      value={selectedSpId ?? ""}
-                      onChange={(e) =>
-                        handleSelectSpreadsheet(Number(e.target.value))
-                      }
-                      className="rounded-xl border border-emerald-300 bg-white px-3 py-1.5 text-xs font-bold text-emerald-900 focus:border-emerald-600 focus:outline-none max-w-xs md:max-w-md truncate cursor-pointer shadow-2xs"
-                    >
-                      {spreadsheets.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
-                    {spreadsheets.find((s) => s.id === selectedSpId)
-                      ?.is_readonly &&
-                      !isPicEffective && (
-                        <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 flex items-center gap-1">
-                          <Icon icon="solar:lock-bold" width={11} />
-                          Read-Only (Rekap Balai)
-                        </span>
-                      )}
-                    <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                      {spreadsheets.length} Dokumen
-                    </span>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                {/* Info File Master Rekap Balai (Baca-Saja) */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                    Dokumen:
-                  </span>
-                  <div
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50/70 px-3 py-1.5 text-xs font-semibold text-[#005baa] max-w-xs md:max-w-md truncate shadow-2xs"
-                    title={spreadsheets[0]?.name || "REKAP DATA RHPK Mataram"}
-                  >
-                    <Icon
-                      icon="solar:file-spreadsheet-bold"
-                      width={16}
-                      className="text-[#005baa] shrink-0"
-                    />
-                    <span className="truncate">
-                      {spreadsheets[0]?.name ||
-                        `REKAP DATA RHPK ${selectedYear} Mataram`}
-                    </span>
-                  </div>
-                  <span className="rounded-md bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600 flex items-center gap-1">
-                    <Icon
-                      icon="solar:lock-keyhole-minimalistic-bold"
-                      width={11}
-                    />
-                    Baca-Saja
-                  </span>
-                </div>
-
-                {/* Filter IKSK pada sheet A. Capaian RAPK Mataram */}
-                {isCapaianRapkTab ? (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <label className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                      Filter IKSK:
-                    </label>
-                    <select
-                      value={
-                        typeof rekapBalaiIkskFilter === "number"
-                          ? String(rekapBalaiIkskFilter)
-                          : rekapBalaiIkskFilter
-                      }
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setRekapBalaiIkskFilter(
-                          v === "all" || v === "mine" ? v : Number(v),
-                        );
-                        setCurrentPage(1);
-                      }}
-                      className="rounded-xl border border-blue-300 bg-white px-3 py-1.5 text-xs font-bold text-[#003d73] focus:border-[#005baa] focus:outline-none max-w-xs md:max-w-sm truncate shadow-2xs"
-                    >
-                      <option value="all">Semua Baris (28 IKSK + UPT)</option>
-                      {assignedIkskIds.length > 0 && (
-                        <option value="mine">
-                          Hanya IKSK Ampuan Saya ({assignedIkskIds.length} IKSK)
-                        </option>
-                      )}
-                      {iksks.map((i) => (
-                        <option key={i.id} value={i.id}>
-                          IKSK {i.id}
-                          {assignedIkskIds.includes(i.id) ? " (Ampuan)" : ""}{" "}
-                          — {i.name}
-                        </option>
-                      ))}
-                    </select>
-
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRekapBalaiIkskFilter("all");
-                          setCurrentPage(1);
-                        }}
-                        className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${
-                          rekapBalaiIkskFilter === "all"
-                            ? "bg-[#005baa] text-white"
-                            : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                        }`}
-                      >
-                        Semua
-                      </button>
-                      {assignedIkskIds.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setRekapBalaiIkskFilter((prev) =>
-                              prev === "mine" ? "all" : "mine",
-                            );
-                            setCurrentPage(1);
-                          }}
-                          className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${
-                            rekapBalaiIkskFilter === "mine"
-                              ? "bg-emerald-600 text-white"
-                              : "bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                          }`}
-                        >
-                          Ampuan Saya ({assignedIkskIds.length})
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
-                    <Icon
-                      icon="solar:info-circle-linear"
-                      width={14}
-                      className="text-[#005baa]"
-                    />
-                    Filter per IKSK tersedia di sheet A. Capaian RAPK Mataram
-                  </span>
-                )}
-              </>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-            <div>
-              Bulan Berjalan:{" "}
-              <strong className="text-slate-800">
-                {currentMonth} (
-                {[
-                  "",
-                  "Januari",
-                  "Februari",
-                  "Maret",
-                  "April",
-                  "Mei",
-                  "Juni",
-                  "Juli",
-                  "Agustus",
-                  "September",
-                  "Oktober",
-                  "November",
-                  "Desember",
-                ][currentMonth] || "Oktober"}
-                )
-              </strong>
-            </div>
-            {isPicUser && (
-              <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
-                <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                    isCurrentMonthLocked
-                      ? "bg-red-50 text-red-700 border border-red-200"
-                      : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                  }`}
-                >
-                  <Icon
-                    icon={
-                      isCurrentMonthLocked
-                        ? "solar:lock-bold"
-                        : "solar:lock-unlocked-bold"
-                    }
-                    width={12}
-                  />
-                  {isCurrentMonthLocked
-                    ? "Terkunci untuk Katim"
-                    : "Terbuka untuk Katim"}
-                </span>
-                <button
-                  type="button"
-                  disabled={isTogglingLock}
-                  onClick={handleToggleCurrentMonthLock}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition shadow-xs flex items-center gap-1.5 ${
-                    isCurrentMonthLocked
-                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                      : "bg-white hover:bg-red-50 text-red-600 border border-red-200"
-                  } disabled:opacity-50`}
-                >
-                  <Icon
-                    icon={
-                      isTogglingLock
-                        ? "solar:refresh-circle-linear"
-                        : isCurrentMonthLocked
-                          ? "solar:lock-unlocked-bold"
-                          : "solar:lock-bold"
-                    }
-                    width={13}
-                    className={isTogglingLock ? "animate-spin" : ""}
-                  />
-                  <span>
-                    {isTogglingLock
-                      ? "Menyimpan..."
-                      : isCurrentMonthLocked
-                        ? "Buka Akses Katim"
-                        : "Kunci Akses Katim"}
-                  </span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Tab Buttons */}
-        {selectedSpId && (
-          <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
-            {spreadsheets
-              .find((s) => s.id === selectedSpId)
-              ?.tabs?.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => handleSelectTab(t.id)}
-                  className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition ${
-                    selectedTabId === t.id
-                      ? "bg-emerald-600 text-white shadow-sm"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
-                >
-                  {t.title}
-                </button>
-              ))}
-          </div>
-        )}
-      </div>
+      <TableSpreadsheetSelector
+        selectedYear={selectedYear}
+        years={years}
+        isRekapBalaiView={isRekapBalaiView}
+        selectedIkskId={selectedIkskId}
+        iksks={iksks}
+        spreadsheets={spreadsheets}
+        selectedSpId={selectedSpId}
+        isPicEffective={isPicEffective}
+        isCapaianRapkTab={isCapaianRapkTab}
+        rekapBalaiIkskFilter={rekapBalaiIkskFilter}
+        assignedIkskIds={assignedIkskIds}
+        currentMonth={currentMonth}
+        isPicUser={isPicUser}
+        isCurrentMonthLocked={isCurrentMonthLocked}
+        isTogglingLock={isTogglingLock}
+        selectedTabId={selectedTabId}
+        onSelectYear={handleSelectYear}
+        onSelectIksk={handleSelectIksk}
+        onSelectSpreadsheet={handleSelectSpreadsheet}
+        onSelectTab={handleSelectTab}
+        onToggleCurrentMonthLock={handleToggleCurrentMonthLock}
+        onFilterChange={(v) => {
+          setRekapBalaiIkskFilter(v === "all" || v === "mine" ? v : Number(v));
+          setCurrentPage(1);
+        }}
+      />
 
       {/* Main Table Entry */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -4692,434 +3436,56 @@ export default function TestLocalTableKatim({
           </div>
         ) : (
           <>
-            {/* Top Control Bar: Search, Filter Bulan & Navigasi Halaman Cepat */}
-            {activeTab && (
-              <div className="border-b border-slate-200 bg-slate-50/70 p-4 space-y-3">
-                {/* Row 1: Filter Bulan Pills & Tombol Aksi (Template Excel, Import Excel, Tambah Baris) */}
-                <div className="flex flex-wrap items-center justify-between gap-2.5">
-                  {availableMonths.length > 1 ? (
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1 flex items-center gap-1">
-                        <Icon
-                          icon="solar:calendar-bold"
-                          width={14}
-                          className="text-emerald-600"
-                        />
-                        Filter Bulan:
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedMonthFilter("all");
-                          setCurrentPage(1);
-                        }}
-                        className={`rounded-lg px-2.5 py-1 text-xs font-bold transition shadow-2xs ${
-                          selectedMonthFilter === "all"
-                            ? "bg-emerald-600 text-white shadow-emerald-600/20"
-                            : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
-                        }`}
-                      >
-                        Semua Bulan ({rawRowsCount})
-                      </button>
-                      {availableMonths.map((m) => {
-                        const isSelected =
-                          selectedMonthFilter.toLowerCase() ===
-                          m.name.toLowerCase();
-                        return (
-                          <button
-                            key={m.name}
-                            type="button"
-                            onClick={() => {
-                              setSelectedMonthFilter(m.name);
-                              setCurrentPage(1);
-                            }}
-                            className={`rounded-lg px-2.5 py-1 text-xs font-bold transition shadow-2xs ${
-                              isSelected
-                                ? "bg-emerald-600 text-white shadow-emerald-600/20"
-                                : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
-                            }`}
-                          >
-                            {m.name} ({m.count})
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div />
-                  )}
-
-                  {/* Tombol Aksi Tabel Vertikal: Tambah Baris */}
-                  {!isHorizontalMonthTable &&
-                    !spreadsheets.find((s) => s.id === selectedSpId)
-                      ?.is_readonly && (
-                      <div className="flex flex-wrap items-center gap-2 ml-auto">
-                        {/* Tombol Hapus Baris Terakhir (Khusus PIC) */}
-                        {isPicEffective &&
-                          activeTab?.rows_data &&
-                          activeTab.rows_data.length > 0 && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleDeleteRow(activeTab.rows_data.length - 1)
-                              }
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-300 bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700 transition hover:bg-rose-100 shadow-2xs cursor-pointer"
-                              title="Hapus baris paling akhir/bawah dari tabel ini"
-                            >
-                              <Icon
-                                icon="solar:trash-bin-trash-bold"
-                                width={14}
-                                className="text-rose-600"
-                              />
-                              <span>Hapus Baris Terakhir</span>
-                            </button>
-                          )}
-                        {/* Tombol Tambah Baris */}
-                        <button
-                          type="button"
-                          onClick={handleAddRow}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 transition hover:bg-emerald-100 shadow-2xs"
-                          title="Tambah baris kegiatan baru pada bulan ini (urutan paling atas)"
-                        >
-                          <Icon
-                            icon="solar:add-circle-bold"
-                            width={15}
-                            className="text-emerald-700"
-                          />
-                          <span>
-                            + Tambah Baris{" "}
-                            {selectedMonthFilter !== "all"
-                              ? `(${selectedMonthFilter})`
-                              : ""}
-                          </span>
-                        </button>
-                      </div>
-                    )}
-                </div>
-
-                {/* Row 2: Search input + Info baris + Top Pagination Controls */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                  {/* Search Box */}
-                  <div className="relative flex-1 max-w-sm">
-                    <Icon
-                      icon="solar:magnifer-linear"
-                      width={15}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      placeholder="Cari di tabel (topik, akun, judul, dll)..."
-                      className="w-full rounded-xl border border-slate-200 bg-white py-1.5 pl-9 pr-8 text-xs text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 focus:outline-none transition shadow-2xs"
-                    />
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSearchQuery("");
-                          setCurrentPage(1);
-                        }}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                      >
-                        <Icon icon="solar:close-circle-bold" width={14} />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Right: Info, Page Size, Navigation */}
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
-                    <div className="flex items-center gap-2">
-                      <span>
-                        Menampilkan{" "}
-                        <span className="font-bold text-slate-900">
-                          {totalRows === 0
-                            ? 0
-                            : (safeCurrentPage - 1) * (pageSize || 1) + 1}
-                        </span>{" "}
-                        -{" "}
-                        <span className="font-bold text-slate-900">
-                          {Math.min(
-                            safeCurrentPage * (pageSize || 1),
-                            totalRows,
-                          )}
-                        </span>{" "}
-                        dari{" "}
-                        <span className="font-bold text-slate-900">
-                          {totalRows}
-                        </span>{" "}
-                        baris
-                        {selectedMonthFilter !== "all" && (
-                          <span className="ml-1 text-emerald-700 font-semibold">
-                            ({selectedMonthFilter})
-                          </span>
-                        )}
-                      </span>
-
-                      <div className="flex items-center gap-1.5 ml-1 border-l border-slate-300 pl-3">
-                        <span className="text-[11px] text-slate-500">
-                          Per Hal:
-                        </span>
-                        <select
-                          value={pageSize}
-                          onChange={(e) => {
-                            setPageSize(Number(e.target.value));
-                            setCurrentPage(1);
-                            scrollToTableTop();
-                          }}
-                          className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-2xs focus:border-emerald-600 focus:outline-none cursor-pointer"
-                        >
-                          <option value={10}>10</option>
-                          <option value={25}>25</option>
-                          <option value={50}>50</option>
-                          <option value={100}>100</option>
-                          <option value={200}>200</option>
-                          <option value={0}>Semua ({totalRows})</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {pageSize > 0 && totalPages > 1 && (
-                      <div className="flex items-center gap-1 ml-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCurrentPage(1);
-                            scrollToTableTop();
-                          }}
-                          disabled={safeCurrentPage === 1}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
-                          title="Halaman Pertama"
-                        >
-                          <Icon
-                            icon="solar:double-alt-arrow-left-linear"
-                            width={14}
-                          />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCurrentPage((p) => Math.max(p - 1, 1));
-                            scrollToTableTop();
-                          }}
-                          disabled={safeCurrentPage === 1}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
-                          title="Halaman Sebelumnya"
-                        >
-                          <Icon icon="solar:alt-arrow-left-linear" width={14} />
-                        </button>
-
-                        <span className="px-2 font-bold text-xs text-slate-700">
-                          Hal {safeCurrentPage} / {totalPages}
-                        </span>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCurrentPage((p) => Math.min(p + 1, totalPages));
-                            scrollToTableTop();
-                          }}
-                          disabled={safeCurrentPage === totalPages}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
-                          title="Halaman Selanjutnya"
-                        >
-                          <Icon
-                            icon="solar:alt-arrow-right-linear"
-                            width={14}
-                          />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCurrentPage(totalPages);
-                            scrollToTableTop();
-                          }}
-                          disabled={safeCurrentPage === totalPages}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
-                          title="Halaman Terakhir"
-                        >
-                          <Icon
-                            icon="solar:double-alt-arrow-right-linear"
-                            width={14}
-                          />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Keterangan Status & Petunjuk Pengisian (Ringkas & Jelas) */}
-            <div className="flex flex-wrap items-center justify-between gap-y-2 gap-x-5 border-b border-slate-200/80 bg-slate-50/70 px-4 py-2.5 text-[11px] text-slate-600">
-              <div className="flex items-center gap-4 flex-wrap">
-                <span className="font-bold text-slate-700 flex items-center gap-1">
-                  <Icon
-                    icon="solar:info-circle-bold"
-                    width={13}
-                    className="text-[#005baa]"
-                  />
-                  Keterangan:
-                </span>
-                <div
-                  className="flex items-center gap-1.5"
-                  title="Kolom bertanda dot hijau adalah kolom yang berhak Anda isi"
-                >
-                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0" />
-                  <span className="text-emerald-800 font-bold">
-                    Dot Hijau: Kolom Hak Akses Anda (Editable)
-                  </span>
-                </div>
-                <div
-                  className="flex items-center gap-1.5"
-                  title="Baris pada periode ini sudah memiliki data terisi"
-                >
-                  <Icon
-                    icon="solar:check-circle-bold"
-                    width={14}
-                    className="text-emerald-600 shrink-0"
-                  />
-                  <span className="text-slate-600 font-medium">
-                    Sudah diisi
-                  </span>
-                </div>
-                <div
-                  className="flex items-center gap-1.5"
-                  title="Baris pada periode ini belum memiliki data"
-                >
-                  <span className="inline-block h-2 w-2 rounded-full bg-slate-300 ring-2 ring-slate-100 shrink-0" />
-                  <span className="text-slate-500 font-medium">
-                    Belum diisi
-                  </span>
-                </div>
-
-                {/* Penjelasan tanda ∑ (Akumulasi) vs tanpa ∑ */}
-                <div
-                  className="flex items-center gap-1.5"
-                  title="Kolom berlabel ∑ mengakumulasikan nilai dari bulan sebelumnya secara otomatis"
-                >
-                  <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-blue-100 font-mono text-[10px] font-black text-blue-800 border border-blue-200 shrink-0">
-                    ∑
-                  </span>
-                  <span className="text-slate-700 font-medium">
-                    <strong>∑ (Akumulasi):</strong> Cukup input angka bulanan,
-                    sistem otomatis menjumlahkan. <em>Tanpa ∑</em>: Input angka
-                    final langsung.
-                  </span>
-                </div>
-
-                {/* Tombol Lihat (Multi-Katim / Mode Hanya Lihat) */}
-                <div
-                  className="flex items-center gap-1.5"
-                  title="Tombol untuk melihat rincian pengisi antar-katim atau membuka data saat periode terkunci"
-                >
-                  <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 shrink-0">
-                    <Icon
-                      icon="solar:eye-bold"
-                      width={12}
-                      className="text-indigo-600"
-                    />
-                    Lihat
-                  </span>
-                  <span className="text-slate-600 font-medium">
-                    Rincian kontributor / mode lihat saat periode terkunci
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Banner Mode Multi-Indikator: Memungkinkan isolasi fokus pada IKSK yang dipilih tanpa terganggu 13 indikator lainnya */}
-            {isMultiIndicatorSheet && (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50/90 to-indigo-50/60 p-3.5 text-xs shadow-2xs">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex size-8 items-center justify-center rounded-xl bg-[#005baa] text-white shrink-0 shadow-xs">
-                    <Icon icon="solar:filter-bold-duotone" width={18} />
-                  </div>
-                  <div>
-                    <div className="font-bold text-slate-800 flex items-center gap-2">
-                      <span>
-                        Dokumen Gabungan RHPK Balai (13 Indikator Terpadu)
-                      </span>
-                      <span className="text-[10px] bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full">
-                        61 Kolom
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-slate-600 mt-1 flex flex-wrap items-center gap-2">
-                      <span>Pilih Fokus Indikator:</span>
-                      <select
-                        value={matchedIndicatorParent || ""}
-                        onChange={(e) => {
-                          setOverrideIndicatorParent(e.target.value);
-                          setFocusSelectedIksk(true);
-                        }}
-                        className="rounded-lg border border-blue-300 bg-white px-2 py-1 text-xs font-semibold text-[#005baa] shadow-2xs focus:border-[#005baa] focus:outline-hidden"
-                      >
-                        {headerGroups
-                          ?.map((g) => g.parent)
-                          .filter((p): p is string =>
-                            Boolean(p && getMonthNumberFromText(p) === null),
-                          )
-                          .map((p, pIdx) => (
-                            <option key={pIdx} value={p}>
-                              {p}
-                            </option>
-                          ))}
-                      </select>
-                      {focusSelectedIksk && (
-                        <span className="text-emerald-700 font-medium">
-                          ({displayedColumnsSchema.length} Kolom aktif termasuk
-                          Identitas Unit & Bulan)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setFocusSelectedIksk(true)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition text-xs shadow-2xs ${
-                      focusSelectedIksk
-                        ? "bg-[#005baa] text-white ring-2 ring-blue-300"
-                        : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
-                    }`}
-                  >
-                    <Icon
-                      icon="solar:check-circle-bold"
-                      width={14}
-                      className={
-                        focusSelectedIksk ? "text-white" : "text-slate-400"
-                      }
-                    />
-                    <span>Fokus 1 Indikator</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFocusSelectedIksk(false)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition text-xs shadow-2xs ${
-                      !focusSelectedIksk
-                        ? "bg-[#005baa] text-white ring-2 ring-blue-300"
-                        : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
-                    }`}
-                  >
-                    <Icon
-                      icon="solar:layers-bold"
-                      width={14}
-                      className={
-                        !focusSelectedIksk ? "text-white" : "text-slate-400"
-                      }
-                    />
-                    <span>
-                      Tampilkan Seluruh 13 Indikator (
-                      {effectiveColumnsSchema.length} Kolom)
-                    </span>
-                  </button>
-                </div>
-              </div>
-            )}
+            {/* Top Control Bar, Keterangan & Multi-Indikator Banner */}
+            <TableControlBar
+              activeTab={activeTab}
+              availableMonths={availableMonths}
+              selectedMonthFilter={selectedMonthFilter}
+              rawRowsCount={rawRowsCount}
+              isHorizontalMonthTable={isHorizontalMonthTable}
+              spreadsheets={spreadsheets}
+              selectedSpId={selectedSpId}
+              isPicEffective={isPicEffective}
+              searchQuery={searchQuery}
+              totalRows={totalRows}
+              safeCurrentPage={safeCurrentPage}
+              pageSize={pageSize}
+              totalPages={totalPages}
+              isMultiIndicatorSheet={isMultiIndicatorSheet}
+              matchedIndicatorParent={matchedIndicatorParent}
+              headerGroups={headerGroups || []}
+              focusSelectedIksk={focusSelectedIksk}
+              displayedColumnsSchema={displayedColumnsSchema}
+              effectiveColumnsSchema={effectiveColumnsSchema}
+              onSelectMonthFilter={(m) => {
+                setSelectedMonthFilter(m);
+                setCurrentPage(1);
+              }}
+              onAddRow={handleAddRow}
+              onDeleteLastRow={() => {
+                if (activeTab?.rows_data && activeTab.rows_data.length > 0) {
+                  handleDeleteRow(activeTab.rows_data.length - 1);
+                }
+              }}
+              onSearchChange={(q) => {
+                setSearchQuery(q);
+                setCurrentPage(1);
+              }}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setCurrentPage(1);
+              }}
+              onPageChange={(newPage) => {
+                setCurrentPage(newPage);
+              }}
+              onOverrideIndicatorParent={(parent) => {
+                setOverrideIndicatorParent(parent);
+              }}
+              onSetFocusSelectedIksk={(focus) => {
+                setFocusSelectedIksk(focus);
+              }}
+              onScrollToTop={scrollToTableTop}
+            />
 
             <div
               id="main-rhpk-table-container"
@@ -5164,6 +3530,10 @@ export default function TestLocalTableKatim({
                                       col.allowed_katim_ids.some(
                                         (id: string | number) =>
                                           String(id) === String(user?.id),
+                                      ) ||
+                                      Boolean(
+                                        selectedIkskId &&
+                                          assignedIkskIds.includes(selectedIkskId),
                                       );
                                     const isEditableForMe =
                                       !isKabalai &&
@@ -5266,6 +3636,10 @@ export default function TestLocalTableKatim({
                                       c.allowed_katim_ids.some(
                                         (id: string | number) =>
                                           String(id) === String(user?.id),
+                                      ) ||
+                                      Boolean(
+                                        selectedIkskId &&
+                                          assignedIkskIds.includes(selectedIkskId),
                                       );
                                     return c.can_edit && isColAllowed;
                                   },
@@ -5319,7 +3693,9 @@ export default function TestLocalTableKatim({
                                 (col.label && col.label.split(" - ").length >= 3
                                   ? col.label.split(" - ")[1].trim()
                                   : "");
-                              const isColLeaf = !col.sub_label || col.sub_label === col.sub_parent;
+                              const isColLeaf =
+                                !col.sub_label ||
+                                col.sub_label === col.sub_parent;
                               if (
                                 subChunks.length > 0 &&
                                 subChunks[subChunks.length - 1].sub_parent ===
@@ -5327,10 +3703,15 @@ export default function TestLocalTableKatim({
                               ) {
                                 subChunks[subChunks.length - 1].count++;
                                 if (!isColLeaf) {
-                                  subChunks[subChunks.length - 1].isLeaf = false;
+                                  subChunks[subChunks.length - 1].isLeaf =
+                                    false;
                                 }
                               } else {
-                                subChunks.push({ sub_parent: sp, count: 1, isLeaf: isColLeaf });
+                                subChunks.push({
+                                  sub_parent: sp,
+                                  count: 1,
+                                  isLeaf: isColLeaf,
+                                });
                               }
                             });
 
@@ -5367,7 +3748,11 @@ export default function TestLocalTableKatim({
                             grpMonthNum !== null &&
                             Boolean(monthLocksMap[grpMonthNum]);
                           return grp.cols.map((col) => {
-                            if (hasSubParents && (!col.sub_label || col.sub_label === col.sub_parent)) {
+                            if (
+                              hasSubParents &&
+                              (!col.sub_label ||
+                                col.sub_label === col.sub_parent)
+                            ) {
                               return null;
                             }
                             const colMonthNum =
@@ -5383,6 +3768,10 @@ export default function TestLocalTableKatim({
                               col.allowed_katim_ids.some(
                                 (id: string | number) =>
                                   String(id) === String(user?.id),
+                              ) ||
+                              Boolean(
+                                selectedIkskId &&
+                                  assignedIkskIds.includes(selectedIkskId),
                               );
                             const isEditableForMe =
                               col.can_edit &&
@@ -5494,6 +3883,10 @@ export default function TestLocalTableKatim({
                           col.allowed_katim_ids.some(
                             (id: string | number) =>
                               String(id) === String(user?.id),
+                          ) ||
+                          Boolean(
+                            selectedIkskId &&
+                              assignedIkskIds.includes(selectedIkskId),
                           );
                         const isEditableForMe =
                           !isKabalai && col.can_edit && isColAllowedForMe;
@@ -5604,10 +3997,13 @@ export default function TestLocalTableKatim({
                           : isPaginationNeeded && pageSize > 0
                             ? (safeCurrentPage - 1) * pageSize + rIdx
                             : rIdx;
-                      const rowKey =
-                        row.month !== undefined &&
-                        row.month !== null &&
-                        row.month !== 0
+                      const rowKey = isMultiRowTable
+                        ? row.row_index !== undefined
+                          ? row.row_index
+                          : originalIdx
+                        : row.month !== undefined &&
+                            row.month !== null &&
+                            row.month !== 0
                           ? row.month
                           : row.row_index !== undefined
                             ? row.row_index
@@ -5616,16 +4012,7 @@ export default function TestLocalTableKatim({
                         row.row_index !== undefined
                           ? row.row_index
                           : originalIdx;
-                      const isMonthRow =
-                        !isHorizontalMonthTable &&
-                        !(
-                          (row as any).is_month_row === false ||
-                          (row.month !== undefined && row.month === 0)
-                        );
-                      const isMonthLocked = isMonthRow && row.is_locked;
-                      const isCurrent = isMonthRow && row.is_current;
-                      const canEditThisRow =
-                        !isKabalai && row.can_edit_row !== false;
+
                       const isSectionRow =
                         (row as any).row_type === "section" ||
                         row.cells?.col_1 === "Survey Tatap Muka" ||
@@ -5651,6 +4038,50 @@ export default function TestLocalTableKatim({
                           row.cells.col_0.toLowerCase() === "total") ||
                         isFormulaRow,
                       );
+
+                      const rMonthNum = getRowMonthNumber(row, originalIdx);
+                      const effectiveMonth =
+                        rMonthNum !== null && rMonthNum >= 1 && rMonthNum <= 12
+                          ? rMonthNum
+                          : row.month !== undefined &&
+                              row.month >= 1 &&
+                              row.month <= 12
+                            ? row.month
+                            : 0;
+                      const isMonthRow =
+                        !isHorizontalMonthTable &&
+                        effectiveMonth >= 1 &&
+                        effectiveMonth <= 12 &&
+                        !isTotalRow &&
+                        !isFormulaRow &&
+                        !isSectionRow;
+                      const isMonthLocked =
+                        !isPicUser &&
+                        isMonthRow &&
+                        Boolean(
+                          row.is_locked ||
+                          (effectiveMonth > 0 && monthLocksMap[effectiveMonth]),
+                        );
+                      const isCurrent =
+                        isMonthRow &&
+                        (row.is_current || effectiveMonth === currentMonth);
+                      const rowAllowed = (row as any).allowed_katim_ids;
+                      const isUserAllowedForThisRow =
+                        isPicUser ||
+                        !rowAllowed ||
+                        rowAllowed.length === 0 ||
+                        rowAllowed.some(
+                          (id: string | number) => String(id) === String(user?.id),
+                        ) ||
+                        Boolean(selectedIkskId && assignedIkskIds.includes(selectedIkskId));
+
+                      const canEditThisRow =
+                        !isKabalai &&
+                        !isTotalRow &&
+                        !isFormulaRow &&
+                        !isSectionRow &&
+                        (row.can_edit_row !== false || isUserAllowedForThisRow) &&
+                        !isMonthLocked;
 
                       const isHighlightedIncomplete =
                         highlightedIncompleteRows.includes(rowIdxNum) ||
@@ -5719,6 +4150,39 @@ export default function TestLocalTableKatim({
                                 row.cells?.col_1 === "Target Indeks" ||
                                 isQuestionRow);
 
+                            // Aturan khusus Tab Caput RO Spl Pangan (Tab 86):
+                            // 1. Baris PIRT pada kolom "dievaluasi Penandaan" dapat diedit manual untuk Jan s.d. Des
+                            // 2. Baris Pangan Olahan berasal dari rujukan 3A -> tidak boleh diedit manual
+                            // 3. Baris Total dihitung dari SUM -> tidak boleh diedit manual
+                            const isCaputRoSplPangan =
+                              activeTab?.id === 86 ||
+                              Boolean(
+                                activeTab?.title
+                                  ?.toLowerCase()
+                                  .includes("caput ro spl pangan"),
+                              );
+                            const isPenandaanCol =
+                              isCaputRoSplPangan &&
+                              Boolean(
+                                (col.label || "")
+                                  .toLowerCase()
+                                  .includes("dievaluasi penandaan") ||
+                                (col.sub_label || "")
+                                  .toLowerCase()
+                                  .includes("dievaluasi penandaan"),
+                              );
+                            const isPirtRow =
+                              isCaputRoSplPangan &&
+                              (row.row_name === "PIRT" ||
+                                row.cells?.col_0 === "PIRT");
+                            const isPanganOlahanRow =
+                              isCaputRoSplPangan &&
+                              (row.row_name === "Pangan Olahan" ||
+                                row.cells?.col_0 === "Pangan Olahan");
+
+                            const canEditCaputRoCell =
+                              isCaputRoSplPangan && isPirtRow && isPenandaanCol;
+
                             const isUserAllowedForCol =
                               isPicUser ||
                               !col.allowed_katim_ids ||
@@ -5726,20 +4190,27 @@ export default function TestLocalTableKatim({
                               col.allowed_katim_ids.some(
                                 (id: string | number) =>
                                   String(id) === String(user?.id),
+                              ) ||
+                              Boolean(
+                                selectedIkskId &&
+                                  assignedIkskIds.includes(selectedIkskId),
                               );
 
                             const canEditCell =
-                              (col.can_edit ||
-                                (isPicEffective &&
-                                  col.type !== "formula" &&
-                                  !isMonthLocked)) &&
+                              (canEditCaputRoCell ||
+                                ((col.can_edit ||
+                                  (isPicEffective &&
+                                    col.type !== "formula" &&
+                                    !isMonthLocked)) &&
+                                  !isPanganOlahanRow &&
+                                  (!isTotalRow || isIndeksKieEditableRow) &&
+                                  (!isFormulaRow || isIndeksKieEditableRow))) &&
                               isUserAllowedForCol &&
                               !isMonthLocked &&
                               !isColMonthLocked &&
                               canEditThisRow &&
-                              (!isTotalRow || isIndeksKieEditableRow) &&
-                              (!isFormulaRow || isIndeksKieEditableRow) &&
-                              !isSectionRow;
+                              !isSectionRow &&
+                              (!isTotalRow || isIndeksKieEditableRow);
                             const isNum = typeof val === "number";
                             const isCollab = isCollaborativeCol(col);
 
@@ -6073,37 +4544,90 @@ export default function TestLocalTableKatim({
                                     />
                                   ) : (
                                     (() => {
+                                      const isDetilCol =
+                                        isIksk1DetilPengujian &&
+                                        /^col_(?:[3-9]|[1-4]\d|50)$/.test(
+                                          col.key,
+                                        );
                                       const isCum =
-                                        !isHorizontalMonthTable &&
-                                        isCumulativeCol(col);
+                                        (!isHorizontalMonthTable &&
+                                          isCumulativeCol(col)) ||
+                                        isDetilCol;
                                       const rawInput =
                                         row.cells?.[col.key + "_input"];
                                       const cellVal = row.cells?.[col.key];
-                                      const prevVal =
-                                        !isHorizontalMonthTable &&
-                                        activeTab?.rows_data &&
-                                        rowIdxNum !== undefined &&
-                                        rowIdxNum > 0
-                                          ? Number(
-                                              activeTab.rows_data[rowIdxNum - 1]
-                                                ?.cells?.[col.key] || 0,
-                                            )
+
+                                      let displayVal: any = val;
+                                      let cumulativeVal: any = null;
+
+                                      if (isDetilCol) {
+                                        const colIdxNum = parseInt(
+                                          col.key.replace("col_", ""),
+                                          10,
+                                        );
+                                        const m =
+                                          Math.floor((colIdxNum - 3) / 4) + 1;
+                                        const prevColKey =
+                                          m > 1 ? `col_${colIdxNum - 4}` : null;
+                                        const prevVal = prevColKey
+                                          ? Number(row.cells?.[prevColKey] || 0)
                                           : 0;
-                                      const displayVal = isCum
-                                        ? rawInput !== undefined &&
-                                          rawInput !== null &&
-                                          rawInput !== ""
-                                          ? rawInput
-                                          : rowIdxNum === 0
-                                            ? cellVal
-                                            : Number(cellVal) >= prevVal &&
-                                                prevVal > 0
-                                              ? Number(cellVal) - prevVal
-                                              : cellVal
-                                        : val;
-                                      const cumulativeVal = isCum
-                                        ? (cellVal ?? displayVal)
-                                        : null;
+
+                                        if (m === 1) {
+                                          displayVal =
+                                            rawInput !== undefined &&
+                                            rawInput !== null &&
+                                            rawInput !== ""
+                                              ? rawInput
+                                              : (cellVal ?? "");
+                                          cumulativeVal = cellVal ?? displayVal;
+                                        } else {
+                                          displayVal =
+                                            rawInput !== undefined &&
+                                            rawInput !== null &&
+                                            rawInput !== ""
+                                              ? rawInput
+                                              : Number(cellVal) >= prevVal &&
+                                                  prevVal > 0
+                                                ? Number(cellVal) - prevVal
+                                                : (cellVal ?? "");
+                                          cumulativeVal =
+                                            cellVal !== undefined &&
+                                            cellVal !== null &&
+                                            cellVal !== ""
+                                              ? cellVal
+                                              : displayVal !== ""
+                                                ? prevVal + Number(displayVal)
+                                                : "";
+                                        }
+                                      } else {
+                                        const prevVal =
+                                          !isHorizontalMonthTable &&
+                                          activeTab?.rows_data &&
+                                          rowIdxNum !== undefined &&
+                                          rowIdxNum > 0
+                                            ? Number(
+                                                activeTab.rows_data[
+                                                  rowIdxNum - 1
+                                                ]?.cells?.[col.key] || 0,
+                                              )
+                                            : 0;
+                                        displayVal = isCum
+                                          ? rawInput !== undefined &&
+                                            rawInput !== null &&
+                                            rawInput !== ""
+                                            ? rawInput
+                                            : rowIdxNum === 0
+                                              ? cellVal
+                                              : Number(cellVal) >= prevVal &&
+                                                  prevVal > 0
+                                                ? Number(cellVal) - prevVal
+                                                : cellVal
+                                          : val;
+                                        cumulativeVal = isCum
+                                          ? (cellVal ?? displayVal)
+                                          : null;
+                                      }
 
                                       return (
                                         <div>
@@ -6183,8 +4707,10 @@ export default function TestLocalTableKatim({
                                             }`}
                                           />
                                           {isCum &&
-                                            rowIdxNum !== undefined &&
-                                            rowIdxNum > 0 && (
+                                            (isDetilCol
+                                              ? true
+                                              : rowIdxNum !== undefined &&
+                                                rowIdxNum > 0) && (
                                               <div className="mt-1 flex items-center justify-between px-1 text-[10px] text-slate-500 font-mono">
                                                 <span className="text-[9px] text-slate-400">
                                                   Kumulatif:
@@ -6302,1585 +4828,128 @@ export default function TestLocalTableKatim({
               </table>
             </div>
 
-            {/* Catatan Dokumen (khususnya untuk Caput RO) */}
-            {(activeTab?.id === 70 ||
-              activeTab?.title?.toLowerCase().includes("caput ro")) && (
-              <div className="m-4 flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 text-xs text-blue-900 shadow-2xs">
-                <Icon
-                  icon="solar:info-circle-bold"
-                  className="size-4 shrink-0 text-blue-600 mt-0.5"
-                />
-                <div className="leading-relaxed">
-                  <strong className="font-bold text-blue-950">
-                    Catatan Dokumen:
-                  </strong>{" "}
-                  Data Realisasi RO Sampel Obat, OBA, SK dan Kos dihitung dari
-                  data Realisasi Sampling tiap bulannya.
-                </div>
-              </div>
-            )}
-
-            {/* Legend untuk Indeks KIE */}
-            {(activeTab?.id === 135 ||
-              activeTab?.title?.toLowerCase().includes("indeks kie")) && (
-              <div className="m-4 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5 shadow-2xs">
-                <div className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                  Keterangan Dokumen:
-                </div>
-                <div className="flex flex-wrap items-center gap-6 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="size-4 rounded bg-[#418ab3] shadow-xs inline-block" />
-                    <span className="font-bold text-[#1f4e78]">Ibu Win</span>
-                    <span className="text-slate-500 text-[11px]">
-                      (Evaluasi Survey Tatap Muka & Media - Skala 4)
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="size-4 rounded bg-[#70ad47] shadow-xs inline-block" />
-                    <span className="font-bold text-[#385723]">Rumus</span>
-                    <span className="text-slate-500 text-[11px]">
-                      (Dihitung Otomatis: Indeks Tatap Muka, Indeks Media, Total
-                      Responden, Indeks Rata-rata, %Capaian)
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Catatan Dokumen (Caput RO) & Legend (Indeks KIE) */}
+            <TableLegendNotes activeTab={activeTab} />
 
             {/* Pagination Toolbar */}
-            {isPaginationNeeded && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/90 px-5 py-3.5 rounded-b-2xl">
-                <div className="flex items-center gap-3 text-xs text-slate-600">
-                  <span>
-                    Menampilkan{" "}
-                    <span className="font-bold text-slate-900">
-                      {totalRows === 0
-                        ? 0
-                        : (safeCurrentPage - 1) * (pageSize || 1) + 1}
-                    </span>{" "}
-                    -{" "}
-                    <span className="font-bold text-slate-900">
-                      {Math.min(safeCurrentPage * (pageSize || 1), totalRows)}
-                    </span>{" "}
-                    dari{" "}
-                    <span className="font-bold text-slate-900">
-                      {totalRows}
-                    </span>{" "}
-                    baris
-                    {selectedMonthFilter !== "all" && (
-                      <span className="ml-1 text-emerald-700 font-semibold">
-                        ({selectedMonthFilter})
-                      </span>
-                    )}
-                  </span>
-                  <div className="flex items-center gap-1.5 ml-2">
-                    <span className="text-[11px] text-slate-500">Baris:</span>
-                    <select
-                      value={pageSize}
-                      onChange={(e) => {
-                        setPageSize(Number(e.target.value));
-                        setCurrentPage(1);
-                        scrollToTableTop();
-                      }}
-                      className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-2xs focus:border-emerald-600 focus:outline-none cursor-pointer"
-                    >
-                      <option value={10}>10</option>
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                      <option value={100}>100</option>
-                      <option value={200}>200</option>
-                      <option value={0}>Semua ({totalRows})</option>
-                    </select>
-                  </div>
-                </div>
-
-                {pageSize > 0 && totalPages > 1 && (
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCurrentPage(1);
-                        scrollToTableTop();
-                      }}
-                      disabled={safeCurrentPage === 1}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
-                      title="Halaman Pertama"
-                    >
-                      <Icon
-                        icon="solar:double-alt-arrow-left-linear"
-                        width={16}
-                      />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCurrentPage((p) => Math.max(p - 1, 1));
-                        scrollToTableTop();
-                      }}
-                      disabled={safeCurrentPage === 1}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
-                      title="Halaman Sebelumnya"
-                    >
-                      <Icon icon="solar:alt-arrow-left-linear" width={16} />
-                    </button>
-
-                    <div className="flex items-center gap-1 px-1">
-                      {getPageNumbers(safeCurrentPage, totalPages).map(
-                        (p, pIdx) =>
-                          p === "..." ? (
-                            <span
-                              key={`dots-${pIdx}`}
-                              className="px-1 text-xs text-slate-400"
-                            >
-                              ...
-                            </span>
-                          ) : (
-                            <button
-                              key={`page-${p}-${pIdx}`}
-                              type="button"
-                              onClick={() => {
-                                setCurrentPage(Number(p));
-                                scrollToTableTop();
-                              }}
-                              className={`h-8 min-w-[32px] px-2 rounded-lg text-xs font-bold transition shadow-2xs ${
-                                safeCurrentPage === Number(p)
-                                  ? "bg-emerald-600 text-white shadow-emerald-600/20"
-                                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                              }`}
-                            >
-                              {p}
-                            </button>
-                          ),
-                      )}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCurrentPage((p) => Math.min(p + 1, totalPages));
-                        scrollToTableTop();
-                      }}
-                      disabled={safeCurrentPage === totalPages}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
-                      title="Halaman Selanjutnya"
-                    >
-                      <Icon icon="solar:alt-arrow-right-linear" width={16} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCurrentPage(totalPages);
-                        scrollToTableTop();
-                      }}
-                      disabled={safeCurrentPage === totalPages}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
-                      title="Halaman Terakhir"
-                    >
-                      <Icon
-                        icon="solar:double-alt-arrow-right-linear"
-                        width={16}
-                      />
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+            <TablePagination
+              isPaginationNeeded={isPaginationNeeded}
+              totalRows={totalRows}
+              safeCurrentPage={safeCurrentPage}
+              pageSize={pageSize}
+              totalPages={totalPages}
+              selectedMonthFilter={selectedMonthFilter}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setCurrentPage(1);
+              }}
+              onPageChange={(newPage) => {
+                setCurrentPage(newPage);
+              }}
+              onScrollToTop={scrollToTableTop}
+            />
           </>
         )}
       </div>
 
       {/* Modal Kelola Catatan Kolaboratif (Kendala & RTL PIC) */}
-      {collabModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs">
-          <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-200">
-            {/* Modal Header */}
-            <div className="flex items-start justify-between border-b border-slate-200 bg-gradient-to-r from-emerald-50/80 via-white to-slate-50 px-6 py-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white">
-                    <Icon icon="solar:chat-round-dots-bold" width={18} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900">
-                      Kelola Catatan PIC: {collabModal.colLabel}
-                    </h3>
-                    <p className="text-[11px] text-slate-500">
-                      {collabModal.monthName} • Kolom [{collabModal.colLetter}]
-                    </p>
-                  </div>
-                </div>
-              </div>
+      <CollabNotesModal
+        modal={collabModal}
+        user={user}
+        isPicUser={isPicUser}
+        savingCollab={savingCollab}
+        onClose={() => setCollabModal(null)}
+        onUpdateModal={setCollabModal}
+        onSaveEditedNote={handleSaveEditedCollabNote}
+        onDeleteNote={handleDeleteCollabNote}
+        onSave={handleSaveCollabModal}
+      />
 
-              <button
-                type="button"
-                onClick={() => setCollabModal(null)}
-                className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-              >
-                <Icon icon="solar:close-circle-bold" width={22} />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-5">
-              {/* Info Aturan Penomoran & Penanda PIC */}
-              <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3 text-xs text-emerald-900 flex items-start gap-2.5">
-                <Icon
-                  icon="solar:info-circle-bold"
-                  width={18}
-                  className="text-emerald-600 shrink-0 mt-0.5"
-                />
-                <div className="space-y-0.5 leading-relaxed text-[11px]">
-                  <strong>Sistem Penanda Otomatis PIC:</strong> Setiap catatan
-                  yang ditambahkan akan otomatis diberi nomor urut dan penanda
-                  nama PIC{" "}
-                  <code className="bg-white/90 px-1.5 py-0.5 rounded font-mono font-bold text-emerald-800">
-                    + {user?.name || "Nama Anda"}
-                  </code>{" "}
-                  di akhir kalimat. Penambahan oleh PIC lain akan melanjutkan
-                  nomor berikutnya secara aman tanpa menghapus catatan
-                  sebelumnya.
-                </div>
-              </div>
-
-              {/* Daftar Catatan yang Ada */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    Daftar Catatan Terdaftar ({collabModal.notes.length})
-                  </h4>
-                </div>
-
-                {collabModal.notes.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-xs text-slate-400">
-                    <Icon
-                      icon="solar:document-text-linear"
-                      width={28}
-                      className="mx-auto mb-1.5 text-slate-300"
-                    />
-                    Belum ada catatan pada periode ini.
-                  </div>
-                ) : (
-                  <div className="space-y-2.5">
-                    {collabModal.notes.map((note, nIdx) => {
-                      const isCurrentUserAuthor = Boolean(
-                        user?.name &&
-                        note.author &&
-                        (note.author
-                          .toLowerCase()
-                          .includes(user.name.toLowerCase()) ||
-                          user.name
-                            .toLowerCase()
-                            .includes(note.author.toLowerCase())),
-                      );
-                      const isEditingThis = collabModal.editingIndex === nIdx;
-
-                      return (
-                        <div
-                          key={nIdx}
-                          className={`rounded-xl border p-3.5 transition ${
-                            isCurrentUserAuthor
-                              ? "border-emerald-200 bg-emerald-50/30"
-                              : "border-slate-200 bg-white"
-                          }`}
-                        >
-                          {isEditingThis ? (
-                            <div className="space-y-2">
-                              <textarea
-                                value={collabModal.editingText}
-                                onChange={(e) =>
-                                  setCollabModal({
-                                    ...collabModal,
-                                    editingText: e.target.value,
-                                  })
-                                }
-                                rows={2}
-                                className="w-full rounded-lg border border-emerald-300 p-2 text-xs text-slate-900 focus:border-emerald-600 focus:outline-none"
-                              />
-                              <div className="flex justify-end gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setCollabModal({
-                                      ...collabModal,
-                                      editingIndex: null,
-                                      editingText: "",
-                                    })
-                                  }
-                                  className="rounded-lg px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-100"
-                                >
-                                  Batal
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleSaveEditedCollabNote(nIdx)
-                                  }
-                                  className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-700"
-                                >
-                                  Simpan Perubahan
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex items-start gap-2.5">
-                                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-700">
-                                  {nIdx + 1}
-                                </span>
-                                <div className="space-y-1">
-                                  <p className="text-xs text-slate-800 leading-relaxed font-medium">
-                                    {note.text}
-                                  </p>
-                                  <div className="flex items-center gap-1.5">
-                                    {isCurrentUserAuthor ? (
-                                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                                        <Icon
-                                          icon="solar:user-bold"
-                                          width={11}
-                                        />
-                                        Anda (+ {note.author || user?.name})
-                                      </span>
-                                    ) : (
-                                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-semibold text-[#005baa]">
-                                        <Icon
-                                          icon="solar:user-linear"
-                                          width={11}
-                                        />
-                                        + {note.author || "PIC"}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Katim hanya dapat mengubah/menghapus catatannya sendiri; PIC/Admin semua catatan */}
-                              {!collabModal.isLocked &&
-                                (isCurrentUserAuthor || isPicUser) && (
-                                <div className="flex items-center gap-1 shrink-0">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setCollabModal({
-                                        ...collabModal,
-                                        editingIndex: nIdx,
-                                        editingText: note.text,
-                                      })
-                                    }
-                                    title="Edit catatan ini"
-                                    className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-emerald-600"
-                                  >
-                                    <Icon icon="solar:pen-bold" width={14} />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteCollabNote(nIdx)}
-                                    title="Hapus catatan ini"
-                                    className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
-                                  >
-                                    <Icon
-                                      icon="solar:trash-bin-trash-bold"
-                                      width={14}
-                                    />
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Form Tambah Catatan Baru */}
-              {!collabModal.isLocked ? (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50/20 p-4 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-bold text-slate-800">
-                      {collabModal.notes.length === 0
-                        ? `Tulis Catatan ${collabModal.colLabel} Baru`
-                        : `Tambah Catatan Baru (Nomor #${collabModal.notes.length + 1})`}
-                    </label>
-                    <span className="text-[11px] text-slate-500">
-                      Disimpan atas nama:{" "}
-                      <strong className="text-slate-800">
-                        + {user?.name || "Anda"}
-                      </strong>
-                    </span>
-                  </div>
-
-                  <textarea
-                    value={collabModal.newNoteText}
-                    onChange={(e) =>
-                      setCollabModal({
-                        ...collabModal,
-                        newNoteText: e.target.value,
-                      })
-                    }
-                    placeholder="Tuliskan kendala atau rencana tindak lanjut di sini..."
-                    rows={3}
-                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-900 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
-                  />
-                  <div className="text-[11px] text-slate-500 italic">
-                    Cukup tulis di sini, lalu klik tombol{" "}
-                    <strong>&quot;Simpan&quot;</strong> di bawah untuk langsung menyimpan
-                    ke database dan menampilkan ke tabel.
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center text-xs text-slate-500">
-                  Kolom atau bulan ini sedang dalam status terkunci, hanya dapat
-                  melihat catatan terdaftar.
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer - HANYA 1 TOMBOL SIMPAN & 1 TOMBOL BATAL */}
-            <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-3.5">
-              <div className="text-xs text-slate-500 flex items-center gap-1.5">
-                <Icon
-                  icon="solar:info-circle-linear"
-                  width={14}
-                  className="text-slate-400"
-                />
-                <span>
-                  Penanda PIC:{" "}
-                  <strong className="text-slate-700">
-                    +{user?.name || "Anda"}
-                  </strong>
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setCollabModal(null)}
-                  disabled={savingCollab}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
-                >
-                  Batal
-                </button>
-                {!collabModal.isLocked && (
-                  <button
-                    type="button"
-                    disabled={savingCollab}
-                    onClick={handleSaveCollabModal}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
-                    title="Simpan langsung ke database dan tampilkan di tabel"
-                  >
-                    {savingCollab ? (
-                      <>
-                        <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent" />
-                        <span>Menyimpan...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Icon icon="solar:diskette-bold" width={16} />
-                        <span>Simpan</span>
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Import Data Excel */}
-      {showExcelModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Header Modal */}
-            <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-6 py-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 border border-emerald-200 shrink-0">
-                  <Icon icon="ri:file-excel-2-fill" width={22} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">
-                    Import Data dari File Excel
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Tab:{" "}
-                    <span className="font-semibold text-emerald-700">
-                      {activeTab?.title}
-                    </span>{" "}
-                    {selectedMonthFilter !== "all"
-                      ? `• Bulan: ${selectedMonthFilter}`
-                      : ""}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowExcelModal(false);
-                  setExcelFile(null);
-                  setExcelParsedRows([]);
-                  setExcelError(null);
-                }}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-white hover:text-slate-600 transition"
-              >
-                <Icon icon="solar:close-circle-bold" width={20} />
-              </button>
-            </div>
-
-            {/* Isi Modal */}
-            <div className="p-6 space-y-5 overflow-y-auto">
-              {/* Langkah 1: Unduh Format Template */}
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white">
-                      1
-                    </span>
-                    <h4 className="text-xs font-bold text-emerald-950">
-                      Unduh Format Template Excel
-                    </h4>
-                  </div>
-                  <p className="text-[11px] text-emerald-800 ml-7">
-                    Gunakan template ini agar susunan kolom sesuai dengan tab{" "}
-                    <strong>{activeTab?.title}</strong>.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleDownloadExcelTemplate}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-600 bg-white px-3 py-1.5 text-xs font-bold text-emerald-800 shadow-2xs hover:bg-emerald-100 transition shrink-0"
-                >
-                  <Icon icon="solar:download-square-bold" width={16} />
-                  <span>Unduh Template (.xlsx)</span>
-                </button>
-              </div>
-
-              {/* Langkah 2: Mode Penyimpanan */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-700 text-[10px] font-bold text-white">
-                    2
-                  </span>
-                  <label className="text-xs font-bold text-slate-800">
-                    Pilih Strategi Penyimpanan:
-                  </label>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 ml-7">
-                  <label
-                    className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition ${
-                      excelMode === "append"
-                        ? "border-emerald-500 bg-emerald-50/50 text-emerald-900"
-                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="excelMode"
-                      value="append"
-                      checked={excelMode === "append"}
-                      onChange={() => setExcelMode("append")}
-                      className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
-                    />
-                    <div>
-                      <p className="text-xs font-bold">
-                        Tambahkan Data (Append)
-                      </p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
-                        Menambahkan baris dari file Excel tanpa menghapus data
-                        yang sudah ada sebelumnya.
-                      </p>
-                    </div>
-                  </label>
-
-                  <label
-                    className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition ${
-                      excelMode === "replace"
-                        ? "border-amber-500 bg-amber-50/50 text-amber-900"
-                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="excelMode"
-                      value="replace"
-                      checked={excelMode === "replace"}
-                      onChange={() => setExcelMode("replace")}
-                      className="mt-0.5 text-amber-600 focus:ring-amber-500"
-                    />
-                    <div>
-                      <p className="text-xs font-bold">
-                        Ganti Data (
-                        {selectedMonthFilter !== "all"
-                          ? `Bulan ${selectedMonthFilter}`
-                          : "Semua Data"}
-                        )
-                      </p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
-                        Menimpa data{" "}
-                        {selectedMonthFilter !== "all"
-                          ? `pada bulan ${selectedMonthFilter}`
-                          : "pada seluruh tab ini"}{" "}
-                        dengan baris baru dari Excel.
-                      </p>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              {/* Langkah 3: Unggah File */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-700 text-[10px] font-bold text-white">
-                    3
-                  </span>
-                  <label className="text-xs font-bold text-slate-800">
-                    Unggah File Excel yang Telah Diisi:
-                  </label>
-                </div>
-                <div className="ml-7">
-                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer bg-slate-50/50 hover:bg-slate-100/70 transition p-4">
-                    <Icon
-                      icon="ri:file-excel-2-line"
-                      width={32}
-                      className="text-emerald-600 mb-2"
-                    />
-                    <span className="text-xs font-semibold text-slate-700">
-                      {excelFile
-                        ? excelFile.name
-                        : "Klik atau seret file Excel ke sini (.xlsx, .xls, .csv)"}
-                    </span>
-                    <span className="text-[11px] text-slate-400 mt-0.5">
-                      {excelFile
-                        ? `${(excelFile.size / 1024).toFixed(1)} KB`
-                        : "Mendukung pengisian banyak baris sekaligus"}
-                    </span>
-                    <input
-                      type="file"
-                      accept=".xlsx, .xls, .csv"
-                      className="hidden"
-                      onChange={handleExcelFileSelect}
-                    />
-                  </label>
-                </div>
-              </div>
-
-              {/* Pesan Kesalahan File */}
-              {excelError && (
-                <div className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800 ml-7">
-                  <Icon
-                    icon="solar:danger-circle-bold"
-                    width={16}
-                    className="text-rose-600 shrink-0 mt-0.5"
-                  />
-                  <span>{excelError}</span>
-                </div>
-              )}
-
-              {/* Tabel Pratinjau Baris Terbaca */}
-              {excelParsedRows.length > 0 && (
-                <div className="space-y-2 ml-7">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-emerald-800 flex items-center gap-1.5">
-                      <Icon
-                        icon="solar:check-circle-bold"
-                        width={15}
-                        className="text-emerald-600"
-                      />
-                      Ditemukan {excelParsedRows.length} baris data siap diimpor
-                    </span>
-                    <span className="text-[11px] text-slate-400">
-                      Pratinjau {Math.min(3, excelParsedRows.length)} baris
-                      pertama:
-                    </span>
-                  </div>
-                  <div className="max-h-40 overflow-x-auto overflow-y-auto rounded-lg border border-slate-200 bg-white text-[11px]">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-slate-100 text-slate-700 border-b border-slate-200">
-                          {effectiveColumnsSchema.slice(0, 6).map((c) => (
-                            <th
-                              key={c.key}
-                              className="px-2.5 py-1.5 font-semibold whitespace-nowrap"
-                            >
-                              {c.label}
-                            </th>
-                          ))}
-                          {effectiveColumnsSchema.length > 6 && (
-                            <th className="px-2.5 py-1.5 font-semibold text-slate-400">
-                              ...
-                            </th>
-                          )}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {excelParsedRows.slice(0, 3).map((r, i) => (
-                          <tr key={i} className="hover:bg-slate-50">
-                            {effectiveColumnsSchema.slice(0, 6).map((c) => (
-                              <td
-                                key={c.key}
-                                className="px-2.5 py-1 text-slate-600 max-w-[150px] truncate whitespace-nowrap"
-                              >
-                                {String(r.cells?.[c.key] ?? "-")}
-                              </td>
-                            ))}
-                            {effectiveColumnsSchema.length > 6 && (
-                              <td className="px-2.5 py-1 text-slate-400">
-                                ...
-                              </td>
-                            )}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Footer Modal */}
-            <div className="flex items-center justify-end gap-2.5 border-t border-slate-200 bg-slate-50 px-6 py-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowExcelModal(false);
-                  setExcelFile(null);
-                  setExcelParsedRows([]);
-                  setExcelError(null);
-                }}
-                disabled={excelSaving}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-100 transition"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveExcelImport}
-                disabled={excelParsedRows.length === 0 || excelSaving}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50 transition"
-              >
-                {excelSaving ? (
-                  <>
-                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent" />
-                    <span>Menyimpan ke Database...</span>
-                  </>
-                ) : (
-                  <>
-                    <Icon icon="solar:diskette-bold" width={15} />
-                    <span>
-                      Simpan{" "}
-                      {excelParsedRows.length > 0
-                        ? `${excelParsedRows.length} Baris `
-                        : ""}
-                      ke Database
-                    </span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal Import Data Excel (Tab) */}
+      <ExcelTabImportModal
+        isOpen={showExcelModal}
+        activeTab={activeTab}
+        selectedMonthFilter={selectedMonthFilter}
+        effectiveColumnsSchema={effectiveColumnsSchema}
+        excelFile={excelFile}
+        excelParsedRows={excelParsedRows}
+        excelMode={excelMode}
+        excelSaving={excelSaving}
+        excelError={excelError}
+        onClose={() => {
+          setShowExcelModal(false);
+          setExcelFile(null);
+          setExcelParsedRows([]);
+          setExcelError(null);
+        }}
+        onDownloadTemplate={handleDownloadExcelTemplate}
+        onFileSelect={handleExcelFileSelect}
+        onModeChange={setExcelMode}
+        onSave={handleSaveExcelImport}
+      />
 
       {/* Modal Peringatan Validasi Kendala & RTL Belum Diisi */}
-      {validationModal && validationModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Header Modal */}
-            <div className="flex items-center justify-between border-b border-slate-200 bg-amber-50/70 px-6 py-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-600 border border-amber-200 shrink-0">
-                  <Icon icon="solar:danger-triangle-bold" width={22} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800">
-                    Kendala & RTL Belum Diisi
-                  </h3>
-                  <p className="text-[11px] font-semibold text-amber-700">
-                    {validationModal.monthName}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setValidationModal(null)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-white hover:text-slate-600 transition"
-              >
-                <Icon icon="solar:close-circle-bold" width={20} />
-              </button>
-            </div>
+      <ValidationModal
+        modal={validationModal}
+        activeTab={activeTab}
+        onClose={() => setValidationModal(null)}
+        onCompleteMissing={(rKey, targetCol, val, mName, canEdit, rIdx) => {
+          handleOpenCollabModal(rKey, targetCol, val, mName, canEdit, rIdx);
+        }}
+      />
 
-            {/* Isi Modal */}
-            <div className="p-6 space-y-4">
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Penyimpanan data <strong>belum dapat diproses</strong> karena
-                Anda telah menginputkan capaian data pada periode ini, namun
-                kolom <strong>Kendala</strong> dan/atau{" "}
-                <strong>Rencana Tindak Lanjut (RTL)</strong> belum diisi.
-              </p>
+      {/* Modal Kontribusi Angka Kolaboratif Multi-Katim */}
+      <CollabNumModal
+        modal={collabNumModal}
+        katims={katims}
+        user={user}
+        activeTab={activeTab}
+        onClose={() => setCollabNumModal(null)}
+        onMyValueChange={(val) => {
+          if (collabNumModal) {
+            setCollabNumModal({
+              ...collabNumModal,
+              myValue: val,
+            });
+          }
+        }}
+        onSave={handleSaveCollabNumModal}
+      />
 
-              {/* Status Checklist Box */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-2.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium text-slate-600">
-                    Kolom Data Pengisian
-                  </span>
-                  <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md text-[11px]">
-                    <Icon
-                      icon="solar:check-circle-bold"
-                      width={14}
-                      className="text-emerald-600"
-                    />
-                    Sudah Diisi
-                  </span>
-                </div>
+      {/* Modal Upload / Import Excel (Dokumen / Tab) */}
+      <ExcelUploadModal
+        isOpen={showUploadModal}
+        activeTab={activeTab}
+        uploadMode={uploadMode}
+        uploadFile={uploadFile}
+        uploadError={uploadError}
+        uploadInfo={uploadInfo}
+        uploading={uploading}
+        checkingUpload={checkingUpload}
+        onClose={closeUploadModal}
+        onModeChange={(mode) => {
+          setUploadMode(mode);
+          setUploadError("");
+          setUploadInfo("");
+        }}
+        onFileSelect={(picked, fileErr) => {
+          setUploadInfo("");
+          if (fileErr) {
+            setUploadFile(null);
+            setUploadError(fileErr);
+            return;
+          }
+          setUploadError("");
+          setUploadFile(picked);
+        }}
+        onSubmit={handleRequestUploadExcel}
+      />
 
-                <div className="flex items-center justify-between text-xs border-t border-slate-200/60 pt-2">
-                  <span className="font-medium text-slate-700">
-                    Kolom Kendala
-                  </span>
-                  {validationModal.isKendalaMissing ? (
-                    <span className="inline-flex items-center gap-1 font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md text-[11px] animate-pulse">
-                      <Icon
-                        icon="solar:close-circle-bold"
-                        width={14}
-                        className="text-rose-600"
-                      />
-                      Belum Diisi (Wajib)
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md text-[11px]">
-                      <Icon
-                        icon="solar:check-circle-bold"
-                        width={14}
-                        className="text-emerald-600"
-                      />
-                      Sudah Terisi
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between text-xs border-t border-slate-200/60 pt-2">
-                  <span className="font-medium text-slate-700">
-                    Kolom Rencana Tindak Lanjut (RTL)
-                  </span>
-                  {validationModal.isRtlMissing ? (
-                    <span className="inline-flex items-center gap-1 font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md text-[11px] animate-pulse">
-                      <Icon
-                        icon="solar:close-circle-bold"
-                        width={14}
-                        className="text-rose-600"
-                      />
-                      Belum Diisi (Wajib)
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md text-[11px]">
-                      <Icon
-                        icon="solar:check-circle-bold"
-                        width={14}
-                        className="text-emerald-600"
-                      />
-                      Sudah Terisi
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-900">
-                <Icon
-                  icon="solar:info-circle-bold"
-                  width={16}
-                  className="text-amber-600 shrink-0 mt-0.5"
-                />
-                <p className="text-[11px] leading-relaxed">
-                  Sesuai ketentuan pelaporan RHPK, saat melakukan pengisian data
-                  realisasi pertama kali di bulan tersebut, Anda wajib
-                  melengkapi kendala yang dihadapi serta rencana tindak lanjut
-                  (RTL) penyelesaiannya. Jika Kendala dan RTL telah terisi, Anda
-                  dapat menyimpan perubahan meskipun belum semua kolom dalam
-                  sebaris selesai terisi.
-                </p>
-              </div>
-            </div>
-
-            {/* Footer Modal */}
-            <div className="flex items-center justify-end gap-2.5 border-t border-slate-200 bg-slate-50/60 px-6 py-4">
-              <button
-                type="button"
-                onClick={() => setValidationModal(null)}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
-              >
-                Tutup
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const targetCol = validationModal.isKendalaMissing
-                    ? validationModal.kendalaCol
-                    : validationModal.rtlCol;
-                  const rIdx = validationModal.rowIndex;
-                  const rKey = validationModal.rowKey;
-                  const mName = validationModal.monthName;
-                  setValidationModal(null);
-
-                  if (targetCol && activeTab) {
-                    const row = activeTab.rows_data[rIdx];
-                    const val = row?.cells?.[targetCol.key];
-                    handleOpenCollabModal(
-                      rKey,
-                      targetCol,
-                      val,
-                      mName,
-                      true,
-                      rIdx,
-                    );
-                  }
-                }}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700 transition"
-              >
-                <Icon icon="solar:pen-new-square-bold" width={15} />
-                <span>
-                  Lengkapi{" "}
-                  {validationModal.isKendalaMissing ? "Kendala" : "RTL"}{" "}
-                  Sekarang
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Kontribusi Angka Kolaboratif Multi-Katim (Point 6) */}
-      {collabNumModal && collabNumModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 bg-indigo-50/70 px-6 py-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 border border-indigo-200 shrink-0">
-                  <Icon icon="solar:users-group-rounded-bold" width={22} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-slate-800">
-                      Rincian Kontribusi Angka Katim
-                    </h3>
-                    {!collabNumModal.canEdit && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 border border-amber-200">
-                        <Icon icon="solar:lock-bold" width={11} />
-                        Terkunci (Mode Lihat)
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] font-semibold text-indigo-700">
-                    {collabNumModal.col.label} &bull; {collabNumModal.monthName}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCollabNumModal(null)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-white hover:text-slate-600 transition cursor-pointer"
-              >
-                <Icon icon="solar:close-circle-bold" width={20} />
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="p-6 space-y-4">
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Kolom ini dikerjakan secara kolaboratif oleh beberapa Katim.
-                Setiap Katim menginput angka kontribusinya masing-masing, dan
-                sistem secara otomatis mengakumulasikan nilai akhirnya.
-              </p>
-
-              {/* Rincian Kontributor yang Terdaftar */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-700">
-                  Daftar Kontribusi per Katim:
-                </label>
-                <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden bg-slate-50/50 max-h-56 overflow-y-auto">
-                  {collabNumModal.col.allowed_katim_ids &&
-                  collabNumModal.col.allowed_katim_ids.length > 0 ? (
-                    collabNumModal.col.allowed_katim_ids.map(
-                      (kId: string | number) => {
-                        const strId = String(kId);
-                        const katimProfile = katims.find(
-                          (k: any) =>
-                            String(k.user_id) === strId ||
-                            String(k.id) === strId,
-                        );
-                        const contrib = collabNumModal.contributors[strId];
-                        const isMe = user?.id && String(user.id) === strId;
-
-                        return (
-                          <div
-                            key={strId}
-                            className={`p-3 flex items-center justify-between text-xs ${isMe ? "bg-indigo-50/50 font-medium" : ""}`}
-                          >
-                            <div className="flex items-center gap-2.5">
-                              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 font-bold text-[11px] shrink-0">
-                                {(
-                                  katimProfile?.name ||
-                                  contrib?.author ||
-                                  "K"
-                                ).charAt(0)}
-                              </span>
-                              <div>
-                                <div className="font-semibold text-slate-800 flex items-center gap-1.5">
-                                  <span>
-                                    {katimProfile?.name ||
-                                      contrib?.author ||
-                                      `Katim (${strId.substring(0, 8)}...)`}
-                                  </span>
-                                  {isMe && (
-                                    <span className="px-1.5 py-0.2 rounded bg-indigo-200 text-indigo-800 text-[9px] font-bold">
-                                      Anda
-                                    </span>
-                                  )}
-                                </div>
-                                {contrib?.updated_at && (
-                                  <span className="text-[10px] text-slate-400">
-                                    Diperbarui:{" "}
-                                    {new Date(
-                                      contrib.updated_at,
-                                    ).toLocaleString("id-ID", {
-                                      dateStyle: "short",
-                                      timeStyle: "short",
-                                    })}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <span className="font-mono font-bold text-sm text-slate-900">
-                                {contrib?.value !== undefined
-                                  ? contrib.value
-                                  : 0}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      },
-                    )
-                  ) : (
-                    <div className="p-3 text-xs text-slate-400 text-center">
-                      Belum ada penugasan Katim spesifik.
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Input Bagian Saya atau Status Terkunci */}
-              {collabNumModal.canEdit ? (
-                <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 space-y-2">
-                  <label className="block text-xs font-bold text-indigo-950">
-                    Input / Ubah Angka Kontribusi Anda (
-                    {user?.name || user?.call_name || "Katim"}):
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      step="any"
-                      value={collabNumModal.myValue}
-                      onChange={(e) =>
-                        setCollabNumModal({
-                          ...collabNumModal,
-                          myValue: e.target.value,
-                        })
-                      }
-                      placeholder="Masukkan angka..."
-                      className="flex-1 rounded-lg border border-indigo-300 bg-white px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4 space-y-1.5">
-                  <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
-                    <Icon
-                      icon="solar:lock-bold"
-                      width={14}
-                      className="text-amber-700"
-                    />
-                    <span>
-                      Periode {collabNumModal.monthName} Terkunci (Mode Lihat
-                      Saja)
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-amber-800 leading-relaxed">
-                    Data periode ini telah dikunci oleh Administrator / Tim
-                    Kerja TU sehingga Anda hanya dapat melihat rincian
-                    kontribusi tanpa mengubah angka.
-                  </p>
-                  {collabNumModal.myValue !== "" && (
-                    <div className="pt-2 mt-2 border-t border-amber-200 flex items-center justify-between text-xs">
-                      <span className="font-semibold text-amber-950">
-                        Kontribusi Anda Tercatat:
-                      </span>
-                      <span className="font-mono font-bold text-amber-900 bg-white px-2.5 py-0.5 rounded-lg border border-amber-300 shadow-2xs">
-                        {collabNumModal.myValue}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Total Summary */}
-              {(() => {
-                const isCum = isCumulativeCol(collabNumModal.col);
-                const myId = user?.id ? String(user.id) : "temp_me";
-                const myVal =
-                  parseFloat(
-                    String(collabNumModal.myValue).replace(",", "."),
-                  ) || 0;
-                let monthSum = 0;
-                Object.entries(collabNumModal.contributors).forEach(
-                  ([k, c]: [string, any]) => {
-                    if (k !== myId)
-                      monthSum += parseFloat(String(c?.value || 0)) || 0;
-                  },
-                );
-                monthSum += myVal;
-
-                const prevCumulative =
-                  isCum && activeTab?.rows_data && collabNumModal.rowIndex > 0
-                    ? Number(
-                        activeTab.rows_data[collabNumModal.rowIndex - 1]
-                          ?.cells?.[collabNumModal.col.key] || 0,
-                      )
-                    : 0;
-                const finalCumulative = isCum
-                  ? prevCumulative + monthSum
-                  : monthSum;
-
-                return (
-                  <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-xs font-bold text-slate-700">
-                          Total Kontribusi Bulan Ini ({collabNumModal.monthName}
-                          )
-                        </span>
-                        <p className="text-[10px] text-slate-400">
-                          Hasil penjumlahan kontribusi Anda + Katim lainnya pada
-                          bulan ini
-                        </p>
-                      </div>
-                      <span className="text-sm font-bold font-mono text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-lg">
-                        +{monthSum}
-                      </span>
-                    </div>
-
-                    {isCum && collabNumModal.rowIndex > 0 && (
-                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                        <div>
-                          <span className="text-xs font-bold text-emerald-800">
-                            Total Kumulatif Akhir s.d. Bulan Ini
-                          </span>
-                          <p className="text-[10px] text-slate-400">
-                            Akumulasi bulan lalu ({prevCumulative}) + Bulan ini
-                            ({monthSum})
-                          </p>
-                        </div>
-                        <span className="text-base font-extrabold font-mono text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-lg">
-                          ∑ {finalCumulative}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Footer */}
-            <div className="flex items-center justify-end gap-2.5 border-t border-slate-200 bg-slate-50/80 px-6 py-4">
-              <button
-                type="button"
-                onClick={() => setCollabNumModal(null)}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-              >
-                {collabNumModal.canEdit ? "Batal" : "Tutup"}
-              </button>
-              {collabNumModal.canEdit && (
-                <button
-                  type="button"
-                  onClick={handleSaveCollabNumModal}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-2 text-xs font-bold text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700 transition cursor-pointer"
-                >
-                  <Icon icon="solar:diskette-bold" width={16} />
-                  <span>Simpan Kontribusi</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Upload / Import Excel */}
-      {showUploadModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/80 px-6 py-4">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800">
-                  <Icon icon="solar:file-smile-bold" width={22} />
-                </span>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">
-                    Unggah / Import File Excel
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    {activeTab
-                      ? `Tab Aktif: ${activeTab.title}`
-                      : "Pilih file Excel (.xlsx / .xls)"}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={closeUploadModal}
-                disabled={uploading || checkingUpload}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 transition cursor-pointer"
-              >
-                <Icon icon="solar:close-circle-bold" width={20} />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="p-6 space-y-4">
-              {/* Pilihan Mode */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-700">
-                  Pilih Lingkup Import:
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUploadMode("tab");
-                      setUploadError("");
-                      setUploadInfo("");
-                    }}
-                    className={`flex flex-col items-start p-3 rounded-xl border text-left transition cursor-pointer ${
-                      uploadMode === "tab"
-                        ? "border-emerald-600 bg-emerald-50/50 text-emerald-950 ring-1 ring-emerald-600"
-                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    <span className="text-xs font-bold flex items-center gap-1.5">
-                      <Icon
-                        icon="solar:document-text-bold"
-                        width={15}
-                        className="text-emerald-600"
-                      />
-                      Sheet ke Tab Ini
-                    </span>
-                    <span className="text-[10px] text-slate-500 mt-1 leading-tight">
-                      Hanya perbarui tab &quot;{activeTab?.title || "aktif"}&quot; (misal
-                      KIE Medsos)
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUploadMode("spreadsheet");
-                      setUploadError("");
-                      setUploadInfo("");
-                    }}
-                    className={`flex flex-col items-start p-3 rounded-xl border text-left transition cursor-pointer ${
-                      uploadMode === "spreadsheet"
-                        ? "border-emerald-600 bg-emerald-50/50 text-emerald-950 ring-1 ring-emerald-600"
-                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    <span className="text-xs font-bold flex items-center gap-1.5">
-                      <Icon
-                        icon="solar:folder-with-files-bold"
-                        width={15}
-                        className="text-emerald-600"
-                      />
-                      Dokumen Penuh
-                    </span>
-                    <span className="text-[10px] text-slate-500 mt-1 leading-tight">
-                      Perbarui seluruh spreadsheet beserta semua sheet di
-                      dalamnya
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Area File Drop / Picker */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700">
-                  File Dokumen Excel (.xlsx / .xls):
-                </label>
-                <div className="relative rounded-2xl border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50/50 p-6 text-center transition">
-                  <input
-                    type="file"
-                    accept=".xlsx,.xls"
-                    disabled={uploading || checkingUpload}
-                    onChange={(e) => {
-                      const picked = e.target.files?.[0] || null;
-                      // reset agar file yang sama dapat dipilih ulang
-                      e.target.value = "";
-                      if (!picked) return;
-                      setUploadInfo("");
-                      const fileErr = validateExcelFile(picked);
-                      if (fileErr) {
-                        setUploadFile(null);
-                        setUploadError(fileErr);
-                        return;
-                      }
-                      setUploadError("");
-                      setUploadFile(picked);
-                    }}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                  />
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <Icon
-                      icon={
-                        uploadFile
-                          ? "solar:file-check-bold"
-                          : "solar:cloud-upload-bold"
-                      }
-                      width={36}
-                      className={
-                        uploadFile ? "text-emerald-600" : "text-slate-400"
-                      }
-                    />
-                    {uploadFile ? (
-                      <div>
-                        <p className="text-xs font-bold text-slate-800">
-                          {uploadFile.name}
-                        </p>
-                        <p className="text-[11px] text-slate-500">
-                          {(uploadFile.size / 1024).toFixed(1)} KB • Klik atau
-                          drag file lain untuk mengganti
-                        </p>
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="text-xs font-bold text-slate-700">
-                          Tarik file ke sini atau{" "}
-                          <span className="text-emerald-700 underline">
-                            pilih dari komputer
-                          </span>
-                        </p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          Format yang didukung: Microsoft Excel (.xlsx, .xls)
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50/70 p-3 text-xs text-blue-900">
-                <Icon
-                  icon="solar:info-circle-bold"
-                  width={16}
-                  className="text-blue-600 shrink-0 mt-0.5"
-                />
-                <p className="text-[11px] leading-relaxed">
-                  Unggah Excel bersifat <strong>UPDATE</strong>: data bulan
-                  yang sudah ada akan diperbarui sesuai isi file (bukan
-                  ditambahkan sebagai baris baru). Hanya data BBPOM Mataram yang
-                  diambil. Hak akses Katim dan formula otomatis tetap
-                  dipertahankan.
-                </p>
-              </div>
-
-              {uploadError && (
-                <div
-                  role="alert"
-                  className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800"
-                >
-                  <Icon
-                    icon="solar:danger-circle-bold"
-                    width={16}
-                    className="text-rose-600 shrink-0 mt-0.5"
-                  />
-                  <span className="text-[11px] leading-relaxed">
-                    {uploadError}
-                  </span>
-                </div>
-              )}
-
-              {uploadInfo && (
-                <div
-                  role="status"
-                  className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"
-                >
-                  <Icon
-                    icon="solar:info-circle-bold"
-                    width={16}
-                    className="text-amber-600 shrink-0 mt-0.5"
-                  />
-                  <span className="text-[11px] leading-relaxed">
-                    {uploadInfo}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="flex items-center justify-end gap-2.5 border-t border-slate-200 bg-slate-50/80 px-6 py-4">
-              <button
-                type="button"
-                onClick={closeUploadModal}
-                disabled={uploading || checkingUpload}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition disabled:opacity-50 cursor-pointer"
-              >
-                Batal
-              </button>
-
-              <button
-                type="button"
-                disabled={!uploadFile || uploading || checkingUpload}
-                onClick={handleRequestUploadExcel}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700 transition disabled:opacity-50 cursor-pointer"
-              >
-                {uploading || checkingUpload ? (
-                  <>
-                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-r-transparent" />
-                    <span>
-                      {uploading ? "Menyimpan..." : "Memeriksa file..."}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Icon icon="solar:diskette-bold" width={16} />
-                    <span>Simpan</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Pop-up Konfirmasi Umum ("Apakah Anda yakin?") */}
-      {confirmDialog && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200"
-          role="alertdialog"
-          aria-modal="true"
-          aria-labelledby="confirm-dialog-title"
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setConfirmDialog(null);
-          }}
-        >
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-6 space-y-4">
-              <div className="flex items-start gap-3">
-                <span
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                    confirmDialog.tone === "rose"
-                      ? "bg-rose-100 text-rose-700"
-                      : confirmDialog.tone === "amber"
-                        ? "bg-amber-100 text-amber-700"
-                        : "bg-emerald-100 text-emerald-700"
-                  }`}
-                >
-                  <Icon icon={confirmDialog.icon} width={22} />
-                </span>
-                <div className="space-y-1">
-                  <h3
-                    id="confirm-dialog-title"
-                    className="text-sm font-bold text-slate-900"
-                  >
-                    {confirmDialog.title}
-                  </h3>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    {confirmDialog.message}
-                  </p>
-                </div>
-              </div>
-
-              {confirmDialog.note && (
-                <div
-                  className={`flex items-start gap-2 rounded-xl border p-3 text-[11px] font-semibold leading-relaxed ${
-                    confirmDialog.tone === "rose"
-                      ? "border-rose-200 bg-rose-50 text-rose-800"
-                      : confirmDialog.tone === "amber"
-                        ? "border-amber-200 bg-amber-50 text-amber-900"
-                        : "border-emerald-200 bg-emerald-50 text-emerald-900"
-                  }`}
-                >
-                  <Icon
-                    icon="solar:danger-triangle-bold"
-                    width={15}
-                    className="shrink-0 mt-0.5"
-                  />
-                  <span>{confirmDialog.note}</span>
-                </div>
-              )}
-
-              {confirmDialog.details && confirmDialog.details.length > 0 && (
-                <ul className="space-y-1 rounded-xl border border-slate-200 bg-slate-50 p-3 text-[11px] text-slate-700 max-h-48 overflow-y-auto">
-                  {confirmDialog.details.map((d, i) => (
-                    <li key={i} className="flex items-start gap-1.5">
-                      <Icon
-                        icon="solar:check-read-linear"
-                        width={13}
-                        className="text-slate-400 shrink-0 mt-0.5"
-                      />
-                      <span>{d}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {confirmDialog.warnings && confirmDialog.warnings.length > 0 && (
-                <ul className="space-y-1 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-[11px] text-amber-900">
-                  {confirmDialog.warnings.map((w, i) => (
-                    <li key={i} className="flex items-start gap-1.5">
-                      <Icon
-                        icon="solar:info-circle-bold"
-                        width={13}
-                        className="text-amber-600 shrink-0 mt-0.5"
-                      />
-                      <span>{w}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            <div className="flex items-center justify-end gap-2.5 border-t border-slate-200 bg-slate-50 px-6 py-4">
-              {!confirmDialog.hideCancel && (
-                <button
-                  type="button"
-                  autoFocus
-                  onClick={() => setConfirmDialog(null)}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
-                >
-                  {confirmDialog.cancelLabel || "Batal"}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  const action = confirmDialog.onConfirm;
-                  setConfirmDialog(null);
-                  action();
-                }}
-                className={`inline-flex items-center gap-1.5 rounded-xl px-5 py-2 text-xs font-bold text-white shadow-xs transition cursor-pointer ${
-                  confirmDialog.tone === "rose"
-                    ? "bg-rose-600 hover:bg-rose-700"
-                    : confirmDialog.tone === "amber"
-                      ? "bg-amber-600 hover:bg-amber-700"
-                      : "bg-emerald-600 hover:bg-emerald-700"
-                }`}
-              >
-                {confirmDialog.confirmLabel}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Pop-up Konfirmasi Dialog */}
+      <ConfirmDialogModal
+        dialog={confirmDialog}
+        onClose={() => setConfirmDialog(null)}
+      />
     </div>
   );
 }

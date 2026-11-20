@@ -6,6 +6,7 @@ export const PENGUJIAN_BASE_URL = (
 
 export const pengujianApi = axios.create({
     baseURL: PENGUJIAN_BASE_URL,
+    withCredentials: true,
     headers: {
         "X-Requested-With": "XMLHttpRequest",
         Accept: "application/json",
