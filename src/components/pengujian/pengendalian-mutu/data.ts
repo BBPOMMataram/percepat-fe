@@ -1,4 +1,5 @@
 import { getAuthStorageUrl } from "@/utils/userPhoto";
+import { pengujianApi } from "@/components/pengujian/pengujianService";
 
 export type ChecklistStatus = "ya" | "tidak" | "na";
 
@@ -17,6 +18,17 @@ export interface ChecklistSection {
 export interface ChecklistAnswer {
     status?: ChecklistStatus;
     note?: string;
+    sectionTitle?: string;
+    itemName?: string;
+    criteria?: string;
+}
+
+export interface MasterPenyeliaItem {
+    id: number;
+    nama: string;
+    nip?: string | null;
+    jabatan?: string | null;
+    is_active: boolean;
 }
 
 export interface PengendalianMutuRecord {
@@ -29,8 +41,10 @@ export interface PengendalianMutuRecord {
     statusAkhir: "valid" | "invalid";
     checklist: Record<string, ChecklistAnswer>;
     catatanEvaluasi: string;
-    penyelia?: "IGM Aryama Jelantik, S.Si" | "Haryoudi Valorischa, S.Si";
+    penyelia?: string;
+    penyeliaId?: number;
     pengujiNama?: string;
+    pengujiNip?: string;
     pengujiSignaturePath?: string;
 }
 
@@ -48,7 +62,7 @@ export const CHECKLIST_SECTIONS: ChecklistSection[] = [
             { key: "monitoring_area", name: "Monitoring Area Kerja", criteria: "Cawan paparan udara (air settling plate) di LAF dan BSC menunjukkan < 15 CFU/cawan.", note: "Dilakukan setiap 3 bulan sekali" },
             { key: "monitoring_ruangan", name: "Monitoring Ruangan Kerja", criteria: "Cawan paparan udara (air settling plate) dan/atau uji usap (swab test) permukaan ruangan steril/bersih memenuhi batas mikroba sesuai kelas kebersihan ruang.", note: "Dilakukan setiap 6 bulan sekali" },
             { key: "monitoring_oven_inkubator", name: "Monitoring oven dan inkubator", criteria: "Suhu oven (sterilisasi kering) dan inkubator terpantau dan sesuai rentang spesifikasi metode uji (misalnya inkubator 35 ± 1 °C atau 37 ± 1 °C; oven 160–180 °C) dengan termometer terkalibrasi.", note: "Dilakukan setiap digunakan" },
-            { key: "monitoring_autoklaf", name: "Monitoring Autoklaf", criteria: "Indikator biologi (spora Geobacillus stearothermophilus) dan/atau indikator kimia (autoclave tape) menunjukkan sterilisasi efektif." , note: "Dilakukan setiap 3 bulan sekali" },
+            { key: "monitoring_autoklaf", name: "Monitoring Autoklaf", criteria: "Indikator biologi (spora Geobacillus stearothermophilus) dan/atau indikator kimia (autoclave tape) menunjukkan sterilisasi efektif.", note: "Dilakukan setiap 3 bulan sekali" },
             { key: "monitoring_kultur", name: "Monitoring Kultur Bakteri", criteria: "Kultur murni, morfologi koloni dan pewarnaan Gram sesuai karakteristik strain acuan (CRM/ATCC), reaksi biokimia sesuai spesifikasi, viabilitas baik, serta jumlah subkultur tidak melebihi 5 pasase.", note: "Dilakukan setiap bulan sekali" },
             { key: "monitoring_aquadest", name: "Monitoring Aquadest Media", criteria: "Parameter kimia dan mikrobiologi aquadest memenuhi syarat (pH 5,0–7,5, konduktivitas < 5 µS/cm, bebas zat penghambat pertumbuhan mikroba, dan TPC < 10 CFU/mL).", note: "Dilakukan setiap 6 bulan sekali" },
             { key: "gpt_media", name: "GPT (Growth Promotion Test) Media", criteria: "Media selektif/non-selektif mendukung pertumbuhan mikroba target (Productivity Ratio > 0,5 atau sesuai standar ISO 11133) dan menghambat mikroba non-target.", note: "Dilakukan setiap media dengan batch baru" },
@@ -99,44 +113,50 @@ export const CHECKLIST_SECTIONS: ChecklistSection[] = [
     },
 ];
 
-const STORAGE_KEY = "pengujian-pengendalian-mutu-v1";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isPengendalianMutuRecord(value: unknown): value is PengendalianMutuRecord {
-    if (!isRecord(value)) return false;
-    return typeof value.id === "string"
-        && typeof value.createdAt === "string"
-        && typeof value.tanggalPengujian === "string"
-        && Array.isArray(value.jenisSampel)
-        && value.jenisSampel.every((item) => typeof item === "string")
-        && typeof value.parameterPengujian === "string"
-        && (value.metodePengujian === "molekuler" || value.metodePengujian === "kultur")
-        && (value.statusAkhir === "valid" || value.statusAkhir === "invalid")
-        && isRecord(value.checklist)
-        && typeof value.catatanEvaluasi === "string"
-        && (value.penyelia === undefined || SUPERVISORS.includes(value.penyelia as typeof SUPERVISORS[number]))
-        && (value.pengujiNama === undefined || typeof value.pengujiNama === "string")
-        && (value.pengujiSignaturePath === undefined || typeof value.pengujiSignaturePath === "string");
-}
-
-export function readPengendalianMutuRecords(): PengendalianMutuRecord[] {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed) || !parsed.every(isPengendalianMutuRecord)) {
-        throw new Error("Data checklist lokal tidak valid. Hapus data browser untuk memulai kembali.");
+export async function fetchPenyeliaList(): Promise<MasterPenyeliaItem[]> {
+    try {
+        const res = await pengujianApi.get<{ success: boolean; data: MasterPenyeliaItem[] }>("/api/pengujian/pengendalian-mutu/penyelia");
+        if (res.data?.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
+            return res.data.data;
+        }
+    } catch (error) {
+        console.warn("Gagal memuat penyelia dari API, menggunakan fallback daftar lokal:", error);
     }
-
-    return parsed;
+    return SUPERVISORS.map((nama, idx) => ({
+        id: idx + 1,
+        nama,
+        is_active: true,
+    }));
 }
 
-export function savePengendalianMutuRecord(record: PengendalianMutuRecord): void {
-    const records = readPengendalianMutuRecords();
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify([record, ...records]));
+export async function fetchPengendalianMutuRecords(): Promise<PengendalianMutuRecord[]> {
+    const res = await pengujianApi.get<{ success: boolean; data: PengendalianMutuRecord[] }>("/api/pengujian/pengendalian-mutu");
+    if (!res.data?.success) {
+        throw new Error("Gagal mengambil data dari server");
+    }
+    return res.data.data || [];
+}
+
+export async function createPengendalianMutuRecord(
+    payload: Omit<PengendalianMutuRecord, "id" | "createdAt">
+): Promise<PengendalianMutuRecord> {
+    const res = await pengujianApi.post<{ success: boolean; message: string; data: PengendalianMutuRecord }>(
+        "/api/pengujian/pengendalian-mutu",
+        payload
+    );
+    if (!res.data?.success) {
+        throw new Error(res.data?.message || "Gagal menyimpan data ke server");
+    }
+    return res.data.data;
+}
+
+export async function deletePengendalianMutuRecord(id: string): Promise<void> {
+    const res = await pengujianApi.delete<{ success: boolean; message: string }>(
+        `/api/pengujian/pengendalian-mutu/${id}`
+    );
+    if (!res.data?.success) {
+        throw new Error(res.data?.message || "Gagal menghapus data dari server");
+    }
 }
 
 export function getSignatureUrl(signaturePath: string | null | undefined): string | null {

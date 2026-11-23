@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { AlertCircle, ClipboardCheck, Download, FileText } from "lucide-react";
+import { ClipboardCheck, Download, FileText, Trash2 } from "lucide-react";
 import PengendalianMutuShell from "./PengendalianMutuShell";
-import { readPengendalianMutuRecords, type PengendalianMutuRecord } from "./data";
-import { exportPengendalianMutuToExcel } from "./exportToExcel";
+import { fetchPengendalianMutuRecords, deletePengendalianMutuRecord, type PengendalianMutuRecord } from "./data";
 
 function checklistCount(record: PengendalianMutuRecord): number {
-    return Object.values(record.checklist).filter((answer) => Boolean(answer.status)).length;
+    return Object.values(record.checklist || {}).filter((answer) => Boolean(answer?.status)).length;
 }
 
 export default function PengendalianMutuList() {
@@ -16,28 +15,53 @@ export default function PengendalianMutuList() {
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
     const [exportingId, setExportingId] = useState<string | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
-    useEffect(() => {
+    const loadRecords = useCallback(async () => {
+        setIsLoading(true);
+        setErrorMessage("");
         try {
-            setRecords(readPengendalianMutuRecords());
+            const data = await fetchPengendalianMutuRecords();
+            setRecords(data);
         } catch (error) {
             console.error("Gagal membaca data checklist pengendalian mutu:", error);
-            setErrorMessage(error instanceof Error ? error.message : "Data checklist lokal tidak dapat dibaca.");
+            setErrorMessage(error instanceof Error ? error.message : "Data checklist tidak dapat dimuat dari server.");
         } finally {
             setIsLoading(false);
         }
     }, []);
 
+    useEffect(() => {
+        loadRecords();
+    }, [loadRecords]);
+
     const handleExport = async (record: PengendalianMutuRecord) => {
         setExportingId(record.id);
         setErrorMessage("");
         try {
+            const { exportPengendalianMutuToExcel } = await import("./exportToExcel");
             await exportPengendalianMutuToExcel(record);
         } catch (error) {
             console.error("Gagal mengekspor checklist pengendalian mutu:", error);
             setErrorMessage(error instanceof Error ? error.message : "Excel checklist tidak dapat dibuat.");
         } finally {
             setExportingId(null);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!window.confirm("Apakah Anda yakin ingin menghapus data checklist ini?")) {
+            return;
+        }
+        setDeletingId(id);
+        try {
+            await deletePengendalianMutuRecord(id);
+            setRecords((prev) => prev.filter((r) => r.id !== id));
+        } catch (error) {
+            console.error("Gagal menghapus data:", error);
+            alert(error instanceof Error ? error.message : "Gagal menghapus data dari server.");
+        } finally {
+            setDeletingId(null);
         }
     };
 
@@ -55,25 +79,20 @@ export default function PengendalianMutuList() {
                 </Link>
             </div>
 
-            <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-[#005baa]" />
-                <p>Data saat ini disimpan sementara di browser ini. Integrasi dengan backend akan dilakukan pada tahap berikutnya.</p>
-            </div>
-
             {errorMessage && (
                 <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{errorMessage}</div>
             )}
 
             <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
                 {isLoading ? (
-                    <div className="py-16 text-center text-sm text-slate-500">Memuat daftar checklist...</div>
+                    <div className="py-16 text-center text-sm text-slate-500">Memuat daftar checklist dari server...</div>
                 ) : records.length === 0 ? (
                     <div className="px-6 py-16 text-center">
                         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-[#005baa]">
                             <FileText className="h-7 w-7" />
                         </div>
                         <h2 className="mt-4 font-bold text-slate-900">Belum ada data checklist</h2>
-                        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">Checklist yang sudah diisi akan tampil di halaman ini.</p>
+                        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">Checklist yang sudah diisi akan tersimpan di database dan tampil di halaman ini.</p>
                         <Link href="/pengujian/pengendalian-mutu/form" className="mt-5 inline-flex rounded-lg bg-[#005baa] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#004b8d]">Mulai Isi Form</Link>
                     </div>
                 ) : (
@@ -89,14 +108,18 @@ export default function PengendalianMutuList() {
                                     <th className="px-5 py-4">Penguji</th>
                                     <th className="px-5 py-4">Penyelia</th>
                                     <th className="px-5 py-4">Checklist Terisi</th>
-                                    <th className="px-5 py-4">Ekspor</th>
+                                    <th className="px-5 py-4 text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {records.map((record) => (
                                     <tr key={record.id} className="align-top transition-colors hover:bg-slate-50/70">
-                                        <td className="whitespace-nowrap px-5 py-4 font-medium text-slate-800">{new Date(`${record.tanggalPengujian}T00:00:00`).toLocaleDateString("id-ID")}</td>
-                                        <td className="px-5 py-4 text-slate-600">{record.jenisSampel.join(", ")}</td>
+                                        <td className="whitespace-nowrap px-5 py-4 font-medium text-slate-800">
+                                            {record.tanggalPengujian ? new Date(`${record.tanggalPengujian}T00:00:00`).toLocaleDateString("id-ID") : "-"}
+                                        </td>
+                                        <td className="px-5 py-4 text-slate-600">
+                                            {Array.isArray(record.jenisSampel) ? record.jenisSampel.join(", ") : "-"}
+                                        </td>
                                         <td className="px-5 py-4 font-semibold text-slate-800">{record.parameterPengujian}</td>
                                         <td className="px-5 py-4 text-slate-600">{record.metodePengujian === "molekuler" ? "Molekuler (RTi-PCR)" : "Kultur / Konvensional"}</td>
                                         <td className="px-5 py-4">
@@ -107,17 +130,28 @@ export default function PengendalianMutuList() {
                                         <td className="px-5 py-4 text-slate-600">{record.pengujiNama || "-"}</td>
                                         <td className="px-5 py-4 text-slate-600">{record.penyelia || "-"}</td>
                                         <td className="whitespace-nowrap px-5 py-4 text-slate-600">{checklistCount(record)} tahapan</td>
-                                        <td className="px-5 py-4">
-                                            <button
-                                                type="button"
-                                                onClick={() => handleExport(record)}
-                                                disabled={exportingId !== null || !record.pengujiSignaturePath}
-                                                title={record.pengujiSignaturePath ? "Unduh checklist dalam format Excel" : "Data lama tidak memiliki tanda tangan untuk diekspor"}
-                                                className="inline-flex items-center gap-2 whitespace-nowrap rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
-                                            >
-                                                <Download className="h-4 w-4" />
-                                                {exportingId === record.id ? "Membuat..." : "Excel"}
-                                            </button>
+                                        <td className="px-5 py-4 text-center">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleExport(record)}
+                                                    disabled={exportingId !== null || !record.pengujiSignaturePath}
+                                                    title={record.pengujiSignaturePath ? "Unduh checklist dalam format Excel" : "Data tidak memiliki tanda tangan untuk diekspor"}
+                                                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                                >
+                                                    <Download className="h-3.5 w-3.5" />
+                                                    {exportingId === record.id ? "Membuat..." : "Excel"}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDelete(record.id)}
+                                                    disabled={deletingId === record.id}
+                                                    title="Hapus data checklist"
+                                                    className="inline-flex items-center p-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 transition disabled:opacity-50"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
