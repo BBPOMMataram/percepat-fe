@@ -175,15 +175,15 @@ export const CollabNotesModal: React.FC<CollabNotesModalProps> = ({
                                     />
                                     Anda (+ {note.author || user?.name})
                                   </span>
-                                ) : (
+                                ) : note.author ? (
                                   <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-semibold text-[#005baa]">
                                     <Icon
                                       icon="solar:user-linear"
                                       width={11}
                                     />
-                                    + {note.author || "PIC"}
+                                    + {note.author}
                                   </span>
-                                )}
+                                ) : null}
                               </div>
                             </div>
                           </div>
