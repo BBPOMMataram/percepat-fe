@@ -1,5 +1,6 @@
 import { getAuthStorageUrl } from "@/utils/userPhoto";
 import { pengujianApi } from "@/components/pengujian/pengujianService";
+import api from "@/utils/api";
 
 export type ChecklistStatus = "ya" | "tidak" | "na";
 
@@ -156,6 +157,88 @@ export async function deletePengendalianMutuRecord(id: string): Promise<void> {
     );
     if (!res.data?.success) {
         throw new Error(res.data?.message || "Gagal menghapus data dari server");
+    }
+}
+
+export async function fetchAllMasterPenyelia(search?: string): Promise<MasterPenyeliaItem[]> {
+    const params = search ? { search } : {};
+    const res = await pengujianApi.get<{ success: boolean; data: MasterPenyeliaItem[] }>(
+        "/api/pengujian/pengendalian-mutu/master-penyelia",
+        { params }
+    );
+    if (!res.data?.success) {
+        throw new Error("Gagal mengambil data master penyelia.");
+    }
+    return res.data.data || [];
+}
+
+export async function createMasterPenyelia(payload: {
+    nama: string;
+    nip?: string | null;
+    jabatan?: string | null;
+    is_active?: boolean;
+}): Promise<MasterPenyeliaItem> {
+    const res = await pengujianApi.post<{ success: boolean; message: string; data: MasterPenyeliaItem }>(
+        "/api/pengujian/pengendalian-mutu/master-penyelia",
+        payload
+    );
+    if (!res.data?.success) {
+        throw new Error(res.data?.message || "Gagal menambahkan data penyelia.");
+    }
+    return res.data.data;
+}
+
+export async function updateMasterPenyelia(
+    id: number,
+    payload: {
+        nama: string;
+        nip?: string | null;
+        jabatan?: string | null;
+        is_active?: boolean;
+    }
+): Promise<MasterPenyeliaItem> {
+    const res = await pengujianApi.put<{ success: boolean; message: string; data: MasterPenyeliaItem }>(
+        `/api/pengujian/pengendalian-mutu/master-penyelia/${id}`,
+        payload
+    );
+    if (!res.data?.success) {
+        throw new Error(res.data?.message || "Gagal memperbarui data penyelia.");
+    }
+    return res.data.data;
+}
+
+export async function deleteMasterPenyelia(id: number): Promise<void> {
+    const res = await pengujianApi.delete<{ success: boolean; message: string }>(
+        `/api/pengujian/pengendalian-mutu/master-penyelia/${id}`
+    );
+    if (!res.data?.success) {
+        throw new Error(res.data?.message || "Gagal menghapus data penyelia.");
+    }
+}
+
+export function formatEmployeeFullName(user: any): string {
+    if (!user) return "";
+    const emp = user.employee || {};
+    const rawDepan = (emp.gelar_depan || "").trim();
+    const depan = rawDepan ? `${rawDepan}${rawDepan.endsWith(".") ? " " : ". "}` : "";
+    
+    const rawBelakang = (emp.gelar_belakang || "").trim();
+    const belakang = rawBelakang 
+        ? `${rawBelakang.startsWith(",") ? "" : ", "}${rawBelakang}` 
+        : "";
+        
+    const baseName = (user.name || "").trim();
+    return `${depan}${baseName}${belakang}`.trim() || baseName;
+}
+
+export async function fetchAuthUsers(): Promise<any[]> {
+    try {
+        const authUrl = process.env.NEXT_PUBLIC_BACKEND_URL_AUTH || "http://localhost:8000";
+        const res = await api.get<any[]>(`${authUrl}/api/get-all-users`);
+        return Array.isArray(res.data) ? res.data : [];
+    } catch (error) {
+        console.error("Gagal mengambil daftar pengguna dari Auth-BPOM:", error);
+        return [];
     }
 }
 
