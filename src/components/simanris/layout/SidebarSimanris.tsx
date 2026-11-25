@@ -10,7 +10,6 @@ import {
   ClipboardCheck,
   ArrowLeft,
   X,
-  Home,
 } from "lucide-react";
 
 interface SidebarSimanrisProps {
@@ -81,13 +80,6 @@ export function resolveSimanrisPageMeta(
 }
 
 const MENU_ITEMS = [
-  {
-    href: "/simanris",
-    label: "Beranda",
-    sub: "Pengantar & Overview Sistem",
-    icon: Home,
-    exact: true,
-  },
   {
     href: "/simanris/dashboard",
     label: "Dashboard",

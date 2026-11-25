@@ -49,6 +49,11 @@ export function HighResidualRisksTable({
   const minLevel = data?.min_level ?? 16;
   const maxLevel = data?.max_level ?? 19;
   const items = data?.items ?? [];
+  // Pilihan level mengikuti rentang dari API (bukan angka tetap), urut dari tertinggi.
+  const levelOptions = Array.from(
+    { length: Math.max(0, maxLevel - minLevel + 1) },
+    (_, idx) => maxLevel - idx
+  );
 
   const hasActiveFilter = Boolean(
     filters?.search ||
@@ -215,11 +220,14 @@ export function HighResidualRisksTable({
                 : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
             }`}
           >
-            <option value="">Semua Level Tinggi (16–19)</option>
-            <option value="19">Level 19 (Tinggi Atas)</option>
-            <option value="18">Level 18 (Tinggi Atas)</option>
-            <option value="17">Level 17 (Tinggi Menengah)</option>
-            <option value="16">Level 16 (Tinggi Menengah)</option>
+            <option value="">
+              Semua Level Tinggi ({minLevel}–{maxLevel})
+            </option>
+            {levelOptions.map((lvl) => (
+              <option key={lvl} value={String(lvl)}>
+                Level {lvl} ({lvl >= 18 ? "Tinggi Atas" : "Tinggi Menengah"})
+              </option>
+            ))}
           </select>
 
           {hasActiveFilter && (

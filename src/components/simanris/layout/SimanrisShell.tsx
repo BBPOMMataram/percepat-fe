@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
-import { ChevronRight, LogIn, Menu, ShieldCheck, UserCheck } from "lucide-react";
+import {
+  ChevronRight,
+  LogIn,
+  Menu,
+  ShieldCheck,
+  UserCheck,
+} from "lucide-react";
 import HeaderUserArea from "@/components/main/user-area/Header";
 import FooterUserArea from "@/components/main/user-area/Footer";
 import { getUser } from "@/features/authSlice";
@@ -21,7 +27,7 @@ export default function SimanrisShell({ children }: SimanrisShellProps) {
   const pathname = usePathname();
   const dispatch = useDispatch<AppDispatch>();
   const { user, loading: isLoading } = useSelector(
-    (state: RootState) => state.auth
+    (state: RootState) => state.auth,
   );
 
   const pageMeta = resolveSimanrisPageMeta(pathname);
@@ -69,7 +75,10 @@ export default function SimanrisShell({ children }: SimanrisShellProps) {
                   className="flex flex-wrap items-center gap-1 text-[11px] font-medium text-slate-500"
                 >
                   {pageMeta.breadcrumb.map((crumb, idx) => (
-                    <span key={crumb} className="inline-flex items-center gap-1">
+                    <span
+                      key={crumb}
+                      className="inline-flex items-center gap-1"
+                    >
                       {idx > 0 && (
                         <ChevronRight className="h-3 w-3 text-slate-400" />
                       )}
@@ -97,20 +106,14 @@ export default function SimanrisShell({ children }: SimanrisShellProps) {
             <div className="flex flex-wrap items-center justify-between lg:justify-end gap-2.5 shrink-0">
               <div className="inline-flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50/80 px-3 py-1.5 text-xs text-[#004281]">
                 {userDisplayName ? (
-                  <>
-                    <UserCheck className="h-3.5 w-3.5 shrink-0 text-[#04a451]" />
-                    <span className="font-semibold text-[#004281]">
-                      Auth-BPOM:
-                    </span>
-                    <span className="max-w-[180px] truncate font-medium text-slate-700">
-                      {userDisplayName}
-                    </span>
-                  </>
+                  <></>
                 ) : (
                   <>
                     <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[#005baa]" />
                     <span className="text-slate-600">
-                      {isLoading ? "Memeriksa sesi Auth-BPOM..." : "Sesi Terbuka BPOM"}
+                      {isLoading
+                        ? "Memeriksa sesi Auth-BPOM..."
+                        : "Sesi Terbuka BPOM"}
                     </span>
                     {!isLoading && (
                       <Link
@@ -130,7 +133,9 @@ export default function SimanrisShell({ children }: SimanrisShellProps) {
                   <HeaderUserArea
                     user={user}
                     callName={
-                      userDisplayName ? userDisplayName.split(" ")[0] : "Pengguna"
+                      userDisplayName
+                        ? userDisplayName.split(" ")[0]
+                        : "Pengguna"
                     }
                   />
                 </div>

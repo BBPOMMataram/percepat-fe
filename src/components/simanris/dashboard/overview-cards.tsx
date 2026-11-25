@@ -14,7 +14,9 @@ import { RiskStatCard } from "../cards/risk-stat-card";
 interface OverviewCardsProps {
   overview: OverviewData | null;
   loading: boolean;
+  /** Menampilkan seluruh risiko residual tinggi pada tabel di bawah (filter tabel dikosongkan). */
   onFilterResidualHigh: () => void;
+  /** Membuka daftar risiko inheren tinggi (Entry Data Pengujian). */
   onFilterInherentHigh: () => void;
   onOpenDataQuality: () => void;
 }
@@ -56,7 +58,7 @@ export function OverviewCards({
       <RiskStatCard
         title={`Tinggi Inheren (≥${highMin})`}
         value={overview?.inherent_high ?? 0}
-        subtitle="Klik untuk filter risiko inheren tinggi"
+        subtitle="Klik untuk melihat daftarnya di Entry Data Pengujian"
         icon={Flame}
         tone="orange"
         onClick={onFilterInherentHigh}
@@ -65,7 +67,7 @@ export function OverviewCards({
       <RiskStatCard
         title={`Tinggi Residual (≥${highMin})`}
         value={overview?.residual_high ?? 0}
-        subtitle="Klik untuk filter prioritas residual tinggi"
+        subtitle="Klik untuk menampilkan semuanya di tabel Risiko Residual Tinggi"
         icon={ShieldAlert}
         tone="red"
         onClick={onFilterResidualHigh}

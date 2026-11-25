@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import {
   SIMANRIS_API_BASE,
@@ -32,7 +33,29 @@ import { DataQualityCard } from "../cards/data-quality-card";
 import { RiskDetailModal } from "../shared/RiskDetailModal";
 import { DataQualityModal } from "../shared/DataQualityModal";
 
+type SectionKey =
+  | "overview"
+  | "development"
+  | "functionDist"
+  | "categoryDist"
+  | "trend"
+  | "highRes"
+  | "matrix"
+  | "dataQuality";
+
+const SECTION_LABELS: Record<SectionKey, string> = {
+  overview: "Ringkasan",
+  development: "Grafik Perkembangan Jumlah Risiko",
+  functionDist: "Grafik Sebaran Risiko per Fungsi",
+  categoryDist: "Grafik Jumlah Kategori Risiko",
+  trend: "Grafik Trend Risiko Tinggi",
+  highRes: "Tabel Risiko Residual Tinggi",
+  matrix: "Peta Matriks Risiko",
+  dataQuality: "Ringkasan Kualitas Data",
+};
+
 export function DashboardContent() {
+  const router = useRouter();
   const [options, setOptions] = useState<MasterOptionsData | null>(null);
 
   // 1. Global Filter (Tahun & Periode Semester Laporan SAJA)
@@ -97,6 +120,58 @@ export function DashboardContent() {
 
   const tableRef = useRef<HTMLDivElement | null>(null);
 
+  // ---------------------------------------------------------------------------
+  // Pemuatan data per bagian.
+  // - Setiap bagian dimuat sendiri: gagal di satu bagian tidak menghentikan bagian lain.
+  // - Setiap permintaan diberi nomor urut; jawaban yang datang terlambat (sudah ada
+  //   permintaan yang lebih baru untuk bagian yang sama) diabaikan, sehingga data lama
+  //   tidak menimpa grafik yang filternya sudah diganti.
+  // - Galat dicatat per bagian, bukan sebagai galat seluruh dashboard.
+  // ---------------------------------------------------------------------------
+  const requestSeq = useRef<Partial<Record<SectionKey, number>>>({});
+  const [sectionErrors, setSectionErrors] = useState<Partial<Record<SectionKey, string>>>({});
+
+  const beginRequest = (key: SectionKey): number => {
+    const next = (requestSeq.current[key] ?? 0) + 1;
+    requestSeq.current[key] = next;
+    return next;
+  };
+  const isLatest = (key: SectionKey, seq: number) => requestSeq.current[key] === seq;
+
+  const setSectionError = (key: SectionKey, message: string | null) => {
+    setSectionErrors((prev) => {
+      if (!message && !prev[key]) return prev;
+      const next = { ...prev };
+      if (message) next[key] = message;
+      else delete next[key];
+      return next;
+    });
+  };
+
+  /** Memuat satu bagian; hasil hanya dipakai bila ini masih permintaan terbaru. */
+  const loadSection = async <T,>(
+    key: SectionKey,
+    request: () => Promise<T>,
+    apply: (value: T | null) => void,
+    setLoading?: (value: boolean) => void
+  ): Promise<void> => {
+    const seq = beginRequest(key);
+    setLoading?.(true);
+    try {
+      const res = await request();
+      if (!isLatest(key, seq)) return;
+      apply(res);
+      setSectionError(key, null);
+    } catch (err) {
+      if (!isLatest(key, seq)) return;
+      // Jangan tampilkan data lama yang tidak sesuai filter/periode yang diminta.
+      apply(null);
+      setSectionError(key, extractApiErrorMessage(err));
+    } finally {
+      if (isLatest(key, seq)) setLoading?.(false);
+    }
+  };
+
   const loadMasterOptions = useCallback(async () => {
     try {
       const res = await simanrisApi.getMasterOptions();
@@ -106,36 +181,45 @@ export function DashboardContent() {
     }
   }, []);
 
-  // Fetch all when global filters (Year / Period) change
+  // Muat semua bagian saat filter global (Tahun / Periode) berubah atau "Muat Ulang".
+  // Filter lokal tiap grafik tetap dipakai.
   const fetchAll = useCallback(async () => {
     setGlobalLoading(true);
     setApiError(null);
-    try {
-      const [ov, dev, fnDist, catDist, trend, highRes, mat, dq] =
-        await Promise.all([
-          simanrisApi.getOverview(globalFilters),
-          simanrisApi.getDashboardDevelopment({ ...globalFilters, ...devFilters }),
-          simanrisApi.getDashboardFunctionDistribution({ ...globalFilters, ...funcFilters }),
-          simanrisApi.getDashboardCategoryDistribution({ ...globalFilters, ...catFilters }),
-          simanrisApi.getDashboardHighRiskTrend({ ...globalFilters, ...trendFilters }),
-          simanrisApi.getDashboardHighResidualRisks({ ...globalFilters, ...highResFilters }),
-          simanrisApi.getRiskMatrix({ ...globalFilters, ...matrixFilters }),
-          simanrisApi.getDataQuality(globalFilters),
-        ]);
 
-      setOverview(ov);
-      setDevelopment(dev);
-      setFunctionDist(fnDist);
-      setCategoryDist(catDist);
-      setHighRiskTrend(trend);
-      setHighResidualRisks(highRes);
-      setMatrix(mat);
-      setDataQuality(dq);
-    } catch (err) {
-      setApiError(extractApiErrorMessage(err));
-    } finally {
-      setGlobalLoading(false);
-    }
+    const overviewSeq = beginRequest("overview");
+    const overviewTask = simanrisApi
+      .getOverview(globalFilters)
+      .then((ov) => {
+        if (isLatest("overview", overviewSeq)) setOverview(ov);
+      })
+      .catch((err) => {
+        if (!isLatest("overview", overviewSeq)) return;
+        setOverview(null);
+        // Ringkasan gagal = kemungkinan besar API tidak terjangkau: tampilkan banner utama.
+        setApiError(extractApiErrorMessage(err));
+      });
+
+    await Promise.allSettled([
+      overviewTask,
+      loadSection("development", () => simanrisApi.getDashboardDevelopment({ ...globalFilters, ...devFilters }), setDevelopment),
+      loadSection("functionDist", () => simanrisApi.getDashboardFunctionDistribution({ ...globalFilters, ...funcFilters }), setFunctionDist),
+      loadSection("categoryDist", () => simanrisApi.getDashboardCategoryDistribution({ ...globalFilters, ...catFilters }), setCategoryDist),
+      loadSection("trend", () => simanrisApi.getDashboardHighRiskTrend({ ...globalFilters, ...trendFilters }), setHighRiskTrend),
+      loadSection("highRes", () => simanrisApi.getDashboardHighResidualRisks({ ...globalFilters, ...highResFilters }), setHighResidualRisks),
+      loadSection("matrix", () => simanrisApi.getRiskMatrix({ ...globalFilters, ...matrixFilters }), setMatrix),
+      loadSection("dataQuality", () => simanrisApi.getDataQuality(globalFilters), setDataQuality),
+    ]);
+
+    // Permintaan lokal yang tertimpa oleh pemuatan global tidak mematikan indikatornya sendiri.
+    setDevLoading(false);
+    setFuncLoading(false);
+    setCatLoading(false);
+    setTrendLoading(false);
+    setHighResLoading(false);
+    setMatrixLoading(false);
+    setGlobalLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [globalFilters, devFilters, funcFilters, catFilters, trendFilters, highResFilters, matrixFilters]);
 
   useEffect(() => {
@@ -150,84 +234,38 @@ export function DashboardContent() {
     return () => clearTimeout(t);
   }, [globalFilters]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Individual chart fetchers when local filters change
-  const handleDevFilterChange = async (next: typeof devFilters) => {
+  // Filter lokal: hanya memuat ulang bagian yang bersangkutan.
+  const handleDevFilterChange = (next: typeof devFilters) => {
     setDevFilters(next);
-    setDevLoading(true);
-    try {
-      const res = await simanrisApi.getDashboardDevelopment({ ...globalFilters, ...next });
-      setDevelopment(res);
-    } catch (err) {
-      setApiError(extractApiErrorMessage(err));
-    } finally {
-      setDevLoading(false);
-    }
+    void loadSection("development", () => simanrisApi.getDashboardDevelopment({ ...globalFilters, ...next }), setDevelopment, setDevLoading);
   };
 
-  const handleFuncFilterChange = async (next: typeof funcFilters) => {
+  const handleFuncFilterChange = (next: typeof funcFilters) => {
     setFuncFilters(next);
-    setFuncLoading(true);
-    try {
-      const res = await simanrisApi.getDashboardFunctionDistribution({ ...globalFilters, ...next });
-      setFunctionDist(res);
-    } catch (err) {
-      setApiError(extractApiErrorMessage(err));
-    } finally {
-      setFuncLoading(false);
-    }
+    void loadSection("functionDist", () => simanrisApi.getDashboardFunctionDistribution({ ...globalFilters, ...next }), setFunctionDist, setFuncLoading);
   };
 
-  const handleCatFilterChange = async (next: typeof catFilters) => {
+  const handleCatFilterChange = (next: typeof catFilters) => {
     setCatFilters(next);
-    setCatLoading(true);
-    try {
-      const res = await simanrisApi.getDashboardCategoryDistribution({ ...globalFilters, ...next });
-      setCategoryDist(res);
-    } catch (err) {
-      setApiError(extractApiErrorMessage(err));
-    } finally {
-      setCatLoading(false);
-    }
+    void loadSection("categoryDist", () => simanrisApi.getDashboardCategoryDistribution({ ...globalFilters, ...next }), setCategoryDist, setCatLoading);
   };
 
-  const handleTrendFilterChange = async (next: typeof trendFilters) => {
+  const handleTrendFilterChange = (next: typeof trendFilters) => {
     setTrendFilters(next);
-    setTrendLoading(true);
-    try {
-      const res = await simanrisApi.getDashboardHighRiskTrend({ ...globalFilters, ...next });
-      setHighRiskTrend(res);
-    } catch (err) {
-      setApiError(extractApiErrorMessage(err));
-    } finally {
-      setTrendLoading(false);
-    }
+    void loadSection("trend", () => simanrisApi.getDashboardHighRiskTrend({ ...globalFilters, ...next }), setHighRiskTrend, setTrendLoading);
   };
 
-  const handleHighResFilterChange = async (next: typeof highResFilters) => {
+  const handleHighResFilterChange = (next: typeof highResFilters) => {
     setHighResFilters(next);
-    setHighResLoading(true);
-    try {
-      const res = await simanrisApi.getDashboardHighResidualRisks({ ...globalFilters, ...next });
-      setHighResidualRisks(res);
-    } catch (err) {
-      setApiError(extractApiErrorMessage(err));
-    } finally {
-      setHighResLoading(false);
-    }
+    void loadSection("highRes", () => simanrisApi.getDashboardHighResidualRisks({ ...globalFilters, ...next }), setHighResidualRisks, setHighResLoading);
   };
 
-  const handleMatrixFilterChange = async (next: typeof matrixFilters) => {
+  const handleMatrixFilterChange = (next: typeof matrixFilters) => {
     setMatrixFilters(next);
-    setMatrixLoading(true);
-    try {
-      const res = await simanrisApi.getRiskMatrix({ ...globalFilters, ...next });
-      setMatrix(res);
-    } catch (err) {
-      setApiError(extractApiErrorMessage(err));
-    } finally {
-      setMatrixLoading(false);
-    }
+    void loadSection("matrix", () => simanrisApi.getRiskMatrix({ ...globalFilters, ...next }), setMatrix, setMatrixLoading);
   };
+
+  const failedSections = (Object.keys(sectionErrors) as SectionKey[]).filter((key) => sectionErrors[key]);
 
   const highMin = overview?.period?.high_risk_min_level ?? 16;
 
@@ -259,6 +297,32 @@ export function DashboardContent() {
         </div>
       )}
 
+      {!apiError && failedSections.length > 0 && (
+        <div
+          role="alert"
+          className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-900 flex items-start gap-3"
+        >
+          <AlertCircle className="h-5 w-5 shrink-0 text-rose-600 mt-0.5" />
+          <div className="min-w-0">
+            <p className="font-bold">Sebagian data gagal dimuat. Bagian yang gagal dikosongkan agar tidak menampilkan data yang keliru.</p>
+            <ul className="mt-1 space-y-0.5 text-rose-800">
+              {failedSections.map((key) => (
+                <li key={key}>
+                  <b>{SECTION_LABELS[key]}</b>: {sectionErrors[key]}
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={() => void fetchAll()}
+              className="mt-2 rounded-lg border border-rose-300 bg-white px-2.5 py-1 font-semibold text-rose-900 hover:bg-rose-100"
+            >
+              Muat ulang semua
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 1. Global Filter (Hanya Tahun dan Periode Semester) */}
       <DashboardFilter
         options={options}
@@ -273,16 +337,17 @@ export function DashboardContent() {
         overview={overview}
         loading={globalLoading}
         onFilterInherentHigh={() => {
-          handleHighResFilterChange({
-            ...highResFilters,
-            residual_level: highResFilters.residual_level === "high" ? "" : "high",
-          });
-          tableRef.current?.scrollIntoView({ behavior: "smooth" });
+          // Risiko inheren tinggi tidak ada di tabel residual; daftar lengkapnya
+          // (Level Inheren >= 16) ada di Entry Data Pengujian.
+          router.push("/simanris/entry-pengujian");
         }}
         onFilterResidualHigh={() => {
+          // Tampilkan SEMUA risiko residual tinggi agar jumlahnya sama dengan kartu.
           handleHighResFilterChange({
-            ...highResFilters,
-            residual_level: highResFilters.residual_level === "high" ? "" : "high",
+            search: "",
+            function_id: "",
+            risk_category_id: "",
+            residual_level: "",
           });
           tableRef.current?.scrollIntoView({ behavior: "smooth" });
         }}
@@ -353,9 +418,16 @@ export function DashboardContent() {
             options={options}
             filters={matrixFilters}
             onFilterChange={handleMatrixFilterChange}
-            onSelectLevel={(_mode, lvl) => {
+            selectableLevels={{
+              min: highResidualRisks?.min_level ?? 16,
+              max: highResidualRisks?.max_level ?? 19,
+            }}
+            onSelectLevel={(lvl, scope) => {
+              // Bawa cakupan fungsi/kategori peta ke tabel agar jumlahnya konsisten.
               handleHighResFilterChange({
-                ...highResFilters,
+                search: "",
+                function_id: scope.function_id ?? "",
+                risk_category_id: scope.risk_category_id ?? "",
                 residual_level: lvl,
               });
               tableRef.current?.scrollIntoView({ behavior: "smooth" });
