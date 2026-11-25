@@ -17,7 +17,6 @@ async function loadSignature(signaturePath?: string | null): Promise<{ base64: s
     const trimmed = signaturePath.trim();
     if (!trimmed || trimmed === "-" || trimmed.toLowerCase() === "null") return null;
 
-    // Jika berupa data URL base64 langsung
     if (trimmed.startsWith("data:image/")) {
         const isJpeg = trimmed.startsWith("data:image/jpeg") || trimmed.startsWith("data:image/jpg");
         return {
@@ -27,11 +26,9 @@ async function loadSignature(signaturePath?: string | null): Promise<{ base64: s
     }
 
     try {
-        // Gunakan proxy internal Next.js terlebih dahulu untuk menghindari CORS
         const proxyUrl = `/api/proxy/signature?path=${encodeURIComponent(trimmed)}`;
         let response = await fetch(proxyUrl);
 
-        // Fallback ke direct URL jika proxy tidak merespons
         if (!response.ok) {
             const directUrl = getSignatureUrl(trimmed);
             if (directUrl && directUrl !== proxyUrl) {
@@ -58,7 +55,7 @@ async function loadSignature(signaturePath?: string | null): Promise<{ base64: s
             extension,
         };
     } catch (error) {
-        console.warn("Gagal memuat gambar tanda tangan penguji, ekspor tetap dilanjutkan:", error);
+        console.warn("Gagal memuat gambar tanda tangan, ekspor tetap dilanjutkan:", error);
         return null;
     }
 }
@@ -90,12 +87,16 @@ function setMergedValue(
 }
 
 export async function exportPengendalianMutuToExcel(record: PengendalianMutuRecord): Promise<void> {
-    // Gunakan bundle browser mandiri exceljs agar tidak membawa dependensi backend Node (seperti archiver / glob) pada Next.js
     // @ts-ignore
     const ExcelJSModule = await import("exceljs/dist/exceljs.min.js");
     const ExcelJSConstructor = (ExcelJSModule.default || ExcelJSModule) as unknown as typeof import("exceljs");
 
-    const signature = await loadSignature(record.pengujiSignaturePath);
+    const [signature, penyeliaSignature, katimSignature] = await Promise.all([
+        loadSignature(record.pengujiSignaturePath),
+        record.penyeliaVerifiedAt ? loadSignature(record.penyeliaSignaturePath) : Promise.resolve(null),
+        record.katimVerifiedAt ? loadSignature(record.katimSignaturePath) : Promise.resolve(null),
+    ]);
+
     const workbook = new ExcelJSConstructor.Workbook();
     workbook.creator = record.pengujiNama || "BBPOM di Mataram";
     workbook.created = new Date();
@@ -105,30 +106,27 @@ export async function exportPengendalianMutuToExcel(record: PengendalianMutuReco
     });
 
     worksheet.columns = [
-        { width: 6.8 },  // A: NO
-        { width: 17.0 }, // B: TAHAPAN & TITIK KRITIS PENGUJIAN
-        { width: 4.0 },  // C: (merged with B)
-        { width: 48.0 }, // D: KRITERIA KESESUAIAN
-        { width: 6.5 },  // E: YA
-        { width: 6.5 },  // F: TIDAK
-        { width: 6.5 },  // G: N/A
-        { width: 28.0 }, // H: CATATAN / TINDAKAN KETIDAKSESUAIAN
-        { width: 16.0 }, // I: PARAF PENGUJI
+        { width: 6.8 },
+        { width: 17.0 },
+        { width: 4.0 },
+        { width: 48.0 },
+        { width: 6.5 },
+        { width: 6.5 },
+        { width: 6.5 },
+        { width: 28.0 },
+        { width: 16.0 },
     ];
     worksheet.pageSetup.margins = { left: 0.25, right: 0.25, top: 0.4, bottom: 0.4, header: 0.2, footer: 0.2 };
     worksheet.properties.defaultRowHeight = 22;
 
-    // Row 1 & 2: Header Judul
     setMergedValue(worksheet, 1, 1, 9, "LEMBAR CHECKLIST PENGENDALIAN MUTU PENGUJIAN MIKROBIOLOGI PANGAN", { bold: true, size: 11, align: "center" });
     worksheet.getRow(1).height = 24;
     setMergedValue(worksheet, 2, 1, 9, "BALAI BESAR PENGAWAS OBAT DAN MAKANAN DI MATARAM", { bold: true, size: 10, align: "center" });
     worksheet.getRow(2).height = 20;
 
-    // Row 4: Informasi Pengujian Header
     setMergedValue(worksheet, 4, 1, 9, "INFORMASI PENGUJIAN", { bold: true, fill: "FFE2E8F0" });
     worksheet.getRow(4).height = 21;
 
-    // Row 5: Tanggal Pengujian
     const formattedDate = record.tanggalPengujian
         ? new Date(`${record.tanggalPengujian}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
         : "-";
@@ -138,7 +136,6 @@ export async function exportPengendalianMutuToExcel(record: PengendalianMutuReco
     setMergedValue(worksheet, 5, 4, 9, formattedDate);
     worksheet.getRow(5).height = 20;
 
-    // Row 6: Jenis Sampel Checkbox
     const sampleBoxPangan = record.jenisSampel.includes("Pangan") ? "[ ✓ ]" : "[   ]";
     const sampleBoxKosmetika = record.jenisSampel.includes("Kosmetika") ? "[ ✓ ]" : "[   ]";
     const sampleBoxObat = record.jenisSampel.includes("Obat") ? "[ ✓ ]" : "[   ]";
@@ -151,14 +148,12 @@ export async function exportPengendalianMutuToExcel(record: PengendalianMutuReco
     setMergedValue(worksheet, 6, 4, 9, jenisSampelText);
     worksheet.getRow(6).height = 20;
 
-    // Row 7: Parameter Pengujian
     setMergedValue(worksheet, 7, 1, 2, "Parameter Pengujian", { bold: true });
     worksheet.getCell(7, 3).value = ":";
     styleCell(worksheet.getCell(7, 3), { align: "center" });
     setMergedValue(worksheet, 7, 4, 9, record.parameterPengujian);
     worksheet.getRow(7).height = 20;
 
-    // Row 8: Metode Pengujian
     const metodeMolekulerBox = record.metodePengujian === "molekuler" ? "[ ✓ ]" : "[   ]";
     const metodeKulturBox = record.metodePengujian === "kultur" ? "[ ✓ ]" : "[   ]";
     setMergedValue(worksheet, 8, 1, 2, "Metode Pengujian", { bold: true });
@@ -168,7 +163,6 @@ export async function exportPengendalianMutuToExcel(record: PengendalianMutuReco
     setMergedValue(worksheet, 8, 6, 9, `${metodeKulturBox} Kultur / Konvensional`);
     worksheet.getRow(8).height = 20;
 
-    // Row 9: Status Akhir
     const statusValidBox = record.statusAkhir === "valid" ? "[ ✓ ]" : "[   ]";
     const statusInvalidBox = record.statusAkhir === "invalid" ? "[ ✓ ]" : "[   ]";
     setMergedValue(worksheet, 9, 1, 2, "Status Akhir", { bold: true });
@@ -178,7 +172,6 @@ export async function exportPengendalianMutuToExcel(record: PengendalianMutuReco
     setMergedValue(worksheet, 9, 6, 9, `${statusInvalidBox} INVALID / RE-TEST`, { bold: record.statusAkhir === "invalid" });
     worksheet.getRow(9).height = 20;
 
-    // Row 11: Header Tabel Checklist
     const headerRow = 11;
     const headers = [
         "NO",
@@ -199,7 +192,6 @@ export async function exportPengendalianMutuToExcel(record: PengendalianMutuReco
     worksheet.mergeCells(headerRow, 2, headerRow, 3);
     worksheet.getRow(headerRow).height = 30;
 
-    // Image for paraf penguji (jika file tersedia)
     const signatureImageId = signature
         ? workbook.addImage({
               base64: signature.base64,
@@ -213,7 +205,6 @@ export async function exportPengendalianMutuToExcel(record: PengendalianMutuReco
 
     for (const section of CHECKLIST_SECTIONS) {
         sectionNumber += 1;
-        // Section Header Row
         worksheet.getCell(rowIndex, 1).value = sectionNumber;
         styleCell(worksheet.getCell(rowIndex, 1), { bold: true, fill: "FFDCEBFA", align: "center" });
         setMergedValue(worksheet, rowIndex, 2, 9, section.title.toUpperCase(), { bold: true, fill: "FFDCEBFA" });
@@ -257,10 +248,8 @@ export async function exportPengendalianMutuToExcel(record: PengendalianMutuReco
         }
     }
 
-    // Space before verification
     rowIndex += 1;
 
-    // Verifikasi & Tanda Tangan Section
     setMergedValue(worksheet, rowIndex, 1, 9, "VERIFIKASI & TANDA TANGAN", { bold: true, fill: "FFE2E8F0" });
     worksheet.getRow(rowIndex).height = 22;
     rowIndex += 1;
@@ -270,14 +259,40 @@ export async function exportPengendalianMutuToExcel(record: PengendalianMutuReco
     worksheet.getRow(rowIndex).height = 40;
     rowIndex += 2;
 
-    // Row TTD Headers
-    setMergedValue(worksheet, rowIndex, 1, 4, "Mengetahui,\nKetua Tim Mikrobiologi", { bold: true, align: "center" });
-    setMergedValue(worksheet, rowIndex, 6, 9, "Diverifikasi oleh Penyelia,", { bold: true, align: "center" });
-    worksheet.getRow(rowIndex).height = 30;
-    rowIndex += 4; // Space for signature
+    const ttdHeaderRow = rowIndex;
+    setMergedValue(worksheet, ttdHeaderRow, 1, 4, "Mengetahui,\nKetua Tim Mikrobiologi", { bold: true, align: "center" });
+    setMergedValue(worksheet, ttdHeaderRow, 6, 9, "Diverifikasi oleh Penyelia,", { bold: true, align: "center" });
+    worksheet.getRow(ttdHeaderRow).height = 30;
 
-    // Row TTD Names
-    setMergedValue(worksheet, rowIndex, 1, 4, "Dian Rositasari, STP", { bold: true, align: "center", underline: true });
+    for (let r = ttdHeaderRow + 1; r <= ttdHeaderRow + 3; r += 1) {
+        worksheet.getRow(r).height = 20;
+    }
+
+    if (katimSignature) {
+        const katimImageId = workbook.addImage({
+            base64: katimSignature.base64,
+            extension: katimSignature.extension,
+        });
+        worksheet.addImage(katimImageId, {
+            tl: { col: 2.5, row: ttdHeaderRow + 0.15 } as any,
+            br: { col: 3.45, row: ttdHeaderRow + 2.85 } as any,
+        });
+    }
+
+    if (penyeliaSignature) {
+        const penyeliaImageId = workbook.addImage({
+            base64: penyeliaSignature.base64,
+            extension: penyeliaSignature.extension,
+        });
+        worksheet.addImage(penyeliaImageId, {
+            tl: { col: 7.1, row: ttdHeaderRow + 0.15 } as any,
+            br: { col: 7.95, row: ttdHeaderRow + 2.85 } as any,
+        });
+    }
+
+    rowIndex = ttdHeaderRow + 4;
+
+    setMergedValue(worksheet, rowIndex, 1, 4, record.katimNama || "-", { bold: true, align: "center", underline: true });
     setMergedValue(worksheet, rowIndex, 6, 9, record.penyelia || "-", { bold: true, align: "center", underline: true });
     worksheet.getRow(rowIndex).height = 20;
 

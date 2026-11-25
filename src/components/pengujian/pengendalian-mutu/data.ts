@@ -26,6 +26,16 @@ export interface ChecklistAnswer {
 
 export interface MasterPenyeliaItem {
     id: number;
+    auth_user_id?: string | null;
+    nama: string;
+    nip?: string | null;
+    jabatan?: string | null;
+    is_active: boolean;
+}
+
+export interface MasterKatimItem {
+    id: number;
+    auth_user_id?: string | null;
     nama: string;
     nip?: string | null;
     jabatan?: string | null;
@@ -44,6 +54,18 @@ export interface PengendalianMutuRecord {
     catatanEvaluasi: string;
     penyelia?: string;
     penyeliaId?: number;
+    penyeliaAuthUserId?: string | null;
+    penyeliaNip?: string | null;
+    penyeliaVerifiedAt?: string | null;
+    penyeliaVerifiedBy?: string | null;
+    penyeliaSignaturePath?: string | null;
+    katimId?: number | null;
+    katimNama?: string | null;
+    katimNip?: string | null;
+    katimAuthUserId?: string | null;
+    katimVerifiedAt?: string | null;
+    katimVerifiedBy?: string | null;
+    katimSignaturePath?: string | null;
     pengujiNama?: string;
     pengujiNip?: string;
     pengujiSignaturePath?: string;
@@ -114,6 +136,17 @@ export const CHECKLIST_SECTIONS: ChecklistSection[] = [
     },
 ];
 
+function extractApiError(error: any, fallback: string): Error {
+    const serverMessage = error?.response?.data?.message;
+    if (typeof serverMessage === "string" && serverMessage.trim() !== "") {
+        return new Error(serverMessage);
+    }
+    if (error instanceof Error) {
+        return error;
+    }
+    return new Error(fallback);
+}
+
 export async function fetchPenyeliaList(): Promise<MasterPenyeliaItem[]> {
     try {
         const res = await pengujianApi.get<{ success: boolean; data: MasterPenyeliaItem[] }>("/api/pengujian/pengendalian-mutu/penyelia");
@@ -128,6 +161,20 @@ export async function fetchPenyeliaList(): Promise<MasterPenyeliaItem[]> {
         nama,
         is_active: true,
     }));
+}
+
+export async function fetchActiveKatim(): Promise<MasterKatimItem | null> {
+    try {
+        const res = await pengujianApi.get<{ success: boolean; data: MasterKatimItem | null }>(
+            "/api/pengujian/pengendalian-mutu/katim"
+        );
+        if (res.data?.success) {
+            return res.data.data || null;
+        }
+    } catch (error) {
+        console.warn("Gagal memuat ketua tim aktif:", error);
+    }
+    return null;
 }
 
 export async function fetchPengendalianMutuRecords(): Promise<PengendalianMutuRecord[]> {
@@ -160,6 +207,42 @@ export async function deletePengendalianMutuRecord(id: string): Promise<void> {
     }
 }
 
+export async function verifyPengendalianMutuPenyelia(
+    id: string,
+    signaturePath?: string | null
+): Promise<PengendalianMutuRecord> {
+    try {
+        const res = await pengujianApi.post<{ success: boolean; message: string; data: PengendalianMutuRecord }>(
+            `/api/pengujian/pengendalian-mutu/${id}/verify-penyelia`,
+            { signaturePath: signaturePath || null }
+        );
+        if (!res.data?.success) {
+            throw new Error(res.data?.message || "Gagal memverifikasi data oleh penyelia.");
+        }
+        return res.data.data;
+    } catch (error) {
+        throw extractApiError(error, "Gagal memverifikasi data oleh penyelia.");
+    }
+}
+
+export async function verifyPengendalianMutuKatim(
+    id: string,
+    signaturePath?: string | null
+): Promise<PengendalianMutuRecord> {
+    try {
+        const res = await pengujianApi.post<{ success: boolean; message: string; data: PengendalianMutuRecord }>(
+            `/api/pengujian/pengendalian-mutu/${id}/verify-katim`,
+            { signaturePath: signaturePath || null }
+        );
+        if (!res.data?.success) {
+            throw new Error(res.data?.message || "Gagal memverifikasi data oleh ketua tim.");
+        }
+        return res.data.data;
+    } catch (error) {
+        throw extractApiError(error, "Gagal memverifikasi data oleh ketua tim.");
+    }
+}
+
 export async function fetchAllMasterPenyelia(search?: string): Promise<MasterPenyeliaItem[]> {
     const params = search ? { search } : {};
     const res = await pengujianApi.get<{ success: boolean; data: MasterPenyeliaItem[] }>(
@@ -173,6 +256,7 @@ export async function fetchAllMasterPenyelia(search?: string): Promise<MasterPen
 }
 
 export async function createMasterPenyelia(payload: {
+    auth_user_id?: string | null;
     nama: string;
     nip?: string | null;
     jabatan?: string | null;
@@ -191,6 +275,7 @@ export async function createMasterPenyelia(payload: {
 export async function updateMasterPenyelia(
     id: number,
     payload: {
+        auth_user_id?: string | null;
         nama: string;
         nip?: string | null;
         jabatan?: string | null;
@@ -216,17 +301,75 @@ export async function deleteMasterPenyelia(id: number): Promise<void> {
     }
 }
 
+export async function fetchAllMasterKatim(search?: string): Promise<MasterKatimItem[]> {
+    const params = search ? { search } : {};
+    const res = await pengujianApi.get<{ success: boolean; data: MasterKatimItem[] }>(
+        "/api/pengujian/pengendalian-mutu/master-katim",
+        { params }
+    );
+    if (!res.data?.success) {
+        throw new Error("Gagal mengambil data master ketua tim.");
+    }
+    return res.data.data || [];
+}
+
+export async function createMasterKatim(payload: {
+    auth_user_id?: string | null;
+    nama: string;
+    nip?: string | null;
+    jabatan?: string | null;
+    is_active?: boolean;
+}): Promise<MasterKatimItem> {
+    const res = await pengujianApi.post<{ success: boolean; message: string; data: MasterKatimItem }>(
+        "/api/pengujian/pengendalian-mutu/master-katim",
+        payload
+    );
+    if (!res.data?.success) {
+        throw new Error(res.data?.message || "Gagal menambahkan data ketua tim.");
+    }
+    return res.data.data;
+}
+
+export async function updateMasterKatim(
+    id: number,
+    payload: {
+        auth_user_id?: string | null;
+        nama: string;
+        nip?: string | null;
+        jabatan?: string | null;
+        is_active?: boolean;
+    }
+): Promise<MasterKatimItem> {
+    const res = await pengujianApi.put<{ success: boolean; message: string; data: MasterKatimItem }>(
+        `/api/pengujian/pengendalian-mutu/master-katim/${id}`,
+        payload
+    );
+    if (!res.data?.success) {
+        throw new Error(res.data?.message || "Gagal memperbarui data ketua tim.");
+    }
+    return res.data.data;
+}
+
+export async function deleteMasterKatim(id: number): Promise<void> {
+    const res = await pengujianApi.delete<{ success: boolean; message: string }>(
+        `/api/pengujian/pengendalian-mutu/master-katim/${id}`
+    );
+    if (!res.data?.success) {
+        throw new Error(res.data?.message || "Gagal menghapus data ketua tim.");
+    }
+}
+
 export function formatEmployeeFullName(user: any): string {
     if (!user) return "";
     const emp = user.employee || {};
     const rawDepan = (emp.gelar_depan || "").trim();
     const depan = rawDepan ? `${rawDepan}${rawDepan.endsWith(".") ? " " : ". "}` : "";
-    
+
     const rawBelakang = (emp.gelar_belakang || "").trim();
-    const belakang = rawBelakang 
-        ? `${rawBelakang.startsWith(",") ? "" : ", "}${rawBelakang}` 
+    const belakang = rawBelakang
+        ? `${rawBelakang.startsWith(",") ? "" : ", "}${rawBelakang}`
         : "";
-        
+
     const baseName = (user.name || "").trim();
     return `${depan}${baseName}${belakang}`.trim() || baseName;
 }
