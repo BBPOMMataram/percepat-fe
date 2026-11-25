@@ -10,3 +10,4 @@ export * from "./TablePagination";
 export * from "./TableBanner";
 export * from "./TableSpreadsheetSelector";
 export * from "./TableControlBar";
+export * from "./TableSaveBar";

@@ -67,6 +67,7 @@ export default function KatimRekapRhpkPage() {
           <TestLocalTableKatim
             isKabalaiReadOnly={true}
             rekapBalaiOnly={true}
+            rekapBalaiCapaianOnly={true}
             headerRightSlot={viewSwitcher}
           />
         </Suspense>

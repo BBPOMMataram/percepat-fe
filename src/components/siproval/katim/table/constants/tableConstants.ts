@@ -8,6 +8,34 @@ export const DEFAULT_BASE_URL = (
 
 export const MAX_EXCEL_SIZE_MB = 20;
 
+/** Pilihan jumlah baris per halaman pada tabel RHPK. */
+export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 200] as const;
+
+/** Nilai pilihan "Semua": seluruh baris ditampilkan tanpa dibagi halaman. */
+export const PAGE_SIZE_ALL = 0;
+
+/** Jumlah baris per halaman saat tabel pertama kali dibuka. */
+export const DEFAULT_PAGE_SIZE = 50;
+
+/**
+ * Batas minimal baris agar pagination ditampilkan. Tabel di bawah batas ini (mis. tab bulanan
+ * berisi 12 baris) langsung ditampilkan utuh tanpa kontrol halaman.
+ */
+export const PAGINATION_MIN_ROWS = 20;
+
+/** Minimal jumlah bulan berbeda pada header kolom agar tabel dianggap berstruktur bulan horizontal. */
+export const MIN_MONTH_COLUMN_GROUPS = 3;
+
+/** Minimal jumlah baris agar penanda bulan pada baris dipakai untuk menyimpulkan tabel vertikal. */
+export const MIN_ROWS_FOR_VERTICAL_MONTH = 6;
+
+/** Label kolom bulan mandiri (tabel vertikal: satu baris per bulan). */
+export const STANDALONE_MONTH_COLUMN_LABELS = [
+  "bulan",
+  "periode",
+  "bulan pelaksanaan",
+] as const;
+
 export const STANDARD_MONTH_NAMES = [
   "Januari",
   "Februari",

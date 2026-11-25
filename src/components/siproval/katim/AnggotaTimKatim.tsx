@@ -140,17 +140,7 @@ export default function AnggotaTimKatim() {
       {/* Header Page */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
-              <Icon icon="solar:users-group-two-rounded-bold" width={14} />
-              Struktur Tim Kerja IKSK
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#005baa]">
-              <Icon icon="solar:user-bold" width={14} />
-              {user?.name || "Ketua Tim"}
-            </span>
-          </div>
-          <h1 className="mt-2 text-2xl font-bold text-slate-900">
+          <h1 className="text-2xl font-bold text-slate-900">
             Daftar Anggota & Personil Tim IKSK
           </h1>
           <p className="mt-0.5 text-xs text-slate-500">
@@ -163,14 +153,12 @@ export default function AnggotaTimKatim() {
             href="/siproval/katim/entry-data-rhpk"
             className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-3.5 py-2 text-xs font-semibold text-[#005baa] shadow-sm transition hover:bg-blue-50"
           >
-            <Icon icon="solar:document-text-bold" width={16} />
             <span>Form Realisasi Capaian</span>
           </Link>
           <Link
             href="/siproval/katim/arahan-pimpinan"
             className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
           >
-            <Icon icon="solar:chat-round-line-bold" width={16} />
             <span>Arahan Pimpinan</span>
           </Link>
         </div>
@@ -183,9 +171,6 @@ export default function AnggotaTimKatim() {
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               IKSK Ditugaskan
             </span>
-            <div className="rounded-xl bg-blue-50 p-2.5 text-[#005baa]">
-              <Icon icon="solar:layers-bold" width={22} />
-            </div>
           </div>
           <div className="mt-2 text-3xl font-bold text-slate-900">{totalIksks}</div>
           <p className="mt-1 text-xs text-slate-500">
@@ -198,9 +183,6 @@ export default function AnggotaTimKatim() {
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Total Rekan / Personil
             </span>
-            <div className="rounded-xl bg-indigo-50 p-2.5 text-indigo-600">
-              <Icon icon="solar:users-group-rounded-bold" width={22} />
-            </div>
           </div>
           <div className="mt-2 text-3xl font-bold text-slate-900">{allUniqueMembers.length}</div>
           <p className="mt-1 text-xs text-slate-500">
@@ -213,9 +195,6 @@ export default function AnggotaTimKatim() {
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Status Anda
             </span>
-            <div className="rounded-xl bg-emerald-50 p-2.5 text-emerald-600">
-              <Icon icon="solar:shield-check-bold" width={22} />
-            </div>
           </div>
           <div className="mt-2 text-xl font-bold text-slate-900 truncate">
             {user?.name || "Ketua Tim"}
@@ -259,7 +238,9 @@ export default function AnggotaTimKatim() {
           />
           {searchQuery && (
             <button
+              type="button"
               onClick={() => setSearchQuery("")}
+              aria-label="Hapus pencarian"
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
             >
               <Icon icon="solar:close-circle-bold" width={14} />
@@ -290,10 +271,7 @@ export default function AnggotaTimKatim() {
         </div>
       ) : filteredIkskList.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
-          <div className="rounded-2xl bg-slate-100 p-4 text-slate-400">
-            <Icon icon="solar:users-group-two-rounded-bold" width={40} />
-          </div>
-          <h3 className="mt-3 text-base font-bold text-slate-800">
+          <h3 className="text-base font-bold text-slate-800">
             Tidak Ada Anggota Tim Ditemukan
           </h3>
           <p className="mt-1 max-w-sm text-xs text-slate-500">
@@ -319,12 +297,11 @@ export default function AnggotaTimKatim() {
               className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm transition hover:shadow-md"
             >
               {/* IKSK Header */}
-              <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-slate-50/50 p-5">
+              <div className="border-b border-slate-100 bg-slate-50/60 p-5">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div className="space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center gap-1 rounded-md bg-[#005baa] px-2.5 py-0.5 text-xs font-bold text-white shadow-sm">
-                        <Icon icon="solar:tag-bold" width={12} />
+                      <span className="inline-flex items-center rounded-md bg-[#005baa] px-2.5 py-0.5 text-xs font-bold text-white">
                         IKSK #{iksk.id}
                       </span>
                       <span className="rounded-md bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-[#005baa]">
@@ -340,7 +317,6 @@ export default function AnggotaTimKatim() {
                     href={`/siproval/katim/entry-data-rhpk?iksk_id=${iksk.id}`}
                     className="inline-flex items-center gap-1.5 self-start lg:self-center rounded-xl border border-blue-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-[#005baa] hover:bg-blue-50 transition"
                   >
-                    <Icon icon="solar:document-text-bold" width={14} />
                     <span>Buka Tabel RHPK IKSK</span>
                     <Icon icon="solar:arrow-right-up-linear" width={12} />
                   </Link>
@@ -349,8 +325,7 @@ export default function AnggotaTimKatim() {
                 {/* Linked Spreadsheets & Tabs Info */}
                 {iksk.spreadsheets && iksk.spreadsheets.length > 0 && (
                   <div className="mt-3.5 pt-3.5 border-t border-slate-200/60 flex flex-wrap items-center gap-2">
-                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                      <Icon icon="solar:layers-minimalistic-bold" width={13} className="text-slate-400" />
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                       Tab Terhubung:
                     </span>
                     {iksk.spreadsheets.map((sp) =>
@@ -425,7 +400,7 @@ export default function AnggotaTimKatim() {
                             <span
                               className={`rounded-md px-2 py-0.5 text-[11px] font-bold ${
                                 member.is_katim
-                                  ? "bg-indigo-50 text-indigo-700 border border-indigo-200/60"
+                                  ? "bg-blue-50 text-[#004281] border border-blue-200/60"
                                   : "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
                               }`}
                             >
@@ -471,8 +446,7 @@ export default function AnggotaTimKatim() {
 
                       {/* Assigned Tabs in this IKSK */}
                       <div className="mt-3.5 border-t border-slate-100 pt-2.5">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1">
-                          <Icon icon="solar:document-linear" width={11} />
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
                           Tanggung Jawab Pengisian Tab:
                         </p>
                         {member.assigned_tabs && member.assigned_tabs.length > 0 ? (

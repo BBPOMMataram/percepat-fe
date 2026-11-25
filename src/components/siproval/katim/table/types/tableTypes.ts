@@ -137,6 +137,11 @@ export type RowFormulaContext = {
 export interface TestLocalTableKatimProps {
   isKabalaiReadOnly?: boolean;
   rekapBalaiOnly?: boolean;
+  /**
+   * Mode Rekap Balai khusus Ketua Tim: hanya tab "A. Capaian RAPK" yang ditampilkan
+   * (tab lain tidak bisa dipilih dan daftar tab disembunyikan).
+   */
+  rekapBalaiCapaianOnly?: boolean;
   headerRightSlot?: React.ReactNode;
 }
 

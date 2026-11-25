@@ -195,9 +195,6 @@ export default function IkskMonitoringSection({
             {/* Month Filter Selector */}
       <div className="flex flex-col gap-2.5 rounded-xl border border-slate-200/80 bg-white py-2.5 px-4 sm:px-5 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5 text-xs text-slate-700">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-[#005baa]">
-            <Icon icon="solar:calendar-bold" width={16} />
-          </div>
           <div>
             <span className="font-bold text-slate-900 inline sm:block">
               Periode Evaluasi Capaian:{" "}
@@ -248,9 +245,6 @@ export default function IkskMonitoringSection({
                 {indicators.length} indikator &bull; {stats?.total_iksk_connected ?? "-"} punya RHPK
               </span>
             </div>
-            <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-[#005baa] transition group-hover:bg-[#005baa] group-hover:text-white">
-              <Icon icon="solar:target-bold" width={20} />
-            </div>
           </div>
 
           <div className="mt-2.5 flex items-center justify-between border-t border-blue-100/60 pt-2 text-[10px] sm:text-[11px] text-[#005baa] font-medium">
@@ -283,9 +277,6 @@ export default function IkskMonitoringSection({
               <span className="mt-1 inline-block text-[10px] sm:text-[11px] text-slate-500 truncate">
                 dari {indicators.length} indikator rekap
               </span>
-            </div>
-            <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-[#00a651] transition group-hover:bg-[#00a651] group-hover:text-white">
-              <Icon icon="solar:check-circle-bold" width={20} />
             </div>
           </div>
 
@@ -321,9 +312,6 @@ export default function IkskMonitoringSection({
                 Belum mencapai target
               </span>
             </div>
-            <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-800 transition group-hover:bg-amber-600 group-hover:text-white shadow-xs">
-              <Icon icon="solar:danger-triangle-bold" width={20} />
-            </div>
           </div>
 
           <div className="mt-2.5 flex items-center justify-between border-t border-amber-200/80 pt-2 text-[10px] sm:text-[11px] text-amber-900 font-bold">
@@ -354,9 +342,6 @@ export default function IkskMonitoringSection({
                 Tercatat di RHPK {currentYear}
               </span>
             </div>
-            <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-[#005baa]">
-              <Icon icon="solar:chat-round-check-bold" width={20} />
-            </div>
           </div>
 
           <div className="mt-2.5 flex items-center justify-between border-t border-blue-100/60 pt-2 text-[10px] sm:text-[11px] text-[#005baa] font-medium">
@@ -385,9 +370,6 @@ export default function IkskMonitoringSection({
         <div className="border-b border-slate-100 bg-gradient-to-r from-blue-50/70 via-white to-emerald-50/40 px-6 py-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#005baa] text-white shadow-2xs">
-                <Icon icon="solar:checklist-minimalistic-bold" width={18} />
-              </span>
               <div>
                 <h3 className="text-sm font-bold text-slate-900">
                   Rincian Capaian Indikator Kinerja Sasaran Kegiatan (IKSK)
@@ -422,7 +404,6 @@ export default function IkskMonitoringSection({
                   : "border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100"
               }`}
             >
-              <Icon icon="solar:danger-triangle-bold" width={14} />
               <span>Belum Tercapai ({currentPerluEvaluasi})</span>
             </button>
             <button
@@ -434,7 +415,6 @@ export default function IkskMonitoringSection({
                   : "border border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
               }`}
             >
-              <Icon icon="solar:check-circle-bold" width={14} />
               <span>Tercapai ({currentTercapai})</span>
             </button>
           </div>
@@ -502,11 +482,6 @@ export default function IkskMonitoringSection({
               {displayedTableIndicators.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-12 text-center text-slate-400">
-                    <Icon
-                      icon="solar:document-outline"
-                      width={32}
-                      className="mx-auto mb-2 opacity-40"
-                    />
                     <p className="text-xs font-medium">
                       Tidak ada indikator yang sesuai dengan filter.
                     </p>
@@ -617,17 +592,11 @@ export default function IkskMonitoringSection({
                       {/* Status */}
                       <td className="px-3 py-3.5 text-center align-top whitespace-nowrap">
                         {isTercapai ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
-                            <Icon icon="solar:check-circle-bold" width={14} />
+                          <span className="text-[11px] font-bold text-emerald-700">
                             Tercapai
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-amber-800 bg-amber-100/70 px-2 py-0.5 rounded-md border border-amber-300">
-                            <Icon
-                              icon="solar:danger-triangle-bold"
-                              width={14}
-                              className="text-amber-700"
-                            />
+                          <span className="inline-flex items-center text-[11px] font-extrabold text-amber-800 bg-amber-100/70 px-2 py-0.5 rounded-md border border-amber-300">
                             Belum Tercapai
                           </span>
                         )}
@@ -658,11 +627,6 @@ export default function IkskMonitoringSection({
                           className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#003d73] via-[#005baa] to-[#00a651] px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:opacity-90 hover:shadow-sm"
                           title={`Buka formulir pengisian IKSK #${ind.iksk_id}`}
                         >
-                          <Icon
-                            icon="ri:file-excel-2-fill"
-                            width={15}
-                            className="text-emerald-300"
-                          />
                           <span>{rhpkActionLabel} #{ind.iksk_id}</span>
                           <Icon icon="solar:arrow-right-linear" width={13} />
                         </Link>

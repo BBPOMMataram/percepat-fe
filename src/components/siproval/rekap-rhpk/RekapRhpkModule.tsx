@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import api from "@/utils/api";
+import { confirmWarning, isAlertOpen } from "@/utils/alerts";
 import RekapRhpkForm from "./RekapRhpkForm";
 import RekapRhpkMonitoringSection from "./RekapRhpkMonitoringSection";
 import {
@@ -131,11 +132,16 @@ export default function RekapRhpkModule({
     }, 5000);
   }, []);
 
-  const confirmLeaveIfDirty = useCallback(() => {
+  // Konfirmasi (toast react-toastify) bila ada perubahan yang belum disimpan.
+  const confirmLeaveIfDirty = useCallback(async (): Promise<boolean> => {
     if (!hasUnsavedChanges) return true;
-    return window.confirm(
-      "Masih ada perubahan Rekap RHPK yang belum disimpan. Lanjutkan dan abaikan perubahan?"
-    );
+    return confirmWarning({
+      title: "Perubahan Belum Disimpan",
+      text: "Masih ada perubahan Rekap RHPK yang belum disimpan. Lanjutkan dan abaikan perubahan?",
+      confirmButtonText: "Ya, Abaikan Perubahan",
+      cancelButtonText: "Kembali",
+      destructive: true,
+    });
   }, [hasUnsavedChanges]);
 
   const fetchIndex = useCallback(
@@ -220,8 +226,8 @@ export default function RekapRhpkModule({
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [colMenuOpen]);
 
-  const handleCloseModal = useCallback(() => {
-    if (!confirmLeaveIfDirty()) return;
+  const handleCloseModal = useCallback(async () => {
+    if (!(await confirmLeaveIfDirty())) return;
     setSelectedIkskId(null);
     setDetailData(null);
     setHasUnsavedChanges(false);
@@ -231,12 +237,14 @@ export default function RekapRhpkModule({
     if (selectedIkskId === null && !colMenuOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      // Escape saat pop-up terbuka hanya menutup pop-up, bukan modal di belakangnya.
+      if (isAlertOpen()) return;
       if (colMenuOpen) {
         setColMenuOpen(false);
         return;
       }
       if (selectedIkskId !== null) {
-        handleCloseModal();
+        void handleCloseModal();
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -358,21 +366,21 @@ export default function RekapRhpkModule({
         : activeSummary?.can_edit ?? false)
   );
 
-  const handleOpenModal = (ikskId: number) => {
+  const handleOpenModal = async (ikskId: number) => {
     if (!ikskId || ikskId === selectedIkskId) return;
-    if (!confirmLeaveIfDirty()) return;
+    if (!(await confirmLeaveIfDirty())) return;
     setSelectedIkskId(ikskId);
   };
 
-  const handleChangeMonth = (nextMonth: number) => {
+  const handleChangeMonth = async (nextMonth: number) => {
     if (nextMonth === month) return;
-    if (!confirmLeaveIfDirty()) return;
+    if (!(await confirmLeaveIfDirty())) return;
     setMonth(nextMonth);
   };
 
-  const handleChangeYear = (nextYear: number) => {
+  const handleChangeYear = async (nextYear: number) => {
     if (nextYear === year) return;
-    if (!confirmLeaveIfDirty()) return;
+    if (!(await confirmLeaveIfDirty())) return;
     setYear(nextYear);
   };
 

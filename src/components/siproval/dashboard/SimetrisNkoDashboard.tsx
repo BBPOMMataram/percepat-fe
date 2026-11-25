@@ -75,6 +75,12 @@ interface SimetrisNkoDashboardProps {
   hideMonthSelector?: boolean;
   compact?: boolean;
   showFullTableLink?: boolean;
+  /**
+   * Sembunyikan bar judul (Tahun, judul IKSK & NKO, tautan Tabel 12 Bulan).
+   * Tombol "Perbarui" tetap ada, dipindah ke toolbar Kerangka Kerja Logis
+   * sehingga tidak memakan satu baris sendiri.
+   */
+  hideTopBar?: boolean;
 }
 
 export default function SimetrisNkoDashboard({
@@ -85,6 +91,7 @@ export default function SimetrisNkoDashboard({
   hideMonthSelector = false,
   compact = false,
   showFullTableLink = true,
+  hideTopBar = false,
 }: SimetrisNkoDashboardProps) {
   const [selectedYear, setSelectedYear] = useState<number>(initialYear);
   const [internalMonth, setInternalMonth] = useState<string>(initialMonth);
@@ -198,18 +205,12 @@ export default function SimetrisNkoDashboard({
   return (
     <div className="w-full space-y-4 sm:space-y-5">
             {/* Top Bar ala SIMETRIS */}
+      {!hideTopBar && (
       <div className="flex flex-col gap-2.5 rounded-xl bg-white py-2.5 px-4 sm:px-5 shadow-2xs border border-slate-200/80 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-600 font-bold shrink-0">
-            <Icon icon="solar:chart-2-bold" className="text-lg" />
-          </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.2 text-[11px] font-bold text-slate-700">
-                <Icon
-                  icon="solar:calendar-date-bold"
-                  className="text-cyan-600 text-[10px]"
-                />
+              <span className="inline-flex items-center rounded-md bg-slate-100 px-1.5 py-0.2 text-[11px] font-bold text-slate-700">
                 Tahun {selectedYear}
               </span>
               <h2 className="text-xs sm:text-sm font-bold text-slate-800">
@@ -228,7 +229,6 @@ export default function SimetrisNkoDashboard({
               href="/siproval/tu/konversi-nko"
               className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
             >
-              <Icon icon="solar:table-split-bold" className="text-sm" />
               Tabel 12 Bulan (Konversi NKO)
             </Link>
           )}
@@ -246,6 +246,7 @@ export default function SimetrisNkoDashboard({
           </button>
         </div>
       </div>
+      )}
 
       {/* 4 Metric Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -273,7 +274,6 @@ export default function SimetrisNkoDashboard({
             </span>
           </div>
           <div className="mt-2 text-[10px] opacity-80 flex items-center gap-1 truncate">
-            <Icon icon="solar:shield-check-bold" width={12} className="shrink-0" />
             <span className="truncate">Capaian dinormalisasi (maks. 110%)</span>
           </div>
         </div>
@@ -284,9 +284,6 @@ export default function SimetrisNkoDashboard({
             <h4 className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-700 truncate">
               Pagu
             </h4>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 shrink-0">
-              <Icon icon="solar:wallet-money-bold" width={16} />
-            </div>
           </div>
           <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
             {data?.cards?.pagu?.sub || `Data Tahun ${selectedYear}`}
@@ -307,9 +304,6 @@ export default function SimetrisNkoDashboard({
             <h4 className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-700 truncate">
               Realisasi Anggaran
             </h4>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 shrink-0">
-              <Icon icon="solar:card-recive-bold" width={16} />
-            </div>
           </div>
           <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
             {data?.cards?.realisasi_anggaran?.sub ||
@@ -333,9 +327,6 @@ export default function SimetrisNkoDashboard({
             <h4 className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-700 truncate">
               Capaian Realisasi
             </h4>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-50 text-cyan-600 shrink-0">
-              <Icon icon="solar:pie-chart-2-bold" width={16} />
-            </div>
           </div>
           <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
             Rasio Realisasi thd Pagu
@@ -399,7 +390,6 @@ export default function SimetrisNkoDashboard({
                 </div>
               ) : (
                 <span className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-200 bg-cyan-50/80 px-3 py-1.5 text-xs font-bold text-cyan-800">
-                  <Icon icon="solar:calendar-bold" className="text-cyan-600" />
                   <span>
                     Periode: Bulan {activeMonth} {selectedYear}
                   </span>
@@ -420,6 +410,23 @@ export default function SimetrisNkoDashboard({
                   className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-3 text-xs text-slate-700 placeholder:text-slate-400 focus:border-cyan-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
                 />
               </div>
+
+              {/* Tombol Perbarui dipindah ke sini saat bar judul disembunyikan (hemat tempat) */}
+              {hideTopBar && (
+                <button
+                  type="button"
+                  onClick={() => fetchData(selectedYear, activeMonth)}
+                  disabled={loading}
+                  title="Muat ulang data NKO, anggaran, dan Kerangka Kerja Logis"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+                >
+                  <Icon
+                    icon="solar:refresh-circle-bold"
+                    className={`text-sm text-cyan-600 ${loading ? "animate-spin" : ""}`}
+                  />
+                  Perbarui
+                </button>
+              )}
             </div>
           </div>
         </div>

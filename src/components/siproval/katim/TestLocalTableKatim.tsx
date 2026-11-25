@@ -32,8 +32,10 @@ import {
   STANDARD_MONTH_NAMES,
   NUMERIC_HEADER_RE,
   NARRATIVE_HEADER_RE,
+  DEFAULT_PAGE_SIZE,
   getMonthColor,
 } from "./table/constants/tableConstants";
+import { computePagination, paginateRows } from "./table/utils/pagination";
 
 export { STANDARD_MONTH_NAMES, getMonthColor, MAX_EXCEL_SIZE_MB };
 
@@ -68,6 +70,7 @@ import {
   TableBanner,
   TableSpreadsheetSelector,
   TableControlBar,
+  TableSaveBar,
 } from "./table/components";
 
 export {
@@ -112,7 +115,10 @@ import {
   isSummaryOrTotalRow,
   isCumulativeCol,
   isHorizontalTable,
+  isHorizontalMonthLayout,
   isIksk1DetilPengujianTab,
+  isTargetRow,
+  getRowUpdateMonth,
 } from "./table/utils/tableDetection";
 
 import {
@@ -165,6 +171,7 @@ export {
 export default function TestLocalTableKatim({
   isKabalaiReadOnly = false,
   rekapBalaiOnly = false,
+  rekapBalaiCapaianOnly = false,
   headerRightSlot,
 }: TestLocalTableKatimProps = {}) {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -264,7 +271,7 @@ export default function TestLocalTableKatim({
 
   // Pagination & Filter state untuk tabel dengan banyak baris (misal KIE Medsos)
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(50);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [showExcelModal, setShowExcelModal] = useState<boolean>(false);
   const [excelFile, setExcelFile] = useState<File | null>(null);
@@ -677,6 +684,30 @@ export default function TestLocalTableKatim({
     }
   };
 
+  // Rekap Balai untuk Ketua Tim: hanya tab "A. Capaian RAPK" yang ditampilkan.
+  // Setelah daftar tab dimuat, tab tersebut dipilih otomatis (sekali per tab)
+  // dan deretan tombol tab disembunyikan.
+  const lockToCapaianRapk = rekapBalaiCapaianOnly && isRekapBalaiView;
+  const capaianRapkTabId = useMemo(() => {
+    if (!lockToCapaianRapk) return null;
+    const tabs = spreadsheets.find((s) => s.id === selectedSpId)?.tabs || [];
+    const tab = tabs.find((t) =>
+      (t.title || "").toLowerCase().includes("capaian rapk"),
+    );
+    return tab ? tab.id : null;
+  }, [lockToCapaianRapk, spreadsheets, selectedSpId]);
+  const capaianAutoSelectRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!lockToCapaianRapk || loading || capaianRapkTabId === null) return;
+    if (selectedTabId === capaianRapkTabId) return;
+    // Cegah perulangan bila server tetap mengembalikan tab lain.
+    if (capaianAutoSelectRef.current === capaianRapkTabId) return;
+    capaianAutoSelectRef.current = capaianRapkTabId;
+    doSelectTab(capaianRapkTabId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lockToCapaianRapk, loading, capaianRapkTabId, selectedTabId]);
+
   // Otomasi perhitungan untuk tabel Indeks KIE di sisi frontend
   const liveRecalculateIndeksKie = (rows: RowData[]): RowData[] => {
     if (rows.length < 18) return rows;
@@ -792,16 +823,8 @@ export default function TestLocalTableKatim({
 
       if (isIksk1DetilPengujian && /^col_(?:[3-9]|[1-4]\d|50)$/.test(colKey)) {
         let newRows = prev.rows_data.map((r, idx) => {
-          const rKey =
-            r.month !== undefined && r.month !== null && r.month !== 0
-              ? r.month
-              : r.row_index !== undefined
-                ? r.row_index
-                : idx;
-          if (
-            rKey === rowId ||
-            (rowIdx !== undefined && (r.row_index === rowIdx || idx === rowIdx))
-          ) {
+          // Baris tujuan diidentifikasi lewat row_index (lihat isTargetRow)
+          if (isTargetRow(r, idx, rowId, rowIdx)) {
             return {
               ...r,
               cells: {
@@ -825,16 +848,8 @@ export default function TestLocalTableKatim({
       }
 
       let newRows = prev.rows_data.map((r, idx) => {
-        const rKey =
-          r.month !== undefined && r.month !== null && r.month !== 0
-            ? r.month
-            : r.row_index !== undefined
-              ? r.row_index
-              : idx;
-        if (
-          rKey === rowId ||
-          (rowIdx !== undefined && (r.row_index === rowIdx || idx === rowIdx))
-        ) {
+        // Baris tujuan diidentifikasi lewat row_index (lihat isTargetRow)
+        if (isTargetRow(r, idx, rowId, rowIdx)) {
           if (isCum && !isHorizontalMonthTable) {
             return {
               ...r,
@@ -926,8 +941,8 @@ export default function TestLocalTableKatim({
     setDirtyUpdates((prev) => ({
       ...prev,
       [updateKey]: {
-        month:
-          typeof rowId === "number" && rowId >= 1 && rowId <= 12 ? rowId : 0,
+        // Bulan diambil dari baris tujuan itu sendiri (bukan dari angka indeks)
+        month: getRowUpdateMonth(activeTab.rows_data, rowId, rowIdx),
         row_index: targetIdx,
         key: colKey,
         value: parsedVal,
@@ -2170,7 +2185,7 @@ export default function TestLocalTableKatim({
         {
           updates: [
             {
-              month: rowKey,
+              month: getRowUpdateMonth(activeTab.rows_data, rowKey, rowIndex),
               row_index: rowIndex,
               key: col.key,
               value: numVal,
@@ -2297,7 +2312,11 @@ export default function TestLocalTableKatim({
         {
           updates: [
             {
-              month: collabModal.rowKey,
+              month: getRowUpdateMonth(
+                activeTab.rows_data,
+                collabModal.rowKey,
+                targetRowIdx,
+              ),
               row_index: targetRowIdx,
               key: collabModal.colKey,
               value: formatted,
@@ -2678,56 +2697,11 @@ export default function TestLocalTableKatim({
   }, [effectiveColumnsSchema]);
 
   // Deteksi apakah tabel menggunakan format horizontal (bulan ada di kolom/header)
-  const isHorizontalMonthTable = useMemo(() => {
-    if (!effectiveColumnsSchema || effectiveColumnsSchema.length === 0)
-      return false;
-
-    // 1. Jika tabel memiliki kolom mandiri 'Bulan' atau 'Periode', pasti tabel vertikal
-    const hasBulanCol = effectiveColumnsSchema.some((c) => {
-      const l = (c.label || "").trim().toLowerCase();
-      const sub = ((c as any).sub_label || "").trim().toLowerCase();
-      return (
-        l === "bulan" ||
-        l === "periode" ||
-        l === "bulan pelaksanaan" ||
-        l.startsWith("bulan ") ||
-        sub === "bulan" ||
-        sub === "periode"
-      );
-    });
-    if (hasBulanCol) return false;
-
-    // 2. Jika baris data terdefinisi untuk 12 bulan (month 1..12), pasti tabel vertikal
-    const rows = activeTab?.rows_data || [];
-    if (
-      rows.length >= 6 &&
-      rows.some((r) => r.month && r.month > 0 && r.month <= 12)
-    ) {
-      return false;
-    }
-
-    // 3. Periksa parent_header atau sub_parent (misal: JANUARI, FEBRUARI)
-    const parentMonths = new Set<number>();
-    effectiveColumnsSchema.forEach((col) => {
-      if (col.parent_header) {
-        const pm = getMonthNumberFromText(col.parent_header);
-        if (pm !== null) parentMonths.add(pm);
-      }
-      if ((col as any).sub_parent) {
-        const sm = getMonthNumberFromText((col as any).sub_parent);
-        if (sm !== null) parentMonths.add(sm);
-      }
-    });
-    if (parentMonths.size >= 3) return true;
-
-    // 4. Periksa label kolom (hanya jika label kolom mandiri menunjukkan bulan)
-    const labelMonths = new Set<number>();
-    effectiveColumnsSchema.forEach((col) => {
-      const lm = getMonthNumberFromText(col.label);
-      if (lm !== null) labelMonths.add(lm);
-    });
-    return labelMonths.size >= 3;
-  }, [effectiveColumnsSchema, activeTab?.rows_data]);
+  // Tata letak bulan (kolom vs baris) - logika bersama di isHorizontalMonthLayout
+  const isHorizontalMonthTable = useMemo(
+    () => isHorizontalMonthLayout(effectiveColumnsSchema, activeTab?.rows_data),
+    [effectiveColumnsSchema, activeTab?.rows_data],
+  );
 
   // Deteksi apakah sheet ini adalah sheet multi-indikator (HANYA berlaku untuk Dokumen Gabungan RHPK Balai)
   const isMultiIndicatorSheet = useMemo(() => {
@@ -3317,17 +3291,22 @@ export default function TestLocalTableKatim({
 
   const rawRowsCount = activeTab?.rows_data?.length || 0;
   const totalRows = filteredRows.length;
-  const isPaginationNeeded = !isHorizontalMonthTable && rawRowsCount > 25;
-  const effectivePageSize = pageSize === 0 ? totalRows : pageSize;
-  const totalPages =
-    effectivePageSize > 0 ? Math.ceil(totalRows / effectivePageSize) : 1;
-  const safeCurrentPage = Math.min(Math.max(currentPage, 1), totalPages || 1);
+  // Pagination hanya aktif bila baris cukup banyak (lihat PAGINATION_MIN_ROWS); tabel bulan horizontal tidak dipaginasi
+  const pagination = useMemo(
+    () =>
+      computePagination(totalRows, pageSize, currentPage, {
+        disabled: isHorizontalMonthTable,
+      }),
+    [totalRows, pageSize, currentPage, isHorizontalMonthTable],
+  );
+  const isPaginationNeeded = pagination.isEnabled;
+  const totalPages = pagination.totalPages;
+  const safeCurrentPage = pagination.currentPage;
 
-  const paginatedRows = useMemo(() => {
-    if (!isPaginationNeeded || pageSize === 0) return filteredRows;
-    const start = (safeCurrentPage - 1) * pageSize;
-    return filteredRows.slice(start, start + pageSize);
-  }, [filteredRows, isPaginationNeeded, safeCurrentPage, pageSize]);
+  const paginatedRows = useMemo(
+    () => paginateRows(filteredRows, pagination),
+    [filteredRows, pagination],
+  );
 
   return (
     <div className="w-full min-w-0 space-y-5">
@@ -3337,16 +3316,12 @@ export default function TestLocalTableKatim({
         isKabalai={isKabalai}
         isTuView={isTuView}
         isPicUser={isPicUser}
-        isPicEffective={isPicEffective}
         selectedYear={selectedYear}
         selectedSpId={selectedSpId}
         spreadsheets={spreadsheets}
         activeSpreadsheet={activeSpreadsheet}
-        dirtyCount={dirtyCount}
-        saving={saving}
         headerRightSlot={headerRightSlot}
         onOpenUploadModal={() => setShowUploadModal(true)}
-        onSave={handleSave}
         onExportExcel={handleExportExcel}
       />
 
@@ -3385,6 +3360,7 @@ export default function TestLocalTableKatim({
           setRekapBalaiIkskFilter(v === "all" || v === "mine" ? v : Number(v));
           setCurrentPage(1);
         }}
+        hideTabButtons={lockToCapaianRapk}
       />
 
       {/* Main Table Entry */}
@@ -3396,33 +3372,10 @@ export default function TestLocalTableKatim({
             </h2>
             <p className="text-xs text-slate-500">
               {isKabalai
-                ? "Tabel ditampilkan dalam mode baca-saja. Nilai tidak dapat diubah dari halaman ini."
-                : "Kolom dengan latar hijau adalah kolom yang dapat Anda isi. Kolom terkunci dilindungi sistem."}
+                ? "Mode baca-saja."
+                : "Isi kolom bertanda titik hijau. Kolom lain terkunci atau dihitung otomatis."}
             </p>
           </div>
-
-          {activeTab && (
-            <div className="flex items-center gap-3 text-xs">
-              <span className="flex items-center gap-1.5 text-emerald-700 font-bold">
-                <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0" />
-                Dot Hijau: Kolom Hak Akses Anda (Editable)
-              </span>
-              <span className="flex items-center gap-1.5 text-slate-500 font-medium">
-                <Icon
-                  icon="solar:lock-bold"
-                  width={12}
-                  className="text-slate-400"
-                />
-                Kolom Terkunci / PIC Lain
-              </span>
-              <span className="flex items-center gap-1.5 text-purple-700 font-medium">
-                <span className="rounded bg-purple-100 px-1 py-0.2 text-[9px] font-bold text-purple-800">
-                  Formula
-                </span>
-                Otomatis
-              </span>
-            </div>
-          )}
         </div>
 
         {loading ? (
@@ -3451,12 +3404,16 @@ export default function TestLocalTableKatim({
               safeCurrentPage={safeCurrentPage}
               pageSize={pageSize}
               totalPages={totalPages}
+              isPaginationEnabled={isPaginationNeeded}
+              rangeStart={pagination.rangeStart}
+              rangeEnd={pagination.rangeEnd}
               isMultiIndicatorSheet={isMultiIndicatorSheet}
               matchedIndicatorParent={matchedIndicatorParent}
               headerGroups={headerGroups || []}
               focusSelectedIksk={focusSelectedIksk}
               displayedColumnsSchema={displayedColumnsSchema}
               effectiveColumnsSchema={effectiveColumnsSchema}
+              isReadOnly={isKabalai}
               onSelectMonthFilter={(m) => {
                 setSelectedMonthFilter(m);
                 setCurrentPage(1);
@@ -3550,22 +3507,20 @@ export default function TestLocalTableKatim({
                                           {isEditableForMe && (
                                             <span
                                               className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0"
-                                              title="Kolom ini berhak Anda isi (Editable)"
+                                              title="Editable: kolom ini bisa Anda isi"
+                                              aria-label="Editable"
                                             />
                                           )}
                                         </div>
                                         {isEditableForMe ? (
-                                          <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
-                                            <span>Editable</span>
-                                            {isCumulativeCol(col) && (
-                                              <span
-                                                className="rounded bg-emerald-200/90 px-1 font-mono text-[9px] text-emerald-950 font-black"
-                                                title="Kolom akumulasi otomatis: input angka bulanan, sistem otomatis menjumlahkan dengan bulan sebelumnya"
-                                              >
-                                                ∑
-                                              </span>
-                                            )}
-                                          </span>
+                                          isCumulativeCol(col) ? (
+                                            <span
+                                              className="rounded border border-blue-200 bg-blue-100 px-1 font-mono text-[9px] font-black text-blue-800 cursor-help"
+                                              title="Kolom akumulasi: isi angka bulan ini saja, sistem menjumlahkan dengan bulan sebelumnya"
+                                            >
+                                              ∑
+                                            </span>
+                                          ) : null
                                         ) : col.type === "formula" ? (
                                           <span
                                             className="rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-bold text-purple-800 cursor-help"
@@ -3626,49 +3581,18 @@ export default function TestLocalTableKatim({
                                   : `${mColor.header} border-slate-300`
                               }`}
                             >
-                              {(() => {
-                                const groupHasEditableForMe = grp.cols.some(
-                                  (c) => {
-                                    const isColAllowed =
-                                      isPicUser ||
-                                      !c.allowed_katim_ids ||
-                                      c.allowed_katim_ids.length === 0 ||
-                                      c.allowed_katim_ids.some(
-                                        (id: string | number) =>
-                                          String(id) === String(user?.id),
-                                      ) ||
-                                      Boolean(
-                                        selectedIkskId &&
-                                          assignedIkskIds.includes(selectedIkskId),
-                                      );
-                                    return c.can_edit && isColAllowed;
-                                  },
-                                );
-                                return (
-                                  <div className="flex items-center justify-center gap-1.5">
-                                    {groupHasEditableForMe ? (
-                                      <span
-                                        className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0"
-                                        title="Kelompok kolom ini berhak Anda isi (Editable)"
-                                      />
-                                    ) : !isCyanHeader ? (
-                                      <span
-                                        className={`size-2 rounded-full inline-block ${mColor.dot}`}
-                                      />
-                                    ) : null}
-                                    <span>{grp.parent}</span>
-                                    {isGrpLocked && (
-                                      <span className="inline-flex items-center gap-0.5 rounded bg-slate-200/90 text-slate-700 px-1.5 py-0.5 text-[9px] font-bold lowercase tracking-normal">
-                                        <Icon
-                                          icon="solar:lock-bold"
-                                          width={10}
-                                        />
-                                        terkunci
-                                      </span>
-                                    )}
-                                  </div>
-                                );
-                              })()}
+                              <div className="flex items-center justify-center gap-1.5">
+                                <span>{grp.parent}</span>
+                                {isGrpLocked && (
+                                  <span className="inline-flex items-center gap-0.5 rounded bg-slate-200/90 text-slate-700 px-1.5 py-0.5 text-[9px] font-bold lowercase tracking-normal">
+                                    <Icon
+                                      icon="solar:lock-bold"
+                                      width={10}
+                                    />
+                                    terkunci
+                                  </span>
+                                )}
+                              </div>
                             </th>
                           );
                         })}
@@ -3823,22 +3747,20 @@ export default function TestLocalTableKatim({
                                     {isEditableForMe && (
                                       <span
                                         className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0"
-                                        title="Kolom ini berhak Anda isi (Editable)"
+                                        title="Editable: kolom ini bisa Anda isi"
+                                        aria-label="Editable"
                                       />
                                     )}
                                   </div>
                                   {isEditableForMe ? (
-                                    <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
-                                      <span>Editable</span>
-                                      {isCumulativeCol(col) && (
-                                        <span
-                                          className="rounded bg-emerald-200/90 px-1 font-mono text-[9px] text-emerald-950 font-black"
-                                          title="Kolom akumulasi otomatis: input angka bulanan, sistem otomatis menjumlahkan dengan bulan sebelumnya"
-                                        >
-                                          ∑
-                                        </span>
-                                      )}
-                                    </span>
+                                    isCumulativeCol(col) ? (
+                                      <span
+                                        className="rounded border border-blue-200 bg-blue-100 px-1 font-mono text-[9px] font-black text-blue-800 cursor-help"
+                                        title="Kolom akumulasi: isi angka bulan ini saja, sistem menjumlahkan dengan bulan sebelumnya"
+                                      >
+                                        ∑
+                                      </span>
+                                    ) : null
                                   ) : col.type === "formula" ? (
                                     <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-bold text-purple-800">
                                       Formula
@@ -3912,22 +3834,20 @@ export default function TestLocalTableKatim({
                                 {isEditableForMe && (
                                   <span
                                     className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0"
-                                    title="Kolom ini berhak Anda isi (Editable)"
+                                    title="Editable: kolom ini bisa Anda isi"
+                                    aria-label="Editable"
                                   />
                                 )}
                               </div>
                               {isEditableForMe ? (
-                                <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
-                                  <span>Editable</span>
-                                  {isCumulativeCol(col) && (
-                                    <span
-                                      className="rounded bg-emerald-200/90 px-1 font-mono text-[9px] text-emerald-950 font-black"
-                                      title="Kolom akumulasi otomatis: input angka bulanan, sistem otomatis menjumlahkan dengan bulan sebelumnya"
-                                    >
-                                      ∑
-                                    </span>
-                                  )}
-                                </span>
+                                isCumulativeCol(col) ? (
+                                  <span
+                                    className="rounded border border-blue-200 bg-blue-100 px-1 font-mono text-[9px] font-black text-blue-800 cursor-help"
+                                    title="Kolom akumulasi: isi angka bulan ini saja, sistem menjumlahkan dengan bulan sebelumnya"
+                                  >
+                                    ∑
+                                  </span>
+                                ) : null
                               ) : col.type === "formula" ? (
                                 <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-bold text-purple-800">
                                   Formula
@@ -3989,14 +3909,12 @@ export default function TestLocalTableKatim({
                   ) : (
                     paginatedRows.map((row, rIdx) => {
                       const isMultiRowTable =
-                        (activeTab?.rows_data?.length || 0) > 12 ||
-                        Boolean(monthColKey);
+                        (activeTab?.rows_data?.length || 0) >
+                          STANDARD_MONTH_NAMES.length || Boolean(monthColKey);
                       const originalIdx =
                         row.row_index !== undefined
                           ? row.row_index
-                          : isPaginationNeeded && pageSize > 0
-                            ? (safeCurrentPage - 1) * pageSize + rIdx
-                            : rIdx;
+                          : pagination.startIndex + rIdx;
                       const rowKey = isMultiRowTable
                         ? row.row_index !== undefined
                           ? row.row_index
@@ -4088,11 +4006,14 @@ export default function TestLocalTableKatim({
                         highlightedIncompleteRows.includes(originalIdx);
 
                       const isUpdatedRow = Boolean(row.is_updated);
+                      // Sama dengan isTargetRow: utamakan row_index, bulan hanya bila row_index tidak ada
                       const isDirtyRow = Object.values(dirtyUpdates).some(
                         (up) =>
-                          (up.row_index !== undefined &&
-                            up.row_index === originalIdx) ||
-                          (up.month !== undefined && up.month === row.month),
+                          up.row_index !== undefined
+                            ? up.row_index === originalIdx
+                            : up.month !== undefined &&
+                              up.month > 0 &&
+                              up.month === row.month,
                       );
                       const hasActualData = displayedColumnsSchema.some((c) => {
                         if (
@@ -4838,6 +4759,8 @@ export default function TestLocalTableKatim({
               safeCurrentPage={safeCurrentPage}
               pageSize={pageSize}
               totalPages={totalPages}
+              rangeStart={pagination.rangeStart}
+              rangeEnd={pagination.rangeEnd}
               selectedMonthFilter={selectedMonthFilter}
               onPageSizeChange={(newSize) => {
                 setPageSize(newSize);
@@ -4848,6 +4771,19 @@ export default function TestLocalTableKatim({
               }}
               onScrollToTop={scrollToTableTop}
             />
+
+            {/* Tombol simpan tepat di bawah tabel (aturan tampil sama dengan tombol di atas) */}
+            {!isKabalai &&
+              !(
+                spreadsheets.find((s) => s.id === selectedSpId)?.is_readonly &&
+                !isPicEffective
+              ) && (
+                <TableSaveBar
+                  dirtyCount={dirtyCount}
+                  saving={saving}
+                  onSave={handleSave}
+                />
+              )}
           </>
         )}
       </div>

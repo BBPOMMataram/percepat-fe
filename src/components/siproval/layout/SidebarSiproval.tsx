@@ -455,7 +455,10 @@ export default function SidebarSiproval({ actor }: Props) {
         pathname.startsWith("/siproval/rhpk")
       );
     }
+    // Menu dashboard (path induk) hanya aktif bila cocok persis,
+    // agar tidak ikut aktif di sub-halaman seperti /siproval/katim/rekap-rhpk.
     if (
+      activePath === "/siproval/katim" ||
       activePath === "/siproval/tu" ||
       activePath === "/siproval/budget-mapping"
     ) {

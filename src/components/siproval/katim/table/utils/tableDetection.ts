@@ -3,7 +3,14 @@
  */
 
 import type { ColumnSchema, RowData } from "../types/tableTypes";
-import { NUMERIC_HEADER_RE, NARRATIVE_HEADER_RE } from "../constants/tableConstants";
+import {
+  NUMERIC_HEADER_RE,
+  NARRATIVE_HEADER_RE,
+  MIN_MONTH_COLUMN_GROUPS,
+  MIN_ROWS_FOR_VERTICAL_MONTH,
+  STANDALONE_MONTH_COLUMN_LABELS,
+  STANDARD_MONTH_NAMES,
+} from "../constants/tableConstants";
 import { getMonthNumberFromText } from "./tableFormatting";
 
 export function isKendalaCol(headerName?: string | null): boolean {
@@ -161,6 +168,115 @@ export function isHorizontalTable(columns?: ColumnSchema[] | null): boolean {
     );
   }).length;
   return monthColsCount >= 3;
+}
+
+/**
+ * Tentukan tata letak bulan sebuah tab:
+ * - true  = horizontal (bulan berada di kelompok kolom, mis. JAN | FEB | ... pada tab A. Capaian RAPK)
+ * - false = vertikal (satu baris per bulan / per data).
+ *
+ * Urutan pemeriksaan:
+ * 1. Ada kolom "Bulan"/"Periode" mandiri -> vertikal.
+ * 2. Kolom dikelompokkan per bulan (parent_header / sub_parent) -> horizontal. Diperiksa SEBELUM penanda bulan
+ *    pada baris, karena server dapat menandai bulan baris dari teks narasi (mis. kendala yang menyebut "Juli").
+ * 3. Cukup banyak baris bertanda bulan -> vertikal.
+ * 4. Label kolom berisi nama bulan -> horizontal.
+ */
+/** Bentuk minimal kolom & baris yang dibutuhkan isHorizontalMonthLayout (dipakai tabel Ketua Tim maupun PIC). */
+export interface MonthLayoutColumn {
+  label?: string | null;
+  sub_label?: string | null;
+  parent_header?: string | null;
+  sub_parent?: string | null;
+}
+export interface MonthLayoutRow {
+  month?: number | null;
+}
+
+export function isHorizontalMonthLayout(
+  columns?: MonthLayoutColumn[] | null,
+  rows?: MonthLayoutRow[] | null,
+): boolean {
+  if (!columns || columns.length === 0) return false;
+
+  const standaloneLabels: readonly string[] = STANDALONE_MONTH_COLUMN_LABELS;
+  const hasStandaloneMonthCol = columns.some((c) => {
+    const label = (c.label || "").trim().toLowerCase();
+    const sub = (c.sub_label || "").trim().toLowerCase();
+    return (
+      standaloneLabels.includes(label) ||
+      standaloneLabels.includes(sub) ||
+      label.startsWith(`${standaloneLabels[0]} `)
+    );
+  });
+  if (hasStandaloneMonthCol) return false;
+
+  const distinctMonths = (texts: Array<string | null | undefined>): number => {
+    const months = new Set<number>();
+    texts.forEach((t) => {
+      const m = getMonthNumberFromText(t);
+      if (m !== null) months.add(m);
+    });
+    return months.size;
+  };
+
+  const groupMonthCount = distinctMonths(
+    columns.flatMap((c) => [c.parent_header, c.sub_parent]),
+  );
+  if (groupMonthCount >= MIN_MONTH_COLUMN_GROUPS) return true;
+
+  const dataRows = rows || [];
+  const hasMonthRows = dataRows.some(
+    (r) =>
+      typeof r?.month === "number" &&
+      r.month >= 1 &&
+      r.month <= STANDARD_MONTH_NAMES.length,
+  );
+  if (dataRows.length >= MIN_ROWS_FOR_VERTICAL_MONTH && hasMonthRows) return false;
+
+  return distinctMonths(columns.map((c) => c.label)) >= MIN_MONTH_COLUMN_GROUPS;
+}
+
+/**
+ * Apakah `row` (pada indeks array `arrayIdx`) adalah baris yang sedang diedit?
+ * Baris diidentifikasi lewat row_index (unik per tab). Nomor bulan hanya dipakai bila row_index
+ * tidak diketahui, karena row_index (mulai 0) dan bulan (mulai 1) berbeda ruang nilai:
+ * mencampurnya membuat edit November ikut menimpa Oktober.
+ */
+export function isTargetRow(
+  row: RowData,
+  arrayIdx: number,
+  rowKey: number,
+  rowIndex?: number | null,
+): boolean {
+  if (rowIndex !== undefined && rowIndex !== null) {
+    return row.row_index !== undefined && row.row_index !== null
+      ? row.row_index === rowIndex
+      : arrayIdx === rowIndex;
+  }
+  const key =
+    row.month !== undefined && row.month !== null && row.month !== 0
+      ? row.month
+      : row.row_index !== undefined && row.row_index !== null
+        ? row.row_index
+        : arrayIdx;
+  return key === rowKey;
+}
+
+/** Nomor bulan (1..12) milik baris tujuan edit untuk dikirim ke server; 0 bila bukan baris bulan. */
+export function getRowUpdateMonth(
+  rows: RowData[] | null | undefined,
+  rowKey: number,
+  rowIndex?: number | null,
+): number {
+  const list = rows || [];
+  const target = list.find((r, idx) => isTargetRow(r, idx, rowKey, rowIndex));
+  const month = target?.month;
+  return typeof month === "number" &&
+    month >= 1 &&
+    month <= STANDARD_MONTH_NAMES.length
+    ? month
+    : 0;
 }
 
 /**

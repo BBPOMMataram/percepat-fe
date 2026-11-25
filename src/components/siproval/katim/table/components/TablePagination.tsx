@@ -3,6 +3,7 @@
 import React from "react";
 import { Icon } from "@iconify/react";
 import { getPageNumbers } from "../utils/tableFormatting";
+import { PAGE_SIZE_ALL, PAGE_SIZE_OPTIONS } from "../constants/tableConstants";
 
 export interface TablePaginationProps {
   isPaginationNeeded: boolean;
@@ -10,6 +11,9 @@ export interface TablePaginationProps {
   safeCurrentPage: number;
   pageSize: number;
   totalPages: number;
+  /** Nomor baris pertama & terakhir yang ditampilkan (dari computePagination). */
+  rangeStart: number;
+  rangeEnd: number;
   selectedMonthFilter: string;
   onPageSizeChange: (size: number) => void;
   onPageChange: (page: number) => void;
@@ -22,6 +26,8 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
   safeCurrentPage,
   pageSize,
   totalPages,
+  rangeStart,
+  rangeEnd,
   selectedMonthFilter,
   onPageSizeChange,
   onPageChange,
@@ -39,17 +45,13 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
       <div className="flex items-center gap-3 text-xs text-slate-600">
         <span>
           Menampilkan{" "}
-          <span className="font-bold text-slate-900">
-            {totalRows === 0 ? 0 : (safeCurrentPage - 1) * (pageSize || 1) + 1}
-          </span>{" "}
+          <span className="font-bold text-slate-900">{rangeStart}</span>{" "}
           -{" "}
-          <span className="font-bold text-slate-900">
-            {Math.min(safeCurrentPage * (pageSize || 1), totalRows)}
-          </span>{" "}
+          <span className="font-bold text-slate-900">{rangeEnd}</span>{" "}
           dari{" "}
           <span className="font-bold text-slate-900">{totalRows}</span> baris
           {selectedMonthFilter !== "all" && (
-            <span className="ml-1 text-emerald-700 font-semibold">
+            <span className="ml-1 text-[#005baa] font-semibold">
               ({selectedMonthFilter})
             </span>
           )}
@@ -62,19 +64,19 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
               onPageSizeChange(Number(e.target.value));
               if (onScrollToTop) onScrollToTop();
             }}
-            className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-2xs focus:border-emerald-600 focus:outline-none cursor-pointer"
+            className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-2xs focus:border-[#005baa] focus:outline-none cursor-pointer"
           >
-            <option value={10}>10</option>
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-            <option value={200}>200</option>
-            <option value={0}>Semua ({totalRows})</option>
+            {PAGE_SIZE_OPTIONS.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+            <option value={PAGE_SIZE_ALL}>Semua ({totalRows})</option>
           </select>
         </div>
       </div>
 
-      {pageSize > 0 && totalPages > 1 && (
+      {pageSize !== PAGE_SIZE_ALL && totalPages > 1 && (
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -111,7 +113,7 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
                   onClick={() => handlePageSelect(Number(p))}
                   className={`h-8 min-w-[32px] px-2 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer ${
                     safeCurrentPage === Number(p)
-                      ? "bg-emerald-600 text-white shadow-emerald-600/20"
+                      ? "bg-[#005baa] text-white"
                       : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                   }`}
                 >
