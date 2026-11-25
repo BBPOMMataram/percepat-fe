@@ -19,9 +19,11 @@ export function parseNotes(raw: unknown): NoteItem[] {
   const result: NoteItem[] = [];
 
   lines.forEach((line, idx) => {
-    // 1. Check (+ Name) or (Name) at end
+    // 1. Penulis HANYA dari "(+ Nama)" / "(+Nama)" atau "(PIC: Nama)" di akhir baris.
+    //    Kurung biasa tanpa "+" (mis. "(tahap 1)", "(PT Kimia Farma)") adalah bagian teks, BUKAN penulis.
+    //    Harus sama dengan parseCollaborativeEntries() di backend (ApiLocalRhpkTestController).
     let match = line.match(
-      /^(?:(\d+)[\.\)]\s*)?(.*?)(?:\s*\(\+?\s*([^\(\)]+)\))$/,
+      /^(?:(\d+)[\.\)]\s*)?(.*?)\s*\(\s*(?:\+|PIC\s*:)\s*([^\(\)]+?)\s*\)$/i,
     );
     if (match && match[2]) {
       result.push({

@@ -24,7 +24,9 @@ export interface SimanrisPageMeta {
   description: string;
 }
 
-export function resolveSimanrisPageMeta(pathname: string | null): SimanrisPageMeta {
+export function resolveSimanrisPageMeta(
+  pathname: string | null,
+): SimanrisPageMeta {
   const path = pathname || "/simanris";
 
   if (
@@ -192,7 +194,9 @@ export default function SidebarSimanris({
                 >
                   <Icon
                     className={`mt-0.5 h-4 w-4 shrink-0 ${
-                      active ? "text-[#005baa]" : "text-blue-200 group-hover:text-white"
+                      active
+                        ? "text-[#005baa]"
+                        : "text-blue-200 group-hover:text-white"
                     }`}
                   />
                   <div className="min-w-0">
@@ -215,12 +219,6 @@ export default function SidebarSimanris({
       </div>
 
       <div className="border-t border-white/10 p-4 space-y-3">
-        <div className="rounded-xl bg-white/10 px-3 py-2.5 text-[11px] text-blue-100">
-          <div className="font-semibold text-white">Sumber Resmi: Excel SAPA APIP</div>
-          <p className="mt-0.5 text-blue-200/90 leading-relaxed">
-            Perhitungan matriks & skor inheren/residual menggunakan dataset terpublikasi di server.
-          </p>
-        </div>
         <Link
           href="/"
           onClick={onCloseMobile}

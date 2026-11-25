@@ -11,38 +11,13 @@ import {
   useScroll,
   useTransform,
 } from "framer-motion";
-import {
-  Activity,
-  AlertCircle,
-  ArrowDown,
-  ArrowRight,
-  BarChart3,
-  Building2,
-  CheckCircle2,
-  ChevronRight,
-  ClipboardCheck,
-  ExternalLink,
-  FileSpreadsheet,
-  FileText,
-  Layers,
-  Mail,
-  MapPin,
-  Phone,
-  RefreshCw,
-  ShieldAlert,
-  ShieldCheck,
-  SlidersHorizontal,
-  Sparkles,
-  UserCheck,
-  Zap,
-} from "lucide-react";
 import { getUser } from "@/features/authSlice";
 import type { AppDispatch, RootState } from "@/redux/store";
 import { simanrisApi, setSimanrisActorHeaders } from "../lib/simanrisApi";
 import type { MasterOptionsData, OverviewData } from "../types";
 
 // ============================================================================
-// MOTION CURVES & ANIMATION HELPERS (Fluid & Modern)
+// MOTION CURVES & ANIMATION HELPERS
 // ============================================================================
 const EASE_SNAPPY = [0.16, 1, 0.3, 1] as const;
 
@@ -82,17 +57,16 @@ function AnimatedNumber({ value }: { value: number }) {
   return <span>{displayValue}</span>;
 }
 
-// 4 Modern & Action-Oriented Stages of SIMANRIS
+// 4 Tahap Kerja SIMANRIS (Deskriptif, Bebas Klaim Angka Statis)
 const WORKFLOW_STAGES = [
   {
     num: "01",
     tag: "PETAKAN RISIKO",
     title: "Tangkap Risiko Sejak Dini",
-    subtitle: "Identifikasi potensi hambatan di 5 unit kerja sebelum mengganggu target",
-    desc: "Inventarisasi potensi masalah secara menyeluruh di Tata Usaha, Pemeriksaan, Penindakan, Pengujian, dan Infokom. Lengkap dengan perumusan akar penyebab (root cause), dampak ke sasaran IKU, serta penanggung jawab (risk owner) yang jelas.",
-    pills: ["5 Unit Operasional", "Root Cause Analysis", "Owner Jelas"],
-    statHighlight: "160 Risiko Terpetakan",
-    icon: Layers,
+    subtitle: "Identifikasi potensi hambatan di unit kerja sebelum mengganggu target",
+    desc: "Inventarisasi potensi masalah secara menyeluruh di seluruh fungsi kerja operasional. Lengkap dengan perumusan akar penyebab (root cause), dampak ke sasaran IKU, serta penanggung jawab (risk owner) yang jelas.",
+    pills: ["Unit Operasional", "Root Cause Analysis", "Owner Jelas"],
+    statHighlight: "Identifikasi Risiko Komprehensif",
     accentColor: "#004281",
   },
   {
@@ -100,33 +74,30 @@ const WORKFLOW_STAGES = [
     tag: "HITUNG SKOR 5×5",
     title: "Kalkulasi Matriks Otomatis",
     subtitle: "Penilaian level kemungkinan & dampak instan tanpa hitung manual",
-    desc: "Sistem otomatis mengalikan kemungkinan (1–5) dan dampak (1–5) untuk memetakan level inheren. Langsung menyaring dan mengisolasi risiko merah (skor ≥ 16) yang wajib segera dibuatkan rencana tindak pengendalian.",
-    pills: ["Matriks 5 × 5", "Filter Skor ≥ 16", "Zona Merah Terisolasi"],
-    statHighlight: "41 Risiko Inheren Tinggi",
-    icon: ShieldAlert,
-    accentColor: "#E11D48",
+    desc: "Sistem otomatis mengalikan kemungkinan (1–5) dan dampak (1–5) untuk memetakan level inheren. Langsung menyaring dan mengisolasi risiko prioritas tinggi (skor ≥ 16) yang wajib segera dibuatkan rencana tindak pengendalian.",
+    pills: ["Matriks 5 × 5", "Filter Skor ≥ 16", "Zona Prioritas Tinggi"],
+    statHighlight: "Kalkulasi Matriks Otomatis",
+    accentColor: "#004281",
   },
   {
     num: "03",
     tag: "UJI & BUKTI FISIK",
     title: "Aksi Pengendalian Nyata",
     subtitle: "Bukan sekadar klaim. Lampirkan bukti nyata di lapangan",
-    desc: "Unit kerja mencatat realisasi pengendalian langsung dengan menempelkan tautan dokumen atau mengunggah berkas PDF, Excel, dan Foto hasil pengujian. Setiap perubahan tercatat atas nama pengguna yang bertugas secara transparan.",
-    pills: ["Link & Upload Berkas", "Format PDF / Excel / Foto", "User Tracked"],
+    desc: "Unit kerja mencatat realisasi pengendalian langsung dengan menempelkan tautan dokumen atau mengunggah berkas pendukung. Setiap perubahan tercatat atas nama pengguna yang bertugas secara transparan.",
+    pills: ["Link & Upload Berkas", "Format Berkas Pendukung", "User Tracked"],
     statHighlight: "Bukti Fisik & Tautan Terverifikasi",
-    icon: ClipboardCheck,
-    accentColor: "#0284C7",
+    accentColor: "#004281",
   },
   {
     num: "04",
     tag: "PANTAU & LAPOR",
     title: "Evaluasi Semesteran & Residual",
     subtitle: "Pantau penurunan risiko dan siap lapor pimpinan kapan saja",
-    desc: "Pantau pergeseran level risiko dari inheren ke residual setelah tindakan mitigasi dijalankan. Bandingkan tren antar-semester (S1 vs S2) dan unduh data akuntabilitas kinerja yang siap diserahkan ke pimpinan instansi dan inspektorat.",
-    pills: ["Penurunan Residual", "Tren Semester S1 & S2", "Siap Audit"],
-    statHighlight: "Evaluasi Semester II 2026 Aktif",
-    icon: BarChart3,
-    accentColor: "#059669",
+    desc: "Pantau pergeseran level risiko dari inheren ke residual setelah tindakan mitigasi dijalankan. Bandingkan tren antar-semester dan unduh data akuntabilitas kinerja yang siap diserahkan ke pimpinan instansi dan inspektorat.",
+    pills: ["Penurunan Residual", "Tren Semester", "Siap Audit"],
+    statHighlight: "Evaluasi Risiko Residual",
+    accentColor: "#004281",
   },
 ];
 
@@ -229,18 +200,16 @@ export function SimanrisLandingView() {
       ref={containerRef}
       className="relative min-h-screen bg-[#F8FAFC] text-slate-900 selection:bg-[#004281] selection:text-white overflow-x-hidden font-['Plus_Jakarta_Sans',sans-serif]"
     >
-      {/* =========================================================================
-          TOP SCROLL PROGRESS INDICATOR
-      ========================================================================= */}
+      {/* Top Scroll Indicator: Solid Blue */}
       <motion.div
-        className="fixed top-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-[#004281] via-[#005baa] to-[#38bdf8] z-50 origin-left"
+        className="fixed top-0 left-0 right-0 h-[2.5px] bg-[#004281] z-50 origin-left"
         style={{ scaleX: scrollYProgress }}
       />
 
       {/* =========================================================================
-          TOP NAVBAR (Crisp Light Theme Glass)
+          TOP NAVBAR
       ========================================================================= */}
-      <header className="sticky top-0 z-40 w-full border-b border-slate-200/80 bg-white/90 backdrop-blur-md transition-all shadow-2xs">
+      <header className="sticky top-0 z-40 w-full border-b border-slate-200/80 bg-white/95 backdrop-blur-md transition-all shadow-2xs">
         <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Brand & Emblem */}
           <Link
@@ -276,7 +245,7 @@ export function SimanrisLandingView() {
           <nav className="hidden md:flex items-center gap-8 text-[13px] font-medium text-slate-600">
             <a
               href="#beranda"
-              className="text-[#004281] font-bold hover:text-[#005baa] transition-colors"
+              className="text-[#004281] font-bold hover:text-[#003366] transition-colors"
             >
               Beranda
             </a>
@@ -294,31 +263,28 @@ export function SimanrisLandingView() {
             </a>
             <Link
               href="/"
-              className="text-slate-500 hover:text-slate-800 transition-colors flex items-center gap-1"
+              className="text-slate-500 hover:text-slate-800 transition-colors"
             >
-              <span>Portal Percepat</span>
-              <ExternalLink className="w-3 h-3 text-slate-400" />
+              Portal Percepat
             </Link>
           </nav>
 
-          {/* Right Area: User Chip & CTA */}
+          {/* Right Area: User Chip & CTA Button (Plain Blue, No Icon) */}
           <div className="hidden sm:flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-xl bg-slate-100/90 border border-slate-200 px-3 py-1.5 text-xs text-slate-700">
-              <UserCheck className="w-3.5 h-3.5 text-[#004281]" />
+            <div className="flex items-center rounded-xl bg-slate-100/90 border border-slate-200 px-3 py-1.5 text-xs text-slate-700">
               <span className="max-w-[130px] lg:max-w-[180px] truncate font-medium text-slate-800">
                 {userDisplayName}
               </span>
             </div>
 
             <motion.div
-              whileHover={shouldReduceMotion ? {} : { scale: 1.02, y: -1 }}
+              whileHover={shouldReduceMotion ? {} : { scale: 1.02 }}
               whileTap={shouldReduceMotion ? {} : { scale: 0.98 }}
             >
               <Link
                 href="/simanris/dashboard"
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#004281] to-[#005baa] px-4 py-2 text-xs font-bold text-white shadow-md shadow-[#004281]/25 hover:shadow-lg hover:shadow-[#004281]/35 transition-all font-['Montserrat',sans-serif]"
+                className="inline-flex items-center justify-center rounded-xl bg-[#004281] hover:bg-[#003366] px-4 py-2 text-xs font-bold text-white transition-colors font-['Montserrat',sans-serif]"
               >
-                <Zap className="w-3.5 h-3.5 text-amber-300" />
                 <span>Masuk Dashboard</span>
               </Link>
             </motion.div>
@@ -335,10 +301,10 @@ export function SimanrisLandingView() {
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"
-              aria-label="Buka menu navigasi"
+              className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 border border-slate-200 hover:bg-slate-100 transition-colors"
+              aria-label="Toggle menu"
             >
-              <SlidersHorizontal className="w-5 h-5" />
+              {mobileMenuOpen ? "Tutup" : "Menu"}
             </button>
           </div>
         </div>
@@ -381,7 +347,7 @@ export function SimanrisLandingView() {
                   onClick={() => setMobileMenuOpen(false)}
                   className="font-bold text-[#004281] font-['Montserrat',sans-serif]"
                 >
-                  Buka Dashboard →
+                  Buka Dashboard
                 </Link>
               </div>
             </motion.div>
@@ -391,7 +357,7 @@ export function SimanrisLandingView() {
 
       <main>
         {/* =========================================================================
-            SECTION 1 — BERANDA / HERO (BRIGHT, MODERN, NON-BUREAUCRATIC)
+            SECTION 1 — BERANDA / HERO
         ========================================================================= */}
         <section
           id="beranda"
@@ -399,7 +365,7 @@ export function SimanrisLandingView() {
           className="relative min-h-[90vh] flex items-center justify-center overflow-hidden pt-12 pb-20 sm:pt-16 sm:pb-28 lg:pt-20 lg:pb-32 border-b border-slate-200/80 bg-gradient-to-b from-[#F8FAFC] via-[#F1F5F9]/60 to-white"
         >
           {/* Subtle Ambient Radial Glow */}
-          <div className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[radial-gradient(ellipse_at_center,rgba(0,66,129,0.08)_0%,rgba(248,250,252,0)_70%)] blur-3xl" />
+          <div className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[radial-gradient(ellipse_at_center,rgba(0,66,129,0.06)_0%,rgba(248,250,252,0)_70%)] blur-3xl" />
 
           {/* Parallax Background Typography Watermark */}
           <motion.div
@@ -431,36 +397,34 @@ export function SimanrisLandingView() {
                   <span>BBPOM DI MATARAM // RISK PLATFORM</span>
                 </div>
 
-                {/* Primary Headline in Montserrat */}
+                {/* Primary Headline: Plain Solid Blue Accent */}
                 <div className="space-y-1">
                   <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-5xl leading-[1.12] font-['Montserrat',sans-serif]">
                     Kelola & Kendalikan <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#004281] via-[#005baa] to-[#0284c7]">
+                    <span className="text-[#004281]">
                       Risiko Organisasi
                     </span>{" "}
                     Lebih Cepat.
                   </h1>
                 </div>
 
-                {/* Clear, Human Description in Plus Jakarta Sans */}
+                {/* Clear, Human Description */}
                 <p className="max-w-xl text-base text-slate-600 sm:text-lg leading-relaxed font-normal">
                   Satu sistem untuk mengidentifikasi masalah, kalkulasi matriks 5×5 secara otomatis,
                   uji mitigasi dengan data dukung nyata, dan pantau penurunan risiko tanpa proses berbelit-belit.
                 </p>
 
-                {/* Action Buttons */}
+                {/* Action Buttons: Solid Plain Blue, No Icons */}
                 <div className="pt-2 flex flex-wrap items-center gap-3.5 sm:gap-4">
                   <motion.div
-                    whileHover={shouldReduceMotion ? {} : { scale: 1.02, y: -2 }}
+                    whileHover={shouldReduceMotion ? {} : { scale: 1.02 }}
                     whileTap={shouldReduceMotion ? {} : { scale: 0.98 }}
                   >
                     <Link
                       href="/simanris/dashboard"
-                      className="group inline-flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-[#004281] to-[#005baa] px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-900/20 hover:shadow-xl hover:shadow-blue-900/30 transition-all font-['Montserrat',sans-serif]"
+                      className="inline-flex items-center justify-center rounded-xl bg-[#004281] hover:bg-[#003366] px-6 py-3.5 text-sm font-bold text-white shadow-md transition-colors font-['Montserrat',sans-serif]"
                     >
-                      <Zap className="w-4 h-4 text-amber-300" />
                       <span>Masuk ke Dashboard</span>
-                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                     </Link>
                   </motion.div>
 
@@ -470,41 +434,31 @@ export function SimanrisLandingView() {
                   >
                     <a
                       href="#alur"
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-sm font-semibold text-slate-700 shadow-2xs transition-all hover:bg-slate-50 hover:text-slate-900 font-['Montserrat',sans-serif]"
+                      className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-sm font-semibold text-slate-700 shadow-2xs transition-colors hover:bg-slate-50 hover:text-slate-900 font-['Montserrat',sans-serif]"
                     >
                       <span>Lihat Cara Kerja</span>
-                      <ArrowDown className="w-4 h-4 text-slate-400" />
                     </a>
                   </motion.div>
                 </div>
 
-                {/* Micro Key Feature Badges */}
+                {/* Micro Key Feature Badges: Clean Typographic Border, No Icons */}
                 <div className="pt-6 border-t border-slate-200/80 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                  <div className="flex items-start gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-[#004281] mt-0.5 shrink-0" />
-                    <div>
-                      <div className="font-bold text-slate-800 font-['Montserrat',sans-serif]">Standar SAPA APIP</div>
-                      <div className="text-slate-500 text-[11px]">Format Workbook Terverifikasi</div>
-                    </div>
+                  <div className="border-l-2 border-[#004281] pl-3">
+                    <div className="font-bold text-slate-800 font-['Montserrat',sans-serif]">Standar SAPA APIP</div>
+                    <div className="text-slate-500 text-[11px]">Format Workbook Terverifikasi</div>
                   </div>
-                  <div className="flex items-start gap-2.5">
-                    <ShieldCheck className="w-4 h-4 text-[#004281] mt-0.5 shrink-0" />
-                    <div>
-                      <div className="font-bold text-slate-800 font-['Montserrat',sans-serif]">Matriks 5 × 5 Otomatis</div>
-                      <div className="text-slate-500 text-[11px]">Filter Risiko Tinggi (Skor ≥ 16)</div>
-                    </div>
+                  <div className="border-l-2 border-[#004281] pl-3">
+                    <div className="font-bold text-slate-800 font-['Montserrat',sans-serif]">Matriks 5 × 5 Otomatis</div>
+                    <div className="text-slate-500 text-[11px]">Filter Risiko Tinggi (Skor ≥ 16)</div>
                   </div>
-                  <div className="flex items-start gap-2.5">
-                    <ClipboardCheck className="w-4 h-4 text-[#004281] mt-0.5 shrink-0" />
-                    <div>
-                      <div className="font-bold text-slate-800 font-['Montserrat',sans-serif]">Bukti & Jejak Rekam</div>
-                      <div className="text-slate-500 text-[11px]">Tautan & Unggah Berkas Nyata</div>
-                    </div>
+                  <div className="border-l-2 border-[#004281] pl-3">
+                    <div className="font-bold text-slate-800 font-['Montserrat',sans-serif]">Bukti & Jejak Rekam</div>
+                    <div className="text-slate-500 text-[11px]">Tautan & Unggah Berkas Nyata</div>
                   </div>
                 </div>
               </motion.div>
 
-              {/* Right Column: Si Inges Mascot with Futuristic Risk Telemetry & Chart Assets */}
+              {/* Right Column: Si Inges Mascot with Real Data Badges, No Icons */}
               <motion.div
                 style={{ y: heroVisualY }}
                 initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.96 }}
@@ -513,9 +467,9 @@ export function SimanrisLandingView() {
                 className="lg:col-span-5 relative flex items-center justify-center min-h-[460px] sm:min-h-[520px]"
               >
                 {/* Ambient Lighting Halo */}
-                <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[340px] sm:w-[440px] sm:h-[440px] rounded-full bg-[radial-gradient(circle,rgba(0,66,129,0.12)_0%,transparent_70%)] blur-2xl z-0" />
+                <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[340px] sm:w-[440px] sm:h-[440px] rounded-full bg-[radial-gradient(circle,rgba(0,66,129,0.1)_0%,transparent_70%)] blur-2xl z-0" />
 
-                {/* Concentric Orbit / Radar Rings (Subtle, Clean Light Theme) */}
+                {/* Concentric Orbit Rings */}
                 <svg
                   className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[380px] h-[380px] sm:w-[460px] sm:h-[460px] text-[#004281]/15 z-0"
                   viewBox="0 0 400 400"
@@ -528,78 +482,54 @@ export function SimanrisLandingView() {
                   <line x1="200" y1="20" x2="200" y2="380" stroke="currentColor" strokeWidth="0.8" opacity="0.25" strokeDasharray="3 3" />
                 </svg>
 
-                {/* Subtle Holographic Mini-Chart Asset behind her tablet */}
-                <div className="pointer-events-none absolute right-4 sm:right-8 top-16 z-0 opacity-80">
-                  <svg className="w-36 h-20 text-[#004281]/40" viewBox="0 0 140 80" fill="none">
-                    <path
-                      d="M10 65 L40 45 L75 55 L105 25 L135 35"
-                      stroke="#005baa"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                    />
-                    <path
-                      d="M10 65 L40 45 L75 55 L105 25 L135 35 L135 80 L10 80 Z"
-                      fill="url(#ingesChartGradLight)"
-                      opacity="0.15"
-                    />
-                    <circle cx="105" cy="25" r="3.5" fill="#005baa" />
-                    <defs>
-                      <linearGradient id="ingesChartGradLight" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#005baa" />
-                        <stop offset="100%" stopColor="#004281" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                </div>
-
-                {/* Floating Telemetry Badge 1: Risiko Inheren Tinggi (Top Left) */}
+                {/* Floating Telemetry Badge 1: Real Inherent High Data (No Icons, No Fake 41 Fallback) */}
                 <motion.div
                   animate={shouldReduceMotion ? {} : { y: [0, -6, 0] }}
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute -left-2 sm:left-2 top-10 z-20 flex items-center gap-2.5 rounded-xl border border-rose-200 bg-white/95 px-3.5 py-2 shadow-xl backdrop-blur-md"
+                  className="absolute -left-2 sm:left-2 top-10 z-20 flex items-center rounded-xl border border-rose-200 bg-white/95 px-3.5 py-2 shadow-xl backdrop-blur-md"
                 >
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-600" />
-                  </span>
                   <div className="text-left font-['Montserrat',sans-serif]">
                     <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                       Prioritas Tinggi
                     </div>
                     <div className="text-xs font-black text-rose-600">
-                      {overview ? <AnimatedNumber value={overview.inherent_high} /> : 41} Risiko (≥ 16)
+                      {overview ? (
+                        <><AnimatedNumber value={overview.inherent_high} /> Risiko (≥ 16)</>
+                      ) : loading ? (
+                        "Memuat..."
+                      ) : (
+                        "- Risiko (≥ 16)"
+                      )}
                     </div>
                   </div>
                 </motion.div>
 
-                {/* Floating Telemetry Badge 2: Dataset Aktif (Bottom Right) */}
+                {/* Floating Telemetry Badge 2: Dataset Aktif (No Icons, No Fake Period Fallback) */}
                 <motion.div
                   animate={shouldReduceMotion ? {} : { y: [0, 6, 0] }}
                   transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
-                  className="absolute -right-2 sm:right-2 bottom-16 z-20 flex items-center gap-2.5 rounded-xl border border-blue-200 bg-white/95 px-3.5 py-2 shadow-xl backdrop-blur-md"
+                  className="absolute -right-2 sm:right-2 bottom-16 z-20 flex items-center rounded-xl border border-blue-200 bg-white/95 px-3.5 py-2 shadow-xl backdrop-blur-md"
                 >
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-[#004281]">
-                    <Activity className="w-3.5 h-3.5" />
-                  </div>
                   <div className="text-left font-['Montserrat',sans-serif]">
                     <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                      SAPA APIP 2026
+                      {overview?.period?.year ? `SAPA APIP ${overview.period.year}` : "SAPA APIP"}
                     </div>
                     <div className="text-xs font-black text-[#004281]">
-                      {overview?.period?.period_name || "Semester II"} // Live
+                      {overview?.period?.period_name || (loading ? "Memuat..." : "Data Aktif")}
                     </div>
                   </div>
                 </motion.div>
 
-                {/* Floating Badge 3: 5 Unit Kerja (Bottom Left) */}
+                {/* Floating Badge 3: Unit Kerja (Real count from API, No Fake 100% claim) */}
                 <motion.div
                   animate={shouldReduceMotion ? {} : { y: [0, -5, 0] }}
                   transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
                   className="absolute left-2 sm:left-6 bottom-4 z-20 hidden sm:flex items-center gap-2 rounded-lg border border-slate-200 bg-white/95 px-3 py-1.5 shadow-lg backdrop-blur-md text-[11px] font-['Montserrat',sans-serif]"
                 >
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  <span className="text-slate-800 font-bold">5 Unit Kerja</span>
-                  <span className="text-slate-500">100% Aktif</span>
+                  <span className="text-slate-800 font-bold">
+                    {overview?.functions_count ?? masterOptions?.functions?.length ?? "-"} Unit Kerja
+                  </span>
+                  <span className="text-slate-500">Terintegrasi</span>
                 </motion.div>
 
                 {/* Si Inges Character Render */}
@@ -625,16 +555,13 @@ export function SimanrisLandingView() {
         </section>
 
         {/* =========================================================================
-            SECTION 2 — CARA KERJA SIMANRIS (CONNECTED VERTICAL FLOW - LIGHT THEME)
+            SECTION 2 — CARA KERJA SIMANRIS (No Icons, Clean Solid Blue Spine)
         ========================================================================= */}
         <section
           id="alur"
           ref={workflowRef}
           className="relative py-24 sm:py-32 bg-white border-b border-slate-200/80"
         >
-          {/* Subtle Ambient Radial Glow */}
-          <div className="pointer-events-none absolute top-1/3 right-0 w-[500px] h-[500px] bg-[radial-gradient(circle,rgba(0,66,129,0.05)_0%,transparent_70%)] blur-3xl" />
-
           <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             {/* Section Tag & Heading */}
             <motion.div
@@ -644,7 +571,7 @@ export function SimanrisLandingView() {
               transition={{ duration: 0.6, ease: EASE_SNAPPY }}
               className="max-w-3xl space-y-3 mb-16 lg:mb-24"
             >
-              <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#004281] font-['Montserrat',sans-serif]">
+              <div className="inline-flex items-center text-xs font-bold uppercase tracking-widest text-[#004281] font-['Montserrat',sans-serif]">
                 <span>[ 02 // CARA KERJA SIMANRIS ]</span>
               </div>
               <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-4xl leading-tight font-['Montserrat',sans-serif]">
@@ -656,104 +583,94 @@ export function SimanrisLandingView() {
               </p>
             </motion.div>
 
-            {/* Vertically Connected Flow Architecture */}
+            {/* Vertically Connected Flow Architecture: Solid Blue Line */}
             <div className="relative">
               {/* Central/Left Connecting Spine */}
               <div className="hidden lg:block absolute left-8 top-6 bottom-6 w-[2px] bg-slate-200">
                 <motion.div
                   style={{ height: flowLineHeight }}
-                  className="w-full bg-gradient-to-b from-[#004281] via-[#005baa] to-[#38bdf8] shadow-[0_0_8px_rgba(0,91,170,0.4)]"
+                  className="w-full bg-[#004281]"
                 />
               </div>
 
-              {/* Sequential Stages List */}
+              {/* Sequential Stages List: No Icons */}
               <div className="space-y-10 lg:space-y-14">
-                {WORKFLOW_STAGES.map((stage, idx) => {
-                  const IconComponent = stage.icon;
-                  return (
-                    <motion.div
-                      key={stage.num}
-                      initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 30 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true, margin: "-60px" }}
-                      transition={{ duration: 0.6, delay: idx * 0.1, ease: EASE_SNAPPY }}
-                      className="relative lg:pl-24"
-                    >
-                      {/* Node Bullet on Spine (Desktop Only) */}
-                      <div className="hidden lg:flex absolute left-4.5 top-8 -translate-x-1/2 h-7 w-7 items-center justify-center rounded-full bg-white border-2 border-[#004281] text-[11px] font-bold text-[#004281] shadow-md z-10 font-['Montserrat',sans-serif]">
-                        {stage.num}
-                      </div>
+                {WORKFLOW_STAGES.map((stage, idx) => (
+                  <motion.div
+                    key={stage.num}
+                    initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-60px" }}
+                    transition={{ duration: 0.6, delay: idx * 0.1, ease: EASE_SNAPPY }}
+                    className="relative lg:pl-24"
+                  >
+                    {/* Node Bullet on Spine */}
+                    <div className="hidden lg:flex absolute left-4.5 top-8 -translate-x-1/2 h-7 w-7 items-center justify-center rounded-full bg-white border-2 border-[#004281] text-[11px] font-bold text-[#004281] shadow-md z-10 font-['Montserrat',sans-serif]">
+                      {stage.num}
+                    </div>
 
-                      {/* Editorial Card Surface in Crisp Light Theme */}
-                      <div className="rounded-2xl border border-slate-200/90 bg-slate-50/70 p-6 sm:p-8 hover:bg-white hover:border-[#004281]/40 hover:shadow-xl transition-all duration-300 shadow-sm group">
-                        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
-                          <div className="space-y-3 max-w-3xl">
-                            {/* Tag & Stat Header */}
-                            <div className="flex items-center gap-2.5">
-                              <span className="text-xs font-bold uppercase tracking-wider text-[#004281] font-['Montserrat',sans-serif]">
-                                TAHAP {stage.num} // {stage.tag}
-                              </span>
-                              <span className="h-1 w-1 rounded-full bg-slate-300" />
-                              <span className="text-xs font-semibold text-slate-500">
-                                {stage.statHighlight}
-                              </span>
-                            </div>
-
-                            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 group-hover:text-[#004281] transition-colors font-['Montserrat',sans-serif]">
-                              {stage.title}
-                            </h3>
-
-                            <p className="text-xs sm:text-sm font-medium text-[#005baa]">
-                              {stage.subtitle}
-                            </p>
-
-                            <p className="text-sm text-slate-600 leading-relaxed pt-1">
-                              {stage.desc}
-                            </p>
-
-                            {/* Metadata Badges */}
-                            <div className="pt-3 flex flex-wrap gap-2">
-                              {stage.pills.map((pill) => (
-                                <span
-                                  key={pill}
-                                  className="rounded-lg bg-white border border-slate-200/80 px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-2xs font-['Montserrat',sans-serif]"
-                                >
-                                  {pill}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Stage Icon Container */}
-                          <div className="shrink-0 flex items-center lg:flex-col justify-between border-t lg:border-t-0 lg:border-l border-slate-200 pt-4 lg:pt-0 lg:pl-6">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 border border-blue-100 text-[#004281] shadow-inner group-hover:bg-[#004281] group-hover:text-white transition-colors">
-                              <IconComponent className="w-6 h-6" />
-                            </div>
-
-                            <span className="text-3xl font-black text-slate-300 font-['Montserrat',sans-serif] group-hover:text-blue-200 transition-colors mt-2">
-                              {stage.num}
+                    {/* Editorial Card Surface */}
+                    <div className="rounded-2xl border border-slate-200/90 bg-slate-50/70 p-6 sm:p-8 hover:bg-white hover:border-[#004281]/40 hover:shadow-xl transition-all duration-300 shadow-sm group">
+                      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+                        <div className="space-y-3 max-w-3xl">
+                          {/* Tag & Stat Header */}
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-xs font-bold uppercase tracking-wider text-[#004281] font-['Montserrat',sans-serif]">
+                              TAHAP {stage.num} // {stage.tag}
+                            </span>
+                            <span className="h-1 w-1 rounded-full bg-slate-300" />
+                            <span className="text-xs font-semibold text-slate-500">
+                              {stage.statHighlight}
                             </span>
                           </div>
+
+                          <h3 className="text-xl sm:text-2xl font-bold text-slate-900 group-hover:text-[#004281] transition-colors font-['Montserrat',sans-serif]">
+                            {stage.title}
+                          </h3>
+
+                          <p className="text-xs sm:text-sm font-medium text-[#003366]">
+                            {stage.subtitle}
+                          </p>
+
+                          <p className="text-sm text-slate-600 leading-relaxed pt-1">
+                            {stage.desc}
+                          </p>
+
+                          {/* Metadata Badges */}
+                          <div className="pt-3 flex flex-wrap gap-2">
+                            {stage.pills.map((pill) => (
+                              <span
+                                key={pill}
+                                className="rounded-lg bg-white border border-slate-200/80 px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-2xs font-['Montserrat',sans-serif]"
+                              >
+                                {pill}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Stage Number (No Icons) */}
+                        <div className="shrink-0 flex items-center lg:flex-col justify-end border-t lg:border-t-0 lg:border-l border-slate-200 pt-4 lg:pt-0 lg:pl-6">
+                          <span className="text-3xl font-black text-slate-300 font-['Montserrat',sans-serif] group-hover:text-[#004281] transition-colors">
+                            {stage.num}
+                          </span>
                         </div>
                       </div>
-                    </motion.div>
-                  );
-                })}
+                    </div>
+                  </motion.div>
+                ))}
               </div>
             </div>
           </div>
         </section>
 
         {/* =========================================================================
-            SECTION 3 — DATA SUMMARY / LIVE RISK ENGINE (LIGHT THEME)
+            SECTION 3 — DATA SUMMARY / LIVE RISK ENGINE (Real Data Only, No Fake Fallbacks)
         ========================================================================= */}
         <section
           id="ringkasan"
           className="relative py-24 sm:py-32 bg-slate-50/70 border-b border-slate-200/80"
         >
-          {/* Ambient Lighting Gradient */}
-          <div className="pointer-events-none absolute bottom-10 left-10 w-[600px] h-[400px] bg-[radial-gradient(ellipse_at_center,rgba(0,66,129,0.06)_0%,transparent_70%)] blur-3xl" />
-
           <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             {/* Header Data Summary */}
             <motion.div
@@ -764,34 +681,33 @@ export function SimanrisLandingView() {
               className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-14"
             >
               <div className="space-y-2 max-w-2xl">
-                <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#004281] font-['Montserrat',sans-serif]">
+                <div className="inline-flex items-center text-xs font-bold uppercase tracking-widest text-[#004281] font-['Montserrat',sans-serif]">
                   <span>[ 03 // LIVE DATA ENGINE ]</span>
                 </div>
                 <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl font-['Montserrat',sans-serif]">
-                  Data Riil Manajemen Risiko Hari Ini
+                  Data Riil Manajemen Risiko
                 </h2>
                 <p className="text-sm sm:text-base text-slate-600">
-                  Angka aktual yang tersinkronisasi otomatis dengan workbook SAPA APIP terpublikasi
+                  Angka aktual yang tersinkronisasi otomatis dengan data terpublikasi
                   di database internal SIMANRIS BBPOM di Mataram.
                 </p>
               </div>
 
+              {/* Action Buttons: Solid Plain Blue, No Icons */}
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={fetchData}
                   disabled={loading}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50 disabled:opacity-50 transition-colors shadow-2xs font-['Montserrat',sans-serif]"
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50 disabled:opacity-50 transition-colors shadow-2xs font-['Montserrat',sans-serif]"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-                  <span>Segarkan Data</span>
+                  <span>{loading ? "Menyegarkan..." : "Segarkan Data"}</span>
                 </button>
 
                 <Link
                   href="/simanris/dashboard"
-                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#004281] to-[#005baa] px-4 py-2 text-xs font-bold text-white shadow-md shadow-[#004281]/20 hover:shadow-lg font-['Montserrat',sans-serif]"
+                  className="inline-flex items-center justify-center rounded-xl bg-[#004281] hover:bg-[#003366] px-4 py-2 text-xs font-bold text-white transition-colors font-['Montserrat',sans-serif]"
                 >
-                  <Zap className="w-3.5 h-3.5 text-amber-300" />
                   <span>Buka Dashboard</span>
                 </Link>
               </div>
@@ -799,25 +715,24 @@ export function SimanrisLandingView() {
 
             {/* Error Banner if API fails */}
             {error && (
-              <div className="mb-8 rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800 flex items-start gap-3">
-                <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
+              <div className="mb-8 rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800 flex items-start justify-between gap-3">
                 <div className="flex-1">
                   <div className="font-bold text-rose-900 font-['Montserrat',sans-serif]">Koneksi API SIMANRIS Terkendala</div>
-                  <div>{error} Silakan klik tombol 'Segarkan Data' untuk mencoba ulang.</div>
+                  <div>{error} Silakan klik tombol 'Coba Lagi' untuk mencoba ulang.</div>
                 </div>
                 <button
                   type="button"
                   onClick={fetchData}
-                  className="font-bold underline text-rose-900 ml-2"
+                  className="font-bold underline text-rose-900 ml-2 shrink-0"
                 >
                   Coba Lagi
                 </button>
               </div>
             )}
 
-            {/* Asymmetrical Metric Composition in Crisp Light Cards */}
+            {/* Real Metrics Composition */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-              {/* Primary Large Typographic Metric (60% Desktop) */}
+              {/* Primary Metric: Total Peristiwa Risiko (No Fake Fallback, No Icons) */}
               <motion.div
                 initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 25 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -826,11 +741,10 @@ export function SimanrisLandingView() {
                 className="lg:col-span-7 rounded-2xl border border-slate-200/90 bg-white p-8 sm:p-10 shadow-md flex flex-col justify-between"
               >
                 <div>
-                  <div className="flex items-center justify-between text-xs text-slate-500 mb-4">
+                  <div className="text-xs text-slate-500 mb-4">
                     <span className="font-bold tracking-wider uppercase text-[#004281] font-['Montserrat',sans-serif]">
                       TOTAL PERISTIWA RISIKO TERDAFTAR
                     </span>
-                    <FileText className="w-4 h-4 text-[#004281]" />
                   </div>
 
                   {loading ? (
@@ -849,18 +763,17 @@ export function SimanrisLandingView() {
 
                 <div className="mt-8 pt-5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
                   <span className="truncate max-w-[280px]">
-                    File: {overview?.batch?.file_name || "Workbook Semester 2"}
+                    File: {overview?.batch?.file_name || (loading ? "Memuat file..." : "Belum ada file terpublikasi")}
                   </span>
-                  <span className="text-[#004281] font-bold flex items-center gap-1.5 font-['Montserrat',sans-serif]">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Terverifikasi di Database</span>
+                  <span className="text-[#004281] font-bold font-['Montserrat',sans-serif]">
+                    {overview?.total_records ? "Terdata di Database" : (loading ? "Memuat..." : "-")}
                   </span>
                 </div>
               </motion.div>
 
-              {/* Supporting Metrics Column (40% Desktop) */}
+              {/* Supporting Metrics Column */}
               <div className="lg:col-span-5 flex flex-col gap-6">
-                {/* Metric Card 2: Risiko Inheren Tinggi */}
+                {/* Metric Card 2: Risiko Inheren Tinggi (Real Data, No Fake Fallbacks, No Icons) */}
                 <motion.div
                   initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 25 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -869,11 +782,10 @@ export function SimanrisLandingView() {
                   className="rounded-2xl border border-rose-200 bg-white p-6 shadow-md hover:border-rose-400 transition-colors flex-1 flex flex-col justify-between"
                 >
                   <div>
-                    <div className="flex items-center justify-between text-xs mb-2">
+                    <div className="text-xs mb-2">
                       <span className="font-bold text-rose-600 uppercase tracking-wider font-['Montserrat',sans-serif]">
                         Risiko Inheren Tinggi (≥ 16)
                       </span>
-                      <ShieldAlert className="w-4 h-4 text-rose-600" />
                     </div>
 
                     {loading ? (
@@ -894,15 +806,14 @@ export function SimanrisLandingView() {
                     <span className="text-slate-500">Wajib Uji Petik</span>
                     <Link
                       href="/simanris/entry-pengujian"
-                      className="font-bold text-[#004281] hover:text-[#005baa] flex items-center gap-1 font-['Montserrat',sans-serif]"
+                      className="font-bold text-[#004281] hover:text-[#003366] font-['Montserrat',sans-serif]"
                     >
-                      <span>Uji Pengendalian</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
+                      Uji Pengendalian
                     </Link>
                   </div>
                 </motion.div>
 
-                {/* Metric Card 3: Fungsi & Periode */}
+                {/* Metric Card 3: Fungsi & Periode (Real Data, No Fake Fallbacks, No Icons) */}
                 <motion.div
                   initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 25 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -915,13 +826,17 @@ export function SimanrisLandingView() {
                       <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1 font-['Montserrat',sans-serif]">
                         Unit Kerja
                       </div>
-                      <div className="text-3xl sm:text-4xl font-black text-slate-900 font-['Montserrat',sans-serif]">
-                        <AnimatedNumber
-                          value={overview?.functions_count || masterOptions?.functions?.length || 5}
-                        />
-                      </div>
+                      {loading ? (
+                        <div className="h-9 w-16 animate-pulse rounded bg-slate-100 my-1" />
+                      ) : (
+                        <div className="text-3xl sm:text-4xl font-black text-slate-900 font-['Montserrat',sans-serif]">
+                          <AnimatedNumber
+                            value={overview?.functions_count || masterOptions?.functions?.length || 0}
+                          />
+                        </div>
+                      )}
                       <div className="text-[11px] text-slate-500 mt-1">
-                        TU, Pem, Pen, Peng, Inf
+                        Fungsi Operasional
                       </div>
                     </div>
 
@@ -930,23 +845,25 @@ export function SimanrisLandingView() {
                         Periode Aktif
                       </div>
                       <div className="text-xl sm:text-2xl font-black text-[#004281] tracking-tight truncate font-['Montserrat',sans-serif]">
-                        {overview?.period?.period_name || "2026 — S2"}
+                        {overview?.period?.period_name || (loading ? "Memuat..." : "-")}
                       </div>
                       <div className="text-[11px] text-slate-500 mt-1">
-                        Tahun Anggaran 2026
+                        {overview?.period?.year ? `Tahun Anggaran ${overview.period.year}` : (loading ? "Memuat..." : "Tahun Anggaran Berjalan")}
                       </div>
                     </div>
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
                     <span>Kompilasi Seluruh Fungsi</span>
-                    <span className="text-[#004281] font-bold font-['Montserrat',sans-serif]">100% Terpetakan</span>
+                    <span className="text-[#004281] font-bold font-['Montserrat',sans-serif]">
+                      {overview?.total_records ? "Aktif di Sistem" : (loading ? "Memuat..." : "-")}
+                    </span>
                   </div>
                 </motion.div>
               </div>
             </div>
 
-            {/* Seamless Transition Action Bar into Dashboard */}
+            {/* Seamless Transition Action Bar: Solid Plain Blue Button, No Icons */}
             <motion.div
               initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -972,11 +889,9 @@ export function SimanrisLandingView() {
                 </Link>
                 <Link
                   href="/simanris/dashboard"
-                  className="rounded-xl bg-gradient-to-r from-[#004281] to-[#005baa] px-5 py-2.5 text-xs font-bold text-white hover:shadow-lg transition-all flex items-center gap-1.5 shadow-md shadow-[#004281]/25 font-['Montserrat',sans-serif]"
+                  className="rounded-xl bg-[#004281] hover:bg-[#003366] px-5 py-2.5 text-xs font-bold text-white transition-colors font-['Montserrat',sans-serif]"
                 >
-                  <Zap className="w-3.5 h-3.5 text-amber-300" />
                   <span>Buka Dashboard Operasional</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
             </motion.div>
@@ -985,7 +900,7 @@ export function SimanrisLandingView() {
       </main>
 
       {/* =========================================================================
-          INSTITUTIONAL FOOTER (Grounding Dark Contrast / Slate 900)
+          FOOTER (Clean, No Icons)
       ========================================================================= */}
       <footer className="border-t border-slate-800 bg-[#0F172A] text-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
@@ -1023,30 +938,30 @@ export function SimanrisLandingView() {
               </div>
             </div>
 
-            {/* Address & Contact Column */}
+            {/* Address & Contact Column: Clean Text Without Icons */}
             <div className="md:col-span-4 space-y-3 text-xs">
               <div className="text-xs font-bold uppercase tracking-wider text-blue-300 font-['Montserrat',sans-serif]">
                 Kantor & Kontak Resmi
               </div>
               <div className="space-y-2.5 text-slate-300">
-                <div className="flex items-start gap-2.5">
-                  <MapPin className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-semibold text-slate-200">Alamat: </span>
                   <span className="leading-relaxed">
                     Jl. Cendrawasih No. 8, Karang Taliwang, Kec. Cakranegara, Kota Mataram, Nusa Tenggara Barat 83239
                   </span>
                 </div>
-                <div className="flex items-center gap-2.5">
-                  <Phone className="w-4 h-4 text-blue-400 shrink-0" />
+                <div>
+                  <span className="font-semibold text-slate-200">Telepon: </span>
                   <span>(0370) 621926</span>
                 </div>
-                <div className="flex items-center gap-2.5">
-                  <Mail className="w-4 h-4 text-blue-400 shrink-0" />
+                <div>
+                  <span className="font-semibold text-slate-200">Email: </span>
                   <span>bpom_mataram@pom.go.id</span>
                 </div>
               </div>
             </div>
 
-            {/* Navigation Fast Links */}
+            {/* Navigation Fast Links: Clean Text Without Icons */}
             <div className="md:col-span-3 space-y-3 text-xs">
               <div className="text-xs font-bold uppercase tracking-wider text-blue-300 font-['Montserrat',sans-serif]">
                 Navigasi SIMANRIS
@@ -1055,46 +970,41 @@ export function SimanrisLandingView() {
                 <li>
                   <Link
                     href="/simanris/dashboard"
-                    className="hover:text-white transition-colors flex items-center gap-1.5"
+                    className="hover:text-white transition-colors"
                   >
-                    <ChevronRight className="w-3 h-3 text-blue-400" />
-                    <span>Dashboard Operasional</span>
+                    Dashboard Operasional
                   </Link>
                 </li>
                 <li>
                   <Link
                     href="/simanris/data-excel"
-                    className="hover:text-white transition-colors flex items-center gap-1.5"
+                    className="hover:text-white transition-colors"
                   >
-                    <ChevronRight className="w-3 h-3 text-blue-400" />
-                    <span>Data Excel & Riwayat</span>
+                    Data Excel & Riwayat
                   </Link>
                 </li>
                 <li>
                   <Link
                     href="/simanris/data-risiko"
-                    className="hover:text-white transition-colors flex items-center gap-1.5"
+                    className="hover:text-white transition-colors"
                   >
-                    <ChevronRight className="w-3 h-3 text-blue-400" />
-                    <span>Daftar Seluruh Risiko</span>
+                    Daftar Seluruh Risiko
                   </Link>
                 </li>
                 <li>
                   <Link
                     href="/simanris/entry-pengujian"
-                    className="hover:text-white transition-colors flex items-center gap-1.5"
+                    className="hover:text-white transition-colors"
                   >
-                    <ChevronRight className="w-3 h-3 text-blue-400" />
-                    <span>Entry Data Pengujian</span>
+                    Entry Data Pengujian
                   </Link>
                 </li>
                 <li>
                   <Link
                     href="/"
-                    className="hover:text-white transition-colors flex items-center gap-1.5"
+                    className="hover:text-white transition-colors"
                   >
-                    <ChevronRight className="w-3 h-3 text-blue-400" />
-                    <span>Kembali ke Portal Percepat</span>
+                    Kembali ke Portal Percepat
                   </Link>
                 </li>
               </ul>
