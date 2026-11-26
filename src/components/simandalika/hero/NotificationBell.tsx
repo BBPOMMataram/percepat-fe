@@ -28,6 +28,13 @@ interface NotificationItem {
     created_at: string;
 }
 
+function formatModuleLabel(mod?: string | null): string {
+    const trimmed = (mod || "").trim();
+    if (!trimmed) return "";
+    if (trimmed.toLowerCase() === "admin-super") return "Admin BPOM";
+    return trimmed;
+}
+
 function formatRelativeTime(dateString: string): string {
     try {
         const date = new Date(dateString);
@@ -163,24 +170,10 @@ export default function NotificationBell({ compact = false }: NotificationBellPr
         };
     }, [isOpen]);
 
-    // Tandai 1 notifikasi telah dibaca & navigasi ke action_url
-    const handleNotificationClick = async (notif: NotificationItem) => {
-        if (!notif.is_read) {
-            try {
-                await api.patch(`${authUrl}/api/notifications/${notif.id}/read`);
-                setNotifications((prev) =>
-                    prev.map((n) => (n.id === notif.id ? { ...n, is_read: true } : n))
-                );
-                setUnreadCount((prev) => Math.max(0, prev - 1));
-            } catch (error) {
-                console.error("Gagal menandai notifikasi:", error);
-            }
-        }
-
-        if (notif.action_url) {
-            setIsOpen(false);
-            router.push(notif.action_url);
-        }
+    // Navigasi ke halaman detail notifikasi (/notification/[id]); mark-as-read dijalankan saat halaman dibuka
+    const handleNotificationClick = (notif: NotificationItem) => {
+        setIsOpen(false);
+        router.push(`/notification/${notif.id}`);
     };
 
     // Tandai semua notifikasi telah dibaca
@@ -390,7 +383,7 @@ export default function NotificationBell({ compact = false }: NotificationBellPr
                                             : "bg-slate-100 text-slate-600 hover:bg-slate-200/70"
                                     }`}
                                 >
-                                    {mod}
+                                    {formatModuleLabel(mod)}
                                 </button>
                             ))}
                         </div>
@@ -434,7 +427,7 @@ export default function NotificationBell({ compact = false }: NotificationBellPr
                                                 <span
                                                     className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider ${colors.badge}`}
                                                 >
-                                                    {item.module}
+                                                    {formatModuleLabel(item.module)}
                                                 </span>
                                                 <span className="text-[10px] text-slate-400 font-normal shrink-0">
                                                     {formatRelativeTime(item.created_at)}
@@ -462,10 +455,20 @@ export default function NotificationBell({ compact = false }: NotificationBellPr
                     </div>
 
                     {/* Footer Popover */}
-                    <div className="p-3 bg-slate-50 border-t border-slate-100 text-center">
+                    <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
                         <span className="text-[10px] text-slate-400">
-                            Pemberitahuan otomatis disaring berdasarkan wewenang jabatan Anda
+                            Notifikasi sesuai wewenang jabatan
                         </span>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setIsOpen(false);
+                                router.push("/notification");
+                            }}
+                            className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                        >
+                            Lihat Semua
+                        </button>
                     </div>
                 </div>
             )}
