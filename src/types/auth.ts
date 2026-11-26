@@ -98,6 +98,9 @@ export interface User {
     email_verified_at: string | null;
     photo_path: string | null;
     signature_path: string | null;
+    telegram_chat_id?: string | null;
+    telegram_username?: string | null;
+    telegram_notif_enabled?: boolean;
     role_id: number;
     role?: Role;
     bidang?: { id?: number; name?: string; [key: string]: any } | null;

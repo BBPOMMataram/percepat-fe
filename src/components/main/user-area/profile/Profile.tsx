@@ -7,7 +7,8 @@ import { User } from "@/types/auth";
 import api from "@/utils/api";
 import dayjs from "@/utils/dayjs";
 import { getAuthStorageUrl, getUserPhotoUrl } from "@/utils/userPhoto";
-import { useEffect, useRef, useState } from "react";
+import { Bell, BellOff, CheckCircle2, ExternalLink, RefreshCw, Send, Unlink } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import SignatureCanvas from "react-signature-canvas";
 
@@ -21,11 +22,178 @@ export default function Profile({ user, updateCallName, callName }: { user: User
     const [fungsiId, setFungsiId] = useState(user?.employee?.fungsi_id ?? "");
     const [groupJabatan, setGroupJabatan] = useState("");
 
+    // Telegram Notification State
+    const [tgConfigured, setTgConfigured] = useState<boolean>(true);
+    const [tgBotUsername, setTgBotUsername] = useState<string | null>(null);
+    const [tgConnected, setTgConnected] = useState<boolean>(Boolean(user?.telegram_chat_id));
+    const [tgEnabled, setTgEnabled] = useState<boolean>(Boolean(user?.telegram_notif_enabled));
+    const [tgUsername, setTgUsername] = useState<string | null>(user?.telegram_username ?? null);
+    const [tgDeepLink, setTgDeepLink] = useState<string | null>(null);
+    const [tgLoading, setTgLoading] = useState<boolean>(false);
+    const [tgPolling, setTgPolling] = useState<boolean>(false);
+
     const fullNameRef = useRef<HTMLInputElement>(null);
     const formProfileRef = useRef<HTMLFormElement>(null);
     const signatureSelectRef = useRef<any>(null)
 
     const dispatch = useDispatch<AppDispatch>()
+
+    const authBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL_AUTH;
+
+    const loadTelegramStatus = useCallback(async () => {
+        if (!authBaseUrl) return;
+        try {
+            const res = await api.get(`${authBaseUrl}/api/telegram/status`);
+            setTgConfigured(Boolean(res.data?.configured));
+            setTgBotUsername(res.data?.bot_username ?? null);
+            setTgConnected(Boolean(res.data?.connected));
+            setTgEnabled(Boolean(res.data?.enabled));
+            setTgUsername(res.data?.telegram_username ?? null);
+        } catch (err) {
+            console.warn("Gagal memuat status Telegram:", err);
+        }
+    }, [authBaseUrl]);
+
+    useEffect(() => {
+        loadTelegramStatus();
+    }, [loadTelegramStatus]);
+
+    const checkTelegramConnection = useCallback(async (silent = false) => {
+        if (!authBaseUrl) return false;
+        if (!silent) setTgLoading(true);
+        try {
+            const res = await api.post(`${authBaseUrl}/api/telegram/check-connection`);
+            const isNowConnected = Boolean(res.data?.connected);
+            setTgConnected(isNowConnected);
+            setTgEnabled(Boolean(res.data?.enabled));
+            setTgUsername(res.data?.telegram_username ?? null);
+
+            if (isNowConnected) {
+                setTgPolling(false);
+                setTgDeepLink(null);
+                await dispatch(getUser());
+                dispatch(showAlert({
+                    type: "success",
+                    message: "Telegram Terhubung",
+                    description: "Notifikasi Telegram berhasil diaktifkan pada akun Anda.",
+                }));
+                return true;
+            } else if (!silent) {
+                dispatch(showAlert({
+                    type: "error",
+                    message: "Belum Terhubung",
+                    description: "Silakan buka bot Telegram lalu tekan tombol Start terlebih dahulu.",
+                }));
+            }
+        } catch (err: any) {
+            if (!silent) {
+                const msg = err?.response?.data?.message || "Gagal memeriksa koneksi Telegram.";
+                dispatch(showAlert({ type: "error", message: msg, description: msg }));
+            }
+        } finally {
+            if (!silent) setTgLoading(false);
+        }
+        return false;
+    }, [authBaseUrl, dispatch]);
+
+    useEffect(() => {
+        if (!tgPolling) return;
+        let attempts = 0;
+        const maxAttempts = 40; // ~2 menit
+        const interval = setInterval(async () => {
+            attempts += 1;
+            const connected = await checkTelegramConnection(true);
+            if (connected || attempts >= maxAttempts) {
+                setTgPolling(false);
+                clearInterval(interval);
+            }
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [tgPolling, checkTelegramConnection]);
+
+    const handleActivateTelegram = async () => {
+        if (!authBaseUrl) return;
+        setTgLoading(true);
+        try {
+            const res = await api.post(`${authBaseUrl}/api/telegram/link-token`);
+            const link = res.data?.deep_link;
+            if (link) {
+                setTgDeepLink(link);
+                setTgPolling(true);
+                window.open(link, "_blank", "noopener,noreferrer");
+            }
+        } catch (err: any) {
+            const msg = err?.response?.data?.message || "Gagal membuat link aktivasi Telegram.";
+            dispatch(showAlert({ type: "error", message: msg, description: msg }));
+        } finally {
+            setTgLoading(false);
+        }
+    };
+
+    const handleToggleTelegram = async () => {
+        if (!authBaseUrl) return;
+        setTgLoading(true);
+        try {
+            const nextEnabled = !tgEnabled;
+            const res = await api.patch(`${authBaseUrl}/api/telegram/toggle`, { enabled: nextEnabled });
+            setTgEnabled(Boolean(res.data?.enabled));
+            await dispatch(getUser());
+            dispatch(showAlert({
+                type: "success",
+                message: res.data?.message || "Pengaturan notifikasi Telegram diperbarui.",
+                description: res.data?.message || "Pengaturan notifikasi Telegram diperbarui.",
+            }));
+        } catch (err: any) {
+            const msg = err?.response?.data?.message || "Gagal mengubah status notifikasi Telegram.";
+            dispatch(showAlert({ type: "error", message: msg, description: msg }));
+        } finally {
+            setTgLoading(false);
+        }
+    };
+
+    const handleTestTelegram = async () => {
+        if (!authBaseUrl) return;
+        setTgLoading(true);
+        try {
+            const res = await api.post(`${authBaseUrl}/api/telegram/test`);
+            dispatch(showAlert({
+                type: "success",
+                message: "Tes Terkirim",
+                description: res.data?.message || "Pesan tes berhasil dikirim ke Telegram Anda.",
+            }));
+        } catch (err: any) {
+            const msg = err?.response?.data?.message || "Gagal mengirim pesan tes Telegram.";
+            dispatch(showAlert({ type: "error", message: msg, description: msg }));
+        } finally {
+            setTgLoading(false);
+        }
+    };
+
+    const handleDisconnectTelegram = async () => {
+        if (!authBaseUrl) return;
+        if (!window.confirm("Putuskan koneksi notifikasi Telegram dari akun Anda?")) return;
+        setTgLoading(true);
+        try {
+            const res = await api.post(`${authBaseUrl}/api/telegram/disconnect`);
+            setTgConnected(false);
+            setTgEnabled(false);
+            setTgUsername(null);
+            setTgDeepLink(null);
+            setTgPolling(false);
+            await dispatch(getUser());
+            dispatch(showAlert({
+                type: "success",
+                message: "Koneksi Diputuskan",
+                description: res.data?.message || "Koneksi Telegram berhasil diputuskan.",
+            }));
+        } catch (err: any) {
+            const msg = err?.response?.data?.message || "Gagal memutuskan koneksi Telegram.";
+            dispatch(showAlert({ type: "error", message: msg, description: msg }));
+        } finally {
+            setTgLoading(false);
+        }
+    };
 
     const getFungsi = () => {
         api.get(`${process.env.NEXT_PUBLIC_BACKEND_URL_AUTH}/api/fungsis`)
@@ -370,6 +538,123 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                     </div>
                 </div>
             </form>
+
+            {/* NOTIFIKASI TELEGRAM SECTION */}
+            <div className="bg-white rounded-2xl shadow px-8 py-6 mt-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2.5">
+                            <Send className="h-5 w-5 text-[#0088cc]" />
+                            <h3 className="text-base font-bold text-gray-800">Notifikasi Telegram</h3>
+                            {tgConnected ? (
+                                <span
+                                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                        tgEnabled
+                                            ? "bg-emerald-50 text-emerald-700"
+                                            : "bg-amber-50 text-amber-700"
+                                    }`}
+                                >
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                    {tgEnabled ? "Aktif" : "Terhubung (Nonaktif)"}
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">
+                                    Belum Terhubung
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                            {tgConnected
+                                ? `Terhubung dengan akun Telegram${tgUsername ? ` @${tgUsername}` : ""}. Notifikasi modul akan dikirim langsung ke bot Telegram.`
+                                : `Hubungkan akun Anda dengan bot Telegram${tgBotUsername ? ` (@${tgBotUsername})` : ""} untuk menerima notifikasi langsung di Telegram.`}
+                        </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                        {!tgConnected ? (
+                            <button
+                                type="button"
+                                onClick={handleActivateTelegram}
+                                disabled={tgLoading || !tgConfigured}
+                                className="inline-flex items-center gap-2 rounded-xl bg-[#0088cc] px-4 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#0077b5] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <Send className="h-4 w-4" />
+                                {tgLoading ? "Menyiapkan..." : "Aktifkan Notifikasi Telegram"}
+                            </button>
+                        ) : (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={handleToggleTelegram}
+                                    disabled={tgLoading}
+                                    className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition disabled:opacity-50 ${
+                                        tgEnabled
+                                            ? "border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"
+                                            : "bg-emerald-600 text-white hover:bg-emerald-700"
+                                    }`}
+                                >
+                                    {tgEnabled ? <BellOff className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
+                                    {tgEnabled ? "Nonaktifkan" : "Aktifkan"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleTestTelegram}
+                                    disabled={tgLoading || !tgEnabled}
+                                    className="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3.5 py-2 text-xs font-semibold text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <Send className="h-3.5 w-3.5" />
+                                    Tes Notif
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleDisconnectTelegram}
+                                    disabled={tgLoading}
+                                    className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-50"
+                                >
+                                    <Unlink className="h-3.5 w-3.5" />
+                                    Putuskan
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {!tgConfigured && (
+                    <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                        Bot Telegram belum dikonfigurasi pada server (<code>TELEGRAM_BOT_TOKEN</code> belum diisi di <code>.env</code> Auth-BPOM).
+                    </p>
+                )}
+
+                {!tgConnected && tgDeepLink && (
+                    <div className="mt-4 rounded-xl border border-sky-200 bg-sky-50/70 p-4 text-xs text-sky-900">
+                        <p className="font-semibold">Menunggu konfirmasi dari Telegram...</p>
+                        <p className="mt-1 text-sky-800">
+                            1. Buka bot Telegram melalui tombol di bawah lalu tekan <strong>Start</strong>.<br />
+                            2. Status di halaman ini akan otomatis berubah menjadi terhubung setelah Anda menekan Start.
+                        </p>
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <a
+                                href={tgDeepLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-[#0088cc] px-3 py-1.5 font-semibold text-white hover:bg-[#0077b5]"
+                            >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                                Buka Bot Telegram
+                            </a>
+                            <button
+                                type="button"
+                                onClick={() => checkTelegramConnection(false)}
+                                disabled={tgLoading}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-sky-300 bg-white px-3 py-1.5 font-semibold text-sky-800 hover:bg-sky-100 disabled:opacity-50"
+                            >
+                                <RefreshCw className={`h-3.5 w-3.5 ${tgPolling || tgLoading ? "animate-spin" : ""}`} />
+                                Cek Status Koneksi
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
 
             <div className="bg-white rounded-2xl shadow px-8 py-4 mt-6 text-xs">
                 <div>
