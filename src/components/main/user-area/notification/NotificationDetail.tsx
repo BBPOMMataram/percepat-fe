@@ -56,6 +56,7 @@ export default function NotificationDetail({ user }: { user: User }) {
                     try {
                         await api.patch(`${authUrl}/api/notifications/${id}/read`);
                         notif.is_read = true;
+                        window.dispatchEvent(new CustomEvent("bpom:notifications-updated"));
                     } catch (err) {
                         console.error("Gagal menandai notifikasi sebagai dibaca:", err);
                     }

@@ -1,10 +1,43 @@
 "use client";
+import { useCallback, useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { RootState } from "@/redux/store";
+import api from "@/utils/axios";
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const { user } = useSelector((state: RootState) => state.auth);
+    const authUrl = process.env.NEXT_PUBLIC_BACKEND_URL_AUTH || "http://localhost:8000";
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    const fetchUnreadCount = useCallback(async () => {
+        if (!user) return;
+        try {
+            const res = await api.get(`${authUrl}/api/notifications`);
+            setUnreadCount(Number(res.data?.unread_count || 0));
+        } catch (error) {
+            console.error("Gagal memuat jumlah notifikasi:", error);
+        }
+    }, [user, authUrl]);
+
+    useEffect(() => {
+        if (!user) {
+            setUnreadCount(0);
+            return;
+        }
+        fetchUnreadCount();
+        const interval = setInterval(fetchUnreadCount, 30000);
+        const handleUpdated = () => fetchUnreadCount();
+        window.addEventListener("bpom:notifications-updated", handleUpdated);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener("bpom:notifications-updated", handleUpdated);
+        };
+    }, [user, fetchUnreadCount]);
 
     const isActive = (path: string) =>
         pathname === path || pathname.startsWith(`${path}/`)
@@ -27,11 +60,16 @@ export default function Sidebar() {
                 </span>
                 <span className="hidden lg:block whitespace-nowrap">Forum</span>
             </button>
-            <Link href={'/notification'} className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/notification')}`} data-tip="Notification">
+            <Link href={'/notification'} className={`relative flex items-center gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/notification')}`} data-tip="Notification">
                 <span className="material-symbols-outlined">
                     notifications
                 </span>
                 <span className="hidden lg:block whitespace-nowrap">Notification</span>
+                {unreadCount > 0 && (
+                    <span className="lg:ml-auto absolute -top-1 -right-1 lg:static inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-rose-600 text-white text-[10px] font-bold leading-none">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                )}
             </Link>
             <Link href={'/our-apps'} className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/our-apps')}`} data-tip="Our Apps">
                 <span className="material-symbols-outlined">

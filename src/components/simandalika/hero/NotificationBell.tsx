@@ -86,12 +86,17 @@ export default function NotificationBell({ compact = false }: NotificationBellPr
         }
     };
 
-    // Ambil data pertama kali & polling setiap 30 detik
+    // Ambil data pertama kali & polling setiap 30 detik + dengar event sinkronisasi
     useEffect(() => {
         if (user) {
             fetchNotifications();
             const interval = setInterval(fetchNotifications, 30000);
-            return () => clearInterval(interval);
+            const handleUpdated = () => fetchNotifications();
+            window.addEventListener("bpom:notifications-updated", handleUpdated);
+            return () => {
+                clearInterval(interval);
+                window.removeEventListener("bpom:notifications-updated", handleUpdated);
+            };
         }
     }, [user, authUrl]);
 
@@ -183,6 +188,7 @@ export default function NotificationBell({ compact = false }: NotificationBellPr
             await api.post(`${authUrl}/api/notifications/mark-all-read`);
             setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
             setUnreadCount(0);
+            window.dispatchEvent(new CustomEvent("bpom:notifications-updated"));
         } catch (error) {
             console.error("Gagal menandai semua dibaca:", error);
         } finally {

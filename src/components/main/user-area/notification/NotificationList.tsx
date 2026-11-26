@@ -58,6 +58,7 @@ export default function NotificationList({ user }: { user: User }) {
             await api.post(`${authUrl}/api/notifications/mark-all-read`);
             setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
             setUnreadCount(0);
+            window.dispatchEvent(new CustomEvent("bpom:notifications-updated"));
         } catch (error) {
             console.error("Gagal menandai semua dibaca:", error);
         }
