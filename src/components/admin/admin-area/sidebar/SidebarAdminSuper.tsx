@@ -25,6 +25,12 @@ export default function SidebarAdminSuper() {
                 </span>
                 <span className="hidden lg:block whitespace-nowrap">Data User</span>
             </Link>
+            <Link href={'/admin/super/notifikasi'} className={`flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/super/notifikasi')}`} data-tip="Notifikasi Telegram">
+                <span className="material-symbols-outlined">
+                    notifications
+                </span>
+                <span className="hidden lg:block whitespace-nowrap">Notifikasi</span>
+            </Link>
 
             <Link href={'/admin/super/settings'} className={`mt-auto flex gap-2 lg:w-full tooltip tooltip-right p-2 rounded-lg ${isActive('/admin/super/settings')}`} data-tip="Settings">
                 <span className="material-symbols-outlined">

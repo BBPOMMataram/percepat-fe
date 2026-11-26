@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import AdminSuper from "../super/AdminSuper";
+import AdminNotifikasiSuper from "../super/notifikasi/AdminNotifikasiSuper";
 import AdminSettingsBestEmployee from "../super/settings/AdminSettingsBestEmployee";
 import AdminUserAdminSuper from "../super/users/AdminUserAdminSuper";
 import SidebarAdminSuper from "./sidebar/SidebarAdminSuper";
@@ -52,6 +53,10 @@ export default function AdminAreaAdminSuper() {
                     {
                         pathname === '/admin/super/users' && user &&
                         <AdminUserAdminSuper />
+                    }
+                    {
+                        pathname === '/admin/super/notifikasi' && user &&
+                        <AdminNotifikasiSuper />
                     }
                     {
                         pathname === '/admin/super/settings' && user &&

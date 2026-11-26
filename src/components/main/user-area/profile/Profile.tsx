@@ -7,7 +7,7 @@ import { User } from "@/types/auth";
 import api from "@/utils/api";
 import dayjs from "@/utils/dayjs";
 import { getAuthStorageUrl, getUserPhotoUrl } from "@/utils/userPhoto";
-import { Bell, BellOff, CheckCircle2, ExternalLink, RefreshCw, Send, Unlink } from "lucide-react";
+import { CheckCircle2, ExternalLink, RefreshCw, Send } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import SignatureCanvas from "react-signature-canvas";
@@ -131,27 +131,6 @@ export default function Profile({ user, updateCallName, callName }: { user: User
         }
     };
 
-    const handleToggleTelegram = async () => {
-        if (!authBaseUrl) return;
-        setTgLoading(true);
-        try {
-            const nextEnabled = !tgEnabled;
-            const res = await api.patch(`${authBaseUrl}/api/telegram/toggle`, { enabled: nextEnabled });
-            setTgEnabled(Boolean(res.data?.enabled));
-            await dispatch(getUser());
-            dispatch(showAlert({
-                type: "success",
-                message: res.data?.message || "Pengaturan notifikasi Telegram diperbarui.",
-                description: res.data?.message || "Pengaturan notifikasi Telegram diperbarui.",
-            }));
-        } catch (err: any) {
-            const msg = err?.response?.data?.message || "Gagal mengubah status notifikasi Telegram.";
-            dispatch(showAlert({ type: "error", message: msg, description: msg }));
-        } finally {
-            setTgLoading(false);
-        }
-    };
-
     const handleTestTelegram = async () => {
         if (!authBaseUrl) return;
         setTgLoading(true);
@@ -164,31 +143,6 @@ export default function Profile({ user, updateCallName, callName }: { user: User
             }));
         } catch (err: any) {
             const msg = err?.response?.data?.message || "Gagal mengirim pesan tes Telegram.";
-            dispatch(showAlert({ type: "error", message: msg, description: msg }));
-        } finally {
-            setTgLoading(false);
-        }
-    };
-
-    const handleDisconnectTelegram = async () => {
-        if (!authBaseUrl) return;
-        if (!window.confirm("Set ulang koneksi Telegram pada akun ini? Setelah diset ulang, Anda atau pengguna lain dapat menghubungkan akun Telegram baru.")) return;
-        setTgLoading(true);
-        try {
-            const res = await api.post(`${authBaseUrl}/api/telegram/disconnect`);
-            setTgConnected(false);
-            setTgEnabled(false);
-            setTgUsername(null);
-            setTgDeepLink(null);
-            setTgPolling(false);
-            await dispatch(getUser());
-            dispatch(showAlert({
-                type: "success",
-                message: "Koneksi Direset",
-                description: res.data?.message || "Koneksi Telegram berhasil direset dan siap dihubungkan ulang.",
-            }));
-        } catch (err: any) {
-            const msg = err?.response?.data?.message || "Gagal mereset koneksi Telegram.";
             dispatch(showAlert({ type: "error", message: msg, description: msg }));
         } finally {
             setTgLoading(false);
@@ -582,40 +536,15 @@ export default function Profile({ user, updateCallName, callName }: { user: User
                                 {tgLoading ? "Menyiapkan..." : "Aktifkan Notifikasi Telegram"}
                             </button>
                         ) : (
-                            <>
-                                <button
-                                    type="button"
-                                    onClick={handleToggleTelegram}
-                                    disabled={tgLoading}
-                                    className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition disabled:opacity-50 ${
-                                        tgEnabled
-                                            ? "border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"
-                                            : "bg-emerald-600 text-white hover:bg-emerald-700"
-                                    }`}
-                                >
-                                    {tgEnabled ? <BellOff className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
-                                    {tgEnabled ? "Nonaktifkan" : "Aktifkan"}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleTestTelegram}
-                                    disabled={tgLoading || !tgEnabled}
-                                    className="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3.5 py-2 text-xs font-semibold text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                    <Send className="h-3.5 w-3.5" />
-                                    Tes Notif
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleDisconnectTelegram}
-                                    disabled={tgLoading}
-                                    title="Reset dan putuskan akun Telegram agar bisa dihubungkan ulang dengan akun lain"
-                                    className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-50"
-                                >
-                                    <Unlink className="h-3.5 w-3.5" />
-                                    Set Ulang / Putuskan
-                                </button>
-                            </>
+                            <button
+                                type="button"
+                                onClick={handleTestTelegram}
+                                disabled={tgLoading || !tgEnabled}
+                                className="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3.5 py-2 text-xs font-semibold text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <Send className="h-3.5 w-3.5" />
+                                Tes Notif
+                            </button>
                         )}
                     </div>
                 </div>
