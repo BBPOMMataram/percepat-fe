@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import FooterUserArea from "./Footer";
 import HeaderUserArea from "./Header";
+import NotificationDetail from "./notification/NotificationDetail";
+import NotificationList from "./notification/NotificationList";
 import OurApps from "./our-apps/OurApps";
 import Profile from "./profile/Profile";
 import Settings from "./settings/Settings";
@@ -46,6 +48,14 @@ export default function UserArea() {
                     {
                         pathname === '/our-apps' && user &&
                         <OurApps user={user} />
+                    }
+                    {
+                        pathname === '/notification' && user &&
+                        <NotificationList user={user} />
+                    }
+                    {
+                        pathname.startsWith('/notification/') && user &&
+                        <NotificationDetail user={user} />
                     }
                     <FooterUserArea />
                 </div>
