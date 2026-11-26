@@ -1,16 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { Filter, RotateCcw } from "lucide-react";
 import type { MasterOptionsData, RiskMatrixData } from "../types";
 import { getRiskLevelStyle } from "../shared/RiskLevelBadge";
 import { ChartLoadingState } from "../shared/ChartLoadingState";
 import { ChartEmptyState } from "../shared/ChartEmptyState";
 
+type HeatmapScope = { function_id?: number | ""; risk_category_id?: number | "" };
+
 interface RiskHeatmapProps {
   data: RiskMatrixData | null;
   loading: boolean;
-  onSelectLevel?: (mode: "inherent" | "residual", level: string) => void;
+  /**
+   * Dipanggil saat sel RESIDUAL diklik. Hanya level di dalam `selectableLevels`
+   * (rentang tabel Risiko Residual Tinggi) yang bisa diklik. Filter fungsi/kategori
+   * milik peta ini ikut dikirim agar tabel menampilkan cakupan yang sama.
+   */
+  onSelectLevel?: (level: string, scope: HeatmapScope) => void;
+  selectableLevels?: { min: number; max: number };
   options?: MasterOptionsData | null;
   filters?: { function_id?: number | ""; risk_category_id?: number | "" };
   onFilterChange?: (filters: { function_id?: number | ""; risk_category_id?: number | "" }) => void;
@@ -36,6 +44,7 @@ export function RiskHeatmap({
   data,
   loading,
   onSelectLevel,
+  selectableLevels,
   options,
   filters,
   onFilterChange,
@@ -219,21 +228,51 @@ export function RiskHeatmap({
                   const lvl = data.matrix_config[key] ?? null;
                   const count = countLookup.get(key) ?? 0;
                   const style = getRiskLevelStyle(lvl, data.high_risk_min_level);
+                  // Sel hanya bisa diklik bila hasilnya PASTI ada di tabel Risiko Residual Tinggi:
+                  // mode residual, ada risikonya, dan levelnya di dalam rentang tabel.
+                  const isSelectable =
+                    mode === "residual" &&
+                    count > 0 &&
+                    lvl !== null &&
+                    !!onSelectLevel &&
+                    !!selectableLevels &&
+                    lvl >= selectableLevels.min &&
+                    lvl <= selectableLevels.max;
+                  const selectCell = () => {
+                    if (isSelectable && lvl !== null && onSelectLevel) {
+                      onSelectLevel(String(lvl), {
+                        function_id: filters?.function_id ?? "",
+                        risk_category_id: filters?.risk_category_id ?? "",
+                      });
+                    }
+                  };
 
                   return (
                     <td
                       key={imp}
-                      onClick={() => {
-                        if (count > 0 && lvl && onSelectLevel) {
-                          onSelectLevel(mode, String(lvl));
-                        }
-                      }}
+                      onClick={isSelectable ? selectCell : undefined}
+                      onKeyDown={
+                        isSelectable
+                          ? (e: KeyboardEvent<HTMLTableCellElement>) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                selectCell();
+                              }
+                            }
+                          : undefined
+                      }
+                      role={isSelectable ? "button" : undefined}
+                      tabIndex={isSelectable ? 0 : undefined}
                       className={`h-12 text-center rounded-xl font-bold transition-all ${style.cellBg} ${
-                        count > 0
-                          ? "cursor-pointer ring-2 ring-slate-900/10 shadow-xs hover:scale-105"
-                          : "opacity-85"
+                        isSelectable
+                          ? "cursor-pointer ring-2 ring-slate-900/10 shadow-xs hover:scale-105 focus:outline-none focus-visible:ring-[#004281]"
+                          : count > 0
+                            ? "ring-1 ring-slate-900/5"
+                            : "opacity-85"
                       }`}
-                      title={`Kemungkinan: ${lik}, Dampak: ${imp} -> Level ${lvl} (${count} risiko)`}
+                      title={`Kemungkinan: ${lik}, Dampak: ${imp} -> Level ${lvl} (${count} risiko)${
+                        isSelectable ? " · klik untuk tampilkan di tabel Risiko Residual Tinggi" : ""
+                      }`}
                     >
                       <div className="text-[10px] opacity-80">Lvl {lvl ?? "-"}</div>
                       <div className="text-base font-extrabold leading-none">
@@ -254,6 +293,11 @@ export function RiskHeatmap({
           <b className="text-red-700 font-bold">
             ≥ Level {data.high_risk_min_level}
           </b>
+        </div>
+        <div className="w-full sm:w-auto">
+          {mode === "residual" && selectableLevels && onSelectLevel
+            ? `Klik sel Residual level ${selectableLevels.min}–${selectableLevels.max} untuk menampilkan risikonya di tabel Risiko Residual Tinggi.`
+            : "Mode Inheren hanya untuk dibaca; tabel di bawah berisi risiko residual."}
         </div>
         <div>
           Total sel terisi {mode === "residual" ? "Residual" : "Inheren"}:{" "}

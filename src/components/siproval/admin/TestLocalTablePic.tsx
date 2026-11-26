@@ -7,6 +7,16 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import api from "@/utils/api";
 import { formatDisplayCellValue } from "@/components/siproval/katim/TestLocalTableKatim";
+import {
+  DEFAULT_PAGE_SIZE,
+  PAGE_SIZE_ALL,
+  PAGE_SIZE_OPTIONS,
+} from "@/components/siproval/katim/table/constants/tableConstants";
+import {
+  computePagination,
+  paginateRows,
+} from "@/components/siproval/katim/table/utils/pagination";
+import { isHorizontalMonthLayout } from "@/components/siproval/katim/table/utils/tableDetection";
 
 const baseUrl = (
   process.env.NEXT_PUBLIC_BACKEND_URL_SIPROVAL || "http://localhost:8000"
@@ -393,7 +403,7 @@ export default function TestLocalTablePic() {
 
   const [tableSearch, setTableSearch] = useState("");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(50);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>("all");
   const [focusSelectedIksk, setFocusSelectedIksk] = useState<boolean>(true);
   const [overrideIndicatorParent, setOverrideIndicatorParent] = useState<string | null>(null);
@@ -501,53 +511,11 @@ export default function TestLocalTablePic() {
     return groups;
   }, [effectiveColumnsSchema]);
 
-  const isHorizontalMonthTable = useMemo(() => {
-    const schema = effectiveColumnsSchema;
-    if (!schema || schema.length === 0) return false;
-
-    // 1. Jika tabel memiliki kolom mandiri 'Bulan' atau 'Periode', pasti tabel vertikal
-    const hasBulanCol = schema.some((c) => {
-      const l = (c.label || "").trim().toLowerCase();
-      const sub = ((c as any).sub_label || "").trim().toLowerCase();
-      return (
-        l === "bulan" ||
-        l === "periode" ||
-        l === "bulan pelaksanaan" ||
-        l.startsWith("bulan ") ||
-        sub === "bulan" ||
-        sub === "periode"
-      );
-    });
-    if (hasBulanCol) return false;
-
-    // 2. Jika baris data terdefinisi untuk 12 bulan (month 1..12), pasti tabel vertikal
-    const rows = activeTab?.rows_data || [];
-    if (rows.length >= 6 && rows.some((r) => r.month && r.month > 0 && r.month <= 12)) {
-      return false;
-    }
-
-    // 3. Periksa parent_header atau sub_parent (misal: JANUARI, FEBRUARI)
-    const parentMonths = new Set<number>();
-    schema.forEach((col) => {
-      if (col.parent_header) {
-        const pm = getMonthNumberFromText(col.parent_header);
-        if (pm !== null) parentMonths.add(pm);
-      }
-      if ((col as any).sub_parent) {
-        const sm = getMonthNumberFromText((col as any).sub_parent);
-        if (sm !== null) parentMonths.add(sm);
-      }
-    });
-    if (parentMonths.size >= 3) return true;
-
-    // 4. Periksa label kolom (hanya jika label kolom mandiri menunjukkan bulan)
-    const labelMonths = new Set<number>();
-    schema.forEach((col) => {
-      const lm = getMonthNumberFromText(col.label);
-      if (lm !== null) labelMonths.add(lm);
-    });
-    return labelMonths.size >= 3;
-  }, [activeTab?.columns_schema, activeTab?.rows_data, effectiveColumnsSchema]);
+  // Tata letak bulan (kolom vs baris) - logika bersama dengan tabel Ketua Tim
+  const isHorizontalMonthTable = useMemo(
+    () => isHorizontalMonthLayout(effectiveColumnsSchema, activeTab?.rows_data),
+    [effectiveColumnsSchema, activeTab?.rows_data],
+  );
 
   // Deteksi apakah sheet ini adalah sheet multi-indikator (HANYA berlaku untuk Dokumen Gabungan RHPK Balai)
   const isMultiIndicatorSheet = useMemo(() => {
@@ -905,16 +873,19 @@ export default function TestLocalTablePic() {
 
   const rawRowsCount = activeTab?.rows_data?.length || 0;
   const totalRows = filteredRows.length;
-  const isPaginationNeeded = rawRowsCount > 25 || availableMonths.length > 1;
-  const effectivePageSize = pageSize === 0 ? totalRows : pageSize;
-  const totalPages = effectivePageSize > 0 ? Math.ceil(totalRows / effectivePageSize) : 1;
-  const safeCurrentPage = Math.min(Math.max(currentPage, 1), totalPages || 1);
+  // Pagination bersama dengan tabel Ketua Tim: aktif hanya bila baris cukup banyak (PAGINATION_MIN_ROWS)
+  const pagination = useMemo(
+    () => computePagination(totalRows, pageSize, currentPage),
+    [totalRows, pageSize, currentPage],
+  );
+  const isPaginationNeeded = pagination.isEnabled;
+  const totalPages = pagination.totalPages;
+  const safeCurrentPage = pagination.currentPage;
 
-  const paginatedRows = useMemo(() => {
-    if (!isPaginationNeeded || pageSize === 0) return filteredRows;
-    const start = (safeCurrentPage - 1) * pageSize;
-    return filteredRows.slice(start, start + pageSize);
-  }, [filteredRows, isPaginationNeeded, safeCurrentPage, pageSize]);
+  const paginatedRows = useMemo(
+    () => paginateRows(filteredRows, pagination),
+    [filteredRows, pagination],
+  );
 
   const columnTotals = useMemo(() => {
     if (!activeTab?.columns_schema || !activeTab?.rows_data) return {};
@@ -1811,15 +1782,9 @@ export default function TestLocalTablePic() {
               <div className="flex items-center gap-2">
                 <span>
                   Menampilkan{" "}
-                  <strong className="text-slate-800">
-                    {totalRows === 0
-                      ? 0
-                      : (safeCurrentPage - 1) * (pageSize || 1) + 1}
-                  </strong>{" "}
+                  <strong className="text-slate-800">{pagination.rangeStart}</strong>{" "}
                   -{" "}
-                  <strong className="text-slate-800">
-                    {Math.min(safeCurrentPage * (pageSize || 1), totalRows)}
-                  </strong>{" "}
+                  <strong className="text-slate-800">{pagination.rangeEnd}</strong>{" "}
                   dari{" "}
                   <strong className="text-slate-800">{totalRows}</strong> baris
                   {selectedMonthFilter !== "all" && (
@@ -1829,26 +1794,29 @@ export default function TestLocalTablePic() {
                   )}
                 </span>
 
-                <div className="flex items-center gap-1.5 ml-1 border-l border-slate-300 pl-3">
-                  <span className="text-[11px] text-slate-500">Per Hal:</span>
-                  <select
-                    value={pageSize}
-                    onChange={(e) => {
-                      setPageSize(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-2xs focus:border-[#005baa] focus:outline-none cursor-pointer"
-                  >
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                    <option value={200}>200</option>
-                    <option value={0}>Semua ({totalRows})</option>
-                  </select>
-                </div>
+                {isPaginationNeeded && (
+                  <div className="flex items-center gap-1.5 ml-1 border-l border-slate-300 pl-3">
+                    <span className="text-[11px] text-slate-500">Per Hal:</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                      className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-2xs focus:border-[#005baa] focus:outline-none cursor-pointer"
+                    >
+                      {PAGE_SIZE_OPTIONS.map((size) => (
+                        <option key={size} value={size}>
+                          {size}
+                        </option>
+                      ))}
+                      <option value={PAGE_SIZE_ALL}>Semua ({totalRows})</option>
+                    </select>
+                  </div>
+                )}
               </div>
 
-              {pageSize > 0 && totalPages > 1 && (
+              {isPaginationNeeded && pageSize !== PAGE_SIZE_ALL && totalPages > 1 && (
                 <div className="flex items-center gap-1 ml-2">
                   <button
                     type="button"
@@ -2398,15 +2366,9 @@ export default function TestLocalTablePic() {
               <div className="flex items-center gap-3 text-xs text-slate-600">
                 <span>
                   Menampilkan{" "}
-                  <span className="font-bold text-slate-900">
-                    {totalRows === 0
-                      ? 0
-                      : (safeCurrentPage - 1) * (pageSize || 1) + 1}
-                  </span>{" "}
+                  <span className="font-bold text-slate-900">{pagination.rangeStart}</span>{" "}
                   -{" "}
-                  <span className="font-bold text-slate-900">
-                    {Math.min(safeCurrentPage * (pageSize || 1), totalRows)}
-                  </span>{" "}
+                  <span className="font-bold text-slate-900">{pagination.rangeEnd}</span>{" "}
                   dari <span className="font-bold text-slate-900">{totalRows}</span>{" "}
                   baris
                   {selectedMonthFilter !== "all" && (
@@ -2425,16 +2387,17 @@ export default function TestLocalTablePic() {
                     }}
                     className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-2xs focus:border-[#005baa] focus:outline-none cursor-pointer"
                   >
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                    <option value={200}>200</option>
-                    <option value={0}>Semua ({totalRows})</option>
+                    {PAGE_SIZE_OPTIONS.map((size) => (
+                      <option key={size} value={size}>
+                        {size}
+                      </option>
+                    ))}
+                    <option value={PAGE_SIZE_ALL}>Semua ({totalRows})</option>
                   </select>
                 </div>
               </div>
 
-              {pageSize > 0 && totalPages > 1 && (
+              {isPaginationNeeded && pageSize !== PAGE_SIZE_ALL && totalPages > 1 && (
                 <div className="flex items-center gap-1">
                   <button
                     type="button"

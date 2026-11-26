@@ -141,20 +141,10 @@ export default function DashboardKatim() {
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="max-w-xl">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-semibold backdrop-blur-sm">
-                <Icon
-                  icon="solar:shield-check-bold"
-                  width={14}
-                  className="text-emerald-300"
-                />
+              <span className="inline-flex items-center rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-semibold backdrop-blur-sm">
                 Ketua Tim Kerja (Katim)
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-medium backdrop-blur-sm">
-                <Icon
-                  icon="solar:database-bold"
-                  width={13}
-                  className="text-blue-200"
-                />
+              <span className="inline-flex items-center rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-medium backdrop-blur-sm">
                 Data Riil Rekapitulasi RHPK &amp; TU 2026
               </span>
             </div>
@@ -174,7 +164,6 @@ export default function DashboardKatim() {
               href="/siproval/katim/entry-data-rhpk"
               className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-xs font-bold text-[#005baa] shadow-sm transition hover:bg-blue-50 active:scale-95"
             >
-              <Icon icon="solar:pen-new-square-bold" width={15} />
               <span>Entry Data RHPK</span>
             </Link>
             <button
@@ -182,26 +171,15 @@ export default function DashboardKatim() {
               onClick={() => scrollToTable("belum")}
               className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-2 text-xs font-bold text-slate-900 shadow-sm transition hover:bg-amber-400 active:scale-95"
             >
-              <Icon icon="solar:danger-triangle-bold" width={15} />
               <span>IKSK Belum Tercapai ({currentPerluEvaluasi})</span>
             </button>
             <Link
               href="/siproval/katim/arahan-pimpinan"
               className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-white/15 px-3.5 py-2 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-white/25 active:scale-95"
             >
-              <Icon
-                icon="solar:chat-round-line-bold"
-                width={15}
-                className="text-emerald-300"
-              />
               <span>Arahan Pimpinan</span>
             </Link>
           </div>
-        </div>
-
-        {/* Decorative background visual */}
-        <div className="pointer-events-none absolute -bottom-10 -right-10 opacity-10">
-          <Icon icon="solar:widget-5-bold" width={260} height={260} />
         </div>
       </div>
 
@@ -219,27 +197,14 @@ export default function DashboardKatim() {
           <>
             {/* Bagian 1: Grafik Target vs Realisasi dari Aktor TU */}
       <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#005baa] text-white">
-            <Icon icon="solar:chart-square-bold" width={16} />
-          </div>
-          <div>
-            <h2 className="text-sm font-bold text-slate-900">
-              Monitoring Kinerja &amp; Anggaran Satuan Kerja (Data TU)
-            </h2>
-            <p className="text-[11px] text-slate-500">
-              Grafik target vs realisasi Volume Rincian Output (RO) dan serapan
-              Pagu Anggaran BBPOM di Mataram Tahun Anggaran 2026.
-            </p>
-          </div>
-        </div>
-
-        {/* Simetris BPOM Dashboard: NKO, Pagu, Realisasi, Capaian & Kerangka Kerja Logis (dikendalikan oleh filter bulan di atas card) */}
+        {/* Simetris BPOM Dashboard: NKO, Pagu, Realisasi, Capaian & Kerangka Kerja Logis (dikendalikan oleh filter bulan di atas card).
+            hideTopBar: judul/tautan tabel 12 bulan disembunyikan; tombol Perbarui dipindah ke toolbar Kerangka Kerja Logis agar hemat tempat. */}
         <SimetrisNkoDashboard
           initialYear={currentYear}
           selectedMonth={selectedMonth}
           onMonthChange={setSelectedMonth}
           hideMonthSelector={true}
+          hideTopBar={true}
         />
 
         <TargetRealisasiTuChart isKabalaiView={true} />
@@ -390,13 +355,11 @@ export default function DashboardKatim() {
 
                       <td className="px-3 py-3.5 text-center align-top whitespace-nowrap">
                         {isTercapai ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
-                            <Icon icon="solar:check-circle-bold" width={14} />
+                          <span className="text-[11px] font-bold text-emerald-700">
                             Tercapai
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700">
-                            <Icon icon="solar:clock-circle-bold" width={14} />
+                          <span className="text-[11px] font-bold text-amber-700">
                             Belum
                           </span>
                         )}
@@ -425,11 +388,6 @@ export default function DashboardKatim() {
                           className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#003d73] via-[#005baa] to-[#00a651] px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:opacity-90 hover:shadow-sm"
                           title={`Buka formulir RHPK IKSK #${ind.iksk_id}`}
                         >
-                          <Icon
-                            icon="ri:file-excel-2-fill"
-                            width={15}
-                            className="text-emerald-300"
-                          />
                           <span>Buka IKSK #{ind.iksk_id}</span>
                           <Icon icon="solar:arrow-right-linear" width={13} />
                         </Link>

@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { Icon } from "@iconify/react";
 import type { YearItem, IkskItem, SpreadsheetItem } from "../types/tableTypes";
+import { STANDARD_MONTH_NAMES } from "../constants/tableConstants";
 
 export interface TableSpreadsheetSelectorProps {
   selectedYear: number;
@@ -27,23 +27,9 @@ export interface TableSpreadsheetSelectorProps {
   onSelectTab: (id: number) => void;
   onToggleCurrentMonthLock: () => void;
   onFilterChange: (val: string | number) => void;
+  /** Sembunyikan deretan tombol tab (dipakai saat hanya satu tab yang boleh dilihat). */
+  hideTabButtons?: boolean;
 }
-
-const MONTH_NAMES = [
-  "",
-  "Januari",
-  "Februari",
-  "Maret",
-  "April",
-  "Mei",
-  "Juni",
-  "Juli",
-  "Agustus",
-  "September",
-  "Oktober",
-  "November",
-  "Desember",
-];
 
 export const TableSpreadsheetSelector: React.FC<TableSpreadsheetSelectorProps> = ({
   selectedYear,
@@ -68,6 +54,7 @@ export const TableSpreadsheetSelector: React.FC<TableSpreadsheetSelectorProps> =
   onSelectTab,
   onToggleCurrentMonthLock,
   onFilterChange,
+  hideTabButtons = false,
 }) => {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
@@ -81,7 +68,7 @@ export const TableSpreadsheetSelector: React.FC<TableSpreadsheetSelectorProps> =
             <select
               value={selectedYear}
               onChange={(e) => onSelectYear(Number(e.target.value))}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-[#005baa] focus:border-emerald-600 focus:bg-white focus:outline-none cursor-pointer"
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-[#005baa] focus:border-[#005baa] focus:bg-white focus:outline-none cursor-pointer"
             >
               {years.map((y) => (
                 <option key={y.id} value={y.year_number}>
@@ -101,7 +88,7 @@ export const TableSpreadsheetSelector: React.FC<TableSpreadsheetSelectorProps> =
                 <select
                   value={selectedIkskId ?? ""}
                   onChange={(e) => onSelectIksk(Number(e.target.value))}
-                  className="rounded-xl border border-emerald-300 bg-emerald-50/70 px-3 py-1.5 text-xs font-bold text-emerald-900 focus:border-emerald-600 focus:bg-white focus:outline-none max-w-xs md:max-w-sm truncate cursor-pointer"
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 focus:border-[#005baa] focus:outline-none max-w-xs md:max-w-sm truncate cursor-pointer"
                 >
                   {iksks.length === 0 ? (
                     <option value="">Tidak ada IKSK diampu</option>
@@ -122,17 +109,12 @@ export const TableSpreadsheetSelector: React.FC<TableSpreadsheetSelectorProps> =
                     Dokumen:
                   </span>
                   {spreadsheets.length === 1 ? (
-                    <div
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-1.5 text-xs font-semibold text-slate-800 max-w-xs md:max-w-md truncate shadow-2xs"
+                    <span
+                      className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-800 max-w-xs md:max-w-md truncate"
                       title={spreadsheets[0].name}
                     >
-                      <Icon
-                        icon="solar:file-spreadsheet-bold"
-                        width={16}
-                        className="text-emerald-600 shrink-0"
-                      />
-                      <span className="truncate">{spreadsheets[0].name}</span>
-                    </div>
+                      {spreadsheets[0].name}
+                    </span>
                   ) : (
                     <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-400 italic">
                       Belum ada dokumen untuk IKSK ini
@@ -142,12 +124,12 @@ export const TableSpreadsheetSelector: React.FC<TableSpreadsheetSelectorProps> =
               ) : (
                 <div className="flex items-center gap-2">
                   <label className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                    Pilih Dokumen:
+                    Dokumen:
                   </label>
                   <select
                     value={selectedSpId ?? ""}
                     onChange={(e) => onSelectSpreadsheet(Number(e.target.value))}
-                    className="rounded-xl border border-emerald-300 bg-white px-3 py-1.5 text-xs font-bold text-emerald-900 focus:border-emerald-600 focus:outline-none max-w-xs md:max-w-md truncate cursor-pointer shadow-2xs"
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 focus:border-[#005baa] focus:outline-none max-w-xs md:max-w-md truncate cursor-pointer"
                   >
                     {spreadsheets.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -157,14 +139,10 @@ export const TableSpreadsheetSelector: React.FC<TableSpreadsheetSelectorProps> =
                   </select>
                   {spreadsheets.find((s) => s.id === selectedSpId)?.is_readonly &&
                     !isPicEffective && (
-                      <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 flex items-center gap-1">
-                        <Icon icon="solar:lock-bold" width={11} />
-                        Read-Only (Rekap Balai)
+                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                        Baca-saja
                       </span>
                     )}
-                  <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                    {spreadsheets.length} Dokumen
-                  </span>
                 </div>
               )}
             </>
@@ -175,26 +153,14 @@ export const TableSpreadsheetSelector: React.FC<TableSpreadsheetSelectorProps> =
                 <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
                   Dokumen:
                 </span>
-                <div
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50/70 px-3 py-1.5 text-xs font-semibold text-[#005baa] max-w-xs md:max-w-md truncate shadow-2xs"
-                  title={spreadsheets[0]?.name || "REKAP DATA RHPK Mataram"}
+                <span
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-800 max-w-xs md:max-w-md truncate"
+                  title={spreadsheets[0]?.name || ""}
                 >
-                  <Icon
-                    icon="solar:file-spreadsheet-bold"
-                    width={16}
-                    className="text-[#005baa] shrink-0"
-                  />
-                  <span className="truncate">
-                    {spreadsheets[0]?.name ||
-                      `REKAP DATA RHPK ${selectedYear} Mataram`}
-                  </span>
-                </div>
-                <span className="rounded-md bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-600 flex items-center gap-1">
-                  <Icon
-                    icon="solar:lock-keyhole-minimalistic-bold"
-                    width={11}
-                  />
-                  Baca-Saja
+                  {spreadsheets[0]?.name || "-"}
+                </span>
+                <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                  Baca-saja
                 </span>
               </div>
 
@@ -216,10 +182,10 @@ export const TableSpreadsheetSelector: React.FC<TableSpreadsheetSelectorProps> =
                     }}
                     className="rounded-xl border border-blue-300 bg-white px-3 py-1.5 text-xs font-bold text-[#003d73] focus:border-[#005baa] focus:outline-none max-w-xs md:max-w-sm truncate shadow-2xs cursor-pointer"
                   >
-                    <option value="all">Semua Baris (28 IKSK + UPT)</option>
+                    <option value="all">Semua IKSK</option>
                     {assignedIkskIds.length > 0 && (
                       <option value="mine">
-                        Hanya IKSK Ampuan Saya ({assignedIkskIds.length} IKSK)
+                        IKSK ampuan saya ({assignedIkskIds.length})
                       </option>
                     )}
                     {iksks.map((i) => (
@@ -253,8 +219,8 @@ export const TableSpreadsheetSelector: React.FC<TableSpreadsheetSelectorProps> =
                         }
                         className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition cursor-pointer ${
                           rekapBalaiIkskFilter === "mine"
-                            ? "bg-emerald-600 text-white"
-                            : "bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                            ? "bg-[#005baa] text-white"
+                            : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                         }`}
                       >
                         Ampuan Saya ({assignedIkskIds.length})
@@ -263,13 +229,8 @@ export const TableSpreadsheetSelector: React.FC<TableSpreadsheetSelectorProps> =
                   </div>
                 </div>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
-                  <Icon
-                    icon="solar:info-circle-linear"
-                    width={14}
-                    className="text-[#005baa]"
-                  />
-                  Filter per IKSK tersedia di sheet A. Capaian RAPK Mataram
+                <span className="text-[11px] text-slate-500">
+                  Filter IKSK tersedia di tab A. Capaian RAPK Mataram
                 </span>
               )}
             </>
@@ -278,28 +239,20 @@ export const TableSpreadsheetSelector: React.FC<TableSpreadsheetSelectorProps> =
 
         <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
           <div>
-            Bulan Berjalan:{" "}
+            Bulan berjalan:{" "}
             <strong className="text-slate-800">
-              {currentMonth} ({MONTH_NAMES[currentMonth] || "Oktober"})
+              {STANDARD_MONTH_NAMES[currentMonth - 1] ?? currentMonth}
             </strong>
           </div>
           {isPicUser && (
             <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
               <span
-                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
                   isCurrentMonthLocked
                     ? "bg-red-50 text-red-700 border border-red-200"
-                    : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    : "bg-blue-50 text-[#004281] border border-blue-200"
                 }`}
               >
-                <Icon
-                  icon={
-                    isCurrentMonthLocked
-                      ? "solar:lock-bold"
-                      : "solar:lock-unlocked-bold"
-                  }
-                  width={12}
-                />
                 {isCurrentMonthLocked
                   ? "Terkunci untuk Katim"
                   : "Terbuka untuk Katim"}
@@ -308,23 +261,12 @@ export const TableSpreadsheetSelector: React.FC<TableSpreadsheetSelectorProps> =
                 type="button"
                 disabled={isTogglingLock}
                 onClick={onToggleCurrentMonthLock}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
                   isCurrentMonthLocked
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                    ? "bg-[#005baa] hover:bg-[#004281] text-white"
                     : "bg-white hover:bg-red-50 text-red-600 border border-red-200"
                 } disabled:opacity-50`}
               >
-                <Icon
-                  icon={
-                    isTogglingLock
-                      ? "solar:refresh-circle-linear"
-                      : isCurrentMonthLocked
-                        ? "solar:lock-unlocked-bold"
-                        : "solar:lock-bold"
-                  }
-                  width={13}
-                  className={isTogglingLock ? "animate-spin" : ""}
-                />
                 <span>
                   {isTogglingLock
                     ? "Menyimpan..."
@@ -339,7 +281,7 @@ export const TableSpreadsheetSelector: React.FC<TableSpreadsheetSelectorProps> =
       </div>
 
       {/* Tab Buttons */}
-      {selectedSpId && (
+      {selectedSpId && !hideTabButtons && (
         <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
           {spreadsheets
             .find((s) => s.id === selectedSpId)
@@ -348,10 +290,10 @@ export const TableSpreadsheetSelector: React.FC<TableSpreadsheetSelectorProps> =
                 key={t.id}
                 type="button"
                 onClick={() => onSelectTab(t.id)}
-                className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
+                className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
                   selectedTabId === t.id
-                    ? "bg-emerald-600 text-white shadow-sm"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    ? "bg-[#005baa] text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-[#005baa]"
                 }`}
               >
                 {t.title}

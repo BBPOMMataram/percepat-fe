@@ -105,6 +105,7 @@ export default function CatatanMonev() {
   const [ikskList, setIkskList] = useState<IkskItem[]>([]);
   const [indicators, setIndicators] = useState<IndicatorItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Filter states for Table & Modal
   const [indicatorFilter, setIndicatorFilter] = useState<
@@ -124,6 +125,8 @@ export default function CatatanMonev() {
     async function fetchData() {
       try {
         setLoading(true);
+        setLoadError(null);
+        setStats(null); // jangan tampilkan angka bulan sebelumnya
         const params = new URLSearchParams();
         if (user?.id) params.set("user_id", String(user.id));
         params.set("month", selectedMonth);
@@ -176,31 +179,18 @@ export default function CatatanMonev() {
           }
         }
 
-        // Fallback generator from iksks if still empty
-        if (resolvedIndicators.length === 0 && fetchedIksks.length > 0) {
-          resolvedIndicators = fetchedIksks.map((ik, idx) => {
-            const isTercapai = idx % 3 !== 1;
-            return {
-              row_number: idx + 11,
-              iksk_id: ik.id,
-              no_indikator: ik.id,
-              label: ik.name,
-              sasaran:
-                "Meningkatnya efektivitas pengawasan obat dan makanan di wilayah kerja BBPOM Mataram",
-              target_tahunan: "100%",
-              target_bulan: "100",
-              realisasi_bulan: isTercapai ? "100" : "85",
-              capaian: isTercapai ? 100 : 85,
-              status: isTercapai ? "tercapai" : "belum",
-              arahan: "",
-            };
-          });
-        }
-
+        // Tidak ada data indikator dari server -> biarkan kosong.
+        // (Dulu di sini dibuat indikator contoh dengan realisasi 85/100; dihapus karena bukan data riil.)
         setIndicators(resolvedIndicators);
       } catch (err) {
         console.error("Gagal memuat data monev Kabalai:", err);
         setSpreadsheets([]);
+        setStats(null);
+        setIkskList([]);
+        setIndicators([]);
+        setLoadError(
+          "Data monev gagal dimuat dari server. Angka belum dapat ditampilkan, silakan muat ulang halaman.",
+        );
       } finally {
         setLoading(false);
       }
@@ -228,14 +218,14 @@ export default function CatatanMonev() {
       ? achievedIndicators.length
       : currentMonthStat
         ? currentMonthStat.tercapai
-        : (stats?.tercapai ?? 0);
+        : (stats?.tercapai ?? "–");
 
   const currentPerluEvaluasi =
     indicators.length > 0
       ? unachievedIndicators.length
       : currentMonthStat
         ? currentMonthStat.perlu_evaluasi
-        : (stats?.perlu_evaluasi ?? 0);
+        : (stats?.perlu_evaluasi ?? "–");
 
   // Filtered indicators for the table
   const displayedTableIndicators = useMemo(() => {
@@ -381,6 +371,15 @@ export default function CatatanMonev() {
         </div>
       </div>
 
+      {loadError && (
+        <div
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-700"
+        >
+          {loadError}
+        </div>
+      )}
+
       {/* 4 Stats Cards with Interactive Breakdown Click */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Card 1: Total IKSK */}
@@ -403,10 +402,10 @@ export default function CatatanMonev() {
                 {loading
                   ? "..."
                   : (stats?.total_iksk ??
-                    (ikskList.length > 0 ? ikskList.length : 29))}
+                    (ikskList.length > 0 ? ikskList.length : "–"))}
               </p>
               <span className="mt-1 inline-block text-xs text-slate-500">
-                Indikator Sasaran Kegiatan ({stats?.total_iksk_connected ?? 25}{" "}
+                Indikator Sasaran Kegiatan ({stats?.total_iksk_connected ?? "–"}{" "}
                 terhubung sheet)
               </span>
             </div>
@@ -445,7 +444,7 @@ export default function CatatanMonev() {
               <span className="mt-1 inline-block text-xs text-slate-500">
                 dari{" "}
                 {stats?.total_indikator ??
-                  (indicators.length > 0 ? indicators.length : 30)}{" "}
+                  (indicators.length > 0 ? indicators.length : "–")}{" "}
                 total indikator
               </span>
             </div>
@@ -513,7 +512,7 @@ export default function CatatanMonev() {
               <p className="mt-2 text-3xl font-bold text-[#005baa]">
                 {loading
                   ? "..."
-                  : (stats?.total_arahan ?? stats?.total_catatan ?? 0)}
+                  : (stats?.total_arahan ?? stats?.total_catatan ?? "–")}
               </p>
               <span className="mt-1 inline-block text-xs text-slate-500">
                 Arahan tercatat di RHPK 2026
@@ -693,7 +692,9 @@ export default function CatatanMonev() {
                       className="mx-auto mb-2 opacity-40"
                     />
                     <p className="text-xs font-medium">
-                      Tidak ada indikator yang sesuai dengan filter.
+                      {indicators.length === 0
+                        ? "Data indikator bulan ini belum tersedia."
+                        : "Tidak ada indikator yang sesuai dengan filter."}
                     </p>
                     {indicatorFilter !== "all" && (
                       <button

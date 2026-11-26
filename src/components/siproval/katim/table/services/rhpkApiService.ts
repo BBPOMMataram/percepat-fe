@@ -107,8 +107,9 @@ export const getSpreadsheetExportUrl = (
   userId?: number | string | null,
   baseUrl: string = DEFAULT_BASE_URL,
 ): string => {
-  const authQuery = buildAuthQuery(userId);
-  return `${baseUrl}/api/test-local-table/spreadsheet/${spreadsheetId}/export?mode=${mode}${authQuery}`;
+  // FEAT-001: parameter digabung dengan "&" (sebelumnya "?mode=locked?user_id=..." membuat mode terkunci gagal)
+  const userQuery = userId ? `&user_id=${encodeURIComponent(String(userId))}` : "";
+  return `${baseUrl}/api/test-local-table/spreadsheet/${spreadsheetId}/export?mode=${encodeURIComponent(mode)}${userQuery}`;
 };
 
 export const importTabExcel = async (params: ImportExcelParams) => {
