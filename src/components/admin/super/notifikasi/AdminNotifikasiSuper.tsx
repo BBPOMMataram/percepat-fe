@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, Check, CheckCircle2, RefreshCw, Search, Send, UserCheck, X } from "lucide-react";
+import { AlertCircle, Check, CheckCircle2, RefreshCw, Search, Send, UserCheck, Users, X } from "lucide-react";
 import api from "@/utils/api";
 import { formatEmployeeFullName } from "@/components/pengujian/pengendalian-mutu/data";
 
@@ -27,7 +27,7 @@ export default function AdminNotifikasiSuper() {
     const [users, setUsers] = useState<AuthUserItem[]>([]);
     const [loadingUsers, setLoadingUsers] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
-    const [selectedUserId, setSelectedUserId] = useState("");
+    const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
 
     const [title, setTitle] = useState("");
     const [message, setMessage] = useState("");
@@ -39,7 +39,6 @@ export default function AdminNotifikasiSuper() {
         try {
             const res = await api.get<AuthUserItem[]>(`${authUrl}/api/get-all-users`);
             const list = Array.isArray(res.data) ? res.data : [];
-            // Urutkan: yang sudah terhubung & aktif di atas, lalu alfabetis
             list.sort((a, b) => {
                 const aConn = a.telegram_chat_id ? 1 : 0;
                 const bConn = b.telegram_chat_id ? 1 : 0;
@@ -81,17 +80,32 @@ export default function AdminNotifikasiSuper() {
         });
     }, [users, searchQuery]);
 
-    const connectedCount = useMemo(
-        () => users.filter((u) => Boolean(u.telegram_chat_id) && Boolean(u.telegram_notif_enabled)).length,
-        [users]
-    );
-
-    const selectedUser = useMemo(
-        () => users.find((u) => String(u.id) === String(selectedUserId)) || null,
-        [users, selectedUserId]
-    );
-
     const isUserSelectable = (u: AuthUserItem) => Boolean(u.telegram_chat_id) && Boolean(u.telegram_notif_enabled);
+
+    const connectedUsers = useMemo(() => users.filter(isUserSelectable), [users]);
+
+    const selectedUsers = useMemo(
+        () => users.filter((u) => selectedUserIds.includes(String(u.id))),
+        [users, selectedUserIds]
+    );
+
+    const toggleUserSelection = (userId: string) => {
+        setSelectedUserIds((prev) =>
+            prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+        );
+    };
+
+    const handleDropdownAdd = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const val = e.target.value;
+        if (!val) return;
+        if (!selectedUserIds.includes(val)) {
+            setSelectedUserIds((prev) => [...prev, val]);
+        }
+    };
+
+    const handleSelectAllConnected = () => {
+        setSelectedUserIds(connectedUsers.map((u) => String(u.id)));
+    };
 
     const getUserStatusLabel = (u: AuthUserItem): string => {
         if (!u.telegram_chat_id) return "Belum terhubung ke Telegram";
@@ -103,12 +117,8 @@ export default function AdminNotifikasiSuper() {
         e.preventDefault();
         setStatusAlert(null);
 
-        if (!selectedUserId || !selectedUser) {
-            setStatusAlert({ type: "error", text: "Silakan pilih user tujuan terlebih dahulu." });
-            return;
-        }
-        if (!selectedUser.telegram_chat_id) {
-            setStatusAlert({ type: "error", text: "User yang dipilih belum terhubung ke Telegram." });
+        if (selectedUserIds.length === 0) {
+            setStatusAlert({ type: "error", text: "Silakan pilih minimal 1 user tujuan." });
             return;
         }
         if (!message.trim()) {
@@ -119,16 +129,17 @@ export default function AdminNotifikasiSuper() {
         setIsSending(true);
         try {
             const res = await api.post(`${authUrl}/api/telegram/send-manual`, {
-                user_id: selectedUser.id,
+                user_ids: selectedUserIds,
                 title: title.trim() || undefined,
                 message: message.trim(),
             });
             setStatusAlert({
                 type: "success",
-                text: res.data?.message || `Pesan Telegram berhasil dikirim ke ${formatEmployeeFullName(selectedUser)}.`,
+                text: res.data?.message || `Notifikasi Telegram berhasil dikirim ke ${selectedUserIds.length} user.`,
             });
             setTitle("");
             setMessage("");
+            setSelectedUserIds([]);
         } catch (err: any) {
             const msg = err?.response?.data?.message || "Gagal mengirim notifikasi Telegram.";
             setStatusAlert({ type: "error", text: msg });
@@ -143,12 +154,12 @@ export default function AdminNotifikasiSuper() {
                 <div>
                     <h1 className="text-xl font-bold text-slate-900">Kirim Notifikasi Telegram</h1>
                     <p className="text-xs text-slate-500 mt-0.5">
-                        Kirim pesan notifikasi manual melalui bot Telegram ke pegawai/user yang telah menghubungkan akunnya.
+                        Kirim pesan manual melalui bot Telegram ke satu atau beberapa user yang telah terhubung.
                     </p>
                 </div>
                 <div className="inline-flex items-center gap-2 rounded-xl bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-xs border border-slate-200">
                     <UserCheck className="h-4 w-4 text-[#0088cc]" />
-                    <span>{connectedCount} dari {users.length} user aktif di Telegram</span>
+                    <span>{connectedUsers.length} dari {users.length} user aktif di Telegram</span>
                 </div>
             </div>
 
@@ -180,21 +191,33 @@ export default function AdminNotifikasiSuper() {
             )}
 
             <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-5">
-                {/* Pilih User Tujuan */}
+                {/* Pilih User Tujuan (Multiple) */}
                 <div className="rounded-xl border border-sky-100 bg-sky-50/50 p-4 space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                         <label className="block text-xs font-bold text-slate-800">
-                            Pilih User Tujuan <span className="text-rose-500">*</span>
+                            Pilih Penerima (Bisa Lebih dari 1 User) <span className="text-rose-500">*</span>
                         </label>
-                        <button
-                            type="button"
-                            onClick={loadUsers}
-                            disabled={loadingUsers}
-                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0088cc] hover:underline"
-                        >
-                            <RefreshCw className={`h-3 w-3 ${loadingUsers ? "animate-spin" : ""}`} />
-                            {loadingUsers ? "Memuat..." : "Refresh Daftar"}
-                        </button>
+                        <div className="flex items-center gap-3">
+                            {connectedUsers.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={handleSelectAllConnected}
+                                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:underline"
+                                >
+                                    <Users className="h-3 w-3" />
+                                    Pilih Semua Terhubung ({connectedUsers.length})
+                                </button>
+                            )}
+                            <button
+                                type="button"
+                                onClick={loadUsers}
+                                disabled={loadingUsers}
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0088cc] hover:underline"
+                            >
+                                <RefreshCw className={`h-3 w-3 ${loadingUsers ? "animate-spin" : ""}`} />
+                                {loadingUsers ? "Memuat..." : "Refresh Daftar"}
+                            </button>
+                        </div>
                     </div>
 
                     {/* Search Bar */}
@@ -219,13 +242,12 @@ export default function AdminNotifikasiSuper() {
                         )}
                     </div>
 
-                    {/* Dropdown User (Otomatis mengikuti Search Bar) */}
+                    {/* Dropdown User (Otomatis mengikuti Search Bar, pilih untuk menambah penerima) */}
                     <div>
                         <select
-                            value={selectedUserId}
-                            onChange={(e) => setSelectedUserId(e.target.value)}
+                            value=""
+                            onChange={handleDropdownAdd}
                             disabled={loadingUsers}
-                            required
                             className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-900 focus:border-[#0088cc] focus:ring-2 focus:ring-[#0088cc]/20 focus:outline-hidden transition font-medium"
                         >
                             <option value="">
@@ -234,27 +256,28 @@ export default function AdminNotifikasiSuper() {
                                     : filteredUsers.length === 0
                                     ? `-- Tidak ada user cocok dengan "${searchQuery}" --`
                                     : searchQuery
-                                    ? `-- Menampilkan ${filteredUsers.length} user (Pilih User Terhubung) --`
-                                    : "-- Pilih User yang Terhubung ke Telegram --"}
+                                    ? `-- Menampilkan ${filteredUsers.length} user (Pilih untuk menambahkan) --`
+                                    : "-- Pilih User yang Terhubung ke Telegram untuk Ditambahkan --"}
                             </option>
                             {filteredUsers.map((u) => {
                                 const fullName = formatEmployeeFullName(u);
                                 const selectable = isUserSelectable(u);
+                                const alreadyAdded = selectedUserIds.includes(String(u.id));
                                 const statusLabel = getUserStatusLabel(u);
                                 return (
-                                    <option key={u.id} value={u.id} disabled={!selectable}>
-                                        {fullName} — [{statusLabel}]
+                                    <option key={u.id} value={u.id} disabled={!selectable || alreadyAdded}>
+                                        {fullName} — [{alreadyAdded ? "Sudah dipilih" : statusLabel}]
                                     </option>
                                 );
                             })}
                         </select>
                     </div>
 
-                    {/* Daftar Hasil Pencarian Langsung Saat Mengetik */}
+                    {/* Daftar Hasil Pencarian Langsung Saat Mengetik (Klik untuk pilih / batal pilih) */}
                     {searchQuery.trim() && (
                         <div className="rounded-xl border border-sky-200 bg-white overflow-hidden shadow-xs">
                             <div className="bg-slate-50 px-3 py-1.5 border-b border-slate-100 flex items-center justify-between text-[11px] font-semibold text-slate-500">
-                                <span>Hasil Pencarian:</span>
+                                <span>Hasil Pencarian (klik untuk tambah/hapus):</span>
                                 <span>{filteredUsers.length} user ditemukan</span>
                             </div>
                             <div className="max-h-48 overflow-y-auto divide-y divide-slate-100">
@@ -266,7 +289,7 @@ export default function AdminNotifikasiSuper() {
                                     filteredUsers.map((u) => {
                                         const fullName = formatEmployeeFullName(u);
                                         const selectable = isUserSelectable(u);
-                                        const isSelected = String(selectedUserId) === String(u.id);
+                                        const isSelected = selectedUserIds.includes(String(u.id));
                                         const nipStr = u.employee?.nip ? `NIP: ${u.employee.nip}` : u.email || "";
 
                                         return (
@@ -274,7 +297,7 @@ export default function AdminNotifikasiSuper() {
                                                 key={u.id}
                                                 type="button"
                                                 disabled={!selectable}
-                                                onClick={() => selectable && setSelectedUserId(String(u.id))}
+                                                onClick={() => selectable && toggleUserSelection(String(u.id))}
                                                 className={`w-full text-left px-3 py-2 text-xs transition flex items-center justify-between gap-2 ${
                                                     !selectable
                                                         ? "bg-slate-50/70 text-slate-400 cursor-not-allowed"
@@ -317,24 +340,42 @@ export default function AdminNotifikasiSuper() {
                         </div>
                     )}
 
-                    {/* Badge User Terpilih */}
-                    {selectedUser && (
-                        <div className="flex items-center justify-between rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs text-emerald-800">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                                <span className="truncate">
-                                    Tujuan: <strong>{formatEmployeeFullName(selectedUser)}</strong>
-                                    {selectedUser.telegram_username ? ` (@${selectedUser.telegram_username})` : ""}
+                    {/* Daftar Penerima Terpilih (Chips) */}
+                    {selectedUsers.length > 0 && (
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 space-y-2">
+                            <div className="flex items-center justify-between text-xs text-emerald-900">
+                                <span className="font-bold">
+                                    Penerima Terpilih ({selectedUsers.length} user)
                                 </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedUserIds([])}
+                                    className="text-[11px] font-semibold text-rose-600 hover:underline"
+                                >
+                                    Hapus Semua
+                                </button>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => setSelectedUserId("")}
-                                className="text-slate-400 hover:text-rose-600 ml-2"
-                                title="Batal pilih"
-                            >
-                                <X className="h-3.5 w-3.5" />
-                            </button>
+                            <div className="flex flex-wrap gap-1.5">
+                                {selectedUsers.map((u) => (
+                                    <span
+                                        key={u.id}
+                                        className="inline-flex items-center gap-1.5 rounded-full bg-white border border-emerald-200 px-2.5 py-1 text-xs font-medium text-emerald-900 shadow-2xs"
+                                    >
+                                        <span>
+                                            {formatEmployeeFullName(u)}
+                                            {u.telegram_username ? ` (@${u.telegram_username})` : ""}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleUserSelection(String(u.id))}
+                                            className="rounded-full p-0.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                                            title="Hapus penerima"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </span>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -367,7 +408,7 @@ export default function AdminNotifikasiSuper() {
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
                             maxLength={4000}
-                            placeholder="Tulis isi pesan yang akan dikirim ke Telegram user tujuan..."
+                            placeholder="Tulis isi pesan yang akan dikirim ke Telegram penerima..."
                             className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 focus:bg-white focus:border-[#0088cc] focus:ring-2 focus:ring-[#0088cc]/20 focus:outline-hidden transition"
                         />
                     </div>
@@ -376,11 +417,13 @@ export default function AdminNotifikasiSuper() {
                 <div className="flex justify-end pt-2 border-t border-slate-100">
                     <button
                         type="submit"
-                        disabled={isSending || !selectedUserId || !message.trim()}
+                        disabled={isSending || selectedUserIds.length === 0 || !message.trim()}
                         className="inline-flex items-center gap-2 rounded-xl bg-[#0088cc] px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#0077b5] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         <Send className="h-4 w-4" />
-                        {isSending ? "Mengirim..." : "Kirim Notifikasi Telegram"}
+                        {isSending
+                            ? "Mengirim..."
+                            : `Kirim Notifikasi Telegram${selectedUserIds.length > 0 ? ` (${selectedUserIds.length})` : ""}`}
                     </button>
                 </div>
             </form>
